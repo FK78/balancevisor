@@ -10,6 +10,7 @@ import {
   Tags,
   Trophy,
   TrendingUp,
+  CreditCard,
   Repeat,
   Settings,
   ChevronDown,
@@ -34,6 +35,7 @@ const moreItems = [
   { href: "/dashboard/categories", label: "Categories", icon: Tags },
   { href: "/dashboard/budgets", label: "Budgets", icon: Target },
   { href: "/dashboard/goals", label: "Goals", icon: Trophy },
+  { href: "/dashboard/debts", label: "Debts", icon: CreditCard },
   { href: "/dashboard/subscriptions", label: "Subscriptions", icon: Repeat },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
