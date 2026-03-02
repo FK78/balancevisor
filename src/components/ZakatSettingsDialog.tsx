@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { Settings, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,27 @@ export function ZakatSettingsDialog({ settings }: { settings: ZakatSettings }) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"form" | "success">("form");
   const [isPending, startTransition] = useTransition();
+  const [nisabPrices, setNisabPrices] = useState<{
+    gold: { nisabValue: number; lastUpdated: string | null };
+    silver: { nisabValue: number; lastUpdated: string | null };
+  } | null>(null);
+
+  useEffect(() => {
+    async function fetchNisabPrices() {
+      try {
+        const response = await fetch('/api/nisab-prices');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setNisabPrices(data.data);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch nisab prices:', error);
+      }
+    }
+    fetchNisabPrices();
+  }, []);
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) setView("form");
@@ -106,8 +127,12 @@ export function ZakatSettingsDialog({ settings }: { settings: ZakatSettings }) {
                     <SelectValue placeholder="Select nisab type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="gold">Gold (87.48g ≈ £5,686)</SelectItem>
-                    <SelectItem value="silver">Silver (612.36g ≈ £398)</SelectItem>
+                    <SelectItem value="gold">
+                      Gold (87.48g ≈ £{nisabPrices ? Math.round(nisabPrices.gold.nisabValue).toLocaleString() : '5,686'})
+                    </SelectItem>
+                    <SelectItem value="silver">
+                      Silver (612.36g ≈ £{nisabPrices ? Math.round(nisabPrices.silver.nisabValue).toLocaleString() : '398'})
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">

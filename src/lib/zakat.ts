@@ -2,19 +2,10 @@ import { db } from "@/index";
 import { accountsTable, debtsTable } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { getInvestmentValue } from "@/lib/investment-value";
+import { fetchGoldPrice, fetchSilverPrice, calculateNisabValue } from "@/lib/nisab-prices";
 
 // Zakat rate: 2.5% of net zakatable wealth
 const ZAKAT_RATE = 0.025;
-
-// Nisab thresholds (approximate — ideally fetched live)
-// Gold nisab: 87.48g of gold
-// Silver nisab: 612.36g of silver
-const GOLD_NISAB_GRAMS = 87.48;
-const SILVER_NISAB_GRAMS = 612.36;
-
-// Fallback prices per gram in GBP (updated periodically)
-const FALLBACK_GOLD_PRICE_PER_GRAM = 65;
-const FALLBACK_SILVER_PRICE_PER_GRAM = 0.65;
 
 export type ZakatBreakdown = {
   cashAndSavings: number;
@@ -33,12 +24,11 @@ export type ZakatBreakdown = {
 export async function getNisabValue(
   nisabType: string = "gold"
 ): Promise<number> {
-  // In a production app you'd fetch live gold/silver prices here.
-  // For now we use reasonable fallback values.
-  if (nisabType === "silver") {
-    return SILVER_NISAB_GRAMS * FALLBACK_SILVER_PRICE_PER_GRAM;
-  }
-  return GOLD_NISAB_GRAMS * FALLBACK_GOLD_PRICE_PER_GRAM;
+  const priceData = nisabType === "silver" 
+    ? await fetchSilverPrice() 
+    : await fetchGoldPrice();
+  
+  return calculateNisabValue(priceData.pricePerGram, nisabType as 'gold' | 'silver');
 }
 
 export async function calculateZakat(
