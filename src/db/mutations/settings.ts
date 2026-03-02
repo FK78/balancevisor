@@ -14,6 +14,7 @@ import {
   trading212ConnectionsTable,
   transactionsTable,
   truelayerConnectionsTable,
+  netWorthSnapshotsTable,
   userOnboardingTable,
 } from '@/db/schema';
 import { eq, inArray } from 'drizzle-orm';
@@ -80,6 +81,7 @@ export async function deleteAccount(): Promise<{ success?: boolean; error?: stri
 
   await db.transaction(async (tx) => {
     // Delete in order respecting FK constraints
+    await tx.delete(netWorthSnapshotsTable).where(eq(netWorthSnapshotsTable.user_id, userId));
     await tx.delete(budgetNotificationsTable).where(eq(budgetNotificationsTable.user_id, userId));
     await tx.delete(budgetAlertPreferencesTable).where(eq(budgetAlertPreferencesTable.user_id, userId));
     await tx.delete(subscriptionsTable).where(eq(subscriptionsTable.user_id, userId));
