@@ -10,6 +10,7 @@ import {
   Tags,
   Trophy,
   TrendingUp,
+  Repeat,
   ChevronDown,
   Menu,
 } from "lucide-react";
@@ -32,6 +33,7 @@ const moreItems = [
   { href: "/dashboard/categories", label: "Categories", icon: Tags },
   { href: "/dashboard/budgets", label: "Budgets", icon: Target },
   { href: "/dashboard/goals", label: "Goals", icon: Trophy },
+  { href: "/dashboard/subscriptions", label: "Subscriptions", icon: Repeat },
 ];
 
 const allItems = [...primaryItems, ...moreItems];

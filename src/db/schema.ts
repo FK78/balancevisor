@@ -126,6 +126,25 @@ export const manualHoldingsTable = pgTable("manual_holdings", {
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const billingCycleEnum = pgEnum("billing_cycle", ["weekly", "monthly", "quarterly", "yearly"]);
+
+export const subscriptionsTable = pgTable("subscriptions", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  user_id: uuid("user_id").notNull(),
+  name: varchar({ length: 255 }).notNull(),
+  amount: real().notNull(),
+  currency: varchar({ length: 3 }).notNull().default("GBP"),
+  billing_cycle: billingCycleEnum("billing_cycle").notNull().default("monthly"),
+  next_billing_date: date("next_billing_date").notNull(),
+  category_id: integer("category_id").references(() => categoriesTable.id),
+  url: text(),
+  notes: text(),
+  is_active: boolean("is_active").notNull().default(true),
+  color: varchar({ length: 8 }).notNull().default("#6366f1"),
+  icon: varchar({ length: 255 }),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const alertTypeEnum = pgEnum("alert_type", ["threshold_warning", "over_budget"]);
 
 export const budgetNotificationsTable = pgTable("budget_notifications", {
