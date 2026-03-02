@@ -37,8 +37,8 @@ export default async function DashboardLayout({
               href="/dashboard"
               className="flex items-center gap-2.5 text-lg font-bold tracking-tight"
             >
-              <Image src="/logo.svg" alt="Flowdget logo" width={30} height={30} />
-              Flowdget
+              <Image src="/logo.svg" alt="Wealth logo" width={30} height={30} />
+              Wealth
             </Link>
             <DashboardNav />
           </div>

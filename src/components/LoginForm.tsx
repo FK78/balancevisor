@@ -53,7 +53,7 @@ export function LoginForm({
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Welcome back</CardTitle>
           <CardDescription>
-            Sign in to your Flowdget account to continue
+            Sign in to your Wealth account to continue
           </CardDescription>
         </CardHeader>
         <CardContent>
