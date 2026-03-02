@@ -97,6 +97,30 @@ export const goalsTable = pgTable("goals", {
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const debtsTable = pgTable("debts", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  user_id: uuid("user_id").notNull(),
+  name: varchar({ length: 255 }).notNull(),
+  original_amount: real("original_amount").notNull(),
+  remaining_amount: real("remaining_amount").notNull(),
+  interest_rate: real("interest_rate").notNull().default(0),
+  minimum_payment: real("minimum_payment").notNull().default(0),
+  due_date: date("due_date"),
+  lender: varchar({ length: 255 }),
+  color: varchar({ length: 8 }).notNull().default("#ef4444"),
+  is_paid_off: boolean("is_paid_off").notNull().default(false),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const debtPaymentsTable = pgTable("debt_payments", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  debt_id: integer("debt_id").notNull().references(() => debtsTable.id, { onDelete: "cascade" }),
+  amount: real().notNull(),
+  date: date().notNull(),
+  note: text(),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const budgetAlertPreferencesTable = pgTable("budget_alert_preferences", {
     id: integer().primaryKey().generatedAlwaysAsIdentity(),
     budget_id: integer("budget_id").notNull().references(() => budgetsTable.id, { onDelete: "cascade" }),

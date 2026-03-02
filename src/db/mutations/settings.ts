@@ -14,6 +14,8 @@ import {
   trading212ConnectionsTable,
   transactionsTable,
   truelayerConnectionsTable,
+  debtsTable,
+  debtPaymentsTable,
   netWorthSnapshotsTable,
   userOnboardingTable,
 } from '@/db/schema';
@@ -81,6 +83,13 @@ export async function deleteAccount(): Promise<{ success?: boolean; error?: stri
 
   await db.transaction(async (tx) => {
     // Delete in order respecting FK constraints
+    // Delete debt payments via debt IDs
+    const userDebts = await tx.select({ id: debtsTable.id }).from(debtsTable).where(eq(debtsTable.user_id, userId));
+    const debtIds = userDebts.map(d => d.id);
+    if (debtIds.length > 0) {
+      await tx.delete(debtPaymentsTable).where(inArray(debtPaymentsTable.debt_id, debtIds));
+    }
+    await tx.delete(debtsTable).where(eq(debtsTable.user_id, userId));
     await tx.delete(netWorthSnapshotsTable).where(eq(netWorthSnapshotsTable.user_id, userId));
     await tx.delete(budgetNotificationsTable).where(eq(budgetNotificationsTable.user_id, userId));
     await tx.delete(budgetAlertPreferencesTable).where(eq(budgetAlertPreferencesTable.user_id, userId));
