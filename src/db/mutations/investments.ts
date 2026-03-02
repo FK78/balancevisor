@@ -17,6 +17,7 @@ export async function connectTrading212(formData: FormData) {
   const userId = await getCurrentUserId();
   const apiKey = formData.get("apiKey") as string;
   const environment = (formData.get("environment") as string) || "live";
+  const accountId = (formData.get("account_id") as string) || null;
 
   if (!apiKey) throw new Error("API key is required");
 
@@ -28,12 +29,14 @@ export async function connectTrading212(formData: FormData) {
       user_id: userId,
       api_key_encrypted: encrypted,
       environment,
+      account_id: accountId,
     })
     .onConflictDoUpdate({
       target: trading212ConnectionsTable.user_id,
       set: {
         api_key_encrypted: encrypted,
         environment,
+        account_id: accountId,
         connected_at: new Date(),
       },
     });
@@ -56,6 +59,8 @@ export async function addManualHolding(formData: FormData) {
   const quantity = parseFloat(formData.get("quantity") as string);
   const averagePrice = parseFloat(formData.get("averagePrice") as string);
   const currency = (formData.get("currency") as string) || "GBP";
+  const accountId = (formData.get("account_id") as string) || null;
+  const groupId = (formData.get("group_id") as string) || null;
 
   if (!ticker || !name || isNaN(quantity) || isNaN(averagePrice)) {
     throw new Error("All fields are required");
@@ -71,6 +76,8 @@ export async function addManualHolding(formData: FormData) {
     average_price: averagePrice,
     current_price: quote?.currentPrice ?? null,
     currency,
+    account_id: accountId,
+    group_id: groupId,
     last_price_update: quote ? new Date() : null,
   });
 
@@ -83,10 +90,12 @@ export async function editManualHolding(id: string, formData: FormData) {
   const name = formData.get("name") as string;
   const quantity = parseFloat(formData.get("quantity") as string);
   const averagePrice = parseFloat(formData.get("averagePrice") as string);
+  const accountId = (formData.get("account_id") as string) || null;
+  const groupId = (formData.get("group_id") as string) || null;
 
   await db
     .update(manualHoldingsTable)
-    .set({ ticker, name, quantity, average_price: averagePrice })
+    .set({ ticker, name, quantity, average_price: averagePrice, account_id: accountId, group_id: groupId })
     .where(
       and(
         eq(manualHoldingsTable.id, id),

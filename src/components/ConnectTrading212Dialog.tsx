@@ -23,7 +23,17 @@ import {
 } from "@/components/ui/dialog";
 import { connectTrading212, disconnectTrading212 } from "@/db/mutations/investments";
 
-export function ConnectTrading212Dialog({ isConnected }: { isConnected: boolean }) {
+type InvestmentAccount = { id: string; accountName: string };
+
+export function ConnectTrading212Dialog({
+  isConnected,
+  investmentAccounts = [],
+  currentAccountId,
+}: {
+  isConnected: boolean;
+  investmentAccounts?: InvestmentAccount[];
+  currentAccountId?: string | null;
+}) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"form" | "success">("form");
   const [isPending, startTransition] = useTransition();
@@ -100,6 +110,27 @@ export function ConnectTrading212Dialog({ isConnected }: { isConnected: boolean 
                     </SelectContent>
                   </Select>
                 </div>
+                {investmentAccounts.length > 0 && (
+                  <div className="grid gap-2">
+                    <Label htmlFor="account_id">Link to Account</Label>
+                    <Select name="account_id" defaultValue={currentAccountId ?? "none"}>
+                      <SelectTrigger id="account_id">
+                        <SelectValue placeholder="Select account (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No account</SelectItem>
+                        {investmentAccounts.map((a) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            {a.accountName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Link to an investment account to track holdings together.
+                    </p>
+                  </div>
+                )}
                 <DialogFooter className="gap-2">
                   <Button
                     type="button"
@@ -180,6 +211,27 @@ export function ConnectTrading212Dialog({ isConnected }: { isConnected: boolean 
                   </SelectContent>
                 </Select>
               </div>
+              {investmentAccounts.length > 0 && (
+                <div className="grid gap-2">
+                  <Label htmlFor="account_id">Link to Account</Label>
+                  <Select name="account_id" defaultValue="none">
+                    <SelectTrigger id="account_id">
+                      <SelectValue placeholder="Select account (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No account</SelectItem>
+                      {investmentAccounts.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>
+                          {a.accountName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Link to an investment account to track holdings together.
+                  </p>
+                </div>
+              )}
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
                   Cancel
