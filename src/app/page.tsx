@@ -4,16 +4,21 @@ import {
   ArrowRight,
   BarChart3,
   Bell,
+  CalendarClock,
   CreditCard,
   Filter,
   Heart,
   Landmark,
+  LineChart,
   PieChart,
   Receipt,
+  Repeat,
   Shield,
   Sparkles,
   Tag,
+  Target,
   TrendingUp,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -24,7 +29,7 @@ const features = [
     bg: "bg-emerald-100 dark:bg-emerald-900/30",
     title: "Smart Budget Tracking",
     description:
-      "Set monthly budgets per category with real-time progress bars. Get nudges before you overspend.",
+      "Set monthly or weekly budgets per category with real-time progress bars. Get nudges before you overspend.",
   },
   {
     icon: PieChart,
@@ -40,7 +45,47 @@ const features = [
     bg: "bg-violet-100 dark:bg-violet-900/30",
     title: "Multi-Account Management",
     description:
-      "Current accounts, savings, credit cards, investments — all in one cosy place.",
+      "Current accounts, savings, credit cards, and investment accounts — all in one cosy place.",
+  },
+  {
+    icon: LineChart,
+    color: "text-blue-600",
+    bg: "bg-blue-100 dark:bg-blue-900/30",
+    title: "Investment Portfolio",
+    description:
+      "Connect Trading 212 to auto-sync positions, or track manual holdings with live Yahoo Finance prices.",
+  },
+  {
+    icon: Target,
+    color: "text-pink-600",
+    bg: "bg-pink-100 dark:bg-pink-900/30",
+    title: "Savings Goals",
+    description:
+      "Set targets with deadlines, track contributions, and watch your progress bar fill up over time.",
+  },
+  {
+    icon: Wallet,
+    color: "text-red-600",
+    bg: "bg-red-100 dark:bg-red-900/30",
+    title: "Debt Tracker",
+    description:
+      "Track loans, credit cards, and finance with interest rates, minimum payments, and payoff progress.",
+  },
+  {
+    icon: CalendarClock,
+    color: "text-fuchsia-600",
+    bg: "bg-fuchsia-100 dark:bg-fuchsia-900/30",
+    title: "Subscription Manager",
+    description:
+      "Keep tabs on Netflix, Spotify, gym — see monthly and yearly costs at a glance with renewal reminders.",
+  },
+  {
+    icon: Repeat,
+    color: "text-lime-600",
+    bg: "bg-lime-100 dark:bg-lime-900/30",
+    title: "Recurring Transactions",
+    description:
+      "Set up daily, weekly, or monthly recurring income and expenses that auto-generate when due.",
   },
   {
     icon: BarChart3,
@@ -88,7 +133,7 @@ const features = [
     bg: "bg-indigo-100 dark:bg-indigo-900/30",
     title: "Net Worth Dashboard",
     description:
-      "Your complete financial picture — net worth, budgets, spending, and goals on one screen.",
+      "Your complete financial picture — net worth, investments, budgets, spending, and goals on one screen.",
   },
 ];
 
@@ -102,14 +147,14 @@ const steps = [
   {
     step: "2",
     emoji: "🏦",
-    title: "Add your accounts",
-    description: "Set up bank accounts, savings, credit cards, and investments with starting balances.",
+    title: "Set up your finances",
+    description: "Add accounts, budgets, goals, debts, subscriptions, and investments in a guided onboarding flow.",
   },
   {
     step: "3",
     emoji: "✨",
     title: "Track everything",
-    description: "Log transactions, set budgets, and watch your financial picture come to life.",
+    description: "Log transactions, watch budgets, grow investments, and crush your financial goals.",
   },
 ];
 
@@ -152,8 +197,8 @@ export default function Home() {
             </span>
           </h1>
           <p className="animate-fade-in-up mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground" style={{ animationDelay: "0.2s" }}>
-            Flowdget helps you track every penny, set budgets that actually work,
-            and see your full financial picture in one beautifully simple dashboard.
+            Flowdget helps you track spending, set budgets, manage investments,
+            crush savings goals, and see your full financial picture in one beautifully simple dashboard.
           </p>
           <div className="animate-fade-in-up mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center" style={{ animationDelay: "0.3s" }}>
             <Button asChild size="lg" className="w-full sm:w-auto text-base px-8">
@@ -172,8 +217,8 @@ export default function Home() {
       <section className="border-y border-border/60 bg-muted/40 px-6 py-14">
         <div className="mx-auto grid max-w-4xl grid-cols-2 gap-8 text-center sm:grid-cols-4">
           {[
-            { value: "9+", label: "Feature areas" },
-            { value: "4", label: "Account types" },
+            { value: "14", label: "Feature areas" },
+            { value: "5", label: "Account types" },
             { value: "6", label: "Chart views" },
             { value: "£0", label: "Forever" },
           ].map((stat) => (
