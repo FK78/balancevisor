@@ -24,10 +24,11 @@ import { revalidatePath } from 'next/cache';
 import { getCurrentUserId } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { normalizeBaseCurrency } from '@/lib/currency';
+import { sanitizeString } from '@/lib/sanitize';
 
 export async function updateDisplayName(formData: FormData) {
   const supabase = await createClient();
-  const displayName = (formData.get('display_name') as string)?.trim();
+  const displayName = sanitizeString(formData.get('display_name') as string, 100);
 
   if (!displayName) return { error: 'Display name is required.' };
 

@@ -7,28 +7,35 @@ import { revalidatePath } from 'next/cache';
 import { getCurrentUserId } from '@/lib/auth';
 import { createTransaction } from '@/db/mutations/transactions';
 import { checkBudgetAlerts } from '@/lib/budget-alerts';
+import { requireString, sanitizeNumber, sanitizeEnum, requireDate, sanitizeUUID, sanitizeURL, sanitizeString, sanitizeColor } from '@/lib/sanitize';
 
 export async function addSubscription(formData: FormData) {
   const userId = await getCurrentUserId();
-  const accountId = formData.get('account_id') as string;
-  const amount = parseFloat(formData.get('amount') as string);
-  const name = formData.get('name') as string;
-  const categoryId = (formData.get('category_id') as string) || null;
-  const nextBillingDate = formData.get('next_billing_date') as string;
+  const name = requireString(formData.get('name') as string, 'Subscription name');
+  const amount = sanitizeNumber(formData.get('amount') as string, 'Amount', { required: true, min: 0.01 });
+  const accountId = requireString(formData.get('account_id') as string, 'Account');
+  const categoryId = sanitizeUUID(formData.get('category_id') as string);
+  const nextBillingDate = requireDate(formData.get('next_billing_date') as string, 'Next billing date');
+  const currency = sanitizeEnum(formData.get('currency') as string, ['GBP', 'USD', 'EUR'] as const, 'GBP');
+  const billing_cycle = sanitizeEnum(formData.get('billing_cycle') as string, ['weekly', 'monthly', 'quarterly', 'yearly'] as const, 'monthly');
+  const url = sanitizeURL(formData.get('url') as string);
+  const notes = sanitizeString(formData.get('notes') as string, 500);
+  const color = sanitizeColor(formData.get('color') as string);
+  const icon = sanitizeString(formData.get('icon') as string, 50);
 
   const [result] = await db.insert(subscriptionsTable).values({
     user_id: userId,
     name,
     amount,
-    currency: (formData.get('currency') as string) || 'GBP',
-    billing_cycle: (formData.get('billing_cycle') as 'weekly' | 'monthly' | 'quarterly' | 'yearly') || 'monthly',
+    currency,
+    billing_cycle,
     next_billing_date: nextBillingDate,
     category_id: categoryId,
     account_id: accountId,
-    url: (formData.get('url') as string) || null,
-    notes: (formData.get('notes') as string) || null,
-    color: (formData.get('color') as string) || '#6366f1',
-    icon: (formData.get('icon') as string) || null,
+    url,
+    notes,
+    color,
+    icon,
   }).returning({ id: subscriptionsTable.id });
 
   await createTransaction({
@@ -56,20 +63,31 @@ export async function addSubscription(formData: FormData) {
 
 export async function editSubscription(id: string, formData: FormData) {
   const userId = await getCurrentUserId();
-  const accountId = formData.get('account_id') as string;
+
+  const name = requireString(formData.get('name') as string, 'Subscription name');
+  const amount = sanitizeNumber(formData.get('amount') as string, 'Amount', { required: true, min: 0.01 });
+  const accountId = requireString(formData.get('account_id') as string, 'Account');
+  const categoryId = sanitizeUUID(formData.get('category_id') as string);
+  const nextBillingDate = requireDate(formData.get('next_billing_date') as string, 'Next billing date');
+  const currency = sanitizeEnum(formData.get('currency') as string, ['GBP', 'USD', 'EUR'] as const, 'GBP');
+  const billing_cycle = sanitizeEnum(formData.get('billing_cycle') as string, ['weekly', 'monthly', 'quarterly', 'yearly'] as const, 'monthly');
+  const url = sanitizeURL(formData.get('url') as string);
+  const notes = sanitizeString(formData.get('notes') as string, 500);
+  const color = sanitizeColor(formData.get('color') as string);
+  const icon = sanitizeString(formData.get('icon') as string, 50);
 
   await db.update(subscriptionsTable).set({
-    name: formData.get('name') as string,
-    amount: parseFloat(formData.get('amount') as string),
-    currency: (formData.get('currency') as string) || 'GBP',
-    billing_cycle: (formData.get('billing_cycle') as 'weekly' | 'monthly' | 'quarterly' | 'yearly') || 'monthly',
-    next_billing_date: formData.get('next_billing_date') as string,
-    category_id: (formData.get('category_id') as string) || null,
+    name,
+    amount,
+    currency,
+    billing_cycle,
+    next_billing_date: nextBillingDate,
+    category_id: categoryId,
     account_id: accountId,
-    url: (formData.get('url') as string) || null,
-    notes: (formData.get('notes') as string) || null,
-    color: (formData.get('color') as string) || '#6366f1',
-    icon: (formData.get('icon') as string) || null,
+    url,
+    notes,
+    color,
+    icon,
   }).where(and(eq(subscriptionsTable.id, id), eq(subscriptionsTable.user_id, userId)));
 
   revalidatePath('/dashboard/subscriptions');

@@ -8,6 +8,7 @@ import { getCurrentUserId } from '@/lib/auth';
 import { checkBudgetAlerts } from '@/lib/budget-alerts';
 import { encrypt } from '@/lib/encryption';
 import { matchCategorisationRule } from '@/lib/auto-categorise';
+import { sanitizeString } from '@/lib/sanitize';
 
 type CsvColumnMapping = {
   date: number;
@@ -169,7 +170,7 @@ export async function importTransactionsFromCSV(
 
     validRows.push({
       date,
-      description: rawDesc.substring(0, 255),
+      description: sanitizeString(rawDesc, 255) ?? rawDesc.substring(0, 255),
       amount: Math.abs(amount),
       type,
     });

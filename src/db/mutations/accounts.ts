@@ -7,16 +7,21 @@ import { revalidatePath } from 'next/cache';
 import { getCurrentUserId } from '@/lib/auth';
 import { getUserBaseCurrency } from '@/db/queries/onboarding';
 import { encrypt } from '@/lib/encryption';
+import { requireString, sanitizeNumber, sanitizeEnum } from '@/lib/sanitize';
 
 export async function addAccount(formData: FormData) {
   const userId = await getCurrentUserId();
   const baseCurrency = await getUserBaseCurrency(userId);
 
+  const name = requireString(formData.get('name') as string, 'Account name');
+  const type = sanitizeEnum(formData.get('type') as string, ['currentAccount', 'savings', 'creditCard', 'investment'] as const, 'currentAccount');
+  const balance = sanitizeNumber(formData.get('balance') as string, 'Balance');
+
   const [result] = await db.insert(accountsTable).values({
     user_id: userId,
-    name: encrypt(formData.get('name') as string),
-    type: formData.get('type') as 'currentAccount' | 'savings' | 'creditCard' | 'investment',
-    balance: parseFloat(formData.get('balance') as string),
+    name: encrypt(name),
+    type,
+    balance,
     currency: baseCurrency,
   }).returning({ id: accountsTable.id });
   revalidatePath('/onboarding');
@@ -29,10 +34,14 @@ export async function editAccount(id: string, formData: FormData) {
   const userId = await getCurrentUserId();
   const baseCurrency = await getUserBaseCurrency(userId);
 
+  const name = requireString(formData.get('name') as string, 'Account name');
+  const type = sanitizeEnum(formData.get('type') as string, ['currentAccount', 'savings', 'creditCard', 'investment'] as const, 'currentAccount');
+  const balance = sanitizeNumber(formData.get('balance') as string, 'Balance');
+
   await db.update(accountsTable).set({
-    name: encrypt(formData.get('name') as string),
-    type: formData.get('type') as 'currentAccount' | 'savings' | 'creditCard' | 'investment',
-    balance: parseFloat(formData.get('balance') as string),
+    name: encrypt(name),
+    type,
+    balance,
     currency: baseCurrency,
   }).where(eq(accountsTable.id, id));
   revalidatePath('/dashboard/accounts');
