@@ -12,6 +12,7 @@ import {
   TrendingUp,
   CreditCard,
   Repeat,
+  Repeat2,
   BarChart3,
   Settings,
   ChevronDown,
@@ -41,6 +42,7 @@ const moreItems = [
   { href: "/dashboard/debts", label: "Debts", icon: CreditCard },
   { href: "/dashboard/subscriptions", label: "Subscriptions", icon: Repeat },
   { href: "/dashboard/zakat", label: "Zakat", icon: Calculator },
+  { href: "/dashboard/recurring", label: "Recurring", icon: Repeat2 },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
