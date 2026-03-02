@@ -5,6 +5,7 @@ import { transactionsTable, accountsTable } from '@/db/schema';
 import { revalidatePath } from 'next/cache';
 import { eq, and } from 'drizzle-orm';
 import { getCurrentUserId } from '@/lib/auth';
+import { requireString, sanitizeEnum, sanitizeDate } from '@/lib/sanitize';
 
 /**
  * Stop a recurring transaction — sets is_recurring to false and clears
@@ -47,9 +48,9 @@ export async function cancelRecurring(transactionId: string) {
  */
 export async function updateRecurringPattern(formData: FormData) {
   const userId = await getCurrentUserId();
-  const transactionId = formData.get('id') as string;
-  const pattern = formData.get('recurring_pattern') as string;
-  const nextDate = formData.get('next_recurring_date') as string;
+  const transactionId = requireString(formData.get('id') as string, 'Transaction ID');
+  const pattern = sanitizeEnum(formData.get('recurring_pattern') as string, ['daily', 'weekly', 'biweekly', 'monthly', 'yearly'] as const, 'monthly');
+  const nextDate = sanitizeDate(formData.get('next_recurring_date') as string);
 
   // Verify ownership
   const [txn] = await db

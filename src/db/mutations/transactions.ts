@@ -4,10 +4,12 @@ import { db } from '@/index';
 import { accountsTable, transactionsTable, transactionSplitsTable } from '@/db/schema';
 import { revalidatePath } from 'next/cache';
 import { eq, sql } from 'drizzle-orm';
-import { getCurrentUserId } from '@/lib/auth';
+import { getCurrentUserId, getCurrentUserEmail } from '@/lib/auth';
+import { hasEditAccess } from '@/db/queries/sharing';
 import { checkBudgetAlerts } from '@/lib/budget-alerts';
 import { encrypt } from '@/lib/encryption';
 import { matchCategorisationRule } from '@/lib/auto-categorise';
+import { requireString, sanitizeNumber, sanitizeEnum, requireDate, sanitizeUUID, sanitizeString } from '@/lib/sanitize';
 
 type Transaction = typeof transactionsTable.$inferInsert;
 type RecurringPattern = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
@@ -39,19 +41,27 @@ function balanceDelta(type: 'income' | 'expense' | 'transfer', amount: number) {
 }
 
 export async function addTransaction(formData: FormData) {
-  const type = formData.get('type') as 'income' | 'expense';
-  const amount = parseFloat(formData.get('amount') as string);
-  const accountId = formData.get('account_id') as string;
+  const type = sanitizeEnum(formData.get('type') as string, ['income', 'expense'] as const, 'expense');
+  const amount = sanitizeNumber(formData.get('amount') as string, 'Amount', { required: true, min: 0.01 });
+  const accountId = requireString(formData.get('account_id') as string, 'Account');
+
+  // Verify the user owns or has edit access to this account
+  const userId = await getCurrentUserId();
+  const email = await getCurrentUserEmail();
+  const canEdit = await hasEditAccess(userId, email, 'account', accountId);
+  if (!canEdit) throw new Error('You do not have access to this account');
 
   const isRecurring = formData.get('is_recurring') === 'true';
-  const recurringPattern = isRecurring ? (formData.get('recurring_pattern') as string | null) : null;
-  const txnDate = formData.get('date') as string;
+  const recurringPattern = isRecurring
+    ? sanitizeEnum(formData.get('recurring_pattern') as string, ['daily', 'weekly', 'biweekly', 'monthly', 'yearly'] as const, 'monthly')
+    : null;
+  const txnDate = requireDate(formData.get('date') as string, 'Date');
   const nextRecurringDate = isRecurring && recurringPattern && txnDate
     ? computeNextRecurringDate(txnDate, recurringPattern)
     : null;
 
-  const description = formData.get('description') as string;
-  let categoryId = (formData.get('category_id') as string) || null;
+  const description = sanitizeString(formData.get('description') as string) ?? '';
+  let categoryId = sanitizeUUID(formData.get('category_id') as string);
 
   // Auto-categorise if no category was selected
   if (!categoryId) {
@@ -79,17 +89,22 @@ export async function addTransaction(formData: FormData) {
   revalidatePath('/dashboard/transactions');
   revalidatePath('/dashboard/accounts');
 
-  const userId = await getCurrentUserId();
   await checkBudgetAlerts(userId);
 
   return result;
 }
 
 export async function editTransaction(formData: FormData) {
-  const id = formData.get('id') as string;
-  const newType = formData.get('type') as 'income' | 'expense';
-  const newAmount = parseFloat(formData.get('amount') as string);
-  const newAccountId = formData.get('account_id') as string;
+  const id = requireString(formData.get('id') as string, 'Transaction ID');
+  const newType = sanitizeEnum(formData.get('type') as string, ['income', 'expense'] as const, 'expense');
+  const newAmount = sanitizeNumber(formData.get('amount') as string, 'Amount', { required: true, min: 0.01 });
+  const newAccountId = requireString(formData.get('account_id') as string, 'Account');
+
+  // Verify access
+  const userId = await getCurrentUserId();
+  const userEmail = await getCurrentUserEmail();
+  const canEdit = await hasEditAccess(userId, userEmail, 'account', newAccountId);
+  if (!canEdit) throw new Error('You do not have access to this account');
 
   // Fetch old transaction to reverse its balance effect
   const [old] = await db.select({
@@ -99,20 +114,24 @@ export async function editTransaction(formData: FormData) {
   }).from(transactionsTable).where(eq(transactionsTable.id, id));
 
   const isRecurring = formData.get('is_recurring') === 'true';
-  const recurringPattern = isRecurring ? (formData.get('recurring_pattern') as string | null) : null;
-  const txnDate = formData.get('date') as string;
+  const recurringPattern = isRecurring
+    ? sanitizeEnum(formData.get('recurring_pattern') as string, ['daily', 'weekly', 'biweekly', 'monthly', 'yearly'] as const, 'monthly')
+    : null;
+  const txnDate = requireDate(formData.get('date') as string, 'Date');
   const nextRecurringDate = isRecurring && recurringPattern && txnDate
     ? computeNextRecurringDate(txnDate, recurringPattern)
     : null;
 
+  const editDescription = sanitizeString(formData.get('description') as string) ?? '';
+
   const [result] = await db.update(transactionsTable).set({
     type: newType,
     amount: newAmount,
-    description: encrypt(formData.get('description') as string),
+    description: encrypt(editDescription),
     is_recurring: isRecurring,
     date: txnDate,
     account_id: newAccountId,
-    category_id: (formData.get('category_id') as string) || null,
+    category_id: sanitizeUUID(formData.get('category_id') as string),
     recurring_pattern: recurringPattern as typeof transactionsTable.$inferInsert['recurring_pattern'],
     next_recurring_date: nextRecurringDate,
   }).where(eq(transactionsTable.id, id)).returning({ id: transactionsTable.id });
@@ -133,18 +152,17 @@ export async function editTransaction(formData: FormData) {
   revalidatePath('/dashboard/transactions');
   revalidatePath('/dashboard/accounts');
 
-  const userId = await getCurrentUserId();
   await checkBudgetAlerts(userId);
 
   return result;
 }
 
 export async function addTransfer(formData: FormData) {
-  const amount = parseFloat(formData.get('amount') as string);
-  const fromAccountId = formData.get('from_account_id') as string;
-  const toAccountId = formData.get('to_account_id') as string;
-  const description = formData.get('description') as string || 'Transfer';
-  const txnDate = formData.get('date') as string;
+  const amount = sanitizeNumber(formData.get('amount') as string, 'Amount', { required: true, min: 0.01 });
+  const fromAccountId = requireString(formData.get('from_account_id') as string, 'Source account');
+  const toAccountId = requireString(formData.get('to_account_id') as string, 'Destination account');
+  const description = sanitizeString(formData.get('description') as string) ?? 'Transfer';
+  const txnDate = requireDate(formData.get('date') as string, 'Date');
 
   if (fromAccountId === toAccountId) {
     throw new Error('Source and destination accounts must be different');

@@ -5,18 +5,26 @@ import { goalsTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getCurrentUserId } from '@/lib/auth';
+import { requireString, sanitizeNumber, sanitizeDate, sanitizeString, sanitizeColor } from '@/lib/sanitize';
 
 export async function addGoal(formData: FormData) {
   const userId = await getCurrentUserId();
 
+  const name = requireString(formData.get('name') as string, 'Goal name');
+  const target_amount = sanitizeNumber(formData.get('target_amount') as string, 'Target amount', { required: true, min: 0.01 });
+  const saved_amount = sanitizeNumber(formData.get('saved_amount') as string, 'Saved amount');
+  const target_date = sanitizeDate(formData.get('target_date') as string);
+  const icon = sanitizeString(formData.get('icon') as string, 50);
+  const color = sanitizeColor(formData.get('color') as string);
+
   const [result] = await db.insert(goalsTable).values({
     user_id: userId,
-    name: formData.get('name') as string,
-    target_amount: parseFloat(formData.get('target_amount') as string),
-    saved_amount: parseFloat(formData.get('saved_amount') as string) || 0,
-    target_date: (formData.get('target_date') as string) || null,
-    icon: (formData.get('icon') as string) || null,
-    color: (formData.get('color') as string) || '#6366f1',
+    name,
+    target_amount,
+    saved_amount,
+    target_date,
+    icon,
+    color,
   }).returning({ id: goalsTable.id });
   revalidatePath('/dashboard/goals');
   revalidatePath('/dashboard');
@@ -24,13 +32,20 @@ export async function addGoal(formData: FormData) {
 }
 
 export async function editGoal(id: string, formData: FormData) {
+  const name = requireString(formData.get('name') as string, 'Goal name');
+  const target_amount = sanitizeNumber(formData.get('target_amount') as string, 'Target amount', { required: true, min: 0.01 });
+  const saved_amount = sanitizeNumber(formData.get('saved_amount') as string, 'Saved amount');
+  const target_date = sanitizeDate(formData.get('target_date') as string);
+  const icon = sanitizeString(formData.get('icon') as string, 50);
+  const color = sanitizeColor(formData.get('color') as string);
+
   await db.update(goalsTable).set({
-    name: formData.get('name') as string,
-    target_amount: parseFloat(formData.get('target_amount') as string),
-    saved_amount: parseFloat(formData.get('saved_amount') as string) || 0,
-    target_date: (formData.get('target_date') as string) || null,
-    icon: (formData.get('icon') as string) || null,
-    color: (formData.get('color') as string) || '#6366f1',
+    name,
+    target_amount,
+    saved_amount,
+    target_date,
+    icon,
+    color,
   }).where(eq(goalsTable.id, id));
   revalidatePath('/dashboard/goals');
   revalidatePath('/dashboard');

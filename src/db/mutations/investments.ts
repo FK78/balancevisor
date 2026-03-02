@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUserId } from "@/lib/auth";
 import { encrypt } from "@/lib/encryption";
 import { getQuote } from "@/lib/yahoo-finance";
+import { requireString, sanitizeNumber, sanitizeEnum, sanitizeUUID } from "@/lib/sanitize";
 
 function revalidateInvestments() {
   revalidatePath("/dashboard/investments");
@@ -15,11 +16,9 @@ function revalidateInvestments() {
 
 export async function connectTrading212(formData: FormData) {
   const userId = await getCurrentUserId();
-  const apiKey = formData.get("apiKey") as string;
-  const environment = (formData.get("environment") as string) || "live";
-  const accountId = (formData.get("account_id") as string) || null;
-
-  if (!apiKey) throw new Error("API key is required");
+  const apiKey = requireString(formData.get("apiKey") as string, "API key");
+  const environment = sanitizeEnum(formData.get("environment") as string, ["live", "demo"] as const, "live");
+  const accountId = sanitizeUUID(formData.get("account_id") as string);
 
   const encrypted = encrypt(apiKey);
 
@@ -54,17 +53,13 @@ export async function disconnectTrading212() {
 
 export async function addManualHolding(formData: FormData) {
   const userId = await getCurrentUserId();
-  const ticker = (formData.get("ticker") as string).toUpperCase();
-  const name = formData.get("name") as string;
-  const quantity = parseFloat(formData.get("quantity") as string);
-  const averagePrice = parseFloat(formData.get("averagePrice") as string);
-  const currency = (formData.get("currency") as string) || "GBP";
-  const accountId = (formData.get("account_id") as string) || null;
-  const groupId = (formData.get("group_id") as string) || null;
-
-  if (!ticker || !name || isNaN(quantity) || isNaN(averagePrice)) {
-    throw new Error("All fields are required");
-  }
+  const ticker = requireString(formData.get("ticker") as string, "Ticker").toUpperCase();
+  const name = requireString(formData.get("name") as string, "Holding name");
+  const quantity = sanitizeNumber(formData.get("quantity") as string, "Quantity", { required: true, min: 0.0001 });
+  const averagePrice = sanitizeNumber(formData.get("averagePrice") as string, "Average price", { required: true, min: 0 });
+  const currency = sanitizeEnum(formData.get("currency") as string, ["GBP", "USD", "EUR"] as const, "GBP");
+  const accountId = sanitizeUUID(formData.get("account_id") as string);
+  const groupId = sanitizeUUID(formData.get("group_id") as string);
 
   const quote = await getQuote(ticker);
 
@@ -86,12 +81,12 @@ export async function addManualHolding(formData: FormData) {
 
 export async function editManualHolding(id: string, formData: FormData) {
   const userId = await getCurrentUserId();
-  const ticker = (formData.get("ticker") as string).toUpperCase();
-  const name = formData.get("name") as string;
-  const quantity = parseFloat(formData.get("quantity") as string);
-  const averagePrice = parseFloat(formData.get("averagePrice") as string);
-  const accountId = (formData.get("account_id") as string) || null;
-  const groupId = (formData.get("group_id") as string) || null;
+  const ticker = requireString(formData.get("ticker") as string, "Ticker").toUpperCase();
+  const name = requireString(formData.get("name") as string, "Holding name");
+  const quantity = sanitizeNumber(formData.get("quantity") as string, "Quantity", { required: true, min: 0.0001 });
+  const averagePrice = sanitizeNumber(formData.get("averagePrice") as string, "Average price", { required: true, min: 0 });
+  const accountId = sanitizeUUID(formData.get("account_id") as string);
+  const groupId = sanitizeUUID(formData.get("group_id") as string);
 
   await db
     .update(manualHoldingsTable)

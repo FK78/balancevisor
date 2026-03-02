@@ -5,6 +5,7 @@ import { investmentGroupsTable, manualHoldingsTable } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getCurrentUserId } from "@/lib/auth";
+import { requireString, sanitizeColor, sanitizeUUID } from "@/lib/sanitize";
 
 function revalidate() {
   revalidatePath("/dashboard/investments");
@@ -14,11 +15,9 @@ function revalidate() {
 
 export async function addInvestmentGroup(formData: FormData) {
   const userId = await getCurrentUserId();
-  const name = formData.get("name") as string;
-  const accountId = (formData.get("account_id") as string) || null;
-  const color = (formData.get("color") as string) || "#6366f1";
-
-  if (!name) throw new Error("Group name is required");
+  const name = requireString(formData.get("name") as string, "Group name");
+  const accountId = sanitizeUUID(formData.get("account_id") as string);
+  const color = sanitizeColor(formData.get("color") as string);
 
   const [result] = await db
     .insert(investmentGroupsTable)
@@ -36,12 +35,10 @@ export async function addInvestmentGroup(formData: FormData) {
 
 export async function editInvestmentGroup(formData: FormData) {
   const userId = await getCurrentUserId();
-  const groupId = formData.get("id") as string;
-  const name = formData.get("name") as string;
-  const color = (formData.get("color") as string) || "#6366f1";
-  const accountId = (formData.get("account_id") as string) || null;
-
-  if (!groupId || !name) throw new Error("Group ID and name are required");
+  const groupId = requireString(formData.get("id") as string, "Group ID");
+  const name = requireString(formData.get("name") as string, "Group name");
+  const color = sanitizeColor(formData.get("color") as string);
+  const accountId = sanitizeUUID(formData.get("account_id") as string);
 
   await db
     .update(investmentGroupsTable)
