@@ -10,6 +10,7 @@ import { getCurrentUserId } from "@/lib/auth";
 import { hasCompletedOnboarding } from "@/db/queries/onboarding";
 import { generateDueRecurringTransactions } from "@/lib/recurring-transactions";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { ChatPanel } from "@/components/ChatPanel";
 
 export default async function DashboardLayout({
   children,
@@ -41,6 +42,7 @@ export default async function DashboardLayout({
             <DashboardNav />
           </div>
           <div className="flex items-center gap-1.5">
+            <ChatPanel />
             <ThemeToggle />
             <Suspense>
               <NotificationBellServer />
