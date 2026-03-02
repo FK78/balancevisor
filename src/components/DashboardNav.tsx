@@ -16,6 +16,7 @@ import {
   Settings,
   ChevronDown,
   Menu,
+  Calculator,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +40,7 @@ const moreItems = [
   { href: "/dashboard/goals", label: "Goals", icon: Trophy },
   { href: "/dashboard/debts", label: "Debts", icon: CreditCard },
   { href: "/dashboard/subscriptions", label: "Subscriptions", icon: Repeat },
+  { href: "/dashboard/zakat", label: "Zakat", icon: Calculator },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 

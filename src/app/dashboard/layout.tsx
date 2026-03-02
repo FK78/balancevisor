@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { getCurrentUserId } from "@/lib/auth";
 import { hasCompletedOnboarding } from "@/db/queries/onboarding";
 import { generateDueRecurringTransactions } from "@/lib/recurring-transactions";
+import { autoCalculateZakatIfDue } from "@/lib/zakat-auto-check";
 import { InstallPrompt } from "@/components/InstallPrompt";
 
 export default async function DashboardLayout({
@@ -20,6 +21,7 @@ export default async function DashboardLayout({
   const [onboardingComplete] = await Promise.all([
     hasCompletedOnboarding(userId),
     generateDueRecurringTransactions(userId),
+    autoCalculateZakatIfDue(userId),
   ]);
 
   if (!onboardingComplete) {

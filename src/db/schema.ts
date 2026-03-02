@@ -203,3 +203,30 @@ export const budgetNotificationsTable = pgTable("budget_notifications", {
     emailed: boolean().notNull().default(false),
     created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 })
+
+export const zakatSettingsTable = pgTable("zakat_settings", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  user_id: uuid("user_id").notNull().unique(),
+  anniversary_date: date("anniversary_date").notNull(),
+  use_lunar_calendar: boolean("use_lunar_calendar").notNull().default(false),
+  nisab_type: varchar("nisab_type", { length: 10 }).notNull().default("gold"),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const zakatCalculationsTable = pgTable("zakat_calculations", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  user_id: uuid("user_id").notNull(),
+  calculated_at: timestamp("calculated_at", { withTimezone: true }).notNull().defaultNow(),
+  is_auto: boolean("is_auto").notNull().default(false),
+  nisab_value: real("nisab_value").notNull(),
+  total_assets: real("total_assets").notNull(),
+  cash_and_savings: real("cash_and_savings").notNull().default(0),
+  investment_value: real("investment_value").notNull().default(0),
+  total_liabilities: real("total_liabilities").notNull().default(0),
+  debt_deductions: real("debt_deductions").notNull().default(0),
+  zakatable_amount: real("zakatable_amount").notNull(),
+  zakat_due: real("zakat_due").notNull(),
+  above_nisab: boolean("above_nisab").notNull(),
+  breakdown_json: text("breakdown_json"),
+});
