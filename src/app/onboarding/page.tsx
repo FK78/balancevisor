@@ -30,6 +30,8 @@ import { addSubscription } from "@/db/mutations/subscriptions";
 import { ConnectTrading212Dialog } from "@/components/ConnectTrading212Dialog";
 import { AddHoldingDialog } from "@/components/AddHoldingDialog";
 import { RefreshPricesButton } from "@/components/RefreshPricesButton";
+import { InvestmentGroupDialog } from "@/components/InvestmentGroupDialog";
+import { DeleteGroupButton } from "@/components/DeleteGroupButton";
 import {
   completeOnboarding,
   continueFromCategories,
@@ -757,6 +759,37 @@ export default async function OnboardingPage({
                 investmentAccounts={investmentAccounts}
                 currentAccountId={t212Connection?.account_id}
               />
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Investment Groups</p>
+                  <p className="text-muted-foreground text-xs">
+                    Organise holdings into groups (e.g. &ldquo;Tech Stocks&rdquo;, &ldquo;ETFs&rdquo;, &ldquo;Retirement&rdquo;).
+                  </p>
+                </div>
+                <InvestmentGroupDialog investmentAccounts={investmentAccounts} />
+              </div>
+              {allGroups.length > 0 && (
+                <div className="space-y-2">
+                  {allGroups.map((group) => (
+                    <div key={group.id} className="flex items-center justify-between rounded-md border p-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="inline-block h-3 w-3 rounded-full"
+                          style={{ backgroundColor: group.color }}
+                        />
+                        <span className="font-medium">{group.name}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <InvestmentGroupDialog group={group} investmentAccounts={investmentAccounts} />
+                        <DeleteGroupButton group={group} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="space-y-3">
