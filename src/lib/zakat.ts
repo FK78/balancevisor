@@ -3,6 +3,7 @@ import { accountsTable, debtsTable } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { getInvestmentValue } from "@/lib/investment-value";
 import { fetchGoldPrice, fetchSilverPrice, calculateNisabValue } from "@/lib/nisab-prices";
+import { decrypt } from "@/lib/encryption";
 
 // Zakat rate: 2.5% of net zakatable wealth
 const ZAKAT_RATE = 0.025;
@@ -106,12 +107,12 @@ export async function calculateZakat(
     nisabValue,
     aboveNisab,
     accounts: accounts.map((a) => ({
-      name: a.name,
+      name: decrypt(a.name),
       type: a.type,
       balance: a.balance,
     })),
     debts: activeDebts.map((d) => ({
-      name: d.name,
+      name: decrypt(d.name),
       remainingAmount: d.remaining_amount,
     })),
   };
