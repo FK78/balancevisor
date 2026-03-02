@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { getCurrentUserId } from "@/lib/auth";
 import { hasCompletedOnboarding } from "@/db/queries/onboarding";
 import { generateDueRecurringTransactions } from "@/lib/recurring-transactions";
+import { InstallPrompt } from "@/components/InstallPrompt";
 
 export default async function DashboardLayout({
   children,
@@ -51,6 +52,7 @@ export default async function DashboardLayout({
         </div>
       </nav>
       {children}
+      <InstallPrompt />
     </div>
   );
 }

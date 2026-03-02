@@ -1,4 +1,6 @@
-const CACHE_NAME = "flowdget-v2";
+const CACHE_NAME = "flowdget-v3";
+const FONT_CACHE = "flowdget-fonts-v1";
+const OFFLINE_URL = "/offline.html";
 
 const PRECACHE_URLS = [
   "/",
@@ -6,6 +8,7 @@ const PRECACHE_URLS = [
   "/logo.svg",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
+  OFFLINE_URL,
 ];
 
 // Install — precache key assets (individually so one failure doesn't block install)
@@ -26,9 +29,10 @@ self.addEventListener("install", (event) => {
 
 // Activate — clean up old caches
 self.addEventListener("activate", (event) => {
+  const keepCaches = new Set([CACHE_NAME, FONT_CACHE]);
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+      Promise.all(keys.filter((k) => !keepCaches.has(k)).map((k) => caches.delete(k)))
     )
   );
   self.clients.claim();
@@ -43,13 +47,29 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Skip API/auth routes — always network
   const url = new URL(request.url);
+
+  // Skip API/auth routes — always network
   if (url.pathname.startsWith("/auth/") || url.pathname.startsWith("/api/")) {
     return;
   }
 
-  // Navigation requests — network first, fall back to cache
+  // Google Fonts — cache-first (fonts rarely change)
+  if (url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com") {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request).then((response) => {
+          const clone = response.clone();
+          caches.open(FONT_CACHE).then((cache) => cache.put(request, clone));
+          return response;
+        });
+      })
+    );
+    return;
+  }
+
+  // Navigation requests — network first, fall back to cache, then offline page
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
@@ -58,7 +78,9 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
           return response;
         })
-        .catch(() => caches.match(request).then((cached) => cached || caches.match("/")))
+        .catch(() =>
+          caches.match(request).then((cached) => cached || caches.match(OFFLINE_URL))
+        )
     );
     return;
   }
