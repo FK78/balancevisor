@@ -1,16 +1,19 @@
 {
   "name": "Wealth",
   "short_name": "Wealth",
-  "id": "/dashboard",
+  "id": "/",
   "lang": "en",
   "description": "Track budgets, manage accounts, and take control of your personal finances with real-time spending insights.",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#faf8f5",
   "theme_color": "#e8764b",
-  "orientation": "portrait-primary",
+  "orientation": "portrait",
   "scope": "/",
-  "categories": ["finance", "productivity"],
+  "categories": [
+    "finance",
+    "productivity"
+  ],
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -43,25 +46,49 @@
       "name": "Transactions",
       "short_name": "Transactions",
       "url": "/dashboard/transactions",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "Accounts",
       "short_name": "Accounts",
       "url": "/dashboard/accounts",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "Reports",
       "short_name": "Reports",
       "url": "/dashboard/reports",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "Budgets",
       "short_name": "Budgets",
       "url": "/dashboard/budgets",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
   ]
 }
