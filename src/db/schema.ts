@@ -145,6 +145,17 @@ export const subscriptionsTable = pgTable("subscriptions", {
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const netWorthSnapshotsTable = pgTable("net_worth_snapshots", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  user_id: uuid("user_id").notNull(),
+  date: date().notNull(),
+  net_worth: real("net_worth").notNull(),
+  total_assets: real("total_assets").notNull().default(0),
+  total_liabilities: real("total_liabilities").notNull().default(0),
+  investment_value: real("investment_value").notNull().default(0),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const alertTypeEnum = pgEnum("alert_type", ["threshold_warning", "over_budget"]);
 
 export const budgetNotificationsTable = pgTable("budget_notifications", {

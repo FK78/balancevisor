@@ -26,6 +26,8 @@ import { getBudgets } from "@/db/queries/budgets";
 import { getGoals } from "@/db/queries/goals";
 import { getInvestmentValue } from "@/lib/investment-value";
 import { getUpcomingRenewals, getActiveSubscriptionsTotals } from "@/db/queries/subscriptions";
+import { getNetWorthHistory } from "@/db/queries/net-worth";
+import { snapshotNetWorthIfNeeded } from "@/lib/snapshot-net-worth";
 import { getMonthRange } from "@/lib/date";
 import { getSummaryCards } from "@/lib/summaryCards";
 import { generateInsights } from "@/lib/insights";
@@ -38,6 +40,7 @@ import { getCurrentUserId } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { CashflowCharts } from "@/components/CashflowCharts";
+import { NetWorthChart } from "@/components/NetWorthChart";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/formatCurrency";
 import {
@@ -73,6 +76,8 @@ export default async function Home() {
     investmentValue,
     upcomingRenewals,
     subscriptionTotals,
+    ,
+    netWorthHistory,
   ] = await Promise.all([
     getLatestFiveTransactionsWithDetails(userId),
     getAccountsWithDetails(userId),
@@ -90,6 +95,8 @@ export default async function Home() {
     getInvestmentValue(userId),
     getUpcomingRenewals(userId, 14),
     getActiveSubscriptionsTotals(userId),
+    snapshotNetWorthIfNeeded(userId),
+    getNetWorthHistory(userId, 90),
   ]);
 
   const savingsBalance = accounts
@@ -226,6 +233,11 @@ export default async function Home() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Net Worth History Chart */}
+      {netWorthHistory.length >= 2 && (
+        <NetWorthChart data={netWorthHistory} currency={baseCurrency} />
       )}
 
       {/* Month progress + Summary cards */}
