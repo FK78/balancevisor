@@ -136,7 +136,19 @@ export const trading212ConnectionsTable = pgTable("trading212_connections", {
   user_id: uuid("user_id").notNull().unique(),
   api_key_encrypted: text("api_key_encrypted").notNull(),
   environment: varchar({ length: 10 }).notNull().default("live"),
+  account_id: uuid("account_id").references(() => accountsTable.id, { onDelete: "set null" }),
   connected_at: timestamp("connected_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const investmentGroupsTable = pgTable("investment_groups", {
+  id: uuid().primaryKey().defaultRandom(),
+  user_id: uuid("user_id").notNull(),
+  account_id: uuid("account_id").references(() => accountsTable.id, { onDelete: "cascade" }),
+  name: varchar({ length: 255 }).notNull(),
+  color: varchar({ length: 8 }).notNull().default("#6366f1"),
+  icon: varchar({ length: 255 }),
+  sort_order: integer("sort_order").notNull().default(0),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const manualHoldingsTable = pgTable("manual_holdings", {
@@ -148,6 +160,8 @@ export const manualHoldingsTable = pgTable("manual_holdings", {
   average_price: real("average_price").notNull(),
   current_price: real("current_price"),
   currency: varchar({ length: 3 }).notNull().default("GBP"),
+  account_id: uuid("account_id").references(() => accountsTable.id, { onDelete: "set null" }),
+  group_id: uuid("group_id").references(() => investmentGroupsTable.id, { onDelete: "set null" }),
   last_price_update: timestamp("last_price_update", { withTimezone: true }),
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

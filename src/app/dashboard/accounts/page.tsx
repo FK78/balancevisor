@@ -22,6 +22,8 @@ import { getCurrentUserId } from "@/lib/auth";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { AccountCharts } from "@/components/AccountCharts";
 import { getTrueLayerConnections } from "@/db/mutations/truelayer";
+import { getManualHoldings, getTrading212Connection } from "@/db/queries/investments";
+import Link from "next/link";
 
 const typeConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   currentAccount: { label: "Current Account", variant: "secondary" },
@@ -40,11 +42,28 @@ export const typeIcons: Record<string, typeof Wallet> = {
 export default async function Accounts() {
   const userId = await getCurrentUserId();
 
-  const [accounts, baseCurrency, truelayerConnections] = await Promise.all([
+  const [accounts, baseCurrency, truelayerConnections, manualHoldings, t212Connection] = await Promise.all([
     getAccountsWithDetails(userId),
     getUserBaseCurrency(userId),
     getTrueLayerConnections(),
+    getManualHoldings(userId),
+    getTrading212Connection(userId),
   ]);
+
+  // Build a map of account_id -> count of linked investments
+  const investmentCountByAccount = new Map<string, { manual: number; t212: boolean }>();
+  for (const h of manualHoldings) {
+    if (h.account_id) {
+      const existing = investmentCountByAccount.get(h.account_id) ?? { manual: 0, t212: false };
+      existing.manual++;
+      investmentCountByAccount.set(h.account_id, existing);
+    }
+  }
+  if (t212Connection?.account_id) {
+    const existing = investmentCountByAccount.get(t212Connection.account_id) ?? { manual: 0, t212: false };
+    existing.t212 = true;
+    investmentCountByAccount.set(t212Connection.account_id, existing);
+  }
 
   const liabilityTypes = new Set(["creditCard"]);
   const totalAssets = accounts
@@ -174,6 +193,23 @@ export default async function Accounts() {
                     {account.balance < 0 ? "−" : ""}
                     {formatCurrency(account.balance, baseCurrency)}
                   </p>
+                  {/* Linked investments for investment accounts */}
+                  {account.type === "investment" && investmentCountByAccount.has(account.id) && (() => {
+                    const info = investmentCountByAccount.get(account.id)!;
+                    const parts: string[] = [];
+                    if (info.t212) parts.push("Trading 212");
+                    if (info.manual > 0) parts.push(`${info.manual} manual holding${info.manual !== 1 ? "s" : ""}`);
+                    return (
+                      <Link
+                        href="/dashboard/investments"
+                        className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <TrendingUp className="h-3 w-3" />
+                        {parts.join(" · ")}
+                      </Link>
+                    );
+                  })()}
+
                   {/* Balance bar relative to total assets */}
                   <div className="mt-3">
                     <div className="bg-muted h-2 w-full overflow-hidden rounded-full">

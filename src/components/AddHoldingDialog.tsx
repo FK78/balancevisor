@@ -14,8 +14,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { addManualHolding, editManualHolding } from "@/db/mutations/investments";
 import { searchTickers } from "@/db/queries/investments";
+
+type InvestmentAccount = { id: string; accountName: string };
+type InvestmentGroupOption = { id: string; name: string; color: string; account_id: string | null };
 
 type Holding = {
   id: string;
@@ -23,6 +33,8 @@ type Holding = {
   name: string;
   quantity: number;
   average_price: number;
+  account_id?: string | null;
+  group_id?: string | null;
 };
 
 type SearchResult = {
@@ -31,7 +43,15 @@ type SearchResult = {
   exchange?: string;
 };
 
-export function AddHoldingDialog({ holding }: { holding?: Holding }) {
+export function AddHoldingDialog({
+  holding,
+  investmentAccounts = [],
+  groups = [],
+}: {
+  holding?: Holding;
+  investmentAccounts?: InvestmentAccount[];
+  groups?: InvestmentGroupOption[];
+}) {
   const isEdit = !!holding;
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"form" | "success">("form");
@@ -247,6 +267,50 @@ export function AddHoldingDialog({ holding }: { holding?: Holding }) {
                   required
                 />
               </div>
+
+              {investmentAccounts.length > 0 && (
+                <div className="grid gap-2">
+                  <Label htmlFor="account_id">Account</Label>
+                  <Select name="account_id" defaultValue={holding?.account_id ?? "none"}>
+                    <SelectTrigger id="account_id">
+                      <SelectValue placeholder="Select account (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No account</SelectItem>
+                      {investmentAccounts.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>
+                          {a.accountName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {groups.length > 0 && (
+                <div className="grid gap-2">
+                  <Label htmlFor="group_id">Group / Pie</Label>
+                  <Select name="group_id" defaultValue={holding?.group_id ?? "none"}>
+                    <SelectTrigger id="group_id">
+                      <SelectValue placeholder="Select group (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Ungrouped</SelectItem>
+                      {groups.map((g) => (
+                        <SelectItem key={g.id} value={g.id}>
+                          <span className="flex items-center gap-2">
+                            <span
+                              className="inline-block h-2 w-2 rounded-full"
+                              style={{ backgroundColor: g.color }}
+                            />
+                            {g.name}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <input type="hidden" name="ticker" value={selectedTicker} />
               <input type="hidden" name="name" value={selectedName} />

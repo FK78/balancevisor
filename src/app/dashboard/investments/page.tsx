@@ -21,10 +21,13 @@ import {
   BarChart3,
   Wallet,
   AlertTriangle,
+  Folder,
 } from "lucide-react";
 import { getCurrentUserId } from "@/lib/auth";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { getTrading212Connection, getManualHoldings } from "@/db/queries/investments";
+import { getAccountsWithDetails } from "@/db/queries/accounts";
+import { getGroupsByUser } from "@/db/queries/investment-groups";
 import { getT212AccountSummary, getT212Positions, type T212Position } from "@/lib/trading212";
 import { getQuotes } from "@/lib/yahoo-finance";
 import { decrypt } from "@/lib/encryption";
@@ -34,6 +37,8 @@ import { AddHoldingDialog } from "@/components/AddHoldingDialog";
 import { DeleteHoldingButton } from "@/components/DeleteHoldingButton";
 import { RefreshPricesButton } from "@/components/RefreshPricesButton";
 import { InvestmentCharts } from "@/components/InvestmentCharts";
+import { InvestmentGroupDialog } from "@/components/InvestmentGroupDialog";
+import { DeleteGroupButton } from "@/components/DeleteGroupButton";
 
 type NormalisedHolding = {
   id: string;
@@ -48,16 +53,34 @@ type NormalisedHolding = {
   gainLoss: number;
   gainLossPercent: number;
   manualId?: string;
+  accountId?: string | null;
+  accountName?: string | null;
+  groupId?: string | null;
+  groupName?: string | null;
+  groupColor?: string | null;
 };
 
 export default async function InvestmentsPage() {
   const userId = await getCurrentUserId();
 
-  const [t212Connection, manualHoldings, baseCurrency] = await Promise.all([
+  const [t212Connection, manualHoldings, baseCurrency, allAccounts, allGroups] = await Promise.all([
     getTrading212Connection(userId),
     getManualHoldings(userId),
     getUserBaseCurrency(userId),
+    getAccountsWithDetails(userId),
+    getGroupsByUser(userId),
   ]);
+
+  const groupMap = new Map(allGroups.map((g) => [g.id, g]));
+  const groupOptions = allGroups.map((g) => ({ id: g.id, name: g.name, color: g.color, account_id: g.account_id }));
+
+  const investmentAccounts = allAccounts
+    .filter((a) => a.type === "investment")
+    .map((a) => ({ id: a.id, accountName: a.accountName }));
+
+  const t212AccountName = t212Connection?.account_id
+    ? investmentAccounts.find((a) => a.id === t212Connection.account_id)?.accountName ?? null
+    : null;
 
   const isT212Connected = !!t212Connection;
 
@@ -116,6 +139,8 @@ export default async function InvestmentsPage() {
       value,
       gainLoss,
       gainLossPercent,
+      accountId: t212Connection?.account_id,
+      accountName: t212AccountName,
     });
   }
 
@@ -141,6 +166,11 @@ export default async function InvestmentsPage() {
       gainLoss,
       gainLossPercent,
       manualId: h.id,
+      accountId: h.account_id,
+      accountName: h.accountName,
+      groupId: h.group_id,
+      groupName: h.group_id ? groupMap.get(h.group_id)?.name ?? null : null,
+      groupColor: h.group_id ? groupMap.get(h.group_id)?.color ?? null : null,
     });
   }
 
@@ -163,8 +193,13 @@ export default async function InvestmentsPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <ConnectTrading212Dialog isConnected={isT212Connected} />
-          <AddHoldingDialog />
+          <ConnectTrading212Dialog
+            isConnected={isT212Connected}
+            investmentAccounts={investmentAccounts}
+            currentAccountId={t212Connection?.account_id}
+          />
+          <InvestmentGroupDialog investmentAccounts={investmentAccounts} />
+          <AddHoldingDialog investmentAccounts={investmentAccounts} groups={groupOptions} />
           {manualHoldings.length > 0 && <RefreshPricesButton />}
         </div>
       </div>
@@ -266,116 +301,219 @@ export default async function InvestmentsPage() {
               </p>
             </div>
             <div className="flex gap-2">
-              <ConnectTrading212Dialog isConnected={false} />
-              <AddHoldingDialog />
+              <ConnectTrading212Dialog isConnected={false} investmentAccounts={investmentAccounts} />
+              <AddHoldingDialog investmentAccounts={investmentAccounts} groups={groupOptions} />
             </div>
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Holdings</CardTitle>
-            <CardDescription>
-              {(() => {
-                const t212Count = holdings.filter((h) => h.source === "trading212").length;
-                const manualCount = holdings.filter((h) => h.source === "manual").length;
-                return [
-                  t212Count > 0 && `${t212Count} from Trading 212`,
-                  manualCount > 0 && `${manualCount} manual`,
-                ].filter(Boolean).join(" · ");
-              })()}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Holding</TableHead>
-                  <TableHead className="text-right">Shares</TableHead>
-                  <TableHead className="text-right">Avg Price</TableHead>
-                  <TableHead className="text-right">Current</TableHead>
-                  <TableHead className="text-right">Value</TableHead>
-                  <TableHead className="text-right">Gain / Loss</TableHead>
-                  <TableHead className="w-[80px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedHoldings.map((h) => (
-                  <TableRow key={h.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div>
-                          <p className="font-medium">{h.ticker}</p>
-                          <p className="text-xs text-muted-foreground truncate max-w-[180px]">
-                            {h.name}
-                          </p>
+        <div className="space-y-6">
+          {/* Group by account */}
+          {(() => {
+            // Build hierarchy: account -> groups -> holdings
+            type AccountSection = {
+              accountId: string | null;
+              accountName: string | null;
+              groups: { group: typeof allGroups[number] | null; holdings: NormalisedHolding[] }[];
+            };
+
+            // Collect unique account IDs from holdings
+            const accountIds = [...new Set(sortedHoldings.map((h) => h.accountId ?? "__none__"))];
+            const sections: AccountSection[] = accountIds.map((aid) => {
+              const accountHoldings = sortedHoldings.filter(
+                (h) => (h.accountId ?? "__none__") === aid
+              );
+              const acctName = accountHoldings[0]?.accountName ?? null;
+              const realAid = aid === "__none__" ? null : aid;
+
+              // Groups within this account
+              const accountGroups = allGroups.filter(
+                (g) => g.account_id === realAid
+              );
+
+              const groupSections: AccountSection["groups"] = [];
+
+              for (const group of accountGroups) {
+                const groupHoldings = accountHoldings.filter(
+                  (h) => h.groupId === group.id
+                );
+                if (groupHoldings.length > 0) {
+                  groupSections.push({ group, holdings: groupHoldings });
+                } else {
+                  // Show empty group so user can see it
+                  groupSections.push({ group, holdings: [] });
+                }
+              }
+
+              // Ungrouped holdings
+              const ungrouped = accountHoldings.filter(
+                (h) => !h.groupId || !accountGroups.some((g) => g.id === h.groupId)
+              );
+              if (ungrouped.length > 0) {
+                groupSections.push({ group: null, holdings: ungrouped });
+              }
+
+              return { accountId: realAid, accountName: acctName, groups: groupSections };
+            });
+
+            return sections.map((section) => (
+              <Card key={section.accountId ?? "unlinked"}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-lg">
+                        {section.accountName ?? "Unlinked Holdings"}
+                      </CardTitle>
+                      <CardDescription>
+                        {section.groups.reduce((s, g) => s + g.holdings.length, 0)} holding{section.groups.reduce((s, g) => s + g.holdings.length, 0) !== 1 ? "s" : ""}
+                        {section.groups.filter((g) => g.group).length > 0 &&
+                          ` · ${section.groups.filter((g) => g.group).length} group${section.groups.filter((g) => g.group).length !== 1 ? "s" : ""}`}
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {section.groups.map((gs) => (
+                    <div key={gs.group?.id ?? "ungrouped"}>
+                      {/* Group header */}
+                      {gs.group ? (
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="flex h-7 w-7 items-center justify-center rounded-lg"
+                              style={{ backgroundColor: gs.group.color + "20" }}
+                            >
+                              <Folder className="h-3.5 w-3.5" style={{ color: gs.group.color }} />
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold">{gs.group.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {gs.holdings.length} holding{gs.holdings.length !== 1 ? "s" : ""}
+                                {gs.holdings.length > 0 && (
+                                  <> · {formatCurrency(gs.holdings.reduce((s, h) => s + h.value, 0), baseCurrency)} total</>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-0.5">
+                            <InvestmentGroupDialog
+                              group={{ id: gs.group.id, name: gs.group.name, color: gs.group.color, account_id: gs.group.account_id }}
+                              investmentAccounts={investmentAccounts}
+                            />
+                            <DeleteGroupButton group={{ id: gs.group.id, name: gs.group.name }} />
+                          </div>
                         </div>
-                        <Badge
-                          variant={h.source === "trading212" ? "default" : "secondary"}
-                          className="text-[10px] shrink-0"
-                        >
-                          {h.source === "trading212" ? "T212" : "Manual"}
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {h.quantity.toFixed(h.quantity % 1 === 0 ? 0 : 4)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatCurrency(h.averagePrice, h.currency)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatCurrency(h.currentPrice, h.currency)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums font-medium">
-                      {formatCurrency(h.value, baseCurrency)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span
-                        className={`tabular-nums text-sm font-medium ${
-                          h.gainLoss >= 0 ? "text-emerald-600" : "text-red-600"
-                        }`}
-                      >
-                        {h.gainLoss >= 0 ? "+" : "−"}
-                        {formatCurrency(Math.abs(h.gainLoss), baseCurrency)}
-                      </span>
-                      <p
-                        className={`text-xs ${
-                          h.gainLossPercent >= 0 ? "text-emerald-600" : "text-red-600"
-                        }`}
-                      >
-                        {h.gainLossPercent >= 0 ? "+" : ""}
-                        {h.gainLossPercent.toFixed(2)}%
-                      </p>
-                    </TableCell>
-                    <TableCell>
-                      {h.source === "manual" && h.manualId && (
-                        <div className="flex items-center gap-1 justify-end">
-                          <AddHoldingDialog
-                            holding={{
-                              id: h.manualId,
-                              ticker: h.ticker,
-                              name: h.name,
-                              quantity: h.quantity,
-                              average_price: h.averagePrice,
-                            }}
-                          />
-                          <DeleteHoldingButton
-                            holding={{
-                              id: h.manualId,
-                              ticker: h.ticker,
-                              name: h.name,
-                            }}
-                          />
+                      ) : section.groups.some((g) => g.group) ? (
+                        <div className="mb-3">
+                          <p className="text-sm font-semibold text-muted-foreground">Individual Holdings</p>
                         </div>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                      ) : null}
+
+                      {/* Holdings table for this group */}
+                      {gs.holdings.length > 0 ? (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Holding</TableHead>
+                              <TableHead className="text-right">Shares</TableHead>
+                              <TableHead className="text-right">Avg Price</TableHead>
+                              <TableHead className="text-right">Current</TableHead>
+                              <TableHead className="text-right">Value</TableHead>
+                              <TableHead className="text-right">Gain / Loss</TableHead>
+                              <TableHead className="w-[80px]"></TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {gs.holdings.map((h) => (
+                              <TableRow key={h.id}>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <div>
+                                      <p className="font-medium">{h.ticker}</p>
+                                      <p className="text-xs text-muted-foreground truncate max-w-[180px]">
+                                        {h.name}
+                                      </p>
+                                    </div>
+                                    <Badge
+                                      variant={h.source === "trading212" ? "default" : "secondary"}
+                                      className="text-[10px] shrink-0"
+                                    >
+                                      {h.source === "trading212" ? "T212" : "Manual"}
+                                    </Badge>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums">
+                                  {h.quantity.toFixed(h.quantity % 1 === 0 ? 0 : 4)}
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums">
+                                  {formatCurrency(h.averagePrice, h.currency)}
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums">
+                                  {formatCurrency(h.currentPrice, h.currency)}
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums font-medium">
+                                  {formatCurrency(h.value, baseCurrency)}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <span
+                                    className={`tabular-nums text-sm font-medium ${
+                                      h.gainLoss >= 0 ? "text-emerald-600" : "text-red-600"
+                                    }`}
+                                  >
+                                    {h.gainLoss >= 0 ? "+" : "−"}
+                                    {formatCurrency(Math.abs(h.gainLoss), baseCurrency)}
+                                  </span>
+                                  <p
+                                    className={`text-xs ${
+                                      h.gainLossPercent >= 0 ? "text-emerald-600" : "text-red-600"
+                                    }`}
+                                  >
+                                    {h.gainLossPercent >= 0 ? "+" : ""}
+                                    {h.gainLossPercent.toFixed(2)}%
+                                  </p>
+                                </TableCell>
+                                <TableCell>
+                                  {h.source === "manual" && h.manualId && (
+                                    <div className="flex items-center gap-1 justify-end">
+                                      <AddHoldingDialog
+                                        holding={{
+                                          id: h.manualId,
+                                          ticker: h.ticker,
+                                          name: h.name,
+                                          quantity: h.quantity,
+                                          average_price: h.averagePrice,
+                                          account_id: h.accountId,
+                                          group_id: h.groupId,
+                                        }}
+                                        investmentAccounts={investmentAccounts}
+                                        groups={groupOptions}
+                                      />
+                                      <DeleteHoldingButton
+                                        holding={{
+                                          id: h.manualId,
+                                          ticker: h.ticker,
+                                          name: h.name,
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      ) : gs.group ? (
+                        <p className="text-xs text-muted-foreground italic py-2 pl-9">
+                          No holdings in this group yet.
+                        </p>
+                      ) : null}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            ));
+          })()}
+        </div>
       )}
     </div>
   );
