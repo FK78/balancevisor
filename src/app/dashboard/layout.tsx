@@ -11,7 +11,7 @@ import { hasCompletedOnboarding } from "@/db/queries/onboarding";
 import { generateDueRecurringTransactions } from "@/lib/recurring-transactions";
 import { autoCalculateZakatIfDue } from "@/lib/zakat-auto-check";
 import { InstallPrompt } from "@/components/InstallPrompt";
-import { ChatPanel } from "@/components/ChatPanel";
+import { ChatPanelWrapper as ChatPanel } from "@/components/ChatPanelWrapper";
 
 export default async function DashboardLayout({
   children,
