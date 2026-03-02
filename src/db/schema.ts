@@ -205,7 +205,7 @@ export const budgetNotificationsTable = pgTable("budget_notifications", {
 })
 
 export const zakatSettingsTable = pgTable("zakat_settings", {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  id: uuid().primaryKey().defaultRandom(),
   user_id: uuid("user_id").notNull().unique(),
   anniversary_date: date("anniversary_date").notNull(),
   use_lunar_calendar: boolean("use_lunar_calendar").notNull().default(false),
@@ -215,7 +215,7 @@ export const zakatSettingsTable = pgTable("zakat_settings", {
 });
 
 export const zakatCalculationsTable = pgTable("zakat_calculations", {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  id: uuid().primaryKey().defaultRandom(),
   user_id: uuid("user_id").notNull(),
   calculated_at: timestamp("calculated_at", { withTimezone: true }).notNull().defaultNow(),
   is_auto: boolean("is_auto").notNull().default(false),
