@@ -13,11 +13,14 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { importFromTrueLayer, disconnectTrueLayer } from '@/db/mutations/truelayer';
+import { formatTimeAgo } from '@/lib/formatTimeAgo';
+import { toast } from 'sonner';
 
 type Connection = {
   id: string;
   provider_name: string | null;
   connected_at: Date;
+  last_synced_at: Date | null;
 };
 
 type ImportResult = {
@@ -39,8 +42,12 @@ export function ConnectBankButton({ connections }: { connections: Connection[] }
       try {
         const res = await importFromTrueLayer();
         setResult(res);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Import failed');
+        toast.success(
+          `Imported ${res.accountsImported} account${res.accountsImported !== 1 ? 's' : ''}, ${res.transactionsImported} transaction${res.transactionsImported !== 1 ? 's' : ''}`,
+        );
+      } catch {
+        setError('Bank sync failed. Please try again or reconnect your bank.');
+        toast.error('Bank sync failed');
       }
     });
   }
@@ -48,6 +55,7 @@ export function ConnectBankButton({ connections }: { connections: Connection[] }
   function handleDisconnect(connectionId: string) {
     startDisconnect(async () => {
       await disconnectTrueLayer(connectionId);
+      toast.success('Bank disconnected');
     });
   }
 
@@ -94,7 +102,9 @@ export function ConnectBankButton({ connections }: { connections: Connection[] }
                         {conn.provider_name ?? 'Bank Account'}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Connected {new Date(conn.connected_at).toLocaleDateString()}
+                        {conn.last_synced_at
+                          ? `Synced ${formatTimeAgo(new Date(conn.last_synced_at))}`
+                          : `Connected ${new Date(conn.connected_at).toLocaleDateString()}`}
                       </p>
                     </div>
                   </div>
