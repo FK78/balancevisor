@@ -75,7 +75,7 @@ export function buildAuthLink(): string {
     client_id: clientId,
     scope: "info accounts balance transactions offline_access",
     redirect_uri: redirectUri,
-    providers: "uk-ob-all uk-oauth-all uk-cs-mock",
+    providers: "uk-ob-amex uk-ob-bos uk-ob-barclays uk-ob-chelsea-building-society uk-ob-danske uk-ob-first-direct uk-ob-halifax uk-ob-hsbc uk-ob-hsbc-business uk-ob-lloyds uk-ob-ms uk-ob-mbna uk-ob-monzo uk-ob-nationwide uk-ob-natwest uk-ob-revolut uk-ob-rbs uk-ob-santander uk-ob-tesco uk-ob-tide uk-ob-tsb uk-ob-transferwise uk-ob-yorkshire-building-society uk-ob-ulster uk-oauth-all",
     nonce: Math.random().toString(36).slice(2),
   });
 
