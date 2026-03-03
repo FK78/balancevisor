@@ -17,23 +17,27 @@ function revalidateInvestments() {
 export async function connectTrading212(formData: FormData) {
   const userId = await getCurrentUserId();
   const apiKey = requireString(formData.get("apiKey") as string, "API key");
+  const apiSecret = requireString(formData.get("apiSecret") as string, "API secret");
   const environment = sanitizeEnum(formData.get("environment") as string, ["live", "demo"] as const, "live");
   const accountId = sanitizeUUID(formData.get("account_id") as string);
 
-  const encrypted = encrypt(apiKey);
+  const encryptedKey = encrypt(apiKey);
+  const encryptedSecret = encrypt(apiSecret);
 
   await db
     .insert(trading212ConnectionsTable)
     .values({
       user_id: userId,
-      api_key_encrypted: encrypted,
+      api_key_encrypted: encryptedKey,
+      api_secret_encrypted: encryptedSecret,
       environment,
       account_id: accountId,
     })
     .onConflictDoUpdate({
       target: trading212ConnectionsTable.user_id,
       set: {
-        api_key_encrypted: encrypted,
+        api_key_encrypted: encryptedKey,
+        api_secret_encrypted: encryptedSecret,
         environment,
         account_id: accountId,
         connected_at: new Date(),
