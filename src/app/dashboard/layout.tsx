@@ -12,6 +12,7 @@ import { generateDueRecurringTransactions } from "@/lib/recurring-transactions";
 import { autoCalculateZakatIfDue } from "@/lib/zakat-auto-check";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { ChatPanelWrapper as ChatPanel } from "@/components/ChatPanelWrapper";
+import { BankSyncTrigger } from "@/components/BankSyncTrigger";
 
 export default async function DashboardLayout({
   children,
@@ -57,6 +58,7 @@ export default async function DashboardLayout({
       </nav>
       {children}
       <InstallPrompt />
+      <BankSyncTrigger />
     </div>
   );
 }

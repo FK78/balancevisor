@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { exchangeCode } from '@/lib/truelayer';
-import { saveTrueLayerConnection } from '@/db/mutations/truelayer';
+import { saveTrueLayerConnection, importFromTrueLayer } from '@/db/mutations/truelayer';
 import { getCurrentUserId } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
@@ -22,6 +22,13 @@ export async function GET(request: NextRequest) {
     const tokens = await exchangeCode(code);
 
     await saveTrueLayerConnection(userId, tokens);
+
+    // Auto-import accounts & transactions immediately after connecting
+    try {
+      await importFromTrueLayer();
+    } catch {
+      // Non-critical: user can manually import later
+    }
 
     return NextResponse.redirect(
       `${siteUrl}/dashboard/accounts?truelayer_connected=true`,

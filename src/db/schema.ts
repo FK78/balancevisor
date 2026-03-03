@@ -30,6 +30,7 @@ export const truelayerConnectionsTable = pgTable("truelayer_connections", {
   token_expires_at: timestamp("token_expires_at", { withTimezone: true }).notNull(),
   provider_name: varchar("provider_name", { length: 255 }),
   connected_at: timestamp("connected_at", { withTimezone: true }).notNull().defaultNow(),
+  last_synced_at: timestamp("last_synced_at", { withTimezone: true }),
 });
 
 export const accountsTable = pgTable("accounts", {
