@@ -73,7 +73,7 @@ export function ConnectBankButton({ connections }: { connections: Connection[] }
         <DialogHeader>
           <DialogTitle>Open Banking</DialogTitle>
           <DialogDescription>
-            Connect your bank via TrueLayer to automatically import accounts and transactions.
+            Connect your bank via TrueLayer to automatically import accounts and transactions. Transactions sync automatically on each login.
           </DialogDescription>
         </DialogHeader>
 
@@ -152,7 +152,7 @@ export function ConnectBankButton({ connections }: { connections: Connection[] }
               ) : (
                 <Download className="mr-1 h-4 w-4" />
               )}
-              {importing ? 'Importing…' : 'Import Transactions'}
+              {importing ? 'Syncing…' : 'Sync Now (Manual)'}
             </Button>
           )}
         </DialogFooter>

@@ -250,11 +250,59 @@ export async function importFromTrueLayer() {
     }
   }
 
+  // Update last_synced_at for all connections
+  for (const connection of connections) {
+    await db
+      .update(truelayerConnectionsTable)
+      .set({ last_synced_at: new Date() })
+      .where(eq(truelayerConnectionsTable.id, connection.id));
+  }
+
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/accounts");
   revalidatePath("/dashboard/transactions");
 
   return { accountsImported, transactionsImported };
+}
+
+// ---------------------------------------------------------------------------
+// Auto-sync: only import if last sync was more than 1 hour ago
+// ---------------------------------------------------------------------------
+
+const SYNC_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+
+export async function syncBankIfNeeded(): Promise<{ synced: boolean; accountsImported: number; transactionsImported: number }> {
+  const userId = await getCurrentUserId();
+
+  const connections = await db
+    .select({
+      id: truelayerConnectionsTable.id,
+      last_synced_at: truelayerConnectionsTable.last_synced_at,
+    })
+    .from(truelayerConnectionsTable)
+    .where(eq(truelayerConnectionsTable.user_id, userId));
+
+  if (connections.length === 0) {
+    return { synced: false, accountsImported: 0, transactionsImported: 0 };
+  }
+
+  // Check if any connection is stale (never synced or synced > 1 hour ago)
+  const now = Date.now();
+  const needsSync = connections.some(
+    (c) => !c.last_synced_at || now - c.last_synced_at.getTime() > SYNC_INTERVAL_MS
+  );
+
+  if (!needsSync) {
+    return { synced: false, accountsImported: 0, transactionsImported: 0 };
+  }
+
+  try {
+    const result = await importFromTrueLayer();
+    return { synced: true, ...result };
+  } catch {
+    // Auto-sync failed — non-critical, don't break the page
+    return { synced: false, accountsImported: 0, transactionsImported: 0 };
+  }
 }
 
 // ---------------------------------------------------------------------------
