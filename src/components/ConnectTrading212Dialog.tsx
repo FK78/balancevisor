@@ -99,6 +99,16 @@ export function ConnectTrading212Dialog({
                   />
                 </div>
                 <div className="grid gap-2">
+                  <Label htmlFor="apiSecret">New API Secret</Label>
+                  <Input
+                    id="apiSecret"
+                    name="apiSecret"
+                    type="password"
+                    placeholder="Paste new API secret to reconnect"
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
                   <Label htmlFor="environment">Environment</Label>
                   <Select name="environment" defaultValue="live">
                     <SelectTrigger id="environment">
@@ -186,8 +196,18 @@ export function ConnectTrading212Dialog({
                   placeholder="Paste your Trading 212 API key"
                   required
                 />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="apiSecret">API Secret</Label>
+                <Input
+                  id="apiSecret"
+                  name="apiSecret"
+                  type="password"
+                  placeholder="Paste your Trading 212 API secret"
+                  required
+                />
                 <p className="text-xs text-muted-foreground">
-                  Generate an API key from{" "}
+                  Generate your API key and secret from{" "}
                   <a
                     href="https://app.trading212.com/settings/api"
                     target="_blank"

@@ -92,9 +92,10 @@ export default async function InvestmentsPage() {
   if (isT212Connected) {
     try {
       const apiKey = decrypt(t212Connection.api_key_encrypted);
+      const apiSecret = decrypt(t212Connection.api_secret_encrypted);
       const [summary, positions] = await Promise.all([
-        getT212AccountSummary(apiKey, t212Connection.environment),
-        getT212Positions(apiKey, t212Connection.environment),
+        getT212AccountSummary(apiKey, apiSecret, t212Connection.environment),
+        getT212Positions(apiKey, apiSecret, t212Connection.environment),
       ]);
       t212Positions = positions;
       t212Cash = summary.cash.availableToTrade;

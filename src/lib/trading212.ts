@@ -43,10 +43,11 @@ const BASE_URLS: Record<string, string> = {
   demo: "https://demo.trading212.com/api/v0",
 };
 
-async function t212Fetch<T>(apiKey: string, environment: string, path: string): Promise<T> {
+async function t212Fetch<T>(apiKey: string, apiSecret: string, environment: string, path: string): Promise<T> {
   const baseUrl = BASE_URLS[environment] ?? BASE_URLS.live;
+  const credentials = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64");
   const res = await fetch(`${baseUrl}${path}`, {
-    headers: { Authorization: apiKey },
+    headers: { Authorization: `Basic ${credentials}` },
     next: { revalidate: 0 },
   });
 
@@ -60,14 +61,16 @@ async function t212Fetch<T>(apiKey: string, environment: string, path: string): 
 
 export async function getT212AccountSummary(
   apiKey: string,
+  apiSecret: string,
   environment: string = "live",
 ): Promise<T212AccountSummary> {
-  return t212Fetch<T212AccountSummary>(apiKey, environment, "/equity/account/summary");
+  return t212Fetch<T212AccountSummary>(apiKey, apiSecret, environment, "/equity/account/summary");
 }
 
 export async function getT212Positions(
   apiKey: string,
+  apiSecret: string,
   environment: string = "live",
 ): Promise<T212Position[]> {
-  return t212Fetch<T212Position[]>(apiKey, environment, "/equity/positions");
+  return t212Fetch<T212Position[]>(apiKey, apiSecret, environment, "/equity/positions");
 }

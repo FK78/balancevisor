@@ -135,6 +135,7 @@ export const trading212ConnectionsTable = pgTable("trading212_connections", {
   id: uuid().primaryKey().defaultRandom(),
   user_id: uuid("user_id").notNull().unique(),
   api_key_encrypted: text("api_key_encrypted").notNull(),
+  api_secret_encrypted: text("api_secret_encrypted").notNull().default(""),
   environment: varchar({ length: 10 }).notNull().default("live"),
   account_id: uuid("account_id").references(() => accountsTable.id, { onDelete: "set null" }),
   connected_at: timestamp("connected_at", { withTimezone: true }).notNull().defaultNow(),

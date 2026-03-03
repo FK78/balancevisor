@@ -14,7 +14,8 @@ export async function getInvestmentValue(userId: string): Promise<number> {
   if (t212Connection) {
     try {
       const apiKey = decrypt(t212Connection.api_key_encrypted);
-      const summary = await getT212AccountSummary(apiKey, t212Connection.environment);
+      const apiSecret = decrypt(t212Connection.api_secret_encrypted);
+      const summary = await getT212AccountSummary(apiKey, apiSecret, t212Connection.environment);
       value += summary.totalValue;
     } catch { /* T212 fetch failed — skip */ }
   }
