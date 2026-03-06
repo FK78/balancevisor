@@ -181,9 +181,9 @@ export default function Home() {
 
       {/* Hero */}
       <header className="relative overflow-hidden px-6 py-24 sm:py-32 lg:py-40">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(232,118,75,0.08),transparent)]" />
-        <div className="absolute top-20 left-1/4 -z-10 h-72 w-72 rounded-full bg-amber-200/20 blur-3xl" />
-        <div className="absolute bottom-10 right-1/4 -z-10 h-64 w-64 rounded-full bg-rose-200/20 blur-3xl" />
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(99,102,241,0.08),transparent)]" />
+        <div className="absolute top-20 left-1/4 -z-10 h-72 w-72 rounded-full bg-indigo-200/20 blur-3xl" />
+        <div className="absolute bottom-10 right-1/4 -z-10 h-64 w-64 rounded-full bg-cyan-200/20 blur-3xl" />
 
         <div className="mx-auto max-w-3xl text-center">
           <div className="animate-fade-in-up mb-8 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-5 py-2 text-sm font-medium text-primary">
@@ -192,7 +192,7 @@ export default function Home() {
           </div>
           <h1 className="animate-fade-in-up text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl" style={{ animationDelay: "0.1s" }}>
             Your money, finally{" "}
-            <span className="bg-gradient-to-r from-primary via-amber-500 to-rose-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-indigo-500 via-violet-500 to-cyan-400 bg-clip-text text-transparent">
               under control
             </span>
           </h1>
@@ -287,7 +287,7 @@ export default function Home() {
 
       {/* Security callout */}
       <section className="px-6 py-24">
-        <div className="mx-auto max-w-3xl rounded-3xl border border-border/60 bg-gradient-to-br from-primary/5 via-card to-amber-500/5 p-8 sm:p-12">
+        <div className="mx-auto max-w-3xl rounded-3xl border border-border/60 bg-gradient-to-br from-indigo-500/5 via-card to-cyan-500/5 p-8 sm:p-12">
           <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:text-left">
             <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
               <Shield className="h-8 w-8 text-primary" />
@@ -336,7 +336,7 @@ export default function Home() {
             <Link href="/auth/sign-up" className="hover:text-foreground transition-colors">Sign Up</Link>
           </div>
           <p className="flex items-center gap-1 text-xs text-muted-foreground">
-            Made with <Heart className="h-3 w-3 text-rose-400 fill-rose-400" /> using Next.js &amp; Supabase
+            Made with <Heart className="h-3 w-3 text-violet-400 fill-violet-400" /> using Next.js &amp; Supabase
           </p>
         </div>
       </footer>

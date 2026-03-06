@@ -91,12 +91,12 @@ export default async function SubscriptionsPage() {
             <CardDescription className="text-sm font-semibold">
               Yearly Cost
             </CardDescription>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-900/30">
-              <TrendingUp className="h-4 w-4 text-amber-500" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-100 dark:bg-violet-900/30">
+              <TrendingUp className="h-4 w-4 text-violet-500" />
             </div>
           </CardHeader>
           <CardContent>
-            <CardTitle className="text-2xl text-amber-600">
+            <CardTitle className="text-2xl text-violet-600">
               {formatCurrency(totals.yearly, baseCurrency)}
             </CardTitle>
             <p className="text-muted-foreground mt-1 text-xs">

@@ -7,7 +7,7 @@ const highlights = [
   { icon: TrendingUp, text: "Smart budget tracking with real-time alerts", color: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30" },
   { icon: PieChart, text: "Visual spending breakdowns by category", color: "bg-sky-100 text-sky-600 dark:bg-sky-900/30" },
   { icon: Landmark, text: "Net worth dashboard across all accounts", color: "bg-violet-100 text-violet-600 dark:bg-violet-900/30" },
-  { icon: Shield, text: "Bank-grade security with row-level isolation", color: "bg-amber-100 text-amber-600 dark:bg-amber-900/30" },
+  { icon: Shield, text: "Bank-grade security with row-level isolation", color: "bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30" },
 ];
 
 export function AuthLayout({
@@ -22,9 +22,9 @@ export function AuthLayout({
   return (
     <div className="flex min-h-svh">
       {/* Left branded panel — hidden on mobile */}
-      <div className="relative hidden w-[45%] flex-col justify-between overflow-hidden bg-gradient-to-br from-primary/8 via-amber-500/5 to-rose-400/8 p-10 lg:flex">
+      <div className="relative hidden w-[45%] flex-col justify-between overflow-hidden bg-gradient-to-br from-indigo-500/8 via-violet-500/5 to-cyan-400/8 p-10 lg:flex">
         <div className="absolute top-0 right-0 -z-10 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
-        <div className="absolute bottom-20 left-10 -z-10 h-64 w-64 rounded-full bg-amber-200/10 blur-3xl" />
+        <div className="absolute bottom-20 left-10 -z-10 h-64 w-64 rounded-full bg-cyan-200/10 blur-3xl" />
 
         <Link href="/" className="flex items-center gap-2.5 font-bold text-lg">
           <Image src="/logo.svg" alt="BalanceVisor" width={32} height={32} />
