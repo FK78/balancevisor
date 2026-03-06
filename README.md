@@ -5,60 +5,42 @@
 <h1 align="center">BalanceVisor</h1>
 
 <p align="center">
-  Personal finance dashboard — accounts, budgets, transactions, investments, goals, debt tracking, and an AI assistant.<br/>
+  Personal finance dashboard for accounts, budgets, transactions, investments, goals, debt tracking, and an AI assistant.<br/>
   Next.js 16 · Drizzle ORM · Supabase · Groq AI
 </p>
 
 ---
 
-## What it does
+I built this because I wanted one place to see everything: bank balances, investments, budgets, and debt, without paying for an app that does half of what I need.
 
-BalanceVisor is a full-stack personal finance app. You connect your bank (TrueLayer Open Banking) or add accounts manually, and the app tracks everything from daily spending to long-term investment performance. There's an AI assistant powered by Groq that can parse natural language into transactions and auto-categorise spending.
+You can connect your bank via TrueLayer Open Banking, or just add accounts manually. There's an AI assistant (Groq) that understands plain English, type "£45 groceries yesterday" and it figures out the rest.
 
 ## Features
 
-**Dashboard** — Net worth across accounts + investments, month-over-month trends, recent transactions, spending breakdown, cashflow chart, budget progress bars, and savings goals.
+**Dashboard** - Net worth, month-over-month trends, cashflow chart, spending breakdown, budget progress, and savings goals. Everything on one page.
 
-**Accounts** — Current accounts, savings, credit cards, investments. Balances auto-adjust when transactions are added/edited/deleted.
+**Accounts** - Current accounts, savings, credit cards, and investments. Balances update automatically when you add, edit, or delete transactions.
 
-**Transactions** — Income/expense tracking with categories, recurring patterns (daily/weekly/biweekly/monthly/yearly), CSV import with column mapping, and data export. Split transactions supported.
+**Transactions** - Income and expense tracking with categories, recurring transaction support (daily through yearly), CSV import with flexible column mapping, and export. Split transactions work too.
 
-**Categories** — Custom categories with colours and icons. Rule-based auto-categorisation with AI fallback (Groq) for imported or manually entered transactions.
+**Budgets** - Weekly or monthly limits per category. Alerts fire via browser notification and email when you're close to the edge.
 
-**Budgets** — Monthly or weekly spending limits per category. Threshold alerts via browser notifications and email (Resend). Notification bell in the navbar.
+**Goals** - Savings targets with deadlines and contribution history.
 
-**Goals** — Savings goals with target amounts, deadlines, and contribution tracking.
+**Debt Tracker** - Interest rates, minimum payments, payoff progress.
 
-**Debt Tracker** — Track debts with interest rates, minimum payments, and payoff progress.
+**Investments** - Connect Trading 212 with your API key, or add holdings manually. Prices pull from Yahoo Finance and refresh when they're stale. You can group holdings however you want.
 
-**Subscriptions** — Recurring subscription tracking.
+**Open Banking** - TrueLayer OAuth flow for UK bank accounts. Transactions sync on connect and on each login (throttled to hourly). There's a manual sync button if you don't want to wait.
 
-**Reports** — Spending insights and analytics.
+**AI** - Three things:
+- Auto-categorisation: when no rule matches, Groq picks the best category from your list
+- Natural language input: describe a transaction in plain English and it parses into a structured record
+- Chat assistant: slide-out panel for financial questions, available on every dashboard page
 
-### AI
+**PWA** - Installable on mobile and desktop. Offline fallback, font caching, stale-while-revalidate for static assets.
 
-- **Smart Categorisation** — When no rule matches a transaction, Groq's `openai/gpt-oss-20b` picks the best category from the user's list. Falls back gracefully if the API is down or no key is configured.
-- **Natural Language Transactions** — Type something like "£45 Tesco groceries yesterday" and the AI parses it into a structured transaction with the right account, category, amount, and date. Powered by the `/api/parse-transaction` route.
-- **Chat Assistant** — Conversational AI in a slide-out panel for financial questions, accessible from any dashboard page.
-
-### Investments
-
-- **Trading 212** — Connect with your API key + secret (HTTP Basic Auth). Syncs account summary and open positions for both Live and Demo environments.
-- **Manual Holdings** — Search tickers via Yahoo Finance, track quantity and cost basis. Prices auto-refresh when stale (>15 min).
-- **Investment Groups** — Organise holdings into custom groups with colours and icons.
-- **Portfolio View** — Total value, gain/loss, cost basis cards. Allocation pie chart, per-holding bar chart, unified holdings table.
-
-### Open Banking
-
-- **TrueLayer** — OAuth flow to link UK bank accounts. Accounts and transactions import automatically on connect and on every login (hourly throttle). Manual "Sync Now" button as fallback. Supports sandbox and production environments.
-
-### PWA
-
-Installable as a Progressive Web App on mobile and desktop. Service worker provides offline fallback, font caching, and stale-while-revalidate for static assets. Custom install prompt with dismiss-and-remember logic.
-
-### Security
-
-All sensitive data encrypted at rest with AES-256-GCM: account names, transaction descriptions, TrueLayer OAuth tokens, Trading 212 API credentials. Encryption key stored as an environment variable, never committed.
+**Security** - Account names, transaction descriptions, and all OAuth tokens are encrypted at rest with AES-256-GCM. The key lives in your environment, not the codebase.
 
 ## Tech Stack
 
@@ -130,12 +112,7 @@ src/
 
 ## Getting Started
 
-### Prerequisites
-
-- Node.js 20+
-- A [Supabase](https://supabase.com) project (or any Postgres instance)
-
-### Setup
+You'll need Node.js 20+ and a Supabase project (or any Postgres instance).
 
 ```bash
 git clone https://github.com/FK78/BalanceVisor.git
@@ -152,28 +129,23 @@ Fill in `.env`:
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Yes | Supabase anon key |
 | `NEXT_PUBLIC_SITE_URL` | Yes | `http://localhost:3000` for dev |
-| `ENCRYPTION_KEY` | Yes | 32-byte hex — see below |
-| `GROQ_API_KEY` | No | Enables AI categorisation + NL transactions + chat |
+| `ENCRYPTION_KEY` | Yes | 32-byte hex - see below |
+| `GROQ_API_KEY` | No | AI categorisation, NL transactions, chat |
 | `RESEND_API_KEY` | No | Email budget alerts |
 | `TRUELAYER_CLIENT_ID` | No | Open banking |
 | `TRUELAYER_CLIENT_SECRET` | No | Open banking |
 | `TRUELAYER_SANDBOX` | No | Set `true` for sandbox mode |
 
-Generate an encryption key:
+Generate the encryption key:
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-Push the schema to your database:
+Push the schema and start the dev server:
 
 ```bash
 npx drizzle-kit push
-```
-
-Start the dev server:
-
-```bash
 npm run dev
 ```
 
@@ -190,7 +162,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Database
 
-Managed by Drizzle ORM. Schema in `src/db/schema.ts`.
+Schema lives in `src/db/schema.ts`, managed by Drizzle.
 
 | Table | What it stores |
 | --- | --- |
