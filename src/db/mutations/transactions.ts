@@ -9,6 +9,7 @@ import { hasEditAccess } from '@/db/queries/sharing';
 import { checkBudgetAlerts } from '@/lib/budget-alerts';
 import { encrypt } from '@/lib/encryption';
 import { matchCategorisationRule } from '@/lib/auto-categorise';
+import { invalidateByUser } from '@/lib/cache';
 import { requireString, sanitizeNumber, sanitizeEnum, requireDate, sanitizeUUID, sanitizeString } from '@/lib/sanitize';
 
 type Transaction = typeof transactionsTable.$inferInsert;
@@ -154,11 +155,13 @@ export async function editTransaction(formData: FormData) {
   revalidatePath('/dashboard/accounts');
 
   await checkBudgetAlerts(userId);
+  invalidateByUser(userId);
 
   return result;
 }
 
 export async function addTransfer(formData: FormData) {
+  const userId = await getCurrentUserId();
   const amount = sanitizeNumber(formData.get('amount') as string, 'Amount', { required: true, min: 0.01 });
   const fromAccountId = requireString(formData.get('from_account_id') as string, 'Source account');
   const toAccountId = requireString(formData.get('to_account_id') as string, 'Destination account');
@@ -195,11 +198,13 @@ export async function addTransfer(formData: FormData) {
   revalidatePath('/dashboard/transactions');
   revalidatePath('/dashboard/accounts');
   revalidatePath('/dashboard');
+  invalidateByUser(userId);
 
   return result;
 }
 
 export async function deleteTransaction(id: string) {
+  const userId = await getCurrentUserId();
   // Fetch transaction to reverse its balance effect
   const [txn] = await db.select({
     type: transactionsTable.type,
@@ -230,6 +235,7 @@ export async function deleteTransaction(id: string) {
 
   revalidatePath('/dashboard/transactions');
   revalidatePath('/dashboard/accounts');
+  invalidateByUser(userId);
 }
 
 export type SplitInput = {

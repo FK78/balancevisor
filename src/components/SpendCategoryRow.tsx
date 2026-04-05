@@ -1,6 +1,7 @@
 import { formatCurrency } from "@/lib/formatCurrency";
+import React from "react";
 
-export function SpendCategoryRow({ category, total, color, totalExpenses, currency }: {
+function SpendCategoryRowComponent({ category, total, color, totalExpenses, currency }: {
   category: string;
   total: string | null;
   color: string;
@@ -27,3 +28,5 @@ export function SpendCategoryRow({ category, total, color, totalExpenses, curren
     </div>
   );
 }
+
+export const SpendCategoryRow = React.memo(SpendCategoryRowComponent);

@@ -1,9 +1,24 @@
 import { db } from '@/index';
 import { netWorthSnapshotsTable } from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
+import { getCached, setCached, cacheKey } from '@/lib/cache';
 
-export async function getNetWorthHistory(userId: string, limit = 90) {
-  return await db
+export type NetWorthHistoryResult = Array<{
+  date: string;
+  net_worth: number;
+  total_assets: number;
+  total_liabilities: number;
+  investment_value: number;
+}>;
+
+export async function getNetWorthHistory(userId: string, limit = 90): Promise<NetWorthHistoryResult> {
+  const key = cacheKey('net-worth-history', userId, limit);
+  const cached = getCached<NetWorthHistoryResult>(key);
+  if (cached) {
+    return cached;
+  }
+
+  const result = await db
     .select({
       date: netWorthSnapshotsTable.date,
       net_worth: netWorthSnapshotsTable.net_worth,
@@ -16,9 +31,12 @@ export async function getNetWorthHistory(userId: string, limit = 90) {
     .orderBy(desc(netWorthSnapshotsTable.date))
     .limit(limit)
     .then((rows) => rows.reverse());
+
+  setCached(key, result);
+  return result;
 }
 
-export type NetWorthPoint = Awaited<ReturnType<typeof getNetWorthHistory>>[number];
+export type NetWorthPoint = NetWorthHistoryResult[number];
 
 export async function hasSnapshotForDate(userId: string, date: string): Promise<boolean> {
   const [row] = await db
