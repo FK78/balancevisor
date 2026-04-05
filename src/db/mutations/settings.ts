@@ -19,6 +19,9 @@ import {
   netWorthSnapshotsTable,
   userOnboardingTable,
   sharedAccessTable,
+  investmentGroupsTable,
+  holdingSalesTable,
+  transactionSplitsTable,
 } from '@/db/schema';
 import { eq, or, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
@@ -70,6 +73,14 @@ export async function updateBaseCurrency(formData: FormData): Promise<{ success?
   }
 }
 
+/**
+ * Delete all user data for GDPR compliance (Right to Erasure / Article 17).
+ *
+ * Deletion order respects foreign key constraints:
+ * 1. Child records first (payments, splits, sales, etc.)
+ * 2. Then parent records (debts, holdings, accounts, etc.)
+ * 3. Finally user-level records (onboarding, connections, auth)
+ */
 export async function deleteAccount(): Promise<{ success?: boolean; error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -77,41 +88,97 @@ export async function deleteAccount(): Promise<{ success?: boolean; error?: stri
 
   const userId = user.id;
 
-  // Get all account IDs so we can delete their transactions
+  // Gather IDs needed for cascade deletions
   const userAccounts = await db.select({ id: accountsTable.id })
     .from(accountsTable)
     .where(eq(accountsTable.user_id, userId));
   const accountIds = userAccounts.map(a => a.id);
 
+  const userDebts = await db.select({ id: debtsTable.id })
+    .from(debtsTable)
+    .where(eq(debtsTable.user_id, userId));
+  const debtIds = userDebts.map(d => d.id);
+
+  const userHoldings = await db.select({ id: manualHoldingsTable.id })
+    .from(manualHoldingsTable)
+    .where(eq(manualHoldingsTable.user_id, userId));
+  const holdingIds = userHoldings.map(h => h.id);
+
   await db.transaction(async (tx) => {
-    // Delete in order respecting FK constraints
-    // Delete debt payments via debt IDs
-    const userDebts = await tx.select({ id: debtsTable.id }).from(debtsTable).where(eq(debtsTable.user_id, userId));
-    const debtIds = userDebts.map(d => d.id);
+    // --- Leaf records (no children) ---
+
+    // Debt payments (child of debts)
     if (debtIds.length > 0) {
       await tx.delete(debtPaymentsTable).where(inArray(debtPaymentsTable.debt_id, debtIds));
     }
-    await tx.delete(debtsTable).where(eq(debtsTable.user_id, userId));
-    await tx.delete(sharedAccessTable).where(or(eq(sharedAccessTable.owner_id, userId), eq(sharedAccessTable.shared_with_id, userId)));
+
+    // Transaction splits (child of transactions) — cascade handles this, but be explicit
+    if (accountIds.length > 0) {
+      const txns = await tx.select({ id: transactionsTable.id })
+        .from(transactionsTable)
+        .where(inArray(transactionsTable.account_id, accountIds));
+      const txnIds = txns.map(t => t.id);
+      if (txnIds.length > 0) {
+        await tx.delete(transactionSplitsTable).where(inArray(transactionSplitsTable.transaction_id, txnIds));
+      }
+    }
+
+    // Holding sales (child of manual_holdings)
+    if (holdingIds.length > 0) {
+      await tx.delete(holdingSalesTable).where(inArray(holdingSalesTable.holding_id, holdingIds));
+    }
+
+    // --- Shared access (both as owner and recipient) ---
+    await tx.delete(sharedAccessTable)
+      .where(or(eq(sharedAccessTable.owner_id, userId), eq(sharedAccessTable.shared_with_id, userId)));
+
+    // --- User-level records ---
     await tx.delete(netWorthSnapshotsTable).where(eq(netWorthSnapshotsTable.user_id, userId));
     await tx.delete(budgetNotificationsTable).where(eq(budgetNotificationsTable.user_id, userId));
     await tx.delete(budgetAlertPreferencesTable).where(eq(budgetAlertPreferencesTable.user_id, userId));
     await tx.delete(subscriptionsTable).where(eq(subscriptionsTable.user_id, userId));
     await tx.delete(goalsTable).where(eq(goalsTable.user_id, userId));
     await tx.delete(categorisationRulesTable).where(eq(categorisationRulesTable.user_id, userId));
+    await tx.delete(investmentGroupsTable).where(eq(investmentGroupsTable.user_id, userId));
     await tx.delete(manualHoldingsTable).where(eq(manualHoldingsTable.user_id, userId));
     await tx.delete(trading212ConnectionsTable).where(eq(trading212ConnectionsTable.user_id, userId));
+    await tx.delete(debtsTable).where(eq(debtsTable.user_id, userId));
+
+    // --- Transactions (linked to accounts) ---
     if (accountIds.length > 0) {
       await tx.delete(transactionsTable).where(inArray(transactionsTable.account_id, accountIds));
     }
+
+    // --- Budgets and categories ---
     await tx.delete(budgetsTable).where(eq(budgetsTable.user_id, userId));
     await tx.delete(categoriesTable).where(eq(categoriesTable.user_id, userId));
+
+    // --- Accounts and bank connections ---
     await tx.delete(accountsTable).where(eq(accountsTable.user_id, userId));
     await tx.delete(truelayerConnectionsTable).where(eq(truelayerConnectionsTable.user_id, userId));
+
+    // --- Onboarding (last app-level record) ---
     await tx.delete(userOnboardingTable).where(eq(userOnboardingTable.user_id, userId));
   });
 
-  await supabase.auth.signOut();
+  // Delete the Supabase auth user account itself using admin client
+  // This removes the user from auth.users, completing the GDPR erasure
+  try {
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    const adminClient = createAdminClient();
+    const { error: authError } = await adminClient.auth.admin.deleteUser(userId);
+
+    if (authError) {
+      // Fall back to signOut if admin deletion fails
+      await supabase.auth.signOut();
+      return { error: `Data deleted but auth account removal failed: ${authError.message}. Please contact support to complete account deletion.` };
+    }
+  } catch (err) {
+    // If admin client creation fails (e.g., missing service role key), sign out and warn
+    await supabase.auth.signOut();
+    return { error: 'Data deleted but auth account removal could not be completed. Please contact support to finalize account deletion.' };
+  }
+
   return { success: true };
 }
 
