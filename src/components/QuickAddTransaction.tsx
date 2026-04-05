@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useRef, useEffect } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -46,7 +47,6 @@ export function QuickAddTransaction({
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [parsed, setParsed] = useState<ParsedTransaction | null>(null);
-  const [isParsing, setIsParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
   const [isSaving, startSaving] = useTransition();
   const [view, setView] = useState<"input" | "preview" | "success">("input");
@@ -59,6 +59,27 @@ export function QuickAddTransaction({
     }
   }, [open, view]);
 
+  // React Query mutation for parsing transactions
+  const parseMutation = useMutation({
+    mutationFn: async (text: string) => {
+      const res = await fetch("/api/parse-transaction", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) throw new Error("Failed to parse transaction");
+      return res.json() as Promise<ParsedTransaction>;
+    },
+    onSuccess: (data) => {
+      setParsed(data);
+      setParseError(null);
+      setView("preview");
+    },
+    onError: () => {
+      setParseError("Could not understand that. Try something like: \"Spent £45 at Tesco yesterday on groceries\"");
+    },
+  });
+
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) {
       if (savedIds.length > 0) {
@@ -70,36 +91,16 @@ export function QuickAddTransaction({
       setParseError(null);
       setView("input");
       setSavedIds([]);
+      parseMutation.reset();
     }
     setOpen(nextOpen);
   }
 
-  async function handleParse() {
+  function handleParse() {
     const text = input.trim();
     if (!text) return;
-
-    setIsParsing(true);
     setParseError(null);
-
-    try {
-      const res = await fetch("/api/parse-transaction", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to parse transaction");
-      }
-
-      const data: ParsedTransaction = await res.json();
-      setParsed(data);
-      setView("preview");
-    } catch {
-      setParseError("Could not understand that. Try something like: \"Spent £45 at Tesco yesterday on groceries\"");
-    } finally {
-      setIsParsing(false);
-    }
+    parseMutation.mutate(text);
   }
 
   function handleConfirm() {
@@ -271,7 +272,7 @@ export function QuickAddTransaction({
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder='e.g. "Spent £45 at Tesco yesterday on groceries from Monzo"'
-                  disabled={isParsing}
+                  disabled={parseMutation.isPending}
                 />
                 {parseError && (
                   <p className="text-xs text-destructive flex items-center gap-1.5">
@@ -308,9 +309,9 @@ export function QuickAddTransaction({
               <DialogFooter>
                 <Button
                   type="submit"
-                  disabled={isParsing || !input.trim()}
+                  disabled={parseMutation.isPending || !input.trim()}
                 >
-                  {isParsing ? (
+                  {parseMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Parsing...
