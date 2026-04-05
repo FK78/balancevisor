@@ -30,7 +30,7 @@ type Transaction = {
   id: string;
   accountName: string;
   account_id: string | null;
-  type: "income" | "expense" | "transfer" | null;
+  type: "income" | "expense" | "transfer" | "sale" | null;
   amount: number;
   category: string | null;
   category_id: string | null;

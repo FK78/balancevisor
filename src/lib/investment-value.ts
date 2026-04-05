@@ -24,10 +24,17 @@ export async function getInvestmentValue(userId: string): Promise<number> {
   }
 
   if (manualHoldings.length > 0) {
-    const tickers = manualHoldings.map((h) => h.ticker);
-    const quotes = await getQuotes(tickers);
+    // Only fetch quotes for stock holdings with a ticker
+    const stockHoldings = manualHoldings.filter(
+      (h) => (h.investment_type ?? 'stock') === 'stock' && h.ticker
+    );
+    const tickers = stockHoldings.map((h) => h.ticker!);
+    const quotes = tickers.length > 0 ? await getQuotes(tickers) : new Map();
     for (const h of manualHoldings) {
-      const price = quotes.get(h.ticker)?.currentPrice ?? h.current_price ?? h.average_price;
+      let price = h.current_price ?? h.average_price;
+      if (h.ticker && (h.investment_type ?? 'stock') === 'stock') {
+        price = quotes.get(h.ticker)?.currentPrice ?? price;
+      }
       value += price * h.quantity;
     }
   }
