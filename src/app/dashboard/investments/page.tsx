@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { getCurrentUserId } from "@/lib/auth";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
-import { getTrading212Connection, getManualHoldings } from "@/db/queries/investments";
+import { getTrading212Connection, getManualHoldings, getHoldingSales } from "@/db/queries/investments";
 import { getAccountsWithDetails } from "@/db/queries/accounts";
 import { getGroupsByUser } from "@/db/queries/investment-groups";
 import { getT212AccountSummary, getT212Positions, type T212Position } from "@/lib/trading212";
@@ -34,16 +34,19 @@ import { decrypt } from "@/lib/encryption";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { ConnectTrading212Dialog } from "@/components/ConnectTrading212Dialog";
 import { AddHoldingDialog } from "@/components/AddHoldingDialog";
+import { AddPrivateInvestmentDialog } from "@/components/AddPrivateInvestmentDialog";
 import { DeleteHoldingButton } from "@/components/DeleteHoldingButton";
+import { SellHoldingDialog } from "@/components/SellHoldingDialog";
 import { RefreshPricesButton } from "@/components/RefreshPricesButton";
 import { InvestmentCharts } from "@/components/InvestmentCharts";
 import { InvestmentGroupDialog } from "@/components/InvestmentGroupDialog";
 import { DeleteGroupButton } from "@/components/DeleteGroupButton";
+import { RealizedGainsTable } from "@/components/RealizedGainsTable";
 
 type NormalisedHolding = {
   id: string;
   source: "trading212" | "manual";
-  ticker: string;
+  ticker: string | null;
   name: string;
   quantity: number;
   averagePrice: number;
@@ -52,6 +55,9 @@ type NormalisedHolding = {
   value: number;
   gainLoss: number;
   gainLossPercent: number;
+  investmentType: "stock" | "real_estate" | "private_equity" | "other";
+  estimatedReturnPercent?: number | null;
+  notes?: string | null;
   manualId?: string;
   accountId?: string | null;
   accountName?: string | null;
@@ -63,12 +69,13 @@ type NormalisedHolding = {
 export default async function InvestmentsPage() {
   const userId = await getCurrentUserId();
 
-  const [t212Connection, manualHoldings, baseCurrency, allAccounts, allGroups] = await Promise.all([
+  const [t212Connection, manualHoldings, baseCurrency, allAccounts, allGroups, sales] = await Promise.all([
     getTrading212Connection(userId),
     getManualHoldings(userId),
     getUserBaseCurrency(userId),
     getAccountsWithDetails(userId),
     getGroupsByUser(userId),
+    getHoldingSales(userId),
   ]);
 
   const groupMap = new Map(allGroups.map((g) => [g.id, g]));
@@ -108,11 +115,13 @@ export default async function InvestmentsPage() {
   const now = new Date();
   const staleTickers = manualHoldings
     .filter((h) => {
+      if ((h.investment_type ?? 'stock') !== 'stock' || !h.ticker) return false;
       if (!h.last_price_update) return true;
       const age = now.getTime() - new Date(h.last_price_update).getTime();
       return age > 15 * 60 * 1000;
     })
-    .map((h) => h.ticker);
+    .map((h) => h.ticker!)
+    .filter((ticker): ticker is string => ticker !== null);
 
   const freshQuotes = staleTickers.length > 0 ? await getQuotes(staleTickers) : new Map();
 
@@ -140,6 +149,9 @@ export default async function InvestmentsPage() {
       value,
       gainLoss,
       gainLossPercent,
+      investmentType: "stock",
+      estimatedReturnPercent: null,
+      notes: null,
       accountId: t212Connection?.account_id,
       accountName: t212AccountName,
     });
@@ -166,6 +178,9 @@ export default async function InvestmentsPage() {
       value,
       gainLoss,
       gainLossPercent,
+      investmentType: h.investment_type ?? 'stock',
+      estimatedReturnPercent: h.estimated_return_percent,
+      notes: h.notes,
       manualId: h.id,
       accountId: h.account_id,
       accountName: h.accountName,
@@ -181,6 +196,7 @@ export default async function InvestmentsPage() {
     holdings.reduce((s, h) => s + h.averagePrice * h.quantity, 0);
   const totalGainLoss = holdings.reduce((s, h) => s + h.gainLoss, 0);
   const totalGainLossPercent = totalCost > 0 ? (totalGainLoss / totalCost) * 100 : 0;
+  const totalRealizedGain = sales.reduce((sum, s) => sum + s.realized_gain, 0);
 
   const sortedHoldings = [...holdings].sort((a, b) => b.value - a.value);
 
@@ -201,6 +217,7 @@ export default async function InvestmentsPage() {
           />
           <InvestmentGroupDialog investmentAccounts={investmentAccounts} />
           <AddHoldingDialog investmentAccounts={investmentAccounts} groups={groupOptions} />
+          <AddPrivateInvestmentDialog investmentAccounts={investmentAccounts} groups={groupOptions} />
           {manualHoldings.length > 0 && <RefreshPricesButton />}
         </div>
       </div>
@@ -219,7 +236,7 @@ export default async function InvestmentsPage() {
       )}
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="summary-card">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardDescription className="text-sm font-semibold">
@@ -280,6 +297,27 @@ export default async function InvestmentsPage() {
             </CardTitle>
             <p className="text-muted-foreground mt-1 text-xs">
               Cost basis across all holdings
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="summary-card">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardDescription className="text-sm font-semibold">
+              Realized Gains
+            </CardDescription>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/30">
+              <Wallet className="text-emerald-500 h-4 w-4" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <CardTitle
+              className={`text-2xl ${totalRealizedGain >= 0 ? "text-emerald-600" : "text-red-600"}`}
+            >
+              {totalRealizedGain >= 0 ? "+" : "−"}
+              {formatCurrency(Math.abs(totalRealizedGain), baseCurrency)}
+            </CardTitle>
+            <p className="text-muted-foreground mt-1 text-xs">
+              {sales.length} sale{sales.length !== 1 ? "s" : ""}
             </p>
           </CardContent>
         </Card>
@@ -416,6 +454,7 @@ export default async function InvestmentsPage() {
                           <TableHeader>
                             <TableRow>
                               <TableHead>Holding</TableHead>
+                              <TableHead>Type</TableHead>
                               <TableHead className="text-right">Shares</TableHead>
                               <TableHead className="text-right">Avg Price</TableHead>
                               <TableHead className="text-right">Current</TableHead>
@@ -430,9 +469,9 @@ export default async function InvestmentsPage() {
                                 <TableCell>
                                   <div className="flex items-center gap-2">
                                     <div>
-                                      <p className="font-medium">{h.ticker}</p>
+                                      <p className="font-medium">{h.ticker ? h.ticker : h.name}</p>
                                       <p className="text-xs text-muted-foreground truncate max-w-[180px]">
-                                        {h.name}
+                                        {h.ticker ? h.name : ""}
                                       </p>
                                     </div>
                                     <Badge
@@ -442,6 +481,11 @@ export default async function InvestmentsPage() {
                                       {h.source === "trading212" ? "T212" : "Manual"}
                                     </Badge>
                                   </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={h.investmentType === 'stock' ? 'secondary' : 'outline'} className="text-[10px] shrink-0">
+                                    {h.investmentType === 'stock' ? 'Stock' : h.investmentType === 'real_estate' ? 'Real Estate' : h.investmentType === 'private_equity' ? 'Private Equity' : 'Other'}
+                                  </Badge>
                                 </TableCell>
                                 <TableCell className="text-right tabular-nums">
                                   {h.quantity.toFixed(h.quantity % 1 === 0 ? 0 : 4)}
@@ -476,19 +520,52 @@ export default async function InvestmentsPage() {
                                 <TableCell>
                                   {h.source === "manual" && h.manualId && (
                                     <div className="flex items-center gap-1 justify-end">
-                                      <AddHoldingDialog
-                                        holding={{
-                                          id: h.manualId,
-                                          ticker: h.ticker,
-                                          name: h.name,
-                                          quantity: h.quantity,
-                                          average_price: h.averagePrice,
-                                          account_id: h.accountId,
-                                          group_id: h.groupId,
-                                        }}
-                                        investmentAccounts={investmentAccounts}
-                                        groups={groupOptions}
-                                      />
+                                      {h.investmentType === 'stock' && h.ticker && (
+                                        <AddHoldingDialog
+                                          holding={{
+                                            id: h.manualId,
+                                            ticker: h.ticker!,
+                                            name: h.name,
+                                            quantity: h.quantity,
+                                            average_price: h.averagePrice,
+                                            account_id: h.accountId,
+                                            group_id: h.groupId,
+                                          }}
+                                          investmentAccounts={investmentAccounts}
+                                          groups={groupOptions}
+                                        />
+                                      )}
+                                      {h.investmentType !== 'stock' && (
+                                        <AddPrivateInvestmentDialog
+                                          holding={{
+                                            id: h.manualId,
+                                            name: h.name,
+                                            quantity: h.quantity,
+                                            average_price: h.averagePrice,
+                                            investment_type: h.investmentType as "real_estate" | "private_equity" | "other",
+                                            estimated_return_percent: h.estimatedReturnPercent ?? null,
+                                            notes: h.notes ?? null,
+                                            account_id: h.accountId,
+                                            group_id: h.groupId,
+                                          }}
+                                          investmentAccounts={investmentAccounts}
+                                          groups={groupOptions}
+                                        />
+                                      )}
+                                      {h.quantity > 0 && (
+                                        <SellHoldingDialog
+                                          holding={{
+                                            id: h.manualId,
+                                            ticker: h.ticker,
+                                            name: h.name,
+                                            quantity: h.quantity,
+                                            average_price: h.averagePrice,
+                                            current_price: h.currentPrice,
+                                            currency: h.currency,
+                                          }}
+                                          investmentAccounts={investmentAccounts}
+                                        />
+                                      )}
                                       <DeleteHoldingButton
                                         holding={{
                                           id: h.manualId,
@@ -514,6 +591,20 @@ export default async function InvestmentsPage() {
               </Card>
             ));
           })()}
+
+          {sales.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Realized Gains</CardTitle>
+                <CardDescription>
+                  History of sales and realized gains from your holdings.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <RealizedGainsTable sales={sales} baseCurrency={baseCurrency} />
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
     </div>

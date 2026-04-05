@@ -39,7 +39,7 @@ function baseTransactionsQuery(userId: string) {
 export type ExportTransaction = {
   id: string;
   date: string | null;
-  type: 'income' | 'expense' | 'transfer' | null;
+  type: 'income' | 'expense' | 'transfer' | 'sale' | null;
   amount: number;
   description: string;
   accountName: string;
