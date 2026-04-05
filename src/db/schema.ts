@@ -4,6 +4,7 @@ export const accountTypeEnum = pgEnum("account_type", ["currentAccount", "saving
 export const periodEnum = pgEnum("period", ["monthly", "weekly"]);
 export const transactionTypeEnum = pgEnum("transaction_type", ["income", "expense", "transfer"]);
 export const recurringPatternEnum = pgEnum("recurring_pattern", ["daily", "weekly", "biweekly", "monthly", "yearly"]);
+export const investmentTypeEnum = pgEnum("investment_type", ["stock", "real_estate", "private_equity", "other"]);
 
 export const defaultCategoryTemplatesTable = pgTable("default_category_templates", {
   id: uuid().primaryKey().defaultRandom(),
@@ -156,12 +157,15 @@ export const investmentGroupsTable = pgTable("investment_groups", {
 export const manualHoldingsTable = pgTable("manual_holdings", {
   id: uuid().primaryKey().defaultRandom(),
   user_id: uuid("user_id").notNull(),
-  ticker: varchar({ length: 20 }).notNull(),
+  ticker: varchar({ length: 20 }),
   name: varchar({ length: 255 }).notNull(),
   quantity: real().notNull(),
   average_price: real("average_price").notNull(),
   current_price: real("current_price"),
   currency: varchar({ length: 3 }).notNull().default("GBP"),
+  investment_type: investmentTypeEnum().default("stock"),
+  estimated_return_percent: real("estimated_return_percent"),
+  notes: text("notes"),
   account_id: uuid("account_id").references(() => accountsTable.id, { onDelete: "set null" }),
   group_id: uuid("group_id").references(() => investmentGroupsTable.id, { onDelete: "set null" }),
   last_price_update: timestamp("last_price_update", { withTimezone: true }),

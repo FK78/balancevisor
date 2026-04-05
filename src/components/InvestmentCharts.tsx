@@ -29,7 +29,7 @@ import {
 
 type HoldingItem = {
   id: string;
-  ticker: string;
+  ticker: string | null;
   name: string;
   value: number;
   gainLoss: number;
@@ -62,8 +62,8 @@ export function InvestmentCharts({
 
   const allocationData = [
     ...top.map((h, i) => ({
-      ticker: h.ticker,
-      label: h.ticker,
+      ticker: h.ticker ?? h.name,
+      label: h.ticker ?? h.name,
       value: h.value,
       fill: CHART_COLORS[i % CHART_COLORS.length],
     })),
@@ -79,7 +79,7 @@ export function InvestmentCharts({
 
   // Gain/loss bar data
   const glData = sorted.slice(0, 10).map((h) => ({
-    ticker: h.ticker,
+    ticker: h.ticker ?? h.name,
     gainLoss: h.gainLoss,
     gainLossPercent: h.gainLossPercent,
   }));

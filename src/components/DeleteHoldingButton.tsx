@@ -5,7 +5,7 @@ import { deleteManualHolding } from "@/db/mutations/investments";
 
 type Holding = {
   id: string;
-  ticker: string;
+  ticker: string | null;
   name: string;
 };
 
@@ -16,7 +16,7 @@ export function DeleteHoldingButton({ holding }: { holding: Holding }) {
       dialogTitle="Delete holding?"
       dialogDescription={
         <>
-          This will permanently remove &ldquo;{holding.name}&rdquo; ({holding.ticker}) from your portfolio. This action cannot be undone.
+          This will permanently remove &ldquo;{holding.name}&rdquo;{holding.ticker ? ` (${holding.ticker})` : ''} from your portfolio. This action cannot be undone.
         </>
       }
       successTitle="Holding deleted"
