@@ -23,22 +23,8 @@ import {
 } from "@/components/ui/dialog";
 import { addTransaction, editTransaction } from "@/db/mutations/transactions";
 import { learnCategorisationRule } from "@/db/mutations/categorisation-rules";
-import type { Account, Category } from "@/lib/types";
+import type { AccountWithDetails, CategoryWithColor, TransactionWithDetails } from "@/lib/types";
 import { toast } from "sonner";
-
-type Transaction = {
-  id: string;
-  accountName: string;
-  account_id: string | null;
-  type: "income" | "expense" | "transfer" | "sale" | null;
-  amount: number;
-  category: string | null;
-  category_id: string | null;
-  description: string;
-  date: string | null;
-  is_recurring: boolean;
-  transfer_account_id?: string | null;
-};
 
 export function TransactionFormDialog({
   transaction,
@@ -46,9 +32,9 @@ export function TransactionFormDialog({
   categories,
   onSaved,
 }: {
-  transaction?: Transaction;
-  accounts: Account[];
-  categories: Category[];
+  transaction?: TransactionWithDetails;
+  accounts: AccountWithDetails[];
+  categories: CategoryWithColor[];
   onSaved?: (ids: string[]) => void;
 }) {
   const isEdit = !!transaction;
