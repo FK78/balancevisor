@@ -8,14 +8,31 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
   const error = searchParams.get('error');
+  const state = searchParams.get('state');
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 
-  if (error || !code) {
-    const msg = error ?? 'Missing authorization code';
-    return NextResponse.redirect(
+  // Validate OAuth state parameter to prevent CSRF attacks
+  const cookieState = request.cookies.get('truelayer_oauth_state')?.value;
+
+  // Create response builder (we'll set/clear cookies on it)
+  const redirectWithError = (msg: string) => {
+    const response = NextResponse.redirect(
       `${siteUrl}/dashboard/accounts?truelayer_error=${encodeURIComponent(msg)}`,
     );
+    // Clear the state cookie after use
+    response.cookies.set('truelayer_oauth_state', '', { maxAge: 0, path: '/api/truelayer/callback' });
+    return response;
+  };
+
+  if (error || !code) {
+    const msg = error ?? 'Missing authorization code';
+    return redirectWithError(msg);
+  }
+
+  // Verify state matches (CSRF protection)
+  if (!state || !cookieState || state !== cookieState) {
+    return redirectWithError('Invalid state parameter. Possible CSRF attack.');
   }
 
   try {
@@ -31,13 +48,14 @@ export async function GET(request: NextRequest) {
       // Non-critical: user can manually import later
     }
 
-    return NextResponse.redirect(
+    const response = NextResponse.redirect(
       `${siteUrl}/dashboard/accounts?truelayer_connected=true`,
     );
+    // Clear the state cookie after successful use
+    response.cookies.set('truelayer_oauth_state', '', { maxAge: 0, path: '/api/truelayer/callback' });
+    return response;
   } catch (err) {
     logger.error('truelayer.callback', 'OAuth callback failed', err);
-    return NextResponse.redirect(
-      `${siteUrl}/dashboard/accounts?truelayer_error=${encodeURIComponent('Failed to connect bank. Please try again.')}`,
-    );
+    return redirectWithError('Failed to connect bank. Please try again.');
   }
 }
