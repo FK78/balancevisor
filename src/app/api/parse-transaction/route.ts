@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getCurrentUserId } from "@/lib/auth";
 import { getAccountsWithDetails } from "@/db/queries/accounts";
 import { getCategoriesByUser } from "@/db/queries/categories";
+import { rateLimiters } from "@/lib/rate-limiter";
 
 const parseSchema = z.object({
   type: z.enum(["income", "expense"]),
@@ -17,13 +18,22 @@ const parseSchema = z.object({
 });
 
 export async function POST(req: Request) {
+  // Rate limit by user ID (already authenticated)
+  const userId = await getCurrentUserId();
+  const result = rateLimiters.serverAction.consume(`parse-transaction:${userId}`);
+
+  if (!result.allowed) {
+    return Response.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(result.retryAfter) } },
+    );
+  }
+
   const { text } = await req.json();
 
   if (!text || typeof text !== "string") {
     return Response.json({ error: "Missing text field" }, { status: 400 });
   }
-
-  const userId = await getCurrentUserId();
 
   const [accounts, categories] = await Promise.all([
     getAccountsWithDetails(userId),
