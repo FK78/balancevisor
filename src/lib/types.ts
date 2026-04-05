@@ -119,8 +119,13 @@ export type TransactionWithDetails = {
 export type AccountWithDetails = {
   id: string;
   accountName: string;
+  name: string; // alias for compatibility
   type: Account["type"];
   balance: number;
+  currency: string;
+  user_id: string;
+  truelayer_id: string | null;
+  truelayer_connection_id: string | null;
   transactions: number;
   isShared: boolean;
   sharedBy: string | null;
@@ -181,6 +186,7 @@ export type CategoryWithColor = {
   name: string;
   color: string;
   icon: string | null;
+  user_id: string;
 };
 
 export type SplitDetail = {
