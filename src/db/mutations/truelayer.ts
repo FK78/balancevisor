@@ -241,6 +241,7 @@ export async function importFromTrueLayer() {
           type,
           amount,
           description: encrypt(description),
+          search_description: description.toLowerCase(),
           date: tlTxn.timestamp ? tlTxn.timestamp.split("T")[0] : to,
           is_recurring: false,
           truelayer_id: tlTxn.transaction_id,
