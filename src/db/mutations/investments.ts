@@ -1,8 +1,9 @@
 "use server";
 
 import { db } from "@/index";
-import { trading212ConnectionsTable, manualHoldingsTable } from "@/db/schema";
-import { eq, and, isNotNull } from "drizzle-orm";
+import { createTransaction } from "@/db/mutations/transactions";
+import { trading212ConnectionsTable, manualHoldingsTable, holdingSalesTable, accountsTable } from "@/db/schema";
+import { eq, and, isNotNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getCurrentUserId } from "@/lib/auth";
 import { encrypt } from "@/lib/encryption";
@@ -173,6 +174,85 @@ export async function deleteManualHolding(id: string) {
         eq(manualHoldingsTable.user_id, userId),
       ),
     );
+  revalidateInvestments();
+}
+
+export async function recordHoldingSale(formData: FormData) {
+  const userId = await getCurrentUserId();
+  const holdingId = sanitizeUUID(formData.get("holding_id") as string);
+  if (!holdingId) throw new Error("Missing holding ID");
+
+  const quantity = sanitizeNumber(formData.get("quantity") as string, "Quantity");
+  const pricePerUnit = sanitizeNumber(formData.get("price_per_unit") as string, "Price per unit");
+  const dateRaw = formData.get("date") as string;
+  const date = dateRaw ? new Date(dateRaw) : new Date();
+  const cashAccountId = sanitizeUUID(formData.get("cash_account_id") as string);
+  const notes = (formData.get("notes") as string) || null;
+
+  // Fetch holding
+  const [holding] = await db
+    .select()
+    .from(manualHoldingsTable)
+    .where(
+      and(
+        eq(manualHoldingsTable.id, holdingId),
+        eq(manualHoldingsTable.user_id, userId),
+      ),
+    );
+
+  if (!holding) throw new Error("Holding not found");
+  if (quantity > holding.quantity) throw new Error("Quantity exceeds current holding");
+
+  const totalAmount = quantity * pricePerUnit;
+  const realizedGain = (pricePerUnit - holding.average_price) * quantity;
+
+  // Update holding quantity (reduce)
+  await db
+    .update(manualHoldingsTable)
+    .set({
+      quantity: holding.quantity - quantity,
+    })
+    .where(eq(manualHoldingsTable.id, holdingId));
+
+  // Insert sale record
+  await db.insert(holdingSalesTable).values({
+    holding_id: holdingId,
+    user_id: userId,
+    date: date.toISOString().split('T')[0],
+    quantity,
+    price_per_unit: pricePerUnit,
+    total_amount: totalAmount,
+    realized_gain: realizedGain,
+    cash_account_id: cashAccountId,
+    notes,
+  });
+
+  // If cashAccountId, create a transaction
+  if (cashAccountId) {
+    const description = `Sold ${quantity} ${holding.ticker ? holding.ticker : holding.name}`;
+    await createTransaction({
+      type: 'sale',
+      amount: totalAmount,
+      description,
+      date: date.toISOString().split('T')[0],
+      account_id: cashAccountId,
+      category_id: null,
+      is_recurring: false,
+      recurring_pattern: null,
+      next_recurring_date: null,
+      transfer_account_id: null,
+      is_split: false,
+    });
+
+    // Update account balance
+    await db.update(accountsTable)
+      .set({ balance: sql`${accountsTable.balance} + ${totalAmount}` })
+      .where(eq(accountsTable.id, cashAccountId));
+
+    revalidatePath('/dashboard/transactions');
+    revalidatePath('/dashboard/accounts');
+  }
+
   revalidateInvestments();
 }
 

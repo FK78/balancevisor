@@ -2,7 +2,7 @@ import { boolean, date, integer, pgEnum, pgTable, real, timestamp, varchar, uuid
 
 export const accountTypeEnum = pgEnum("account_type", ["currentAccount", "savings", "creditCard", "investment"]);
 export const periodEnum = pgEnum("period", ["monthly", "weekly"]);
-export const transactionTypeEnum = pgEnum("transaction_type", ["income", "expense", "transfer"]);
+export const transactionTypeEnum = pgEnum("transaction_type", ["income", "expense", "transfer", "sale"]);
 export const recurringPatternEnum = pgEnum("recurring_pattern", ["daily", "weekly", "biweekly", "monthly", "yearly"]);
 export const investmentTypeEnum = pgEnum("investment_type", ["stock", "real_estate", "private_equity", "other"]);
 
@@ -169,6 +169,20 @@ export const manualHoldingsTable = pgTable("manual_holdings", {
   account_id: uuid("account_id").references(() => accountsTable.id, { onDelete: "set null" }),
   group_id: uuid("group_id").references(() => investmentGroupsTable.id, { onDelete: "set null" }),
   last_price_update: timestamp("last_price_update", { withTimezone: true }),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const holdingSalesTable = pgTable("holding_sales", {
+  id: uuid().primaryKey().defaultRandom(),
+  holding_id: uuid("holding_id").notNull().references(() => manualHoldingsTable.id, { onDelete: "cascade" }),
+  user_id: uuid("user_id").notNull(),
+  date: date().notNull(),
+  quantity: real().notNull(),
+  price_per_unit: real("price_per_unit").notNull(),
+  total_amount: real("total_amount").notNull(),
+  realized_gain: real("realized_gain").notNull(),
+  cash_account_id: uuid("cash_account_id").references(() => accountsTable.id, { onDelete: "set null" }),
+  notes: text("notes"),
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

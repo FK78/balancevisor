@@ -5,18 +5,18 @@ export function TransactionRow({
   t,
   currency,
 }: {
-  t: { id: string; description: string | null; category: string | null; date: string | null; amount: number; type: "income" | "expense" | "transfer" };
+  t: { id: string; description: string | null; category: string | null; date: string | null; amount: number; type: "income" | "expense" | "transfer" | "sale" };
   currency: string;
 }) {
     const colorClass =
-      t.type === "income"
+      t.type === "income" || t.type === "sale"
         ? "text-emerald-600"
         : t.type === "transfer"
           ? "text-blue-600"
           : "text-red-600";
 
     const prefix =
-      t.type === "income" ? "+" : t.type === "transfer" ? "⇄ " : "−";
+      t.type === "income" || t.type === "sale" ? "+" : t.type === "transfer" ? "⇄ " : "−";
 
     return (
         <TableRow>
@@ -24,7 +24,7 @@ export function TransactionRow({
                 {t.description}
             </TableCell>
             <TableCell className="text-muted-foreground">
-                {t.type === "transfer" ? "Transfer" : t.category}
+                {t.type === "transfer" ? "Transfer" : t.type === "sale" ? "Sale" : t.category}
             </TableCell>
             <TableCell className="text-muted-foreground">
                 {t.date}

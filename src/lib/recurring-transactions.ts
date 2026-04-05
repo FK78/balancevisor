@@ -26,9 +26,9 @@ function advanceDate(dateStr: string, pattern: RecurringPattern): string {
   return d.toISOString().split('T')[0];
 }
 
-function balanceDelta(type: 'income' | 'expense' | 'transfer', amount: number) {
+function balanceDelta(type: 'income' | 'expense' | 'transfer' | 'sale', amount: number) {
   if (type === 'transfer') return 0;
-  return type === 'income' ? amount : -amount;
+  return type === 'income' || type === 'sale' ? amount : -amount;
 }
 
 /**

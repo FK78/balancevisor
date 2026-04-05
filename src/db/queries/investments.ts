@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/index";
-import { trading212ConnectionsTable, manualHoldingsTable, accountsTable } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { trading212ConnectionsTable, manualHoldingsTable, accountsTable, holdingSalesTable } from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { getCurrentUserId } from "@/lib/auth";
 import { searchTicker } from "@/lib/yahoo-finance";
 import { decrypt } from "@/lib/encryption";
@@ -36,6 +36,39 @@ export async function getInvestmentsByAccountId(accountId: string) {
     })
     .from(manualHoldingsTable)
     .where(eq(manualHoldingsTable.account_id, accountId));
+}
+
+export async function getHoldingSales(userId: string) {
+  const rows = await db
+    .select({
+      id: holdingSalesTable.id,
+      holding_id: holdingSalesTable.holding_id,
+      date: holdingSalesTable.date,
+      quantity: holdingSalesTable.quantity,
+      price_per_unit: holdingSalesTable.price_per_unit,
+      total_amount: holdingSalesTable.total_amount,
+      realized_gain: holdingSalesTable.realized_gain,
+      cash_account_id: holdingSalesTable.cash_account_id,
+      notes: holdingSalesTable.notes,
+      created_at: holdingSalesTable.created_at,
+      holding: {
+        ticker: manualHoldingsTable.ticker,
+        name: manualHoldingsTable.name,
+        investment_type: manualHoldingsTable.investment_type,
+        currency: manualHoldingsTable.currency,
+      },
+      cashAccountName: accountsTable.name,
+    })
+    .from(holdingSalesTable)
+    .leftJoin(manualHoldingsTable, eq(holdingSalesTable.holding_id, manualHoldingsTable.id))
+    .leftJoin(accountsTable, eq(holdingSalesTable.cash_account_id, accountsTable.id))
+    .where(eq(holdingSalesTable.user_id, userId))
+    .orderBy(desc(holdingSalesTable.date));
+
+  return rows.map(row => ({
+    ...row,
+    cashAccountName: row.cashAccountName ? decrypt(row.cashAccountName) : null,
+  }));
 }
 
 export async function getT212ConnectionByAccountId(accountId: string) {

@@ -35,13 +35,14 @@ export async function createTransaction(transaction: Transaction) {
   }).returning({ id: transactionsTable.id });
 }
 
-function balanceDelta(type: 'income' | 'expense' | 'transfer', amount: number) {
+function balanceDelta(type: 'income' | 'expense' | 'transfer' | 'sale', amount: number) {
   if (type === 'transfer') return 0;
-  return type === 'income' ? amount : -amount;
+  if (type === 'income' || type === 'sale') return amount;
+  return -amount;
 }
 
 export async function addTransaction(formData: FormData) {
-  const type = sanitizeEnum(formData.get('type') as string, ['income', 'expense'] as const, 'expense');
+  const type = sanitizeEnum(formData.get('type') as string, ['income', 'expense', 'sale'] as const, 'expense');
   const amount = sanitizeNumber(formData.get('amount') as string, 'Amount', { required: true, min: 0.01 });
   const accountId = requireString(formData.get('account_id') as string, 'Account');
 
@@ -96,7 +97,7 @@ export async function addTransaction(formData: FormData) {
 
 export async function editTransaction(formData: FormData) {
   const id = requireString(formData.get('id') as string, 'Transaction ID');
-  const newType = sanitizeEnum(formData.get('type') as string, ['income', 'expense'] as const, 'expense');
+  const newType = sanitizeEnum(formData.get('type') as string, ['income', 'expense', 'sale'] as const, 'expense');
   const newAmount = sanitizeNumber(formData.get('amount') as string, 'Amount', { required: true, min: 0.01 });
   const newAccountId = requireString(formData.get('account_id') as string, 'Account');
 
