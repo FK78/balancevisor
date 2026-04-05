@@ -23,6 +23,7 @@ import {
   AlertTriangle,
   Folder,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { getCurrentUserId } from "@/lib/auth";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { getTrading212Connection, getManualHoldings, getHoldingSales } from "@/db/queries/investments";
@@ -38,10 +39,15 @@ import { AddPrivateInvestmentDialog } from "@/components/AddPrivateInvestmentDia
 import { DeleteHoldingButton } from "@/components/DeleteHoldingButton";
 import { SellHoldingDialog } from "@/components/SellHoldingDialog";
 import { RefreshPricesButton } from "@/components/RefreshPricesButton";
-import { InvestmentCharts } from "@/components/InvestmentCharts";
 import { InvestmentGroupDialog } from "@/components/InvestmentGroupDialog";
 import { DeleteGroupButton } from "@/components/DeleteGroupButton";
 import { RealizedGainsTable } from "@/components/RealizedGainsTable";
+const InvestmentCharts = dynamic<{ holdings: NormalisedHolding[]; currency: string }>(
+  () => import("@/components/InvestmentCharts").then(mod => mod.InvestmentCharts),
+  {
+    loading: () => <div className="min-h-[260px] w-full flex items-center justify-center">Loading charts...</div>,
+  }
+);
 
 type NormalisedHolding = {
   id: string;

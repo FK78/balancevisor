@@ -1,7 +1,8 @@
 import { formatCurrency } from "@/lib/formatCurrency";
 import { TableCell, TableRow } from "./ui/table";
+import React from "react";
 
-export function TransactionRow({
+function TransactionRowComponent({
   t,
   currency,
 }: {
@@ -38,3 +39,5 @@ export function TransactionRow({
         </TableRow>
     );
 }
+
+export const TransactionRow = React.memo(TransactionRowComponent);
