@@ -205,13 +205,30 @@ export async function addTransfer(formData: FormData) {
 
 export async function deleteTransaction(id: string) {
   const userId = await getCurrentUserId();
-  // Fetch transaction to reverse its balance effect
+  const userEmail = await getCurrentUserEmail();
+
+  // Fetch transaction along with the owning account to verify access
   const [txn] = await db.select({
     type: transactionsTable.type,
     amount: transactionsTable.amount,
     account_id: transactionsTable.account_id,
     transfer_account_id: transactionsTable.transfer_account_id,
-  }).from(transactionsTable).where(eq(transactionsTable.id, id));
+    account_user_id: accountsTable.user_id,
+  }).from(transactionsTable)
+    .leftJoin(accountsTable, eq(accountsTable.id, transactionsTable.account_id))
+    .where(eq(transactionsTable.id, id));
+
+  if (!txn) {
+    throw new Error('Transaction not found');
+  }
+
+  // Verify the user owns the account or has edit access
+  if (txn.account_id) {
+    const canEdit = await hasEditAccess(userId, userEmail, 'account', txn.account_id);
+    if (!canEdit) {
+      throw new Error('You do not have access to this transaction');
+    }
+  }
 
   await db.delete(transactionsTable).where(eq(transactionsTable.id, id));
 

@@ -3,6 +3,20 @@ import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/proxy";
 
 export async function proxy(request: NextRequest) {
+  const start = Date.now();
+
+  function addLoggingAndTiming(response: NextResponse) {
+    const duration = Date.now() - start;
+    // Log request details (only in development)
+    if (process.env.NODE_ENV === "development") {
+      console.log(
+        `[${request.method}] ${request.nextUrl.pathname} ${response.status} ${duration}ms`
+      );
+    }
+    // Add server timing header for potential monitoring
+    response.headers.set("Server-Timing", `total;dur=${duration}`);
+  }
+
   const response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -27,14 +41,20 @@ export async function proxy(request: NextRequest) {
 
   // Redirect authenticated users away from /login
   if (claims && request.nextUrl.pathname === "/login") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const redirectResponse = NextResponse.redirect(new URL("/dashboard", request.url));
+    addLoggingAndTiming(redirectResponse);
+    return redirectResponse;
   }
 
   if (!claims && request.nextUrl.pathname.startsWith("/dashboard")) {
-    return NextResponse.redirect(new URL("/auth/login", request.url));
+    const redirectResponse = NextResponse.redirect(new URL("/auth/login", request.url));
+    addLoggingAndTiming(redirectResponse);
+    return redirectResponse;
   }
 
-  return await updateSession(request);
+  const sessionResponse = await updateSession(request);
+  addLoggingAndTiming(sessionResponse);
+  return sessionResponse;
 }
 
 export const config = {

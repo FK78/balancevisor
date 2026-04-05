@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition, useEffect, useRef } from "react";
+import { useState, useTransition, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Plus, CheckCircle2, Loader2, Search, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +23,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { addManualHolding, editManualHolding } from "@/db/mutations/investments";
-import { searchTickers } from "@/db/queries/investments";
 import { toast } from "sonner";
 
 type InvestmentAccount = { id: string; accountName: string };
@@ -60,42 +60,38 @@ export function AddHoldingDialog({
   const [formKey, setFormKey] = useState(0);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [selectedTicker, setSelectedTicker] = useState(holding?.ticker ?? "");
   const [selectedName, setSelectedName] = useState(holding?.name ?? "");
   const [showDropdown, setShowDropdown] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  useEffect(() => {
-    if (searchQuery.length < 1) {
-      setSearchResults([]);
-      setShowDropdown(false);
-      return;
-    }
+  // Use React Query for ticker search with debouncing
+  const { data: searchResults = [], isFetching: isSearching } = useQuery({
+    queryKey: ["ticker-search", searchQuery],
+    queryFn: async () => {
+      if (searchQuery.length < 1) return [];
+      const res = await fetch(`/api/tickers/search?q=${encodeURIComponent(searchQuery)}`);
+      if (!res.ok) throw new Error("Failed to search tickers");
+      return res.json() as Promise<SearchResult[]>;
+    },
+    enabled: searchQuery.length >= 1,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    retry: false,
+  });
 
+  // Debounce the search query
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
     clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      setIsSearching(true);
-      try {
-        const data = await searchTickers(searchQuery);
-        setSearchResults(Array.isArray(data) ? data : []);
-        setShowDropdown(Array.isArray(data) && data.length > 0);
-      } catch {
-        setSearchResults([]);
-      } finally {
-        setIsSearching(false);
-      }
+    debounceRef.current = setTimeout(() => {
+      // React Query will refetch when searchQuery changes
     }, 300);
-
-    return () => clearTimeout(debounceRef.current);
-  }, [searchQuery]);
+  };
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) {
       setView("form");
       setSearchQuery("");
-      setSearchResults([]);
       setShowDropdown(false);
       if (!isEdit) {
         setSelectedTicker("");
@@ -206,7 +202,7 @@ export function AddHoldingDialog({
                       className="pl-8"
                       value={isEdit ? selectedTicker : searchQuery}
                       onChange={(e) => {
-                        setSearchQuery(e.target.value);
+                        handleSearchChange(e.target.value);
                         if (!isEdit) {
                           setSelectedTicker("");
                           setSelectedName("");
@@ -219,7 +215,7 @@ export function AddHoldingDialog({
                       <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
                     )}
                   </div>
-                  {showDropdown && (
+                  {showDropdown && Array.isArray(searchResults) && searchResults.length > 0 && (
                     <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md">
                       {searchResults.map((r) => (
                         <button
