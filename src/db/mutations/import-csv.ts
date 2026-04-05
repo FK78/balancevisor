@@ -191,7 +191,6 @@ export async function importTransactionsFromCSV(
       type: row.type,
       amount: row.amount,
       description: encrypt(row.description),
-      search_description: row.description.toLowerCase(),
       date: row.date,
       is_recurring: false,
       recurring_pattern: null,

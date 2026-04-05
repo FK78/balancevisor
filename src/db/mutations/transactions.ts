@@ -33,7 +33,6 @@ export async function createTransaction(transaction: Transaction) {
   return await db.insert(transactionsTable).values({
     ...transaction,
     description: transaction.description ? encrypt(transaction.description) : transaction.description,
-    search_description: transaction.description ? transaction.description.toLowerCase() : null,
   }).returning({ id: transactionsTable.id });
 }
 
@@ -131,7 +130,6 @@ export async function editTransaction(formData: FormData) {
     type: newType,
     amount: newAmount,
     description: encrypt(editDescription),
-    search_description: editDescription.toLowerCase(),
     is_recurring: isRecurring,
     date: txnDate,
     account_id: newAccountId,
@@ -261,7 +259,6 @@ export async function addSplitTransaction(
     type,
     amount: totalAmount,
     description: encrypt(description),
-    search_description: description.toLowerCase(),
     is_recurring: false,
     date: txnDate,
     account_id: accountId,

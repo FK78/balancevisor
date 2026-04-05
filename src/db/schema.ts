@@ -60,7 +60,6 @@ export const transactionsTable = pgTable("transactions", {
   type: transactionTypeEnum().notNull(),
   amount: real().notNull(),
   description: text().notNull(),
-  search_description: text("search_description"), // Plain text lowercase description for searching
   date: date(),
   is_recurring: boolean().notNull(),
   recurring_pattern: recurringPatternEnum("recurring_pattern"),

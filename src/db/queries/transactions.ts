@@ -1,6 +1,6 @@
 import { db } from '@/index';
 import { transactionsTable, categoriesTable, accountsTable } from '@/db/schema';
-import { and, desc, eq, ne, sql, sum, gte, lte, lt, ilike, or, count, isNull } from 'drizzle-orm';
+import { and, desc, eq, ne, sql, sum, gte, lte, lt } from 'drizzle-orm';
 import { getMonthRange, getRecentMonthKeys, getRecentDayKeys, getTomorrowString, getNextMonthFirstString } from '@/lib/date';
 import { decrypt } from '@/lib/encryption';
 import { getCached, setCached, cacheKey } from '@/lib/cache';
@@ -161,8 +161,9 @@ export type SearchTransactionsResult = {
 };
 
 /**
- * Server-side search using the search_description column with trigram index.
- * Performs search at the database level using ILIKE for fuzzy matching.
+ * Server-side search: fetches all transactions (with optional date range),
+ * decrypts descriptions/account names, filters by search term, and returns
+ * a paginated slice plus totals. Used only when a search query is present.
  */
 export async function searchTransactions(
   userId: string,
@@ -175,19 +176,9 @@ export async function searchTransactions(
 ): Promise<SearchTransactionsResult> {
   const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
   const safePageSize = Number.isFinite(pageSize) && pageSize > 0 ? Math.floor(pageSize) : 10;
-  const offset = (safePage - 1) * safePageSize;
 
-  const needle = `%${search.toLowerCase()}%`;
-
-  // Build search condition for database-level filtering
-  // Note: search_description is plain text lowercase, accounts/categories names are not encrypted
-  const searchCondition = or(
-    ilike(transactionsTable.search_description, needle),
-    ilike(accountsTable.name, needle),
-    ilike(categoriesTable.name, needle),
-  );
-
-  // Build date range conditions
+  const MAX_SEARCH_ROWS = 1000;
+  let query = baseTransactionsQuery(userId);
   let effectiveStartDate = startDate;
   const effectiveEndDate = endDate;
   if (!startDate && !endDate) {
@@ -195,74 +186,35 @@ export async function searchTransactions(
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
     effectiveStartDate = ninetyDaysAgo.toISOString().split('T')[0];
   }
+  if (effectiveStartDate) query = query.where(gte(transactionsTable.date, effectiveStartDate));
+  if (effectiveEndDate) query = query.where(lte(transactionsTable.date, effectiveEndDate));
+  if (accountId) query = query.where(eq(transactionsTable.account_id, accountId));
 
-  // Base conditions
-  const baseConditions = and(
-    eq(accountsTable.user_id, userId),
-    searchCondition,
-    effectiveStartDate ? gte(transactionsTable.date, effectiveStartDate) : undefined,
-    effectiveEndDate ? lte(transactionsTable.date, effectiveEndDate) : undefined,
-    accountId ? eq(transactionsTable.account_id, accountId) : undefined,
-  );
-
-  // Get total count
-  const [{ total }] = await db
-    .select({ total: count() })
-    .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
-    .leftJoin(categoriesTable, eq(transactionsTable.category_id, categoriesTable.id))
-    .where(baseConditions);
-
-  // Get paginated results
-  const rows = await db
-    .select({
-      id: transactionsTable.id,
-      accountName: accountsTable.name,
-      account_id: transactionsTable.account_id,
-      type: transactionsTable.type,
-      amount: transactionsTable.amount,
-      category: categoriesTable.name,
-      category_id: transactionsTable.category_id,
-      description: transactionsTable.description,
-      date: transactionsTable.date,
-      is_recurring: transactionsTable.is_recurring,
-      transfer_account_id: transactionsTable.transfer_account_id,
-      is_split: transactionsTable.is_split,
-    })
-    .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
-    .leftJoin(categoriesTable, eq(transactionsTable.category_id, categoriesTable.id))
-    .where(baseConditions)
+  const allRows = await query
     .orderBy(desc(transactionsTable.date), desc(transactionsTable.id))
-    .limit(safePageSize)
-    .offset(offset);
+    .limit(MAX_SEARCH_ROWS);
+  const decrypted = decryptTransactionRows(allRows);
 
-  // Decrypt descriptions and account names
-  const decrypted = decryptTransactionRows(rows);
+  const needle = search.toLowerCase();
+  const filtered = decrypted.filter((row) => {
+    const desc = (row.description ?? '').toLowerCase();
+    const acct = (row.accountName ?? '').toLowerCase();
+    const cat = (row.category ?? '').toLowerCase();
+    return desc.includes(needle) || acct.includes(needle) || cat.includes(needle);
+  });
 
-  // Calculate totals from the matching rows (we need to fetch all for totals, but use pagination for display)
-  // For efficiency, we'll compute income/expense from the full result set
-  // Since we're using pagination, we need separate queries for totals
-  const incomeResult = await db
-    .select({ total: sum(transactionsTable.amount) })
-    .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
-    .leftJoin(categoriesTable, eq(transactionsTable.category_id, categoriesTable.id))
-    .where(and(baseConditions, eq(transactionsTable.type, 'income')));
+  const totalCount = filtered.length;
+  const totalIncome = filtered
+    .filter((r) => r.type === 'income')
+    .reduce((s, r) => s + r.amount, 0);
+  const totalExpenses = filtered
+    .filter((r) => r.type === 'expense')
+    .reduce((s, r) => s + r.amount, 0);
 
-  const expenseResult = await db
-    .select({ total: sum(transactionsTable.amount) })
-    .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
-    .leftJoin(categoriesTable, eq(transactionsTable.category_id, categoriesTable.id))
-    .where(and(baseConditions, eq(transactionsTable.type, 'expense')));
+  const offset = (safePage - 1) * safePageSize;
+  const transactions = filtered.slice(offset, offset + safePageSize);
 
-  return {
-    transactions: decrypted,
-    totalCount: total,
-    totalIncome: Number(incomeResult[0]?.total ?? 0),
-    totalExpenses: Number(expenseResult[0]?.total ?? 0),
-  };
+  return { transactions, totalCount, totalIncome, totalExpenses };
 }
 
 export async function getLatestFiveTransactionsWithDetails(userId: string) {
