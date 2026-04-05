@@ -5,6 +5,9 @@ import { getMonthRange, getRecentMonthKeys, getRecentDayKeys, getTomorrowString,
 import { decrypt } from '@/lib/encryption';
 import { getCached, setCached, cacheKey } from '@/lib/cache';
 
+// User tag for cache invalidation
+const userTag = (userId: string) => `user:${userId}`;
+
 function decryptTransactionRows<T extends { description?: string | null; accountName?: string | null }>(rows: T[]): T[] {
   return rows.map(row => ({
     ...row,
@@ -149,7 +152,7 @@ export async function getTotalsByType(
     .where(and(...conditions));
 
   const result = Number(row?.total ?? 0);
-  setCached(key, result);
+  setCached(key, result, { tags: [userTag(userId)] });
   return result;
 }
 
@@ -266,7 +269,7 @@ export async function getTotalSpendByCategoryThisMonth(userId: string): Promise<
     ))
     .groupBy(categoriesTable.name, categoriesTable.color);
 
-  setCached(key, result);
+  setCached(key, result, { tags: [userTag(userId)] });
   return result;
 }
 
@@ -356,7 +359,7 @@ export async function getMonthlyIncomeExpenseTrend(userId: string, monthCount = 
     };
   });
 
-  setCached(key, result);
+  setCached(key, result, { tags: [userTag(userId)] });
   return result;
 }
 
@@ -418,7 +421,7 @@ export async function getDailyIncomeExpenseTrend(userId: string, dayCount = 30):
     };
   });
 
-  setCached(key, result);
+  setCached(key, result, { tags: [userTag(userId)] });
   return result;
 }
 
@@ -456,7 +459,7 @@ export async function getDailyExpenseByCategory(userId: string, dayCount = 30): 
     )
     .orderBy(transactionsTable.date, categoriesTable.name);
 
-  setCached(key, rows);
+  setCached(key, rows, { tags: [userTag(userId)] });
   return rows;
 }
 
@@ -497,6 +500,6 @@ export async function getMonthlyCategorySpendTrend(userId: string, monthCount = 
       categoriesTable.name,
     );
 
-  setCached(key, rows);
+  setCached(key, rows, { tags: [userTag(userId)] });
   return rows;
 }

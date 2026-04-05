@@ -1,35 +1,35 @@
 import { searchTickers } from "@/db/queries/investments";
 import { NextResponse } from "next/server";
+import { withRateLimit, getClientIp } from "@/lib/api-middleware";
+import { handleApiError } from "@/lib/api-errors";
 import { rateLimiters } from "@/lib/rate-limiter";
 
-export async function GET(req: Request) {
-  // Rate limit by IP address
-  const ip = (req as Request & { ip?: string }).ip ?? "unknown";
-  const result = rateLimiters.search.consume(`ticker-search:${ip}`);
-
-  if (!result.allowed) {
-    return NextResponse.json(
-      { error: "Too many requests. Please try again later." },
-      { status: 429, headers: { "Retry-After": String(result.retryAfter) } },
-    );
-  }
-
-  const { searchParams } = new URL(req.url);
-  const query = searchParams.get("q");
-
-  if (!query || query.length < 1) {
-    return NextResponse.json([]);
-  }
-
+async function handler(req: Request): Promise<NextResponse> {
   try {
+    const { searchParams } = new URL(req.url);
+    const query = searchParams.get("q");
+
+    if (!query || query.length < 1) {
+      return NextResponse.json([]);
+    }
+
+    // Validate query length to prevent abuse
+    if (query.length > 100) {
+      return NextResponse.json(
+        { error: "Query too long. Maximum 100 characters." },
+        { status: 400 }
+      );
+    }
+
     const results = await searchTickers(query);
-    const response = NextResponse.json(results ?? []);
-    // Add rate limit headers
-    response.headers.set("X-RateLimit-Remaining", String(result.remaining));
-    response.headers.set("X-RateLimit-Reset", String(result.resetAt));
-    return response;
+    return NextResponse.json(results ?? []);
   } catch (error) {
-    console.error("Error searching tickers:", error);
-    return NextResponse.json({ error: "Failed to search tickers" }, { status: 500 });
+    return handleApiError(error);
   }
 }
+
+export const GET = withRateLimit(
+  handler,
+  rateLimiters.search,
+  (req) => `ticker-search:${getClientIp(req)}`
+);
