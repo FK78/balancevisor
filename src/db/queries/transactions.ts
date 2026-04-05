@@ -168,12 +168,22 @@ export async function searchTransactions(
   const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
   const safePageSize = Number.isFinite(pageSize) && pageSize > 0 ? Math.floor(pageSize) : 10;
 
+  const MAX_SEARCH_ROWS = 1000;
   let query = baseTransactionsQuery(userId);
-  if (startDate) query = query.where(gte(transactionsTable.date, startDate));
-  if (endDate) query = query.where(lte(transactionsTable.date, endDate));
+  let effectiveStartDate = startDate;
+  const effectiveEndDate = endDate;
+  if (!startDate && !endDate) {
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    effectiveStartDate = ninetyDaysAgo.toISOString().split('T')[0];
+  }
+  if (effectiveStartDate) query = query.where(gte(transactionsTable.date, effectiveStartDate));
+  if (effectiveEndDate) query = query.where(lte(transactionsTable.date, effectiveEndDate));
   if (accountId) query = query.where(eq(transactionsTable.account_id, accountId));
 
-  const allRows = await query.orderBy(desc(transactionsTable.date), desc(transactionsTable.id));
+  const allRows = await query
+    .orderBy(desc(transactionsTable.date), desc(transactionsTable.id))
+    .limit(MAX_SEARCH_ROWS);
   const decrypted = decryptTransactionRows(allRows);
 
   const needle = search.toLowerCase();
