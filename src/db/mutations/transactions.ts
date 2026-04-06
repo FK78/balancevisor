@@ -92,6 +92,7 @@ export async function addTransaction(formData: FormData) {
   revalidatePath('/dashboard/accounts');
 
   await checkBudgetAlerts(userId);
+  invalidateByUser(userId);
 
   return result;
 }
