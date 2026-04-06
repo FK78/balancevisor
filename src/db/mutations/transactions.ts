@@ -29,8 +29,14 @@ function computeNextRecurringDate(dateStr: string, pattern: string | null): stri
   return d.toISOString().split('T')[0];
 }
 
-export async function createTransaction(transaction: Transaction) {
-  return await db.insert(transactionsTable).values({
+type DbClient = typeof db;
+type TransactionDb = Parameters<Parameters<DbClient['transaction']>[0]>[0];
+
+export async function createTransaction(
+  transaction: Transaction,
+  tx: DbClient | TransactionDb = db,
+) {
+  return await tx.insert(transactionsTable).values({
     ...transaction,
     description: transaction.description ? encrypt(transaction.description) : transaction.description,
   }).returning({ id: transactionsTable.id });
@@ -72,21 +78,25 @@ export async function addTransaction(formData: FormData) {
     if (matched) categoryId = matched;
   }
 
-  const [result] = await createTransaction({
-    type,
-    amount,
-    description,
-    is_recurring: isRecurring,
-    date: txnDate,
-    account_id: accountId,
-    category_id: categoryId || (formData.get('category_id') as string) || null,
-    recurring_pattern: recurringPattern as typeof transactionsTable.$inferInsert['recurring_pattern'],
-    next_recurring_date: nextRecurringDate,
-  });
+  const result = await db.transaction(async (tx) => {
+    const [inserted] = await createTransaction({
+      type,
+      amount,
+      description,
+      is_recurring: isRecurring,
+      date: txnDate,
+      account_id: accountId,
+      category_id: categoryId || (formData.get('category_id') as string) || null,
+      recurring_pattern: recurringPattern as typeof transactionsTable.$inferInsert['recurring_pattern'],
+      next_recurring_date: nextRecurringDate,
+    }, tx);
 
-  await db.update(accountsTable)
-    .set({ balance: sql`${accountsTable.balance} + ${balanceDelta(type, amount)}` })
-    .where(eq(accountsTable.id, accountId));
+    await tx.update(accountsTable)
+      .set({ balance: sql`${accountsTable.balance} + ${balanceDelta(type, amount)}` })
+      .where(eq(accountsTable.id, accountId));
+
+    return inserted;
+  });
 
   revalidatePath('/dashboard/transactions');
   revalidatePath('/dashboard/accounts');
@@ -127,30 +137,34 @@ export async function editTransaction(formData: FormData) {
 
   const editDescription = sanitizeString(formData.get('description') as string) ?? '';
 
-  const [result] = await db.update(transactionsTable).set({
-    type: newType,
-    amount: newAmount,
-    description: encrypt(editDescription),
-    is_recurring: isRecurring,
-    date: txnDate,
-    account_id: newAccountId,
-    category_id: sanitizeUUID(formData.get('category_id') as string),
-    recurring_pattern: recurringPattern as typeof transactionsTable.$inferInsert['recurring_pattern'],
-    next_recurring_date: nextRecurringDate,
-  }).where(eq(transactionsTable.id, id)).returning({ id: transactionsTable.id });
+  const result = await db.transaction(async (tx) => {
+    const [updated] = await tx.update(transactionsTable).set({
+      type: newType,
+      amount: newAmount,
+      description: encrypt(editDescription),
+      is_recurring: isRecurring,
+      date: txnDate,
+      account_id: newAccountId,
+      category_id: sanitizeUUID(formData.get('category_id') as string),
+      recurring_pattern: recurringPattern as typeof transactionsTable.$inferInsert['recurring_pattern'],
+      next_recurring_date: nextRecurringDate,
+    }).where(eq(transactionsTable.id, id)).returning({ id: transactionsTable.id });
 
-  if (old) {
-    // Reverse old effect
-    if (old.account_id) {
-      await db.update(accountsTable)
-        .set({ balance: sql`${accountsTable.balance} - ${balanceDelta(old.type, old.amount)}` })
-        .where(eq(accountsTable.id, old.account_id));
+    if (old) {
+      // Reverse old effect
+      if (old.account_id) {
+        await tx.update(accountsTable)
+          .set({ balance: sql`${accountsTable.balance} - ${balanceDelta(old.type, old.amount)}` })
+          .where(eq(accountsTable.id, old.account_id));
+      }
+      // Apply new effect
+      await tx.update(accountsTable)
+        .set({ balance: sql`${accountsTable.balance} + ${balanceDelta(newType, newAmount)}` })
+        .where(eq(accountsTable.id, newAccountId));
     }
-    // Apply new effect
-    await db.update(accountsTable)
-      .set({ balance: sql`${accountsTable.balance} + ${balanceDelta(newType, newAmount)}` })
-      .where(eq(accountsTable.id, newAccountId));
-  }
+
+    return updated;
+  });
 
   revalidatePath('/dashboard/transactions');
   revalidatePath('/dashboard/accounts');
@@ -173,28 +187,32 @@ export async function addTransfer(formData: FormData) {
     throw new Error('Source and destination accounts must be different');
   }
 
-  const [result] = await createTransaction({
-    type: 'transfer',
-    amount,
-    description,
-    is_recurring: false,
-    date: txnDate,
-    account_id: fromAccountId,
-    transfer_account_id: toAccountId,
-    category_id: null,
-    recurring_pattern: null,
-    next_recurring_date: null,
+  const result = await db.transaction(async (tx) => {
+    const [inserted] = await createTransaction({
+      type: 'transfer',
+      amount,
+      description,
+      is_recurring: false,
+      date: txnDate,
+      account_id: fromAccountId,
+      transfer_account_id: toAccountId,
+      category_id: null,
+      recurring_pattern: null,
+      next_recurring_date: null,
+    }, tx);
+
+    // Deduct from source account
+    await tx.update(accountsTable)
+      .set({ balance: sql`${accountsTable.balance} - ${amount}` })
+      .where(eq(accountsTable.id, fromAccountId));
+
+    // Add to destination account
+    await tx.update(accountsTable)
+      .set({ balance: sql`${accountsTable.balance} + ${amount}` })
+      .where(eq(accountsTable.id, toAccountId));
+
+    return inserted;
   });
-
-  // Deduct from source account
-  await db.update(accountsTable)
-    .set({ balance: sql`${accountsTable.balance} - ${amount}` })
-    .where(eq(accountsTable.id, fromAccountId));
-
-  // Add to destination account
-  await db.update(accountsTable)
-    .set({ balance: sql`${accountsTable.balance} + ${amount}` })
-    .where(eq(accountsTable.id, toAccountId));
 
   revalidatePath('/dashboard/transactions');
   revalidatePath('/dashboard/accounts');
@@ -231,25 +249,27 @@ export async function deleteTransaction(id: string) {
     }
   }
 
-  await db.delete(transactionsTable).where(eq(transactionsTable.id, id));
+  await db.transaction(async (tx) => {
+    await tx.delete(transactionsTable).where(eq(transactionsTable.id, id));
 
-  if (txn?.type === 'transfer') {
-    // Reverse transfer: add back to source, deduct from destination
-    if (txn.account_id) {
-      await db.update(accountsTable)
-        .set({ balance: sql`${accountsTable.balance} + ${txn.amount}` })
+    if (txn?.type === 'transfer') {
+      // Reverse transfer: add back to source, deduct from destination
+      if (txn.account_id) {
+        await tx.update(accountsTable)
+          .set({ balance: sql`${accountsTable.balance} + ${txn.amount}` })
+          .where(eq(accountsTable.id, txn.account_id));
+      }
+      if (txn.transfer_account_id) {
+        await tx.update(accountsTable)
+          .set({ balance: sql`${accountsTable.balance} - ${txn.amount}` })
+          .where(eq(accountsTable.id, txn.transfer_account_id));
+      }
+    } else if (txn?.account_id) {
+      await tx.update(accountsTable)
+        .set({ balance: sql`${accountsTable.balance} - ${balanceDelta(txn.type, txn.amount)}` })
         .where(eq(accountsTable.id, txn.account_id));
     }
-    if (txn.transfer_account_id) {
-      await db.update(accountsTable)
-        .set({ balance: sql`${accountsTable.balance} - ${txn.amount}` })
-        .where(eq(accountsTable.id, txn.transfer_account_id));
-    }
-  } else if (txn?.account_id) {
-    await db.update(accountsTable)
-      .set({ balance: sql`${accountsTable.balance} - ${balanceDelta(txn.type, txn.amount)}` })
-      .where(eq(accountsTable.id, txn.account_id));
-  }
+  });
 
   revalidatePath('/dashboard/transactions');
   revalidatePath('/dashboard/accounts');
@@ -272,37 +292,41 @@ export async function addSplitTransaction(
 ) {
   const userId = await getCurrentUserId();
 
-  // Create parent transaction with is_split = true, no single category
-  const [parent] = await db.insert(transactionsTable).values({
-    type,
-    amount: totalAmount,
-    description: encrypt(description),
-    is_recurring: false,
-    date: txnDate,
-    account_id: accountId,
-    category_id: null,
-    recurring_pattern: null,
-    next_recurring_date: null,
-    is_split: true,
-  }).returning({ id: transactionsTable.id });
+  const parent = await db.transaction(async (tx) => {
+    // Create parent transaction with is_split = true, no single category
+    const [inserted] = await tx.insert(transactionsTable).values({
+      type,
+      amount: totalAmount,
+      description: encrypt(description),
+      is_recurring: false,
+      date: txnDate,
+      account_id: accountId,
+      category_id: null,
+      recurring_pattern: null,
+      next_recurring_date: null,
+      is_split: true,
+    }).returning({ id: transactionsTable.id });
 
-  // Insert splits
-  if (splits.length > 0) {
-    await db.insert(transactionSplitsTable).values(
-      splits.map((s) => ({
-        transaction_id: parent.id,
-        category_id: s.category_id,
-        amount: s.amount,
-        description: s.description ? encrypt(s.description) : null,
-      }))
-    );
-  }
+    // Insert splits
+    if (splits.length > 0) {
+      await tx.insert(transactionSplitsTable).values(
+        splits.map((s) => ({
+          transaction_id: inserted.id,
+          category_id: s.category_id,
+          amount: s.amount,
+          description: s.description ? encrypt(s.description) : null,
+        }))
+      );
+    }
 
-  // Update account balance
-  const delta = type === 'income' ? totalAmount : -totalAmount;
-  await db.update(accountsTable)
-    .set({ balance: sql`${accountsTable.balance} + ${delta}` })
-    .where(eq(accountsTable.id, accountId));
+    // Update account balance
+    const delta = type === 'income' ? totalAmount : -totalAmount;
+    await tx.update(accountsTable)
+      .set({ balance: sql`${accountsTable.balance} + ${delta}` })
+      .where(eq(accountsTable.id, accountId));
+
+    return inserted;
+  });
 
   revalidatePath('/dashboard/transactions');
   revalidatePath('/dashboard/accounts');
