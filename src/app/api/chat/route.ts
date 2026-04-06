@@ -12,11 +12,21 @@ import { getMonthlyIncomeExpenseTrend, getTotalsByType, getTotalSpendByCategoryT
 import { getInvestmentValue } from "@/lib/investment-value";
 import { getMonthRange } from "@/lib/date";
 import { formatCurrency } from "@/lib/formatCurrency";
+import { rateLimiters } from "@/lib/rate-limiter";
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
-
+  // Rate limit by user ID (already authenticated)
   const userId = await getCurrentUserId();
+  const rateLimitResult = rateLimiters.chat.consume(`chat:${userId}`);
+
+  if (!rateLimitResult.allowed) {
+    return new Response(
+      JSON.stringify({ error: "Too many requests. Please slow down and try again later." }),
+      { status: 429, headers: { "Content-Type": "application/json", "Retry-After": String(rateLimitResult.retryAfter) } },
+    );
+  }
+
+  const { messages } = await req.json();
   const thisMonth = getMonthRange(0);
   const lastMonth = getMonthRange(1);
 

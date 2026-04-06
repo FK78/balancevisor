@@ -58,7 +58,7 @@ import { SplitTransactionDialog } from "@/components/SplitTransactionDialog";
 import { deleteTransaction } from "@/db/mutations/transactions";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { toast } from "sonner";
-import type { Account, Category } from "@/lib/types";
+import type { AccountWithDetails, CategoryWithColor, TransactionWithDetails, SplitDetail } from "@/lib/types";
 import { TransactionsInsightsCharts } from "@/components/TransactionsInsightsCharts";
 import type { DailyCashflowPoint, DailyCategoryExpensePoint } from "@/db/queries/transactions";
 
@@ -119,29 +119,8 @@ function DeleteTransactionButton({
   );
 }
 
-type Transaction = {
-  id: string;
-  accountName: string;
-  account_id: string | null;
-  type: "income" | "expense" | "transfer" | "sale" | null;
-  amount: number;
-  category: string | null;
-  category_id: string | null;
-  description: string;
-  date: string | null;
-  is_recurring: boolean;
-  transfer_account_id: string | null;
-  is_split: boolean;
-};
-
-type SplitDetail = {
-  id: string;
-  category_id: string | null;
-  categoryName: string | null;
-  categoryColor: string | null;
-  amount: number;
-  description: string | null;
-};
+// Use shared types from @/lib/types
+type Transaction = TransactionWithDetails;
 
 function formatDate(date: string | null) {
   if (!date) return "—";
@@ -195,8 +174,8 @@ export function TransactionsClient({
   splits,
 }: {
   transactions: Transaction[];
-  accounts: Account[];
-  categories: Category[];
+  accounts: AccountWithDetails[];
+  categories: CategoryWithColor[];
   currentPage: number;
   pageSize: number;
   totalTransactions: number;

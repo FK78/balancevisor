@@ -21,6 +21,7 @@ export const userOnboardingTable = pgTable("user_onboarding", {
   use_default_categories: boolean().notNull().default(false),
   completed: boolean().notNull().default(false),
   completed_at: timestamp("completed_at", { withTimezone: true }),
+  pending_features: text("pending_features"),
 });
 
 export const truelayerConnectionsTable = pgTable("truelayer_connections", {

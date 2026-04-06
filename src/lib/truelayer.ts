@@ -5,6 +5,8 @@
  * Provides: auth-link generation, token exchange / refresh, account + transaction fetching.
  */
 
+import { randomBytes } from 'crypto';
+
 // ---------------------------------------------------------------------------
 // Environment helpers
 // ---------------------------------------------------------------------------
@@ -64,7 +66,22 @@ export interface TrueLayerTransaction {
 // Auth link
 // ---------------------------------------------------------------------------
 
-export function buildAuthLink(): string {
+/**
+ * Generate a cryptographically random state string for OAuth CSRF protection.
+ * Returns a 32-byte hex string (64 characters).
+ */
+export function generateOAuthState(): string {
+  return randomBytes(32).toString('hex');
+}
+
+/**
+ * Build the TrueLayer OAuth authorization URL with CSRF state protection.
+ *
+ * @param state - A cryptographically random state string (use generateOAuthState()).
+ *                This must be stored in a cookie and validated on callback.
+ * @returns The full OAuth authorization URL.
+ */
+export function buildAuthLink(state: string): string {
   const clientId = requireEnv("TRUELAYER_CLIENT_ID");
   const redirectUri = `${requireEnv(
     "NEXT_PUBLIC_SITE_URL"
@@ -76,7 +93,8 @@ export function buildAuthLink(): string {
     scope: "info accounts balance transactions offline_access",
     redirect_uri: redirectUri,
     providers: "uk-ob-amex uk-ob-bos uk-ob-barclays uk-ob-chelsea-building-society uk-ob-danske uk-ob-first-direct uk-ob-halifax uk-ob-hsbc uk-ob-hsbc-business uk-ob-lloyds uk-ob-ms uk-ob-mbna uk-ob-monzo uk-ob-nationwide uk-ob-natwest uk-ob-revolut uk-ob-rbs uk-ob-santander uk-ob-tesco uk-ob-tide uk-ob-tsb uk-ob-transferwise uk-ob-yorkshire-building-society uk-ob-ulster uk-oauth-all",
-    nonce: Math.random().toString(36).slice(2),
+    state,
+    nonce: randomBytes(16).toString('hex'),
   });
 
   return `${authBase()}/?${params.toString()}`;
