@@ -19,7 +19,7 @@ import {
   fetchTransactions,
 } from "@/lib/truelayer";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
-import { matchCategorisationRule } from "@/lib/auto-categorise";
+import { fetchUserRules, matchAgainstRules } from "@/lib/auto-categorise";
 import { logger } from "@/lib/logger";
 
 // ---------------------------------------------------------------------------
@@ -28,7 +28,7 @@ import { logger } from "@/lib/logger";
 
 export async function saveTrueLayerConnection(
   userId: string,
-  tokens: TrueLayerTokens
+  tokens: TrueLayerTokens,
 ) {
   const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
 
@@ -61,7 +61,6 @@ async function getValidToken(connectionId: string): Promise<string> {
     return decrypt(conn.access_token);
   }
 
-  // Refresh the token
   const tokens = await refreshAccessToken(decrypt(conn.refresh_token));
   const newExpiry = new Date(Date.now() + tokens.expires_in * 1000);
 
@@ -82,7 +81,7 @@ async function getValidToken(connectionId: string): Promise<string> {
 // ---------------------------------------------------------------------------
 
 function mapAccountType(
-  tlType: string
+  tlType: string,
 ): "currentAccount" | "savings" | "creditCard" | "investment" {
   const t = tlType.toUpperCase();
   if (t === "SAVINGS") return "savings";
@@ -99,7 +98,6 @@ export async function importFromTrueLayer() {
   const userId = await getCurrentUserId();
   const baseCurrency = await getUserBaseCurrency(userId);
 
-  // Get all connections for this user
   const connections = await db
     .select()
     .from(truelayerConnectionsTable)
@@ -107,61 +105,61 @@ export async function importFromTrueLayer() {
 
   if (connections.length === 0) {
     throw new Error(
-      "No TrueLayer connections found. Please connect a bank first."
+      "No TrueLayer connections found. Please connect a bank first.",
     );
   }
+
+  // Fetch rules once for the entire import — used for all transactions
+  // across all connections and accounts, avoiding an N+1 per transaction.
+  const rules = await fetchUserRules(userId);
 
   let accountsImported = 0;
   let transactionsImported = 0;
 
   for (const connection of connections) {
     const accessToken = await getValidToken(connection.id);
-
-    // Fetch accounts from TrueLayer
     const tlAccounts = await fetchAccounts(accessToken);
 
     for (const tlAccount of tlAccounts) {
-      // Check if this account already exists (dedup by truelayer_id)
       const [existing] = await db
         .select({ id: accountsTable.id })
         .from(accountsTable)
         .where(
           and(
             eq(accountsTable.user_id, userId),
-            eq(accountsTable.truelayer_id, tlAccount.account_id)
-          )
+            eq(accountsTable.truelayer_id, tlAccount.account_id),
+          ),
         );
 
-      // Fetch balance
       let balance = 0;
       try {
         const balanceData = await fetchBalance(
           accessToken,
-          tlAccount.account_id
+          tlAccount.account_id,
         );
         balance = balanceData.current;
       } catch {
-        logger.warn("truelayer.import", "Balance fetch failed for account", { accountId: tlAccount.account_id });
+        logger.warn("truelayer.import", "Balance fetch failed for account", {
+          accountId: tlAccount.account_id,
+        });
       }
 
       let localAccountId: string;
 
       if (existing) {
-        // Update balance
         await db
           .update(accountsTable)
           .set({ balance })
           .where(eq(accountsTable.id, existing.id));
         localAccountId = existing.id;
       } else {
-        // Create new account
         const [created] = await db
           .insert(accountsTable)
           .values({
             user_id: userId,
             name: encrypt(
               tlAccount.display_name ||
-              `${tlAccount.provider?.display_name ?? "Bank"} Account`
+                `${tlAccount.provider?.display_name ?? "Bank"} Account`,
             ),
             type: mapAccountType(tlAccount.account_type),
             balance,
@@ -175,17 +173,13 @@ export async function importFromTrueLayer() {
         accountsImported++;
       }
 
-      // Update provider name on connection if available
       if (tlAccount.provider?.display_name && !connection.provider_name) {
         await db
           .update(truelayerConnectionsTable)
-          .set({
-            provider_name: tlAccount.provider.display_name,
-          })
+          .set({ provider_name: tlAccount.provider.display_name })
           .where(eq(truelayerConnectionsTable.id, connection.id));
       }
 
-      // Fetch transactions (last 2 years — max supported by most banks via Open Banking)
       const to = new Date().toISOString().split("T")[0];
       const from = new Date(Date.now() - 730 * 24 * 60 * 60 * 1000)
         .toISOString()
@@ -197,14 +191,20 @@ export async function importFromTrueLayer() {
           accessToken,
           tlAccount.account_id,
           from,
-          to
+          to,
         );
       } catch {
-        logger.warn("truelayer.import", "Transaction fetch failed for account", { accountId: tlAccount.account_id });
+        logger.warn(
+          "truelayer.import",
+          "Transaction fetch failed for account",
+          {
+            accountId: tlAccount.account_id,
+          },
+        );
         continue;
       }
 
-      // Get a default "Uncategorised" category for this user (or the first one)
+      // Fetch categories once per account, not once per transaction
       const categories = await db
         .select({ id: categoriesTable.id, name: categoriesTable.name })
         .from(categoriesTable)
@@ -216,7 +216,6 @@ export async function importFromTrueLayer() {
         categories[0];
 
       for (const tlTxn of tlTransactions) {
-        // Dedup by truelayer_id
         const [existingTxn] = await db
           .select({ id: transactionsTable.id })
           .from(transactionsTable)
@@ -230,10 +229,9 @@ export async function importFromTrueLayer() {
         const type = isExpense ? "expense" : "income";
         const description = tlTxn.description || "Bank transaction";
 
-        // Try auto-categorisation
-        let categoryId = uncategorised?.id ?? null;
-        const matched = await matchCategorisationRule(userId, description);
-        if (matched) categoryId = matched;
+        // Pure rule match — no DB call, rules already fetched above
+        const matchedCategoryId = matchAgainstRules(rules, description);
+        const categoryId = matchedCategoryId ?? uncategorised?.id ?? null;
 
         await db.insert(transactionsTable).values({
           account_id: localAccountId,
@@ -251,7 +249,6 @@ export async function importFromTrueLayer() {
     }
   }
 
-  // Update last_synced_at for all connections
   for (const connection of connections) {
     await db
       .update(truelayerConnectionsTable)
@@ -270,9 +267,13 @@ export async function importFromTrueLayer() {
 // Auto-sync: only import if last sync was more than 1 hour ago
 // ---------------------------------------------------------------------------
 
-const SYNC_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+const SYNC_INTERVAL_MS = 60 * 60 * 1000;
 
-export async function syncBankIfNeeded(): Promise<{ synced: boolean; accountsImported: number; transactionsImported: number }> {
+export async function syncBankIfNeeded(): Promise<{
+  synced: boolean;
+  accountsImported: number;
+  transactionsImported: number;
+}> {
   const userId = await getCurrentUserId();
 
   const connections = await db
@@ -287,10 +288,10 @@ export async function syncBankIfNeeded(): Promise<{ synced: boolean; accountsImp
     return { synced: false, accountsImported: 0, transactionsImported: 0 };
   }
 
-  // Check if any connection is stale (never synced or synced > 1 hour ago)
   const now = Date.now();
   const needsSync = connections.some(
-    (c) => !c.last_synced_at || now - c.last_synced_at.getTime() > SYNC_INTERVAL_MS
+    (c) =>
+      !c.last_synced_at || now - c.last_synced_at.getTime() > SYNC_INTERVAL_MS,
   );
 
   if (!needsSync) {
@@ -331,42 +332,38 @@ export async function getTrueLayerConnections() {
 export async function disconnectTrueLayer(connectionId: string) {
   const userId = await getCurrentUserId();
 
-  // Get all accounts linked to this connection
   const linkedAccounts = await db
     .select({ id: accountsTable.id })
     .from(accountsTable)
     .where(
       and(
         eq(accountsTable.truelayer_connection_id, connectionId),
-        eq(accountsTable.user_id, userId)
-      )
+        eq(accountsTable.user_id, userId),
+      ),
     );
 
-  // Delete transactions for each linked account
   for (const account of linkedAccounts) {
     await db
       .delete(transactionsTable)
       .where(eq(transactionsTable.account_id, account.id));
   }
 
-  // Delete the linked accounts
   await db
     .delete(accountsTable)
     .where(
       and(
         eq(accountsTable.truelayer_connection_id, connectionId),
-        eq(accountsTable.user_id, userId)
-      )
+        eq(accountsTable.user_id, userId),
+      ),
     );
 
-  // Now safe to delete the connection
   await db
     .delete(truelayerConnectionsTable)
     .where(
       and(
         eq(truelayerConnectionsTable.id, connectionId),
-        eq(truelayerConnectionsTable.user_id, userId)
-      )
+        eq(truelayerConnectionsTable.user_id, userId),
+      ),
     );
 
   revalidatePath("/dashboard/accounts");
