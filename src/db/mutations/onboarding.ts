@@ -13,6 +13,7 @@ async function upsertOnboardingState(userId: string, updates: Partial<{
   use_default_categories: boolean;
   completed: boolean;
   completed_at: Date | null;
+  pending_features: string | null;
 }>) {
   await db.insert(userOnboardingTable).values({
     user_id: userId,
@@ -80,6 +81,7 @@ export async function setBaseCurrency(formData: FormData) {
   revalidatePath('/dashboard/accounts');
   revalidatePath('/dashboard/budgets');
   revalidatePath('/dashboard/transactions');
+  redirect('/onboarding?step=accounts');
 }
 
 export async function continueFromCategories(formData: FormData) {
@@ -102,7 +104,7 @@ export async function continueFromCategories(formData: FormData) {
     redirect('/onboarding?step=categories');
   }
 
-  redirect('/onboarding?step=budgets');
+  redirect('/onboarding?step=features');
 }
 
 export async function completeOnboarding() {
@@ -118,6 +120,51 @@ export async function completeOnboarding() {
   redirect('/dashboard');
 }
 
+export async function completeOnboardingWithFeatures(features: string[]) {
+  const userId = await getCurrentUserId();
+
+  await upsertOnboardingState(userId, {
+    completed: true,
+    completed_at: new Date(),
+    pending_features: features.length > 0 ? JSON.stringify(features) : null,
+  });
+
+  revalidatePath('/onboarding');
+  revalidatePath('/dashboard');
+}
+
+export async function markFeatureVisited(feature: string) {
+  const userId = await getCurrentUserId();
+  const state = await db.select({ pending_features: userOnboardingTable.pending_features })
+    .from(userOnboardingTable)
+    .where(eq(userOnboardingTable.user_id, userId))
+    .limit(1);
+
+  if (state.length === 0 || !state[0].pending_features) return;
+
+  const pendingFeatures: string[] = JSON.parse(state[0].pending_features);
+  const updatedFeatures = pendingFeatures.filter((f) => f !== feature);
+
+  await db.update(userOnboardingTable)
+    .set({ pending_features: updatedFeatures.length > 0 ? JSON.stringify(updatedFeatures) : null })
+    .where(eq(userOnboardingTable.user_id, userId));
+
+  revalidatePath('/dashboard');
+}
+
+export async function getNextPendingFeature(): Promise<string | null> {
+  const userId = await getCurrentUserId();
+  const state = await db.select({ pending_features: userOnboardingTable.pending_features })
+    .from(userOnboardingTable)
+    .where(eq(userOnboardingTable.user_id, userId))
+    .limit(1);
+
+  if (state.length === 0 || !state[0].pending_features) return null;
+
+  const pendingFeatures: string[] = JSON.parse(state[0].pending_features);
+  return pendingFeatures.length > 0 ? pendingFeatures[0] : null;
+}
+
 export async function skipOnboarding() {
   const userId = await getCurrentUserId();
 
@@ -130,4 +177,51 @@ export async function skipOnboarding() {
   revalidatePath('/onboarding');
   revalidatePath('/dashboard');
   redirect('/dashboard');
+}
+
+export async function completeOnboardingAndRedirect(feature?: string) {
+  const userId = await getCurrentUserId();
+
+  await upsertOnboardingState(userId, {
+    completed: true,
+    completed_at: new Date(),
+  });
+
+  revalidatePath('/onboarding');
+  revalidatePath('/dashboard');
+
+  const FEATURE_ROUTES: Record<string, string> = {
+    budgets: '/dashboard/budgets',
+    goals: '/dashboard/goals',
+    debts: '/dashboard/debts',
+    subscriptions: '/dashboard/subscriptions',
+    investments: '/dashboard/investments',
+  };
+
+  const route = feature ? FEATURE_ROUTES[feature] : '/dashboard';
+  redirect(route || '/dashboard');
+}
+
+export async function completeOnboardingAndRedirectWithFeatures(features: string[], firstFeature?: string) {
+  const userId = await getCurrentUserId();
+
+  await upsertOnboardingState(userId, {
+    completed: true,
+    completed_at: new Date(),
+    pending_features: features.length > 0 ? JSON.stringify(features) : null,
+  });
+
+  revalidatePath('/onboarding');
+  revalidatePath('/dashboard');
+
+  const FEATURE_ROUTES: Record<string, string> = {
+    budgets: '/dashboard/budgets',
+    goals: '/dashboard/goals',
+    debts: '/dashboard/debts',
+    subscriptions: '/dashboard/subscriptions',
+    investments: '/dashboard/investments',
+  };
+
+  const route = firstFeature ? FEATURE_ROUTES[firstFeature] : '/dashboard';
+  redirect(route || '/dashboard');
 }

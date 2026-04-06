@@ -28,3 +28,12 @@ export async function getDefaultCategoryTemplates() {
     .where(eq(defaultCategoryTemplatesTable.is_active, true))
     .orderBy(asc(defaultCategoryTemplatesTable.sort_order), asc(defaultCategoryTemplatesTable.id));
 }
+
+export async function getPendingFeatures(userId: string): Promise<string | null> {
+  const [row] = await db.select({ pending_features: userOnboardingTable.pending_features })
+    .from(userOnboardingTable)
+    .where(eq(userOnboardingTable.user_id, userId))
+    .limit(1);
+
+  return row?.pending_features ?? null;
+}

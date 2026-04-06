@@ -149,7 +149,7 @@ export function TransferFormDialog({
                   <SelectContent>
                     {filteredFromAccounts.map((a) => (
                       <SelectItem key={a.id} value={String(a.id)}>
-                        {a.accountName}
+                        {a.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -170,7 +170,7 @@ export function TransferFormDialog({
                   <SelectContent>
                     {filteredToAccounts.map((a) => (
                       <SelectItem key={a.id} value={String(a.id)}>
-                        {a.accountName}
+                        {a.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

@@ -7,11 +7,12 @@ import { AuthButton } from "@/components/AuthButton";
 import { NotificationBellServer } from "@/components/NotificationBellServer";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { getCurrentUserId } from "@/lib/auth";
-import { hasCompletedOnboarding } from "@/db/queries/onboarding";
+import { hasCompletedOnboarding, getPendingFeatures } from "@/db/queries/onboarding";
 import { generateDueRecurringTransactions } from "@/lib/recurring-transactions";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { ChatPanelWrapper as ChatPanel } from "@/components/ChatPanelWrapper";
 import { BankSyncTrigger } from "@/components/BankSyncTrigger";
+import { NextFeatureButtonClient } from "@/components/NextFeatureButtonClient";
 
 export default async function DashboardLayout({
   children,
@@ -19,14 +20,17 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const userId = await getCurrentUserId();
-  const [onboardingComplete] = await Promise.all([
+  const [onboardingComplete, pendingFeatures] = await Promise.all([
     hasCompletedOnboarding(userId),
+    getPendingFeatures(userId),
     generateDueRecurringTransactions(userId),
   ]);
 
   if (!onboardingComplete) {
     redirect("/onboarding");
   }
+
+  const pendingFeaturesList: string[] = pendingFeatures ? JSON.parse(pendingFeatures) : [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -57,6 +61,9 @@ export default async function DashboardLayout({
       {children}
       <InstallPrompt />
       <BankSyncTrigger />
+      {pendingFeaturesList.length > 0 && (
+        <NextFeatureButtonClient pendingFeatures={pendingFeaturesList} />
+      )}
     </div>
   );
 }
