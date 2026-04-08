@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { MonthlyAIReport } from "@/components/MonthlyAIReport";
 import {
   Card,
   CardContent,
@@ -210,6 +211,9 @@ export function ReportsClient({
           ))}
         </div>
       </div>
+
+      {/* AI Monthly Report */}
+      <MonthlyAIReport />
 
       {/* Compact stats */}
       <Card>

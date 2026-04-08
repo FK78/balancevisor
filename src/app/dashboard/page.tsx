@@ -19,6 +19,7 @@ import { getNetWorthHistory } from "@/db/queries/net-worth";
 import { getGoals } from "@/db/queries/goals";
 import { getDashboardInsights } from "@/db/queries/insights";
 import { DashboardInsights } from "@/components/dashboard/DashboardInsights";
+import { DashboardMonthlyReport } from "@/components/dashboard/DashboardMonthlyReport";
 import { snapshotNetWorthIfNeeded } from "@/lib/snapshot-net-worth";
 import { getMonthRange } from "@/lib/date";
 import { SpendCategoryRow } from "@/components/SpendCategoryRow";
@@ -129,6 +130,9 @@ export default async function Home() {
 
       {/* Insights */}
       {insights.length > 0 && <DashboardInsights insights={insights} />}
+
+      {/* AI Monthly Report */}
+      <DashboardMonthlyReport />
 
       {/* Net Worth */}
       {accounts.length > 0 && (
