@@ -48,7 +48,7 @@ export function MobileBottomNav() {
   return (
     <>
       {/* iOS-style tab bar */}
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/70 backdrop-blur-2xl backdrop-saturate-150 md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-50 bg-card/80 backdrop-blur-xl md:hidden" style={{ borderTop: '0.5px solid var(--border)' }}>
         <div
           className="mx-auto grid max-w-lg grid-cols-5"
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}

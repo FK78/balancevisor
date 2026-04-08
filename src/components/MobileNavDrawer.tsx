@@ -73,7 +73,7 @@ export function MobileNavDrawer({
               <SheetClose key={item.href} asChild>
                 <Link
                   href={item.href}
-                  className={`flex items-center gap-3 px-4 py-[13px] transition-colors active:bg-muted ${
+                  className={`flex items-center gap-3 px-4 py-3 transition-colors active:bg-secondary ${
                     !isLast ? "border-b border-border/60" : ""
                   }`}
                 >

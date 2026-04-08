@@ -52,7 +52,7 @@ export default async function GoalsPage() {
 
       {/* Overview card */}
       {goals.length > 0 && (
-        <Card className="bg-gradient-to-br from-indigo-500/6 via-violet-500/4 to-cyan-400/6 border-primary/15">
+        <Card>
           <CardContent className="flex flex-col gap-4 py-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
@@ -76,7 +76,7 @@ export default async function GoalsPage() {
                 </div>
                 <div className="bg-muted h-2.5 rounded-full overflow-hidden">
                   <div
-                    className="bg-gradient-to-r from-indigo-500 to-cyan-400 h-full rounded-full transition-all"
+                    className="bg-primary h-full rounded-full transition-all"
                     style={{ width: `${Math.min(overallPct, 100)}%` }}
                   />
                 </div>

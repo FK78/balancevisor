@@ -13,9 +13,9 @@ export function AccountCard({
   const Icon = typeIcons[account.type ?? ""] ?? Wallet;
   return (
     <div
-      className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card p-4 transition-all duration-200 hover:shadow-md"
+      className="flex items-center gap-3 rounded-xl bg-card p-4 transition-colors"
     >
-      <div className="bg-primary/8 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl">
+      <div className="bg-primary/10 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
         <Icon className="text-primary h-5 w-5" />
       </div>
       <div className="min-w-0">

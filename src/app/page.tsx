@@ -21,118 +21,116 @@ import {
   Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ShimmerButton } from "@/components/ui/shimmer-button";
-import { AnimatedShinyText } from "@/components/ui/animated-shiny-text";
 
 const features = [
   {
     icon: TrendingUp,
-    color: "text-emerald-600",
-    bg: "bg-emerald-100 dark:bg-emerald-900/30",
+    color: "text-[#34C759]",
+    bg: "bg-[#34C759]/10 dark:bg-[#30D158]/15",
     title: "Smart Budget Tracking",
     description:
       "Set monthly or weekly budgets per category with real-time progress bars. Get nudges before you overspend.",
   },
   {
     icon: PieChart,
-    color: "text-sky-600",
-    bg: "bg-sky-100 dark:bg-sky-900/30",
+    color: "text-[#007AFF]",
+    bg: "bg-[#007AFF]/10 dark:bg-[#0A84FF]/15",
     title: "Spending Breakdown",
     description:
       "Beautiful colour-coded charts that show exactly where every penny goes.",
   },
   {
     icon: CreditCard,
-    color: "text-violet-600",
-    bg: "bg-violet-100 dark:bg-violet-900/30",
+    color: "text-[#AF52DE]",
+    bg: "bg-[#AF52DE]/10 dark:bg-[#BF5AF2]/15",
     title: "Multi-Account Management",
     description:
       "Current accounts, savings, credit cards, and investment accounts — all in one cosy place.",
   },
   {
     icon: LineChart,
-    color: "text-blue-600",
-    bg: "bg-blue-100 dark:bg-blue-900/30",
+    color: "text-[#007AFF]",
+    bg: "bg-[#007AFF]/10 dark:bg-[#0A84FF]/15",
     title: "Investment Portfolio",
     description:
       "Connect Trading 212 to auto-sync positions, or track manual holdings with live Yahoo Finance prices.",
   },
   {
     icon: Target,
-    color: "text-pink-600",
-    bg: "bg-pink-100 dark:bg-pink-900/30",
+    color: "text-[#FF2D55]",
+    bg: "bg-[#FF2D55]/10 dark:bg-[#FF375F]/15",
     title: "Savings Goals",
     description:
       "Set targets with deadlines, track contributions, and watch your progress bar fill up over time.",
   },
   {
     icon: Wallet,
-    color: "text-red-600",
-    bg: "bg-red-100 dark:bg-red-900/30",
+    color: "text-[#FF3B30]",
+    bg: "bg-[#FF3B30]/10 dark:bg-[#FF453A]/15",
     title: "Debt Tracker",
     description:
       "Track loans, credit cards, and finance with interest rates, minimum payments, and payoff progress.",
   },
   {
     icon: CalendarClock,
-    color: "text-fuchsia-600",
-    bg: "bg-fuchsia-100 dark:bg-fuchsia-900/30",
+    color: "text-[#AF52DE]",
+    bg: "bg-[#AF52DE]/10 dark:bg-[#BF5AF2]/15",
     title: "Subscription Manager",
     description:
       "Keep tabs on Netflix, Spotify, gym — see monthly and yearly costs at a glance with renewal reminders.",
   },
   {
     icon: Repeat,
-    color: "text-lime-600",
-    bg: "bg-lime-100 dark:bg-lime-900/30",
+    color: "text-[#34C759]",
+    bg: "bg-[#34C759]/10 dark:bg-[#30D158]/15",
     title: "Recurring Transactions",
     description:
       "Set up daily, weekly, or monthly recurring income and expenses that auto-generate when due.",
   },
   {
     icon: BarChart3,
-    color: "text-amber-600",
-    bg: "bg-amber-100 dark:bg-amber-900/30",
+    color: "text-[#FF9500]",
+    bg: "bg-[#FF9500]/10 dark:bg-[#FF9F0A]/15",
     title: "Cashflow Charts",
     description:
       "Income vs expenses over time with trends and rolling averages. Spot patterns early.",
   },
   {
     icon: Bell,
-    color: "text-rose-600",
-    bg: "bg-rose-100 dark:bg-rose-900/30",
+    color: "text-[#FF2D55]",
+    bg: "bg-[#FF2D55]/10 dark:bg-[#FF375F]/15",
     title: "Budget Alerts",
     description:
       "Browser and email notifications when you&apos;re approaching your budget limit.",
   },
   {
     icon: Tag,
-    color: "text-teal-600",
-    bg: "bg-teal-100 dark:bg-teal-900/30",
+    color: "text-[#5AC8FA]",
+    bg: "bg-[#5AC8FA]/10 dark:bg-[#64D2FF]/15",
     title: "Custom Categories",
     description:
       "Your own categories with custom colours and icons, or start with sensible defaults.",
   },
   {
     icon: Filter,
-    color: "text-orange-600",
-    bg: "bg-orange-100 dark:bg-orange-900/30",
+    color: "text-[#FF9500]",
+    bg: "bg-[#FF9500]/10 dark:bg-[#FF9F0A]/15",
     title: "Auto-Categorisation",
     description:
       "Pattern-matching rules so Tesco → Groceries and Netflix → Subscriptions, automatically.",
   },
   {
     icon: Receipt,
-    color: "text-cyan-600",
-    bg: "bg-cyan-100 dark:bg-cyan-900/30",
+    color: "text-[#5AC8FA]",
+    bg: "bg-[#5AC8FA]/10 dark:bg-[#64D2FF]/15",
     title: "Transaction Management",
     description:
       "Full pagination, search, sorting, date filtering, CSV import & export.",
   },
   {
     icon: Landmark,
-    color: "text-indigo-600",
-    bg: "bg-indigo-100 dark:bg-indigo-900/30",
+    color: "text-[#007AFF]",
+    bg: "bg-[#007AFF]/10 dark:bg-[#0A84FF]/15",
     title: "Net Worth Dashboard",
     description:
       "Your complete financial picture — net worth, investments, budgets, spending, and goals on one screen.",
@@ -164,8 +162,8 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col">
       {/* Nav */}
-      <nav className="sticky top-0 z-50 border-b border-border/40 bg-background/70 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
+      <nav className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl" style={{ borderBottom: '0.5px solid var(--border)' }}>
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           <Link href="/" className="flex items-center gap-2.5 font-bold text-lg">
             <Image src="/logo.svg" alt="BalanceVisor logo" width={30} height={30} />
             <span>BalanceVisor</span>
@@ -182,23 +180,15 @@ export default function Home() {
       </nav>
 
       {/* Hero */}
-      <header className="relative overflow-hidden px-6 py-28 sm:py-36 lg:py-44">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(99,102,241,0.10),transparent)]" />
-        <div className="dot-pattern absolute inset-0 -z-10 opacity-[0.03] dark:opacity-[0.05] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_50%,black,transparent)]" />
-        <div className="absolute top-20 left-1/4 -z-10 h-80 w-80 rounded-full bg-indigo-300/20 blur-3xl animate-pulse-glow" />
-        <div className="absolute bottom-10 right-1/4 -z-10 h-72 w-72 rounded-full bg-cyan-300/20 blur-3xl animate-pulse-glow" style={{ animationDelay: '2s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -z-10 h-96 w-96 rounded-full bg-violet-200/10 blur-3xl animate-pulse-glow" style={{ animationDelay: '3s' }} />
-
+      <header className="px-6 py-24 sm:py-32 lg:py-40">
         <div className="mx-auto max-w-3xl text-center animate-fade-in-up">
-          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-5 py-2.5 text-sm font-medium text-primary shadow-sm shadow-primary/5">
-            <AnimatedShinyText className="inline-flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              100% free — no ads, no premium tier
-            </AnimatedShinyText>
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
+            <Sparkles className="h-4 w-4" />
+            100% free — no ads, no premium tier
           </div>
-          <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl leading-[1.1]">
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl leading-[1.1]">
             Your money, finally{" "}
-            <span className="bg-gradient-to-r from-indigo-500 via-violet-500 to-cyan-400 bg-clip-text text-transparent">
+            <span className="text-primary">
               under control
             </span>
           </h1>
@@ -207,16 +197,11 @@ export default function Home() {
             crush savings goals, and see your full financial picture in one beautifully simple dashboard.
           </p>
           <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-            <Link href="/auth/sign-up">
-              <ShimmerButton
-                shimmerColor="#a78bfa"
-                shimmerSize="0.05em"
-                background="linear-gradient(135deg, #6366f1, #8b5cf6)"
-                className="w-full sm:w-auto text-base px-8 py-3 font-semibold"
-              >
-                Start tracking for free <ArrowRight className="ml-2 h-4 w-4 inline" />
-              </ShimmerButton>
-            </Link>
+            <Button asChild size="lg" className="w-full sm:w-auto px-8">
+              <Link href="/auth/sign-up">
+                Start tracking for free <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
             <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
               <Link href="/auth/login">I already have an account</Link>
             </Button>
@@ -225,7 +210,7 @@ export default function Home() {
       </header>
 
       {/* Social proof stats */}
-      <section className="border-y border-border/40 bg-gradient-to-r from-muted/40 via-muted/60 to-muted/40 px-6 py-16">
+      <section className="px-6 py-14" style={{ borderTop: '0.5px solid var(--border)', borderBottom: '0.5px solid var(--border)' }}>
         <div className="mx-auto grid max-w-4xl grid-cols-2 gap-8 text-center sm:grid-cols-4">
           {[
             { value: 14, label: "Feature areas", prefix: "" },
@@ -234,7 +219,7 @@ export default function Home() {
             { value: 0, label: "Forever", prefix: "£" },
           ].map((stat) => (
             <div key={stat.label} className="space-y-1">
-              <p className="text-3xl font-extrabold gradient-text">
+              <p className="text-3xl font-bold text-primary">
                 {stat.prefix}{stat.value}
               </p>
               <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
@@ -244,28 +229,26 @@ export default function Home() {
       </section>
 
       {/* Features grid */}
-      <section className="relative px-6 py-24 sm:py-32 overflow-hidden">
-        <div className="absolute top-1/4 right-0 -z-10 h-96 w-96 rounded-full bg-indigo-100/30 dark:bg-indigo-900/10 blur-3xl" />
-        <div className="absolute bottom-0 left-0 -z-10 h-80 w-80 rounded-full bg-cyan-100/20 dark:bg-cyan-900/10 blur-3xl" />
+      <section className="px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
               Everything you need to manage your money
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
               No bloat, no upsells. Every feature is included from day one.
             </p>
           </div>
-          <div className="mt-16 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 animate-fade-in-up-stagger">
+          <div className="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-fade-in-up-stagger">
             {features.map((f) => (
               <div
                 key={f.title}
-                className="group rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-6 transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 hover:border-primary/20"
+                className="rounded-xl bg-card p-5 transition-colors"
               >
-                <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${f.bg} transition-transform duration-300 group-hover:scale-110`}>
-                  <f.icon className={`h-6 w-6 ${f.color}`} />
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${f.bg}`}>
+                  <f.icon className={`h-5 w-5 ${f.color}`} />
                 </div>
-                <h3 className="mt-5 text-base font-bold">{f.title}</h3>
+                <h3 className="mt-4 text-[15px] font-semibold">{f.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   {f.description}
                 </p>
@@ -276,24 +259,23 @@ export default function Home() {
       </section>
 
       {/* How it works */}
-      <section className="border-t border-border/40 bg-gradient-to-b from-muted/40 to-muted/20 px-6 py-24 sm:py-32">
+      <section className="px-6 py-24 sm:py-32" style={{ borderTop: '0.5px solid var(--border)' }}>
         <div className="mx-auto max-w-4xl">
           <div className="text-center">
-            <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
               Up and running in minutes
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
               No complicated setup. Just start adding your data.
             </p>
           </div>
-          <div className="mt-16 grid gap-10 sm:grid-cols-3 relative">
-            <div className="hidden sm:block absolute top-8 left-[20%] right-[20%] h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+          <div className="mt-16 grid gap-10 sm:grid-cols-3">
             {steps.map((s) => (
-              <div key={s.step} className="flex flex-col items-center text-center relative">
-                <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-primary/10 to-primary/5 text-3xl ring-4 ring-background shadow-lg shadow-primary/5">
+              <div key={s.step} className="flex flex-col items-center text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-2xl">
                   {s.emoji}
                 </div>
-                <h3 className="mt-5 text-base font-bold">{s.title}</h3>
+                <h3 className="mt-4 text-[15px] font-semibold">{s.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{s.description}</p>
               </div>
             ))}
@@ -303,9 +285,9 @@ export default function Home() {
 
       {/* Security callout */}
       <section className="px-6 py-24">
-        <div className="relative mx-auto max-w-3xl rounded-3xl border border-primary/10 bg-gradient-to-br from-indigo-500/5 via-card to-cyan-500/5 p-8 sm:p-12 shadow-lg shadow-primary/5 overflow-hidden">
+        <div className="mx-auto max-w-3xl rounded-2xl bg-card p-8 sm:p-12">
           <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:text-left">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
               <Shield className="h-8 w-8 text-primary" />
             </div>
             <div>
@@ -321,11 +303,9 @@ export default function Home() {
       </section>
 
       {/* Final CTA */}
-      <section className="relative border-t border-border/40 px-6 py-24 sm:py-32 overflow-hidden">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_60%_50%_at_50%_50%,rgba(99,102,241,0.04),transparent)]" />
-        <div className="dot-pattern absolute inset-0 -z-10 opacity-[0.02] dark:opacity-[0.04] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,black,transparent)]" />
+      <section className="px-6 py-24 sm:py-32" style={{ borderTop: '0.5px solid var(--border)' }}>
         <div className="mx-auto max-w-2xl text-center animate-fade-in-up">
-          <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
             Ready to take control?
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
@@ -333,22 +313,17 @@ export default function Home() {
             it&apos;s completely free. No catches.
           </p>
           <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-            <Link href="/auth/sign-up">
-              <ShimmerButton
-                shimmerColor="#a78bfa"
-                shimmerSize="0.05em"
-                background="linear-gradient(135deg, #6366f1, #8b5cf6)"
-                className="w-full sm:w-auto text-base px-8 py-3 font-semibold"
-              >
-                Create your free account <ArrowRight className="ml-2 h-4 w-4 inline" />
-              </ShimmerButton>
-            </Link>
+            <Button asChild size="lg" className="w-full sm:w-auto px-8">
+              <Link href="/auth/sign-up">
+                Create your free account <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border/40 bg-muted/30 px-6 py-10">
+      <footer className="px-6 py-10" style={{ borderTop: '0.5px solid var(--border)' }}>
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row">
           <div className="flex items-center gap-2.5 text-sm font-bold">
             <Image src="/logo.svg" alt="BalanceVisor" width={22} height={22} />
@@ -359,7 +334,7 @@ export default function Home() {
             <Link href="/auth/sign-up" className="hover:text-foreground transition-colors">Sign Up</Link>
           </div>
           <p className="flex items-center gap-1 text-xs text-muted-foreground">
-            Made with <Heart className="h-3 w-3 text-violet-400 fill-violet-400" /> using Next.js &amp; Supabase
+            Made with <Heart className="h-3 w-3 text-primary fill-primary" /> using Next.js &amp; Supabase
           </p>
         </div>
       </footer>

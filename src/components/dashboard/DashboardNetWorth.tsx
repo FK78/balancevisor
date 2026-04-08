@@ -25,10 +25,10 @@ export function DashboardNetWorth({
   currency,
 }: DashboardNetWorthProps) {
   return (
-    <Card className="bg-gradient-to-br from-indigo-500/6 via-violet-500/4 to-cyan-400/6 border-primary/15">
+    <Card>
       <CardContent className="flex flex-col gap-4 py-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
             <Landmark className="h-7 w-7 text-primary" />
           </div>
           <div>

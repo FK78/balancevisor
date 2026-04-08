@@ -35,8 +35,8 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-background">
-      <nav className="sticky top-0 z-50 border-b border-border bg-background/70 backdrop-blur-2xl backdrop-saturate-150">
-        <div className="mx-auto flex h-12 max-w-7xl items-center justify-between gap-4 px-4 md:h-14 md:gap-6 md:px-10">
+      <nav className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl" style={{ borderBottom: '0.5px solid var(--border)' }}>
+        <div className="mx-auto flex h-11 max-w-7xl items-center justify-between gap-4 px-4 md:h-12 md:gap-6 md:px-10">
           <div className="flex items-center gap-6">
             <Link
               href="/dashboard"

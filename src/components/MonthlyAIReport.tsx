@@ -123,7 +123,7 @@ export function MonthlyAIReport() {
       <CardHeader>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/8">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
               <Sparkles className="h-4 w-4 text-primary" />
             </div>
             <div>

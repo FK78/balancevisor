@@ -162,10 +162,10 @@ export default async function Accounts() {
               variant: "secondary" as const,
             };
             return (
-              <Card key={account.id} className="transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5">
+              <Card key={account.id} className="transition-colors">
                 <CardHeader className="flex flex-row items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="bg-primary/8 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl">
+                    <div className="bg-primary/10 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl">
                       {(() => { const Icon = typeIcons[account.type ?? ""] ?? Wallet; return <Icon className="text-primary h-5 w-5" />; })()}
                     </div>
                     <div>

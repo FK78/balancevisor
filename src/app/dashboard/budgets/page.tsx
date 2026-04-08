@@ -146,7 +146,7 @@ export default async function Budgets() {
             const Icon = getCategoryIcon(budget.budgetIcon);
 
             return (
-              <Card key={budget.id} className="relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5">
+              <Card key={budget.id} className="relative overflow-hidden transition-colors">
                 <div className="p-5 space-y-4">
                   {/* Header: icon + name + actions */}
                   <div className="flex items-center justify-between">

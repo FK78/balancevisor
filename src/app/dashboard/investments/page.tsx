@@ -244,12 +244,12 @@ export default async function InvestmentsPage() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="summary-card">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardDescription className="text-sm font-semibold">
               Total Value
             </CardDescription>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/8">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
               <DollarSign className="text-primary h-4 w-4" />
             </div>
           </CardHeader>
@@ -263,7 +263,7 @@ export default async function InvestmentsPage() {
             </p>
           </CardContent>
         </Card>
-        <Card className="summary-card">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardDescription className="text-sm font-semibold">
               Total Gain / Loss
@@ -289,7 +289,7 @@ export default async function InvestmentsPage() {
             </p>
           </CardContent>
         </Card>
-        <Card className="summary-card">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardDescription className="text-sm font-semibold">
               Total Invested
@@ -307,7 +307,7 @@ export default async function InvestmentsPage() {
             </p>
           </CardContent>
         </Card>
-        <Card className="summary-card">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardDescription className="text-sm font-semibold">
               Realized Gains
