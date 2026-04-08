@@ -20,6 +20,8 @@ import { getGoals } from "@/db/queries/goals";
 import { getDashboardInsights } from "@/db/queries/insights";
 import { DashboardInsights } from "@/components/dashboard/DashboardInsights";
 import { DashboardMonthlyReport } from "@/components/dashboard/DashboardMonthlyReport";
+import { DashboardCashflowForecast } from "@/components/dashboard/DashboardCashflowForecast";
+import { getCashflowForecast } from "@/lib/cashflow-forecast";
 import { snapshotNetWorthIfNeeded } from "@/lib/snapshot-net-worth";
 import { getMonthRange } from "@/lib/date";
 import { SpendCategoryRow } from "@/components/SpendCategoryRow";
@@ -106,7 +108,10 @@ export default async function Home() {
     return pct >= 80;
   });
 
-  const insights = await getDashboardInsights(userId, budgets, goals);
+  const [insights, forecast] = await Promise.all([
+    getDashboardInsights(userId, budgets, goals),
+    getCashflowForecast(userId),
+  ]);
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
@@ -152,6 +157,9 @@ export default async function Home() {
 
       {/* Cashflow */}
       <CashflowCharts data={monthlyTrend} currency={baseCurrency} />
+
+      {/* Cash Flow Forecast */}
+      <DashboardCashflowForecast forecast={forecast} />
 
       {/* Upcoming bills */}
       {upcomingRenewals.length > 0 && (
