@@ -10,7 +10,7 @@ const globalForDb = globalThis as unknown as { pgClient: ReturnType<typeof postg
 const isLocalhost = /localhost|127\.0\.0\.1/.test(process.env.DATABASE_URL);
 
 const client = globalForDb.pgClient ?? postgres(process.env.DATABASE_URL, {
-  ssl: isLocalhost ? false : true,
+  ssl: isLocalhost ? false : { rejectUnauthorized: false },
   max: 10,
   idle_timeout: 20,
   connect_timeout: 10,
