@@ -1,6 +1,6 @@
 import { db } from '@/index';
 import { transactionsTable, accountsTable, sharedAccessTable } from '@/db/schema';
-import { eq, count, or, and, inArray } from 'drizzle-orm';
+import { eq, sql, or, and, inArray } from 'drizzle-orm';
 import { decryptForUser, getUserKey } from '@/lib/encryption';
 import type { AccountWithDetails } from '@/lib/types';
 
@@ -16,21 +16,10 @@ export async function getAccountsWithDetails(userId: string): Promise<AccountWit
     user_id: accountsTable.user_id,
     truelayer_id: accountsTable.truelayer_id,
     truelayer_connection_id: accountsTable.truelayer_connection_id,
-    transactions: count(transactionsTable.id),
+    transactions: sql<number>`(SELECT count(*) FROM ${transactionsTable} WHERE ${transactionsTable.account_id} = ${accountsTable.id})`.mapWith(Number),
   })
     .from(accountsTable)
-    .leftJoin(transactionsTable, eq(transactionsTable.account_id, accountsTable.id))
-    .where(eq(accountsTable.user_id, userId))
-    .groupBy(
-      accountsTable.id,
-      accountsTable.name,
-      accountsTable.type,
-      accountsTable.balance,
-      accountsTable.currency,
-      accountsTable.user_id,
-      accountsTable.truelayer_id,
-      accountsTable.truelayer_connection_id
-    );
+    .where(eq(accountsTable.user_id, userId));
   return rows.map(row => ({
     ...row,
     accountName: decryptForUser(row.accountName, userKey),
@@ -76,21 +65,10 @@ export async function getSharedAccounts(userId: string, email: string): Promise<
       user_id: accountsTable.user_id,
       truelayer_id: accountsTable.truelayer_id,
       truelayer_connection_id: accountsTable.truelayer_connection_id,
-      transactions: count(transactionsTable.id),
+      transactions: sql<number>`(SELECT count(*) FROM ${transactionsTable} WHERE ${transactionsTable.account_id} = ${accountsTable.id})`.mapWith(Number),
     })
     .from(accountsTable)
-    .leftJoin(transactionsTable, eq(transactionsTable.account_id, accountsTable.id))
-    .where(inArray(accountsTable.id, sharedAccountIds))
-    .groupBy(
-      accountsTable.id,
-      accountsTable.name,
-      accountsTable.type,
-      accountsTable.balance,
-      accountsTable.currency,
-      accountsTable.user_id,
-      accountsTable.truelayer_id,
-      accountsTable.truelayer_connection_id
-    );
+    .where(inArray(accountsTable.id, sharedAccountIds));
 
   // Decrypt with owner's key since data is encrypted with owner's key
   const result = await Promise.all(rows.map(async (row) => {

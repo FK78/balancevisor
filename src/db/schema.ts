@@ -1,4 +1,4 @@
-import { boolean, date, integer, pgEnum, pgTable, real, timestamp, varchar, uuid, text, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, date, integer, pgEnum, pgTable, real, timestamp, varchar, uuid, text, uniqueIndex, index } from "drizzle-orm/pg-core";
 
 export const accountTypeEnum = pgEnum("account_type", ["currentAccount", "savings", "creditCard", "investment"]);
 export const periodEnum = pgEnum("period", ["monthly", "weekly"]);
@@ -44,7 +44,9 @@ export const accountsTable = pgTable("accounts", {
   currency: varchar({ length: 3 }).notNull(),
   truelayer_id: varchar("truelayer_id", { length: 255 }),
   truelayer_connection_id: uuid("truelayer_connection_id").references(() => truelayerConnectionsTable.id),
-});
+}, (table) => [{
+  userIdx: index("accounts_user_id_idx").on(table.user_id),
+}]);
 
 export const categoriesTable = pgTable("categories", {
   id: uuid().primaryKey().defaultRandom(),
@@ -52,7 +54,9 @@ export const categoriesTable = pgTable("categories", {
   name: varchar({ length: 255 }).notNull(),
   color: varchar({ length: 8 }).notNull(),
   icon: varchar({ length: 255 }),
-});
+}, (table) => [{
+  userIdx: index("categories_user_id_idx").on(table.user_id),
+}]);
 
 export const transactionsTable = pgTable("transactions", {
   id: uuid().primaryKey().defaultRandom(),
@@ -69,7 +73,12 @@ export const transactionsTable = pgTable("transactions", {
   transfer_account_id: uuid("transfer_account_id").references(() => accountsTable.id),
   truelayer_id: varchar("truelayer_id", { length: 255 }),
   is_split: boolean("is_split").notNull().default(false),
-});
+}, (table) => [{
+  accountIdx: index("transactions_account_id_idx").on(table.account_id),
+  categoryIdx: index("transactions_category_id_idx").on(table.category_id),
+  dateIdx: index("transactions_date_idx").on(table.date),
+  accountDateIdx: index("transactions_account_id_date_idx").on(table.account_id, table.date),
+}]);
 
 export const budgetsTable = pgTable("budgets", {
     id: uuid().primaryKey().defaultRandom(),
@@ -78,7 +87,9 @@ export const budgetsTable = pgTable("budgets", {
     amount: real().notNull(),
     period: periodEnum(),
     start_date: date()
-})
+}, (table) => [{
+    userIdx: index("budgets_user_id_idx").on(table.user_id),
+}])
 
 export const categorisationRulesTable = pgTable("categorisation_rules", {
     id: uuid().primaryKey().defaultRandom(),
@@ -86,7 +97,9 @@ export const categorisationRulesTable = pgTable("categorisation_rules", {
     pattern: varchar({ length: 255 }).notNull(),
     category_id: uuid("category_id").references(() => categoriesTable.id),
     priority: integer().notNull(),
-})
+}, (table) => [{
+    userIdx: index("categorisation_rules_user_id_idx").on(table.user_id),
+}])
 
 export const goalsTable = pgTable("goals", {
   id: uuid().primaryKey().defaultRandom(),
@@ -98,7 +111,9 @@ export const goalsTable = pgTable("goals", {
   icon: varchar({ length: 255 }),
   color: varchar({ length: 8 }).notNull().default("#6366f1"),
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [{
+  userIdx: index("goals_user_id_idx").on(table.user_id),
+}]);
 
 export const debtsTable = pgTable("debts", {
   id: uuid().primaryKey().defaultRandom(),
@@ -113,7 +128,9 @@ export const debtsTable = pgTable("debts", {
   color: varchar({ length: 8 }).notNull().default("#ef4444"),
   is_paid_off: boolean("is_paid_off").notNull().default(false),
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [{
+  userIdx: index("debts_user_id_idx").on(table.user_id),
+}]);
 
 export const debtPaymentsTable = pgTable("debt_payments", {
   id: uuid().primaryKey().defaultRandom(),
@@ -123,7 +140,9 @@ export const debtPaymentsTable = pgTable("debt_payments", {
   date: date().notNull(),
   note: text(),
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [{
+  debtIdx: index("debt_payments_debt_id_idx").on(table.debt_id),
+}]);
 
 export const budgetAlertPreferencesTable = pgTable("budget_alert_preferences", {
     id: uuid().primaryKey().defaultRandom(),
@@ -171,7 +190,10 @@ export const manualHoldingsTable = pgTable("manual_holdings", {
   group_id: uuid("group_id").references(() => investmentGroupsTable.id, { onDelete: "set null" }),
   last_price_update: timestamp("last_price_update", { withTimezone: true }),
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [{
+  userIdx: index("manual_holdings_user_id_idx").on(table.user_id),
+  accountIdx: index("manual_holdings_account_id_idx").on(table.account_id),
+}]);
 
 export const holdingSalesTable = pgTable("holding_sales", {
   id: uuid().primaryKey().defaultRandom(),
@@ -185,7 +207,10 @@ export const holdingSalesTable = pgTable("holding_sales", {
   cash_account_id: uuid("cash_account_id").references(() => accountsTable.id, { onDelete: "set null" }),
   notes: text("notes"),
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [{
+  userIdx: index("holding_sales_user_id_idx").on(table.user_id),
+  holdingIdx: index("holding_sales_holding_id_idx").on(table.holding_id),
+}]);
 
 export const billingCycleEnum = pgEnum("billing_cycle", ["weekly", "monthly", "quarterly", "yearly"]);
 
@@ -205,7 +230,9 @@ export const subscriptionsTable = pgTable("subscriptions", {
   color: varchar({ length: 8 }).notNull().default("#6366f1"),
   icon: varchar({ length: 255 }),
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [{
+  userIdx: index("subscriptions_user_id_idx").on(table.user_id),
+}]);
 
 export const transactionSplitsTable = pgTable("transaction_splits", {
   id: uuid().primaryKey().defaultRandom(),
@@ -213,7 +240,9 @@ export const transactionSplitsTable = pgTable("transaction_splits", {
   category_id: uuid("category_id").references(() => categoriesTable.id),
   amount: real().notNull(),
   description: text(),
-});
+}, (table) => [{
+  transactionIdx: index("transaction_splits_transaction_id_idx").on(table.transaction_id),
+}]);
 
 export const netWorthSnapshotsTable = pgTable("net_worth_snapshots", {
   id: uuid().primaryKey().defaultRandom(),
@@ -224,7 +253,9 @@ export const netWorthSnapshotsTable = pgTable("net_worth_snapshots", {
   total_liabilities: real("total_liabilities").notNull().default(0),
   investment_value: real("investment_value").notNull().default(0),
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [{
+  userDateIdx: uniqueIndex("net_worth_snapshots_user_id_date_idx").on(table.user_id, table.date),
+}]);
 
 export const sharedResourceTypeEnum = pgEnum("shared_resource_type", ["account", "budget"]);
 export const sharedPermissionEnum = pgEnum("shared_permission", ["view", "edit"]);
@@ -256,7 +287,9 @@ export const budgetNotificationsTable = pgTable("budget_notifications", {
     is_read: boolean("is_read").notNull().default(false),
     emailed: boolean().notNull().default(false),
     created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-})
+}, (table) => [{
+    userBudgetIdx: index("budget_notifications_user_budget_idx").on(table.user_id, table.budget_id),
+}])
 
 // User encryption keys table (envelope encryption)
 export const userKeysTable = pgTable("user_keys", {
@@ -275,4 +308,6 @@ export const mfaBackupCodesTable = pgTable("mfa_backup_codes", {
   used: boolean().notNull().default(false),
   used_at: timestamp("used_at", { withTimezone: true }),
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-})
+}, (table) => [{
+  userIdx: index("mfa_backup_codes_user_id_idx").on(table.user_id),
+}])

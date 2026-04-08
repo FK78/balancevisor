@@ -140,7 +140,7 @@ export function DebtPaymentDialog({
                   <SelectContent>
                     {accounts.map((acc) => (
                       <SelectItem key={acc.id} value={acc.id.toString()}>
-                        {acc.accountName}
+                        {acc.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

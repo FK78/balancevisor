@@ -8,7 +8,7 @@ import { logger } from '@/lib/logger';
  * Record today's net worth snapshot if one doesn't already exist.
  * Called on dashboard load — idempotent per user per day.
  */
-export async function snapshotNetWorthIfNeeded(userId: string): Promise<void> {
+export async function snapshotNetWorthIfNeeded(userId: string, prefetchedInvestmentValue?: number): Promise<void> {
   const today = new Date().toISOString().split('T')[0];
 
   // Check if today's snapshot already exists
@@ -40,10 +40,14 @@ export async function snapshotNetWorthIfNeeded(userId: string): Promise<void> {
     .reduce((sum, a) => sum + Math.abs(a.balance), 0);
 
   let investmentValue = 0;
-  try {
-    investmentValue = await getInvestmentValue(userId);
-  } catch (err) {
-    logger.error("snapshot-net-worth", "Investment fetch failed, using 0", err);
+  if (prefetchedInvestmentValue !== undefined) {
+    investmentValue = prefetchedInvestmentValue;
+  } else {
+    try {
+      investmentValue = await getInvestmentValue(userId);
+    } catch (err) {
+      logger.error("snapshot-net-worth", "Investment fetch failed, using 0", err);
+    }
   }
 
   const netWorth = totalAssets - totalLiabilities + investmentValue;

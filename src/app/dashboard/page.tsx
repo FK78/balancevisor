@@ -40,8 +40,16 @@ import { SpendingInsights } from "@/components/SpendingInsights";
 import { getCurrentUserId } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
-import { CashflowCharts } from "@/components/CashflowCharts";
-import { NetWorthChart } from "@/components/NetWorthChart";
+import dynamic from "next/dynamic";
+
+const CashflowCharts = dynamic(
+  () => import("@/components/CashflowCharts").then((mod) => mod.CashflowCharts),
+  { loading: () => <div className="min-h-[300px]" /> }
+);
+const NetWorthChart = dynamic(
+  () => import("@/components/NetWorthChart").then((mod) => mod.NetWorthChart),
+  { loading: () => <div className="min-h-[260px]" /> }
+);
 import { QuickAddTransaction } from "@/components/QuickAddTransaction";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/formatCurrency";
@@ -63,6 +71,8 @@ export default async function Home() {
   const thisMonth = getMonthRange(0);
   const lastMonth = getMonthRange(1);
 
+  const supabase = await createClient();
+
   const [
     lastFiveTransactions,
     accounts,
@@ -80,9 +90,9 @@ export default async function Home() {
     investmentValue,
     upcomingRenewals,
     subscriptionTotals,
-    ,
     netWorthHistory,
     debtSummary,
+    claimsResult,
   ] = await Promise.all([
     getLatestFiveTransactionsWithDetails(userId),
     getAccountsWithDetails(userId),
@@ -100,10 +110,13 @@ export default async function Home() {
     getInvestmentValue(userId),
     getUpcomingRenewals(userId, 14),
     getActiveSubscriptionsTotals(userId),
-    snapshotNetWorthIfNeeded(userId),
     getNetWorthHistory(userId, 90),
     getDebtsSummary(userId),
+    supabase.auth.getClaims(),
   ]);
+
+  // Fire-and-forget: snapshot uses the already-fetched investmentValue to avoid duplicate API calls
+  snapshotNetWorthIfNeeded(userId, investmentValue).catch(() => {});
 
   const savingsBalance = accounts
     .filter((a: { type: string | null }) => a.type === "savings")
@@ -131,9 +144,7 @@ export default async function Home() {
     baseCurrency
   );
 
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  const user = data?.claims;
+  const user = claimsResult.data?.claims;
 
   const monthName = new Intl.DateTimeFormat("en-GB", {
     month: "long",

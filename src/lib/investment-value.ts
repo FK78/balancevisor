@@ -3,8 +3,15 @@ import { getT212AccountSummary } from "@/lib/trading212";
 import { getQuotes } from "@/lib/yahoo-finance";
 import { decryptForUser, getUserKey } from "@/lib/encryption";
 import { logger } from "@/lib/logger";
+import { getCached, setCached, cacheKey } from "@/lib/cache";
+
+const userTag = (userId: string) => `user:${userId}`;
 
 export async function getInvestmentValue(userId: string): Promise<number> {
+  const key = cacheKey('investment-value', userId);
+  const cached = getCached<number>(key);
+  if (cached !== undefined) return cached;
+
   const [t212Connection, manualHoldings] = await Promise.all([
     getTrading212Connection(userId),
     getManualHoldings(userId),
@@ -40,5 +47,6 @@ export async function getInvestmentValue(userId: string): Promise<number> {
     }
   }
 
+  setCached(key, value, { ttlMs: 2 * 60 * 1000, tags: [userTag(userId)] });
   return value;
 }

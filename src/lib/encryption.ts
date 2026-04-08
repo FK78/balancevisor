@@ -1,5 +1,8 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 import { LRUCache } from "lru-cache";
+import { eq } from "drizzle-orm";
+import { userKeysTable } from "@/db/schema";
+import { db } from "@/index";
 
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 12;
@@ -169,10 +172,6 @@ export async function getUserKey(userId: string): Promise<Buffer> {
   const cached = userKeyCache.get(userId);
   if (cached) return cached;
 
-  const { userKeysTable } = await import("@/db/schema");
-  const { db } = await import("@/index");
-  const { eq } = await import("drizzle-orm");
-
   const [row] = await db
     .select({
       encrypted_key: userKeysTable.encrypted_key,
@@ -200,10 +199,6 @@ export async function getUserKey(userId: string): Promise<Buffer> {
  * Call this during user registration or onboarding.
  */
 export async function createUserKey(userId: string): Promise<void> {
-  const { userKeysTable } = await import("@/db/schema");
-  const { db } = await import("@/index");
-  const { eq } = await import("drizzle-orm");
-
   // Check if user already has a key — avoid duplicate insert
   const [existing] = await db
     .select({ user_id: userKeysTable.user_id })
@@ -249,6 +244,11 @@ export function decryptForUser(encrypted: string, userKey: Buffer): string {
     // Handle empty or null encrypted values
     if (!encrypted || encrypted.trim() === '') {
       return '';
+    }
+
+    // If the value doesn't look like encrypted data, return it as-is (plain text / legacy data)
+    if (!isEncrypted(encrypted)) {
+      return encrypted;
     }
     
     const { iv, authTag, ciphertext } = parseEncrypted(encrypted);
@@ -314,10 +314,6 @@ export function clearUserKeyCache(): void {
  * The new key must be set as ENCRYPTION_KEY_V2 (or next version) in env vars.
  */
 export async function rotateMasterKey(): Promise<number> {
-  const { userKeysTable } = await import("@/db/schema");
-  const { db } = await import("@/index");
-  const { eq } = await import("drizzle-orm");
-
   const currentVersionNum = parseInt(CURRENT_KEY_VERSION.replace("v", ""), 10);
   const newVersion = `v${currentVersionNum + 1}`;
   const newEnvVar = `ENCRYPTION_KEY_${newVersion.toUpperCase()}`;

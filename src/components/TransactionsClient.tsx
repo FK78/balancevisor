@@ -122,13 +122,15 @@ function DeleteTransactionButton({
 // Use shared types from @/lib/types
 type Transaction = TransactionWithDetails;
 
+const dateFormatter = new Intl.DateTimeFormat("en-GB", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+
 function formatDate(date: string | null) {
   if (!date) return "—";
-  return new Intl.DateTimeFormat("en-GB", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(date));
+  return dateFormatter.format(new Date(date));
 }
 
 function getPageHref(page: number, startDate?: string, endDate?: string, search?: string, accountId?: string) {
