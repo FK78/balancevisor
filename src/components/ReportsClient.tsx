@@ -23,6 +23,8 @@ import type {
   MonthlyCategorySpendPoint,
 } from "@/db/queries/transactions";
 import { formatCurrency, formatCompactCurrency } from "@/lib/formatCurrency";
+import { computeMonthlySavingsRates } from "@/lib/savings-rate";
+import { SavingsRateCard } from "@/components/SavingsRateCard";
 import { formatMonthLabel } from "@/lib/date";
 import {
   Area,
@@ -214,6 +216,9 @@ export function ReportsClient({
 
       {/* AI Monthly Report */}
       <MonthlyAIReport />
+
+      {/* Savings Rate */}
+      <SavingsRateCard rates={computeMonthlySavingsRates(filteredTrend)} />
 
       {/* Compact stats */}
       <Card>

@@ -1,5 +1,5 @@
 import { db } from '@/index';
-import { transactionsTable, budgetsTable, categoriesTable, sharedAccessTable, accountsTable } from '@/db/schema';
+import { transactionsTable, budgetsTable, categoriesTable, sharedAccessTable } from '@/db/schema';
 import { eq, sum, sql, and, or, inArray, gte, lt } from 'drizzle-orm';
 import { getMonthRange } from '@/lib/date';
 
@@ -99,10 +99,9 @@ export async function getAvgMonthlySpendByCategory(userId: string): Promise<Reco
       total: sql<number>`coalesce(${sum(transactionsTable.amount)}, 0)`.mapWith(Number),
     })
     .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(
       and(
-        eq(accountsTable.user_id, userId),
+        eq(transactionsTable.user_id, userId),
         eq(transactionsTable.type, 'expense'),
         gte(transactionsTable.date, threeMonthsAgo.start),
         lt(transactionsTable.date, thisMonth.end),

@@ -151,4 +151,16 @@ export const rateLimiters = {
 
   /** AI debt advisor: 5 requests per 10 minutes. */
   debtAdvisor: new RateLimiter({ maxRequests: 5, windowMs: 10 * 60 * 1000 }),
+
+  /** Weekly spending digest: 5 requests per 10 minutes. */
+  weeklyDigest: new RateLimiter({ maxRequests: 5, windowMs: 10 * 60 * 1000 }),
+
+  /** Subscription savings advisor: 5 requests per 10 minutes. */
+  subscriptionAdvisor: new RateLimiter({ maxRequests: 5, windowMs: 10 * 60 * 1000 }),
+
+  /** Savings tips: 5 requests per 10 minutes. */
+  savingsTips: new RateLimiter({ maxRequests: 5, windowMs: 10 * 60 * 1000 }),
+
+  /** Account health check: 5 requests per 10 minutes. */
+  accountHealth: new RateLimiter({ maxRequests: 5, windowMs: 10 * 60 * 1000 }),
 };

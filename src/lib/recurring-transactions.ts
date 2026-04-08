@@ -53,10 +53,9 @@ export async function generateDueRecurringTransactions(userId: string): Promise<
       next_recurring_date: transactionsTable.next_recurring_date,
     })
     .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(
       and(
-        eq(accountsTable.user_id, userId),
+        eq(transactionsTable.user_id, userId),
         eq(transactionsTable.is_recurring, true),
         isNotNull(transactionsTable.recurring_pattern),
         isNotNull(transactionsTable.next_recurring_date),
@@ -74,6 +73,7 @@ export async function generateDueRecurringTransactions(userId: string): Promise<
     // Generate all due occurrences (could be multiple if user hasn't visited in a while)
     while (nextDate <= today) {
       await db.insert(transactionsTable).values({
+        user_id: userId,
         account_id: src.account_id,
         category_id: src.category_id,
         type: src.type,

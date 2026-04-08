@@ -238,6 +238,7 @@ export async function importFromTrueLayer() {
         const categoryId = matchedCategoryId ?? uncategorised?.id ?? null;
 
         await db.insert(transactionsTable).values({
+          user_id: userId,
           account_id: localAccountId,
           category_id: categoryId,
           type,

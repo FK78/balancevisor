@@ -207,52 +207,54 @@ export async function recordHoldingSale(formData: FormData) {
   const totalAmount = quantity * pricePerUnit;
   const realizedGain = (pricePerUnit - holding.average_price) * quantity;
 
-  // Update holding quantity (reduce)
-  await db
-    .update(manualHoldingsTable)
-    .set({
-      quantity: holding.quantity - quantity,
-    })
-    .where(eq(manualHoldingsTable.id, holdingId));
+  await db.transaction(async (tx) => {
+    // Update holding quantity (reduce)
+    await tx
+      .update(manualHoldingsTable)
+      .set({
+        quantity: holding.quantity - quantity,
+      })
+      .where(eq(manualHoldingsTable.id, holdingId));
 
-  // Insert sale record
-  await db.insert(holdingSalesTable).values({
-    holding_id: holdingId,
-    user_id: userId,
-    date: toDateString(date),
-    quantity,
-    price_per_unit: pricePerUnit,
-    total_amount: totalAmount,
-    realized_gain: realizedGain,
-    cash_account_id: cashAccountId,
-    notes,
+    // Insert sale record
+    await tx.insert(holdingSalesTable).values({
+      holding_id: holdingId,
+      user_id: userId,
+      date: toDateString(date),
+      quantity,
+      price_per_unit: pricePerUnit,
+      realized_gain: realizedGain,
+      cash_account_id: cashAccountId,
+      notes,
+    });
+
+    // If cashAccountId, create a transaction
+    if (cashAccountId) {
+      const description = `Sold ${quantity} ${holding.ticker ? holding.ticker : holding.name}`;
+      await createTransaction({
+        type: 'sale',
+        amount: totalAmount,
+        description,
+        date: toDateString(date),
+        account_id: cashAccountId,
+        category_id: null,
+        is_recurring: false,
+        recurring_pattern: null,
+        next_recurring_date: null,
+        transfer_account_id: null,
+        is_split: false,
+      }, userId, tx);
+
+      // Update account balance
+      await tx.update(accountsTable)
+        .set({ balance: sql`${accountsTable.balance} + ${totalAmount}` })
+        .where(eq(accountsTable.id, cashAccountId));
+    }
   });
 
-  // If cashAccountId, create a transaction
   if (cashAccountId) {
-    const description = `Sold ${quantity} ${holding.ticker ? holding.ticker : holding.name}`;
-    await createTransaction({
-      type: 'sale',
-      amount: totalAmount,
-      description,
-      date: toDateString(date),
-      account_id: cashAccountId,
-      category_id: null,
-      is_recurring: false,
-      recurring_pattern: null,
-      next_recurring_date: null,
-      transfer_account_id: null,
-      is_split: false,
-    }, userId);
-
-    // Update account balance
-    await db.update(accountsTable)
-      .set({ balance: sql`${accountsTable.balance} + ${totalAmount}` })
-      .where(eq(accountsTable.id, cashAccountId));
-
     revalidateDomains('transactions', 'accounts');
   }
-
   revalidateInvestments();
 }
 

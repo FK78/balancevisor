@@ -29,34 +29,38 @@ export async function addSubscription(formData: FormData) {
   const userId = await getCurrentUserId();
   const { name, amount, accountId, categoryId, nextBillingDate, currency, billing_cycle, url, notes, color, icon } = parseSubscriptionForm(formData);
 
-  const [result] = await db.insert(subscriptionsTable).values({
-    user_id: userId,
-    name,
-    amount,
-    currency,
-    billing_cycle,
-    next_billing_date: nextBillingDate,
-    category_id: categoryId,
-    account_id: accountId,
-    url,
-    notes,
-    color,
-    icon,
-  }).returning({ id: subscriptionsTable.id });
+  const result = await db.transaction(async (tx) => {
+    const [inserted] = await tx.insert(subscriptionsTable).values({
+      user_id: userId,
+      name,
+      amount,
+      currency,
+      billing_cycle,
+      next_billing_date: nextBillingDate,
+      category_id: categoryId,
+      account_id: accountId,
+      url,
+      notes,
+      color,
+      icon,
+    }).returning({ id: subscriptionsTable.id });
 
-  await createTransaction({
-    type: 'expense',
-    amount,
-    description: `Subscription: ${name}`,
-    is_recurring: false,
-    date: nextBillingDate,
-    account_id: accountId,
-    category_id: categoryId,
-  }, userId);
+    await createTransaction({
+      type: 'expense',
+      amount,
+      description: `Subscription: ${name}`,
+      is_recurring: false,
+      date: nextBillingDate,
+      account_id: accountId,
+      category_id: categoryId,
+    }, userId, tx);
 
-  await db.update(accountsTable)
-    .set({ balance: sql`${accountsTable.balance} - ${amount}` })
-    .where(eq(accountsTable.id, accountId));
+    await tx.update(accountsTable)
+      .set({ balance: sql`${accountsTable.balance} - ${amount}` })
+      .where(eq(accountsTable.id, accountId));
+
+    return inserted;
+  });
 
   await checkBudgetAlerts(userId);
 

@@ -9,7 +9,6 @@ export async function getAccountsWithDetails(userId: string): Promise<AccountWit
   const rows = await db.select({
     id: accountsTable.id,
     accountName: accountsTable.name,
-    name: accountsTable.name,
     type: accountsTable.type,
     balance: accountsTable.balance,
     currency: accountsTable.currency,
@@ -20,13 +19,16 @@ export async function getAccountsWithDetails(userId: string): Promise<AccountWit
   })
     .from(accountsTable)
     .where(eq(accountsTable.user_id, userId));
-  return rows.map(row => ({
-    ...row,
-    accountName: decryptForUser(row.accountName, userKey),
-    name: decryptForUser(row.name, userKey),
-    isShared: false,
-    sharedBy: null,
-  }));
+  return rows.map(row => {
+    const decrypted = decryptForUser(row.accountName, userKey);
+    return {
+      ...row,
+      accountName: decrypted,
+      name: decrypted,
+      isShared: false,
+      sharedBy: null,
+    };
+  });
 }
 
 export async function getSharedAccounts(userId: string, email: string): Promise<AccountWithDetails[]> {
@@ -58,7 +60,6 @@ export async function getSharedAccounts(userId: string, email: string): Promise<
     .select({
       id: accountsTable.id,
       accountName: accountsTable.name,
-      name: accountsTable.name,
       type: accountsTable.type,
       balance: accountsTable.balance,
       currency: accountsTable.currency,
@@ -74,10 +75,11 @@ export async function getSharedAccounts(userId: string, email: string): Promise<
   const result = await Promise.all(rows.map(async (row) => {
     const ownerId = row.user_id;
     const ownerKey = await getUserKey(ownerId);
+    const decrypted = decryptForUser(row.accountName, ownerKey);
     return {
       ...row,
-      accountName: decryptForUser(row.accountName, ownerKey),
-      name: decryptForUser(row.name, ownerKey),
+      accountName: decrypted,
+      name: decrypted,
       isShared: true,
       sharedBy: ownerMap.get(row.id) ?? null,
     };

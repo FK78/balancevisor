@@ -1,5 +1,5 @@
 import { db } from '@/index';
-import { transactionsTable, accountsTable, categoriesTable } from '@/db/schema';
+import { transactionsTable, categoriesTable } from '@/db/schema';
 import { and, eq, gte, lt, sum, sql, isNull, count } from 'drizzle-orm';
 import { getMonthRange } from '@/lib/date';
 
@@ -152,11 +152,10 @@ async function getCategorySpend(userId: string, start: string, end: string) {
       total: sql<number>`coalesce(${sum(transactionsTable.amount)}, 0)`.mapWith(Number),
     })
     .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .innerJoin(categoriesTable, eq(transactionsTable.category_id, categoriesTable.id))
     .where(
       and(
-        eq(accountsTable.user_id, userId),
+        eq(transactionsTable.user_id, userId),
         eq(transactionsTable.type, 'expense'),
         gte(transactionsTable.date, start),
         lt(transactionsTable.date, end),
@@ -170,10 +169,9 @@ export async function getUncategorisedCount(userId: string): Promise<number> {
   const [row] = await db
     .select({ total: count() })
     .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(
       and(
-        eq(accountsTable.user_id, userId),
+        eq(transactionsTable.user_id, userId),
         isNull(transactionsTable.category_id),
       ),
     );
@@ -187,10 +185,9 @@ async function getIncomeExpenseTotals(userId: string, start: string, end: string
       total: sql<number>`coalesce(${sum(transactionsTable.amount)}, 0)`.mapWith(Number),
     })
     .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(
       and(
-        eq(accountsTable.user_id, userId),
+        eq(transactionsTable.user_id, userId),
         gte(transactionsTable.date, start),
         lt(transactionsTable.date, end),
       ),
@@ -219,10 +216,9 @@ async function getUpcomingRecurring(userId: string) {
       next_recurring_date: transactionsTable.next_recurring_date,
     })
     .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(
       and(
-        eq(accountsTable.user_id, userId),
+        eq(transactionsTable.user_id, userId),
         eq(transactionsTable.is_recurring, true),
         gte(transactionsTable.next_recurring_date, today),
         lt(transactionsTable.next_recurring_date, next7Str),
