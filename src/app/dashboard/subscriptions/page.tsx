@@ -22,6 +22,7 @@ import { formatCurrency } from "@/lib/formatCurrency";
 import { SubscriptionFormDialog } from "@/components/SubscriptionFormDialog";
 import { DeleteSubscriptionButton } from "@/components/DeleteSubscriptionButton";
 import { ToggleSubscriptionButton } from "@/components/ToggleSubscriptionButton";
+import { SubscriptionAIAdvisor } from "@/components/SubscriptionAIAdvisor";
 
 const cycleLabels: Record<string, string> = {
   weekly: "Weekly",
@@ -223,6 +224,9 @@ export default async function SubscriptionsPage() {
           })}
         </div>
       )}
+
+      {/* AI Savings Advisor */}
+      {activeCount > 0 && <SubscriptionAIAdvisor />}
     </div>
   );
 }

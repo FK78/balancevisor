@@ -14,6 +14,8 @@ import { getUncategorisedCount } from "@/db/queries/insights";
 import { TransactionsClient } from "@/components/TransactionsClient";
 import { getCurrentUserId } from "@/lib/auth";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
+import { detectRecurringCandidates } from "@/lib/recurring-detection";
+import { RecurringDetectionBanner } from "@/components/RecurringDetectionBanner";
 
 const PAGE_SIZE = 10;
 
@@ -112,7 +114,18 @@ export default async function Transactions({
     serializedSplits[txnId] = rows;
   }
 
+  // Detect recurring patterns (only on unfiltered first page)
+  const recurringCandidates = (!search && !startDate && !endDate && requestedPage === 1)
+    ? await detectRecurringCandidates(userId)
+    : [];
+
   return (
+    <>
+    {recurringCandidates.length > 0 && (
+      <div className="mx-auto max-w-7xl px-4 pt-6 md:px-10 md:pt-10">
+        <RecurringDetectionBanner candidates={recurringCandidates} currency={baseCurrency} />
+      </div>
+    )}
     <TransactionsClient
       transactions={transactions}
       accounts={accounts}
@@ -132,5 +145,6 @@ export default async function Transactions({
       splits={serializedSplits}
       uncategorisedCount={uncategorisedCount}
     />
+    </>
   );
 }

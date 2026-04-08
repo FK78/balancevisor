@@ -22,6 +22,9 @@ import { DashboardInsights } from "@/components/dashboard/DashboardInsights";
 import { DashboardMonthlyReport } from "@/components/dashboard/DashboardMonthlyReport";
 import { DashboardCashflowForecast } from "@/components/dashboard/DashboardCashflowForecast";
 import { getCashflowForecast } from "@/lib/cashflow-forecast";
+import { getSpendingAnomalies } from "@/lib/spending-anomalies";
+import { DashboardAnomalies } from "@/components/dashboard/DashboardAnomalies";
+import { DashboardWeeklyDigest } from "@/components/dashboard/DashboardWeeklyDigest";
 import { snapshotNetWorthIfNeeded } from "@/lib/snapshot-net-worth";
 import { getMonthRange } from "@/lib/date";
 import { SpendCategoryRow } from "@/components/SpendCategoryRow";
@@ -108,9 +111,10 @@ export default async function Home() {
     return pct >= 80;
   });
 
-  const [insights, forecast] = await Promise.all([
+  const [insights, forecast, anomalies] = await Promise.all([
     getDashboardInsights(userId, budgets, goals),
     getCashflowForecast(userId),
+    getSpendingAnomalies(userId),
   ]);
 
   return (
@@ -160,6 +164,14 @@ export default async function Home() {
 
       {/* Cash Flow Forecast */}
       <DashboardCashflowForecast forecast={forecast} />
+
+      {/* Spending Anomalies */}
+      {anomalies.length > 0 && (
+        <DashboardAnomalies anomalies={anomalies} currency={baseCurrency} />
+      )}
+
+      {/* Weekly Digest */}
+      <DashboardWeeklyDigest />
 
       {/* Upcoming bills */}
       {upcomingRenewals.length > 0 && (

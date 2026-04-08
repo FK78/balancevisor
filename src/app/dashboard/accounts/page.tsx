@@ -29,6 +29,7 @@ const AccountCharts = dynamic(
   () => import("@/components/AccountCharts").then((mod) => mod.AccountCharts),
   { loading: () => <div className="min-h-[300px]" /> }
 );
+import { AccountHealthCheck } from "@/components/AccountHealthCheck";
 import { getTrueLayerConnections } from "@/db/mutations/truelayer";
 import { getManualHoldings, getTrading212Connection } from "@/db/queries/investments";
 import Link from "next/link";
@@ -264,6 +265,9 @@ export default async function Accounts() {
           })}
         </div>
       )}
+
+      {/* AI Account Health Check */}
+      {accounts.length > 0 && <AccountHealthCheck />}
     </div>
   );
 }

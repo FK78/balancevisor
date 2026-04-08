@@ -35,7 +35,7 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowRightLeft, ArrowUpDown, ChevronDown, ChevronRight, Download, Loader2, Receipt, RefreshCw, Search, Split, Tag, X, Wallet } from "lucide-react";
+import { ArrowRightLeft, ArrowUpDown, ChevronDown, ChevronRight, Download, Loader2, Receipt, RefreshCw, Search, Sparkles, Split, Tag, X, Wallet } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -170,6 +170,7 @@ export function TransactionsClient({
   const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
   const [sorting, setSorting] = useState<SortingState>([]);
   const [searchInput, setSearchInput] = useState(activeSearch ?? "");
+  const [aiSearchLoading, setAiSearchLoading] = useState(false);
   const [filterStartDate, setFilterStartDate] = useState(activeStartDate ?? "");
   const [filterEndDate, setFilterEndDate] = useState(activeEndDate ?? "");
   const [filterAccountId, setFilterAccountId] = useState(activeAccountId ?? "__all__");
@@ -475,6 +476,45 @@ export function TransactionsClient({
               </div>
               <Button type="submit">
                 Search
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={aiSearchLoading || !searchInput.trim()}
+                title="AI-powered natural language search"
+                onClick={async () => {
+                  const query = searchInput.trim();
+                  if (!query) return;
+                  setAiSearchLoading(true);
+                  try {
+                    const res = await fetch("/api/parse-search", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ query }),
+                    });
+                    if (!res.ok) throw new Error();
+                    const filters = await res.json();
+                    router.push(getPageHref(
+                      1,
+                      filters.startDate ?? undefined,
+                      filters.endDate ?? undefined,
+                      filters.search ?? undefined,
+                      filters.accountId ?? undefined,
+                    ));
+                  } catch {
+                    const { toast } = await import("sonner");
+                    toast.error("Could not parse your query. Try a simpler search.");
+                  } finally {
+                    setAiSearchLoading(false);
+                  }
+                }}
+              >
+                {aiSearchLoading ? (
+                  <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-1 h-3.5 w-3.5" />
+                )}
+                AI
               </Button>
               {isSearchActive && (
                 <Button
