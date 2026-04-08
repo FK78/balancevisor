@@ -1,7 +1,7 @@
 import { getTrading212Connection, getManualHoldings } from "@/db/queries/investments";
 import { getT212AccountSummary } from "@/lib/trading212";
 import { getQuotes } from "@/lib/yahoo-finance";
-import { decrypt } from "@/lib/encryption";
+import { decryptForUser, getUserKey } from "@/lib/encryption";
 import { logger } from "@/lib/logger";
 
 export async function getInvestmentValue(userId: string): Promise<number> {
@@ -14,8 +14,9 @@ export async function getInvestmentValue(userId: string): Promise<number> {
 
   if (t212Connection) {
     try {
-      const apiKey = decrypt(t212Connection.api_key_encrypted);
-      const apiSecret = decrypt(t212Connection.api_secret_encrypted);
+      const userKey = await getUserKey(userId);
+      const apiKey = decryptForUser(t212Connection.api_key_encrypted, userKey);
+      const apiSecret = decryptForUser(t212Connection.api_secret_encrypted, userKey);
       const summary = await getT212AccountSummary(apiKey, apiSecret, t212Connection.environment);
       value += summary.totalValue;
     } catch (err) {

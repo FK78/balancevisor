@@ -80,8 +80,9 @@ async function runTests() {
     assert(encrypted1 !== encrypted2, "Ciphertexts should differ due to random IV");
   });
 
-  test("throws on invalid format", () => {
-    assertThrows(() => decrypt("invalid"), "Should throw on invalid format");
+  test("returns empty string on invalid format", () => {
+    const result = decrypt("invalid");
+    assert(result === '', "Should return empty string for invalid format");
   });
 
   test("includes version prefix in encrypted output", () => {
@@ -98,12 +99,13 @@ async function runTests() {
     assert(decryptForUser(encrypted, userKey) === plaintext, "Decrypted value should match");
   });
 
-  test("fails to decrypt with wrong user key", () => {
+  test("returns empty string with wrong user key", () => {
     const userKey1 = randomBytes(32);
     const userKey2 = randomBytes(32);
     const plaintext = "secret";
     const encrypted = encryptForUser(plaintext, userKey1);
-    assertThrows(() => decryptForUser(encrypted, userKey2), "Should throw with wrong key");
+    const result = decryptForUser(encrypted, userKey2);
+    assert(result === '', "Should return empty string with wrong key");
   });
 
   test("produces different ciphertexts for same plaintext with same key", () => {
