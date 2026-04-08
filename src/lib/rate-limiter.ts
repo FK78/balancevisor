@@ -142,4 +142,7 @@ export const rateLimiters = {
 
   /** Chat (AI): 10 requests per minute. */
   chat: new RateLimiter({ maxRequests: 10, windowMs: 60 * 1000 }),
+
+  /** Portfolio AI analysis: 5 requests per 10 minutes. */
+  portfolioAnalysis: new RateLimiter({ maxRequests: 5, windowMs: 10 * 60 * 1000 }),
 };
