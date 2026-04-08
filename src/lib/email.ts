@@ -1,9 +1,27 @@
-import { Resend } from 'resend';
+import { createTransport, type Transporter } from 'nodemailer';
 import { logger } from '@/lib/logger';
 
-const resend = process.env.RESEND_API_KEY
-  ? new Resend(process.env.RESEND_API_KEY)
-  : null;
+let transporter: Transporter | null = null;
+
+function getTransporter(): Transporter | null {
+  if (transporter) return transporter;
+
+  const host = process.env.SMTP_HOST;
+  const port = Number(process.env.SMTP_PORT || '587');
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+
+  if (!host || !user || !pass) return null;
+
+  transporter = createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+  });
+
+  return transporter;
+}
 
 export async function sendBudgetAlertEmail(
   to: string,
@@ -15,12 +33,13 @@ export async function sendBudgetAlertEmail(
   spent: number,
   currency: string,
 ) {
-  if (!resend) {
-    console.warn('RESEND_API_KEY not set — skipping email alert');
+  const smtp = getTransporter();
+  if (!smtp) {
+    console.warn('SMTP not configured — skipping email alert');
     return;
   }
 
-  const fromAddress = process.env.RESEND_FROM_EMAIL || 'MoneyScope <alerts@updates.moneyscope.app>';
+  const fromAddress = process.env.SMTP_FROM || 'BalanceVisor <alerts@localhost>';
 
   const isOver = alertType === 'over_budget';
   const emoji = isOver ? '🚨' : '⚠️';
@@ -45,7 +64,7 @@ export async function sendBudgetAlertEmail(
   `;
 
   try {
-    await resend.emails.send({
+    await smtp.sendMail({
       from: fromAddress,
       to,
       subject: `${emoji} ${subject}`,

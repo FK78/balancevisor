@@ -131,7 +131,7 @@ Fill in `.env`:
 | `NEXT_PUBLIC_SITE_URL` | Yes | `http://localhost:3000` for dev |
 | `ENCRYPTION_KEY` | Yes | 32-byte hex - see below |
 | `GROQ_API_KEY` | No | AI categorisation, NL transactions, chat |
-| `RESEND_API_KEY` | No | Email budget alerts |
+| `SMTP_HOST` | No | SMTP server for email alerts (+ `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`) |
 | `TRUELAYER_CLIENT_ID` | No | Open banking |
 | `TRUELAYER_CLIENT_SECRET` | No | Open banking |
 | `TRUELAYER_SANDBOX` | No | Set `true` for sandbox mode |
