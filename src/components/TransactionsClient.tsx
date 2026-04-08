@@ -35,7 +35,7 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowRightLeft, ArrowUpDown, ChevronDown, ChevronRight, Download, Receipt, RefreshCw, Search, Split, X, Wallet } from "lucide-react";
+import { ArrowRightLeft, ArrowUpDown, ChevronDown, ChevronRight, Download, Loader2, Receipt, RefreshCw, Search, Split, Tag, X, Wallet } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/select";
 import { SplitTransactionDialog } from "@/components/SplitTransactionDialog";
 import { deleteTransaction } from "@/db/mutations/transactions";
+import { bulkAutoCategorise } from "@/db/mutations/bulk-categorise";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { toDateString, addDays } from "@/lib/date";
 import type { AccountWithDetails, CategoryWithColor, TransactionWithDetails, SplitDetail } from "@/lib/types";
@@ -66,6 +67,38 @@ function DeleteTransactionButton({
       successTitle="Transaction deleted"
       successDescription="The transaction has been removed."
     />
+  );
+}
+
+function BulkCategoriseButton({ count }: { count: number }) {
+  const router = useRouter();
+  const [isPending, setIsPending] = useState(false);
+
+  async function handleClick() {
+    setIsPending(true);
+    try {
+      const result = await bulkAutoCategorise();
+      if (result.categorised > 0) {
+        const { toast } = await import("sonner");
+        toast.success(`Auto-categorised ${result.categorised} transaction${result.categorised !== 1 ? "s" : ""}${result.remaining > 0 ? ` (${result.remaining} unmatched)` : ""}`);
+        router.refresh();
+      } else {
+        const { toast } = await import("sonner");
+        toast.info("No matching rules found. Create rules by editing transaction categories.");
+      }
+    } catch {
+      const { toast } = await import("sonner");
+      toast.error("Failed to auto-categorise");
+    } finally {
+      setIsPending(false);
+    }
+  }
+
+  return (
+    <Button size="sm" variant="outline" onClick={handleClick} disabled={isPending}>
+      {isPending ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Tag className="mr-1 h-3.5 w-3.5" />}
+      Categorise {count}
+    </Button>
   );
 }
 
@@ -112,6 +145,7 @@ export function TransactionsClient({
   dailyCategoryExpenses,
   currency,
   splits,
+  uncategorisedCount,
 }: {
   transactions: Transaction[];
   accounts: AccountWithDetails[];
@@ -129,6 +163,7 @@ export function TransactionsClient({
   dailyCategoryExpenses: DailyCategoryExpensePoint[];
   currency: string;
   splits?: Record<string, SplitDetail[]>;
+  uncategorisedCount?: number;
 }) {
   const router = useRouter();
   const [expandedSplits, setExpandedSplits] = useState<Set<string>>(new Set());
@@ -397,6 +432,9 @@ export function TransactionsClient({
               categories={categories}
               onSaved={() => router.refresh()}
             />
+            {(uncategorisedCount ?? 0) > 0 && (
+              <BulkCategoriseButton count={uncategorisedCount ?? 0} />
+            )}
             <QuickAddTransaction
               onSaved={handleTransactionsAdded}
             />

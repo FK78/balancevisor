@@ -9,7 +9,7 @@ import {
   Target,
   Users,
 } from "lucide-react";
-import { getBudgets, getSharedBudgets } from "@/db/queries/budgets";
+import { getBudgets, getSharedBudgets, getAvgMonthlySpendByCategory } from "@/db/queries/budgets";
 import { getCategoriesByUser } from "@/db/queries/categories";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { BudgetFormDialog } from "@/components/AddBudgetForm";
@@ -34,7 +34,7 @@ export default async function Budgets() {
   const userId = await getCurrentUserId();
   const email = await getCurrentUserEmail();
   
-  const [ownedBudgets, sharedBudgetRows, categories, baseCurrency, alertPrefs, allShares, pendingInvitations] = await Promise.all([
+  const [ownedBudgets, sharedBudgetRows, categories, baseCurrency, alertPrefs, allShares, pendingInvitations, avgSpend] = await Promise.all([
     getBudgets(userId),
     getSharedBudgets(userId, email),
     getCategoriesByUser(userId),
@@ -42,6 +42,7 @@ export default async function Budgets() {
     getAlertPreferencesByUser(userId),
     getSharesByOwner(userId),
     getPendingInvitations(userId, email),
+    getAvgMonthlySpendByCategory(userId),
   ]);
 
   const budgets = [...ownedBudgets, ...sharedBudgetRows];
@@ -73,7 +74,7 @@ export default async function Budgets() {
             <Link href="/dashboard/categories">Add Categories First</Link>
           </Button>
         ) : (
-          <BudgetFormDialog categories={categories} />
+          <BudgetFormDialog categories={categories} avgSpendByCategory={avgSpend} />
         )}
       </div>
 
@@ -121,7 +122,7 @@ export default async function Budgets() {
                 <Link href="/dashboard/categories">Add a category first</Link>
               </Button>
             ) : (
-              <BudgetFormDialog categories={categories} />
+              <BudgetFormDialog categories={categories} avgSpendByCategory={avgSpend} />
             )}
           </CardContent>
         </Card>

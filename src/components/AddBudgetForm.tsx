@@ -1,8 +1,11 @@
 "use client";
 
+import { useState, useRef } from "react";
 import { toDateString } from "@/lib/date";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Sparkles } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -30,9 +33,25 @@ type Budget = {
   start_date: string | null;
 };
 
-export function BudgetFormDialog({ categories, budget }: { categories: Category[]; budget?: Budget }) {
+export function BudgetFormDialog({
+  categories,
+  budget,
+  avgSpendByCategory,
+}: {
+  categories: Category[];
+  budget?: Budget;
+  avgSpendByCategory?: Record<string, number>;
+}) {
   const isEdit = !!budget;
   const today = toDateString(new Date());
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(
+    budget?.category_id ?? undefined
+  );
+  const amountRef = useRef<HTMLInputElement>(null);
+
+  const suggestedAmount = selectedCategoryId && avgSpendByCategory
+    ? avgSpendByCategory[selectedCategoryId]
+    : undefined;
 
   return (
     <FormDialog
@@ -47,7 +66,12 @@ export function BudgetFormDialog({ categories, budget }: { categories: Category[
       {/* Category */}
       <div className="grid gap-2">
         <Label htmlFor="category_id">Category</Label>
-        <Select name="category_id" defaultValue={budget ? String(budget.category_id) : undefined} required>
+        <Select
+          name="category_id"
+          defaultValue={budget ? String(budget.category_id) : undefined}
+          onValueChange={setSelectedCategoryId}
+          required
+        >
           <SelectTrigger id="category_id">
             <SelectValue placeholder="Select category" />
           </SelectTrigger>
@@ -71,6 +95,7 @@ export function BudgetFormDialog({ categories, budget }: { categories: Category[
       <div className="grid gap-2">
         <Label htmlFor="amount">Budget Amount</Label>
         <Input
+          ref={amountRef}
           id="amount"
           name="amount"
           type="number"
@@ -80,6 +105,29 @@ export function BudgetFormDialog({ categories, budget }: { categories: Category[
           placeholder="0.00"
           required
         />
+        {!isEdit && suggestedAmount && suggestedAmount > 0 && (
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+            <Sparkles className="h-3 w-3 text-primary shrink-0" />
+            <span>Avg spend: £{suggestedAmount.toFixed(0)}/mo</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-5 px-1.5 text-[11px] text-primary"
+              onClick={() => {
+                if (amountRef.current) {
+                  const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+                    window.HTMLInputElement.prototype, 'value'
+                  )?.set;
+                  nativeInputValueSetter?.call(amountRef.current, suggestedAmount.toFixed(2));
+                  amountRef.current.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+              }}
+            >
+              Use suggested
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Period */}

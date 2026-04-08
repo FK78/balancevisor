@@ -13,14 +13,19 @@ import {
 } from "@/db/queries/transactions";
 import { getAccountsWithDetails } from "@/db/queries/accounts";
 import { getBudgets } from "@/db/queries/budgets";
+import { getUpcomingRenewals } from "@/db/queries/subscriptions";
 import { getInvestmentValue } from "@/lib/investment-value";
 import { getNetWorthHistory } from "@/db/queries/net-worth";
+import { getGoals } from "@/db/queries/goals";
+import { getDashboardInsights } from "@/db/queries/insights";
+import { DashboardInsights } from "@/components/dashboard/DashboardInsights";
 import { snapshotNetWorthIfNeeded } from "@/lib/snapshot-net-worth";
 import { getMonthRange } from "@/lib/date";
 import { SpendCategoryRow } from "@/components/SpendCategoryRow";
 import { DashboardNetWorth } from "@/components/dashboard/DashboardNetWorth";
 import { DashboardBudgetProgress } from "@/components/dashboard/DashboardBudgetProgress";
 import { DashboardRecentTransactions } from "@/components/dashboard/DashboardRecentTransactions";
+import { DashboardUpcomingBills } from "@/components/dashboard/DashboardUpcomingBills";
 import { getCurrentUserId } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
@@ -56,6 +61,8 @@ export default async function Home() {
     investmentValue,
     netWorthHistory,
     claimsResult,
+    goals,
+    upcomingRenewals,
   ] = await Promise.all([
     getLatestFiveTransactionsWithDetails(userId),
     getAccountsWithDetails(userId),
@@ -68,6 +75,8 @@ export default async function Home() {
     getInvestmentValue(userId),
     getNetWorthHistory(userId, 90),
     supabase.auth.getClaims(),
+    getGoals(userId),
+    getUpcomingRenewals(userId, 7),
   ]);
 
   // Fire-and-forget: snapshot uses the already-fetched investmentValue to avoid duplicate API calls
@@ -96,6 +105,8 @@ export default async function Home() {
     return pct >= 80;
   });
 
+  const insights = await getDashboardInsights(userId, budgets, goals);
+
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
       {/* Header */}
@@ -116,6 +127,9 @@ export default async function Home() {
         </div>
       </div>
 
+      {/* Insights */}
+      {insights.length > 0 && <DashboardInsights insights={insights} />}
+
       {/* Net Worth */}
       {accounts.length > 0 && (
         <DashboardNetWorth
@@ -134,6 +148,11 @@ export default async function Home() {
 
       {/* Cashflow */}
       <CashflowCharts data={monthlyTrend} currency={baseCurrency} />
+
+      {/* Upcoming bills */}
+      {upcomingRenewals.length > 0 && (
+        <DashboardUpcomingBills renewals={upcomingRenewals} currency={baseCurrency} />
+      )}
 
       {/* Budget + Category spend */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

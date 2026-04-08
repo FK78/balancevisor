@@ -75,8 +75,7 @@ export async function addTransaction(formData: FormData) {
   let categoryId = sanitizeUUID(formData.get('category_id') as string);
 
   // Auto-categorise if no category was selected
-  if (!categoryId) {
-    const userId = await getCurrentUserId();
+  if (!categoryId && description) {
     const matched = await matchCategorisationRule(userId, description);
     if (matched) categoryId = matched;
   }

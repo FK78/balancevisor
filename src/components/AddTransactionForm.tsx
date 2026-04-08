@@ -26,6 +26,10 @@ import { addTransaction, editTransaction } from "@/db/mutations/transactions";
 import { learnCategorisationRule } from "@/db/mutations/categorisation-rules";
 import type { AccountWithDetails, CategoryWithColor, TransactionWithDetails } from "@/lib/types";
 import { toast } from "sonner";
+import { useLastUsed } from "@/hooks/useLastUsed";
+import { checkForDuplicate } from "@/db/mutations/check-duplicate";
+import type { PotentialDuplicate } from "@/db/queries/duplicate-check";
+import { AlertTriangle } from "lucide-react";
 
 export function TransactionFormDialog({
   transaction,
@@ -48,6 +52,17 @@ export function TransactionFormDialog({
   const [ruleSuggestion, setRuleSuggestion] = useState<{ description: string; categoryId: string; categoryName: string } | null>(null);
   const [ruleSaved, setRuleSaved] = useState(false);
   const [isSavingRule, startSavingRule] = useTransition();
+  const [duplicateWarning, setDuplicateWarning] = useState<PotentialDuplicate[] | null>(null);
+  const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
+
+  const lastAccount = useLastUsed("txn_account");
+  const lastType = useLastUsed("txn_type");
+
+  // Resolve smart defaults for new transactions
+  const defaultAccountId = transaction?.account_id != null
+    ? String(transaction.account_id)
+    : lastAccount.get() ?? undefined;
+  const defaultType = transaction?.type ?? lastType.get() ?? "expense";
 
   const today = toDateString(new Date());
 
@@ -71,30 +86,76 @@ export function TransactionFormDialog({
       formData.set("id", String(transaction.id));
     }
 
+    // For new transactions, check for duplicates first
+    if (!isEdit) {
+      const accountId = formData.get("account_id") as string;
+      const amount = parseFloat(formData.get("amount") as string);
+      const date = formData.get("date") as string;
+      const type = formData.get("type") as string;
+
+      if (accountId && amount > 0 && date) {
+        startTransition(async () => {
+          try {
+            const dupes = await checkForDuplicate(
+              accountId, amount, date,
+              type as 'income' | 'expense' | 'transfer' | 'sale',
+            );
+            if (dupes.length > 0) {
+              setDuplicateWarning(dupes);
+              setPendingFormData(formData);
+              return;
+            }
+          } catch {
+            // If duplicate check fails, proceed anyway
+          }
+          await saveTransaction(formData);
+        });
+        return;
+      }
+    }
+
+    startTransition(() => saveTransaction(formData));
+  }
+
+  function handleConfirmDuplicate() {
+    if (!pendingFormData) return;
+    setDuplicateWarning(null);
+    startTransition(() => saveTransaction(pendingFormData));
+  }
+
+  async function saveTransaction(formData: FormData) {
     const newCategoryId = formData.get("category_id") as string | null;
     const description = formData.get("description") as string;
 
-    startTransition(async () => {
-      try {
-        const result = isEdit
-          ? await editTransaction(formData)
-          : await addTransaction(formData);
-        setSavedIds((prev) => [...prev, result.id]);
-        toast.success(isEdit ? "Transaction updated" : "Transaction added");
+    try {
+      const result = isEdit
+        ? await editTransaction(formData)
+        : await addTransaction(formData);
+      setSavedIds((prev) => [...prev, result.id]);
+      toast.success(isEdit ? "Transaction updated" : "Transaction added");
 
-        // Check if category changed during edit — offer to create a rule
-        if (isEdit && newCategoryId && newCategoryId !== transaction.category_id && description) {
-          const cat = categories.find((c) => c.id === newCategoryId);
-          if (cat) {
-            setRuleSuggestion({ description, categoryId: newCategoryId, categoryName: cat.name });
-          }
-        }
-
-        setView("success");
-      } catch {
-        toast.error("Something went wrong. Please try again.");
+      // Remember last-used values for next time
+      if (!isEdit) {
+        const acctId = formData.get("account_id") as string;
+        const txnType = formData.get("type") as string;
+        if (acctId) lastAccount.set(acctId);
+        if (txnType) lastType.set(txnType);
       }
-    });
+
+      // Check if category changed during edit — offer to create a rule
+      if (isEdit && newCategoryId && newCategoryId !== transaction!.category_id && description) {
+        const cat = categories.find((c) => c.id === newCategoryId);
+        if (cat) {
+          setRuleSuggestion({ description, categoryId: newCategoryId, categoryName: cat.name });
+        }
+      }
+
+      setPendingFormData(null);
+      setDuplicateWarning(null);
+      setView("success");
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    }
   }
 
   function handleLearnRule() {
@@ -203,7 +264,7 @@ export function TransactionFormDialog({
               {/* Type */}
               <div className="grid gap-2">
                 <Label htmlFor="type">Type</Label>
-                <Select name="type" defaultValue={transaction?.type ?? "expense"}>
+                <Select name="type" defaultValue={defaultType}>
                   <SelectTrigger id="type">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
@@ -244,7 +305,7 @@ export function TransactionFormDialog({
               {/* Account */}
               <div className="grid gap-2">
                 <Label htmlFor="account_id">Account</Label>
-                <Select name="account_id" defaultValue={transaction?.account_id != null ? String(transaction.account_id) : undefined}>
+                <Select name="account_id" defaultValue={defaultAccountId}>
                   <SelectTrigger id="account_id">
                     <SelectValue placeholder="Select account" />
                   </SelectTrigger>
@@ -263,7 +324,7 @@ export function TransactionFormDialog({
                 <Label htmlFor="category_id">Category</Label>
                 <Select name="category_id" defaultValue={transaction?.category_id != null ? String(transaction.category_id) : undefined}>
                   <SelectTrigger id="category_id">
-                    <SelectValue placeholder="Select category" />
+                    <SelectValue placeholder="Skip — auto-detect" />
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((c) => (
@@ -273,6 +334,9 @@ export function TransactionFormDialog({
                     ))}
                   </SelectContent>
                 </Select>
+                {!isEdit && (
+                  <p className="text-[11px] text-muted-foreground">Leave blank to auto-categorise</p>
+                )}
               </div>
 
               {/* Date */}
@@ -322,6 +386,43 @@ export function TransactionFormDialog({
                       <SelectItem value="yearly">Yearly</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+              )}
+
+              {/* Duplicate warning */}
+              {duplicateWarning && duplicateWarning.length > 0 && (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-amber-600 dark:text-amber-400">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    Possible duplicate
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    A similar transaction already exists:
+                  </p>
+                  {duplicateWarning.map((d) => (
+                    <p key={d.id} className="text-xs">
+                      &ldquo;{d.description}&rdquo; &mdash; {d.date}
+                    </p>
+                  ))}
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => { setDuplicateWarning(null); setPendingFormData(null); }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleConfirmDuplicate}
+                      disabled={isPending}
+                    >
+                      {isPending && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
+                      Add anyway
+                    </Button>
+                  </div>
                 </div>
               )}
 
