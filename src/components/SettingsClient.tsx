@@ -40,6 +40,7 @@ import { toast } from "sonner";
 import { useTheme } from "@/components/ThemeProvider";
 import { toDateString } from "@/lib/date";
 import { MFASettings } from "@/components/MFASettings";
+import { ImportDataDialog } from "@/components/ImportDataDialog";
 import {
   updateDisplayName,
   updateBaseCurrency,
@@ -249,17 +250,21 @@ export function SettingsClient({
           <CardTitle>Your Data</CardTitle>
           <CardDescription>Export or manage your data.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Button variant="outline" onClick={handleExport} disabled={exportPending}>
-            {exportPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="mr-2 h-4 w-4" />
-            )}
-            Export All Data (JSON)
-          </Button>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Downloads all your accounts, transactions, budgets, goals, categories, and subscriptions.
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-3">
+            <Button variant="outline" onClick={handleExport} disabled={exportPending}>
+              {exportPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Export All Data (JSON)
+            </Button>
+            <ImportDataDialog onImported={() => router.refresh()} />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Export downloads all your data as unencrypted JSON. Import merges data from a
+            previously exported file — existing records are kept and duplicates are skipped.
           </p>
         </CardContent>
       </Card>

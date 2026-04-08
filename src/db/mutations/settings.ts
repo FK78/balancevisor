@@ -23,6 +23,8 @@ import {
   holdingSalesTable,
   transactionSplitsTable,
 } from '@/db/schema';
+import { EXPORT_VERSION } from '@/lib/types';
+import type { ExportData } from '@/lib/types';
 import { eq, or, inArray } from 'drizzle-orm';
 import { revalidateDomains } from '@/lib/revalidate';
 import { getCurrentUserId, getCurrentUserEmail } from '@/lib/auth';
@@ -178,21 +180,57 @@ export async function deleteAccount(): Promise<{ success?: boolean; error?: stri
   return { success: true };
 }
 
-export async function exportUserData() {
+export async function exportUserData(): Promise<ExportData> {
   const userId = await getCurrentUserId();
   const userKey = await getUserKey(userId);
 
   const accounts = await db.select().from(accountsTable).where(eq(accountsTable.user_id, userId));
   const accountIds = accounts.map(a => a.id);
 
-  const [categories, transactions, budgets, goals, subscriptions] = await Promise.all([
+  const transactionsRaw = accountIds.length > 0
+    ? await db.select().from(transactionsTable).where(inArray(transactionsTable.account_id, accountIds))
+    : [];
+  const transactionIds = transactionsRaw.map(t => t.id);
+
+  const debtRows = await db.select().from(debtsTable).where(eq(debtsTable.user_id, userId));
+  const debtIds = debtRows.map(d => d.id);
+
+  const holdingRows = await db.select().from(manualHoldingsTable).where(eq(manualHoldingsTable.user_id, userId));
+  const holdingIds = holdingRows.map(h => h.id);
+
+  const budgetRows = await db.select().from(budgetsTable).where(eq(budgetsTable.user_id, userId));
+  const budgetIds = budgetRows.map(b => b.id);
+
+  const [
+    categories,
+    goals,
+    subscriptions,
+    categorisationRules,
+    investmentGroups,
+    netWorthSnapshots,
+    transactionSplits,
+    debtPayments,
+    holdingSales,
+    budgetAlertPreferences,
+  ] = await Promise.all([
     db.select().from(categoriesTable).where(eq(categoriesTable.user_id, userId)),
-    accountIds.length > 0
-      ? db.select().from(transactionsTable).where(inArray(transactionsTable.account_id, accountIds))
-      : Promise.resolve([]),
-    db.select().from(budgetsTable).where(eq(budgetsTable.user_id, userId)),
     db.select().from(goalsTable).where(eq(goalsTable.user_id, userId)),
     db.select().from(subscriptionsTable).where(eq(subscriptionsTable.user_id, userId)),
+    db.select().from(categorisationRulesTable).where(eq(categorisationRulesTable.user_id, userId)),
+    db.select().from(investmentGroupsTable).where(eq(investmentGroupsTable.user_id, userId)),
+    db.select().from(netWorthSnapshotsTable).where(eq(netWorthSnapshotsTable.user_id, userId)),
+    transactionIds.length > 0
+      ? db.select().from(transactionSplitsTable).where(inArray(transactionSplitsTable.transaction_id, transactionIds))
+      : Promise.resolve([]),
+    debtIds.length > 0
+      ? db.select().from(debtPaymentsTable).where(inArray(debtPaymentsTable.debt_id, debtIds))
+      : Promise.resolve([]),
+    holdingIds.length > 0
+      ? db.select().from(holdingSalesTable).where(inArray(holdingSalesTable.holding_id, holdingIds))
+      : Promise.resolve([]),
+    budgetIds.length > 0
+      ? db.select().from(budgetAlertPreferencesTable).where(inArray(budgetAlertPreferencesTable.budget_id, budgetIds))
+      : Promise.resolve([]),
   ]);
 
   // Decrypt encrypted fields so user receives readable data
@@ -200,18 +238,32 @@ export async function exportUserData() {
     ...a,
     name: a.name ? decryptForUser(a.name, userKey) : a.name,
   }));
-  const decryptedTransactions = transactions.map(t => ({
+  const decryptedTransactions = transactionsRaw.map(t => ({
     ...t,
     description: t.description ? decryptForUser(t.description, userKey) : t.description,
   }));
+  const decryptedSplits = transactionSplits.map(s => ({
+    ...s,
+    description: s.description ? decryptForUser(s.description, userKey) : s.description,
+  }));
 
   return {
+    version: EXPORT_VERSION,
     exported_at: new Date().toISOString(),
     accounts: decryptedAccounts,
     categories,
     transactions: decryptedTransactions,
-    budgets,
+    transactionSplits: decryptedSplits,
+    budgets: budgetRows,
+    budgetAlertPreferences,
     goals,
+    debts: debtRows,
+    debtPayments,
+    investmentGroups,
+    manualHoldings: holdingRows,
+    holdingSales,
     subscriptions,
+    netWorthSnapshots,
+    categorisationRules,
   };
 }

@@ -211,3 +211,29 @@ export type BillingCycle = "weekly" | "monthly" | "quarterly" | "yearly";
 export type SharedPermission = "view" | "edit";
 export type SharedStatus = "pending" | "accepted" | "declined";
 export type SharedResourceType = "account" | "budget";
+
+// ---------------------------------------------------------------------------
+// Data export / import
+// ---------------------------------------------------------------------------
+
+export const EXPORT_VERSION = 1;
+
+export type ExportData = {
+  version: number;
+  exported_at: string;
+  accounts: Account[];
+  categories: Category[];
+  transactions: Transaction[];
+  transactionSplits: TransactionSplit[];
+  budgets: Budget[];
+  budgetAlertPreferences: BudgetAlertPreference[];
+  goals: Goal[];
+  debts: Debt[];
+  debtPayments: DebtPayment[];
+  investmentGroups: InvestmentGroup[];
+  manualHoldings: ManualHolding[];
+  holdingSales: HoldingSale[];
+  subscriptions: Subscription[];
+  netWorthSnapshots: NetWorthSnapshot[];
+  categorisationRules: CategorisationRule[];
+};
