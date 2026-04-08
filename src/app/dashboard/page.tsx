@@ -112,7 +112,7 @@ export default async function Home() {
   });
 
   const [insights, forecast, anomalies] = await Promise.all([
-    getDashboardInsights(userId, budgets, goals),
+    getDashboardInsights(userId, budgets, goals, baseCurrency),
     getCashflowForecast(userId),
     getSpendingAnomalies(userId),
   ]);

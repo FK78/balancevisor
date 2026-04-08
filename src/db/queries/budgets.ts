@@ -31,6 +31,7 @@ export async function getBudgets(userId: string) {
     .innerJoin(categoriesTable, eq(categoriesTable.id, budgetsTable.category_id))
     .leftJoin(transactionsTable, and(
       eq(transactionsTable.category_id, budgetsTable.category_id),
+      eq(transactionsTable.user_id, userId),
       gte(transactionsTable.date, start),
       lt(transactionsTable.date, end),
     ))
@@ -76,6 +77,7 @@ export async function getSharedBudgets(userId: string, email: string) {
     .innerJoin(categoriesTable, eq(categoriesTable.id, budgetsTable.category_id))
     .leftJoin(transactionsTable, and(
       eq(transactionsTable.category_id, budgetsTable.category_id),
+      eq(transactionsTable.user_id, budgetsTable.user_id),
       gte(transactionsTable.date, start),
       lt(transactionsTable.date, end),
     ))

@@ -1,8 +1,8 @@
 'use server';
 
 import { db } from '@/index';
-import { accountsTable, transactionsTable } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { accountsTable, transactionsTable, sharedAccessTable } from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
 import { revalidateDomains } from '@/lib/revalidate';
 import { getCurrentUserId } from '@/lib/auth';
 import { getUserBaseCurrency } from '@/db/queries/onboarding';
@@ -58,6 +58,7 @@ export async function deleteAccount(id: string) {
 
   await requireOwnership(accountsTable, id, userId, 'account');
 
+  await db.delete(sharedAccessTable).where(and(eq(sharedAccessTable.resource_type, 'account'), eq(sharedAccessTable.resource_id, id)));
   await db.delete(transactionsTable).where(eq(transactionsTable.account_id, id));
   await db.delete(accountsTable).where(eq(accountsTable.id, id));
 

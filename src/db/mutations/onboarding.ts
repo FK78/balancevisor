@@ -14,7 +14,7 @@ async function upsertOnboardingState(userId: string, updates: Partial<{
   use_default_categories: boolean;
   completed: boolean;
   completed_at: Date | null;
-  pending_features: string | null;
+  pending_features: string[] | null;
 }>) {
   await db.insert(userOnboardingTable).values({
     user_id: userId,
@@ -117,7 +117,7 @@ async function finishOnboarding(userId: string, features?: string[]) {
   await upsertOnboardingState(userId, {
     completed: true,
     completed_at: new Date(),
-    pending_features: features && features.length > 0 ? JSON.stringify(features) : null,
+    pending_features: features && features.length > 0 ? features : null,
   });
   revalidateDomains('onboarding');
 }
@@ -150,11 +150,11 @@ export async function markFeatureVisited(feature: string) {
 
   if (state.length === 0 || !state[0].pending_features) return;
 
-  const pendingFeatures: string[] = JSON.parse(state[0].pending_features);
+  const pendingFeatures = state[0].pending_features as string[];
   const updatedFeatures = pendingFeatures.filter((f) => f !== feature);
 
   await db.update(userOnboardingTable)
-    .set({ pending_features: updatedFeatures.length > 0 ? JSON.stringify(updatedFeatures) : null })
+    .set({ pending_features: updatedFeatures.length > 0 ? updatedFeatures : null })
     .where(eq(userOnboardingTable.user_id, userId));
 
   revalidateDomains();
@@ -169,6 +169,6 @@ export async function getNextPendingFeature(): Promise<string | null> {
 
   if (state.length === 0 || !state[0].pending_features) return null;
 
-  const pendingFeatures: string[] = JSON.parse(state[0].pending_features);
+  const pendingFeatures = state[0].pending_features as string[];
   return pendingFeatures.length > 0 ? pendingFeatures[0] : null;
 }

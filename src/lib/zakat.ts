@@ -51,12 +51,11 @@ export async function calculateZakat(
     .select({
       name: debtsTable.name,
       remaining_amount: debtsTable.remaining_amount,
-      is_paid_off: debtsTable.is_paid_off,
     })
     .from(debtsTable)
     .where(eq(debtsTable.user_id, userId));
 
-  const activeDebts = debts.filter((d) => !d.is_paid_off);
+  const activeDebts = debts.filter((d) => d.remaining_amount > 0);
 
   // 3. Categorise accounts
   const liabilityTypes = new Set(["creditCard"]);

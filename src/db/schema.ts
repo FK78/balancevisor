@@ -1,4 +1,4 @@
-import { boolean, date, integer, numeric, pgEnum, pgTable, timestamp, varchar, uuid, text, uniqueIndex, index } from "drizzle-orm/pg-core";
+import { boolean, date, integer, jsonb, numeric, pgEnum, pgTable, timestamp, varchar, uuid, text, uniqueIndex, index } from "drizzle-orm/pg-core";
 
 export const accountTypeEnum = pgEnum("account_type", ["currentAccount", "savings", "creditCard", "investment"]);
 export const periodEnum = pgEnum("period", ["monthly", "weekly"]);
@@ -21,7 +21,7 @@ export const userOnboardingTable = pgTable("user_onboarding", {
   use_default_categories: boolean().notNull().default(false),
   completed: boolean().notNull().default(false),
   completed_at: timestamp("completed_at", { withTimezone: true }),
-  pending_features: text("pending_features"),
+  pending_features: jsonb("pending_features"),
 });
 
 export const truelayerConnectionsTable = pgTable("truelayer_connections", {
@@ -39,7 +39,7 @@ export const accountsTable = pgTable("accounts", {
   id: uuid().primaryKey().defaultRandom(),
   user_id: uuid("user_id").notNull(),
   name: text().notNull(),
-  type: accountTypeEnum(),
+  type: accountTypeEnum().notNull(),
   balance: numeric({ mode: "number" }).notNull(),
   currency: varchar({ length: 3 }).notNull(),
   truelayer_id: varchar("truelayer_id", { length: 255 }),
@@ -66,11 +66,11 @@ export const transactionsTable = pgTable("transactions", {
   type: transactionTypeEnum().notNull(),
   amount: numeric({ mode: "number" }).notNull(),
   description: text().notNull(),
-  date: date(),
+  date: date().notNull(),
   is_recurring: boolean().notNull(),
   recurring_pattern: recurringPatternEnum("recurring_pattern"),
   next_recurring_date: date("next_recurring_date"),
-  created_at: date().defaultNow(),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   transfer_account_id: uuid("transfer_account_id").references(() => accountsTable.id, { onDelete: "set null" }),
   truelayer_id: varchar("truelayer_id", { length: 255 }),
   is_split: boolean("is_split").notNull().default(false),
@@ -87,11 +87,12 @@ export const budgetsTable = pgTable("budgets", {
     user_id: uuid("user_id").notNull(),
     category_id: uuid("category_id").references(() => categoriesTable.id, { onDelete: "cascade" }),
     amount: numeric({ mode: "number" }).notNull(),
-    period: periodEnum(),
-    start_date: date()
+    period: periodEnum().notNull().default("monthly"),
+    start_date: date().notNull()
 }, (table) => [{
     userIdx: index("budgets_user_id_idx").on(table.user_id),
     categoryIdx: index("budgets_category_id_idx").on(table.category_id),
+    userCategoryUniq: uniqueIndex("budgets_user_category_idx").on(table.user_id, table.category_id),
 }])
 
 export const categorisationRulesTable = pgTable("categorisation_rules", {
@@ -102,6 +103,7 @@ export const categorisationRulesTable = pgTable("categorisation_rules", {
     priority: integer().notNull(),
 }, (table) => [{
     userIdx: index("categorisation_rules_user_id_idx").on(table.user_id),
+    userPatternUniq: uniqueIndex("categorisation_rules_user_pattern_idx").on(table.user_id, table.pattern),
 }])
 
 export const goalsTable = pgTable("goals", {
@@ -154,7 +156,9 @@ export const budgetAlertPreferencesTable = pgTable("budget_alert_preferences", {
     threshold: numeric({ mode: "number" }).notNull().default(80),
     browser_alerts: boolean("browser_alerts").notNull().default(true),
     email_alerts: boolean("email_alerts").notNull().default(false),
-})
+}, (table) => [{
+    userBudgetIdx: index("budget_alert_prefs_user_budget_idx").on(table.user_id, table.budget_id),
+}])
 
 export const trading212ConnectionsTable = pgTable("trading212_connections", {
   id: uuid().primaryKey().defaultRandom(),
@@ -342,5 +346,7 @@ export const zakatCalculationsTable = pgTable("zakat_calculations", {
   zakatable_amount: numeric("zakatable_amount", { mode: "number" }).notNull(),
   zakat_due: numeric("zakat_due", { mode: "number" }).notNull(),
   above_nisab: boolean("above_nisab").notNull(),
-  breakdown_json: text("breakdown_json"),
-});
+  breakdown_json: jsonb("breakdown_json"),
+}, (table) => [{
+  userIdx: index("zakat_calculations_user_id_idx").on(table.user_id),
+}]);

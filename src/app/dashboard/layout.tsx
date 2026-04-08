@@ -33,7 +33,7 @@ export default async function DashboardLayout({
     redirect("/onboarding");
   }
 
-  const pendingFeaturesList: string[] = pendingFeatures ? JSON.parse(pendingFeatures) : [];
+  const pendingFeaturesList: string[] = pendingFeatures ?? [];
 
   return (
     <div className="min-h-screen bg-background">

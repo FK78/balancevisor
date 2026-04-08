@@ -41,7 +41,7 @@ CREATE TABLE user_onboarding (
   use_default_categories BOOLEAN    NOT NULL DEFAULT FALSE,
   completed              BOOLEAN    NOT NULL DEFAULT FALSE,
   completed_at           TIMESTAMPTZ,
-  pending_features       TEXT
+  pending_features       JSONB
 );
 
 -- 3. truelayer_connections (no FK deps)
@@ -61,7 +61,7 @@ CREATE TABLE accounts (
   id                       UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id                  UUID        NOT NULL,
   name                     TEXT        NOT NULL,
-  type                     account_type,
+  type                     account_type NOT NULL,
   balance                  NUMERIC     NOT NULL,
   currency                 VARCHAR(3)  NOT NULL,
   truelayer_id             VARCHAR(255),
@@ -90,11 +90,11 @@ CREATE TABLE transactions (
   type                transaction_type NOT NULL,
   amount              NUMERIC          NOT NULL,
   description         TEXT             NOT NULL,
-  date                DATE,
+  date                DATE        NOT NULL,
   is_recurring        BOOLEAN          NOT NULL,
   recurring_pattern   recurring_pattern,
   next_recurring_date DATE,
-  created_at          DATE DEFAULT CURRENT_DATE,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   transfer_account_id UUID REFERENCES accounts(id) ON DELETE SET NULL,
   truelayer_id        VARCHAR(255),
   is_split            BOOLEAN NOT NULL DEFAULT FALSE
@@ -112,12 +112,13 @@ CREATE TABLE budgets (
   user_id     UUID    NOT NULL,
   category_id UUID REFERENCES categories(id) ON DELETE CASCADE,
   amount      NUMERIC NOT NULL,
-  period      period,
-  start_date  DATE
+  period      period  NOT NULL DEFAULT 'monthly',
+  start_date  DATE    NOT NULL
 );
 
 CREATE INDEX budgets_user_id_idx     ON budgets (user_id);
 CREATE INDEX budgets_category_id_idx ON budgets (category_id);
+CREATE UNIQUE INDEX budgets_user_category_idx ON budgets (user_id, category_id);
 
 -- 8. categorisation_rules (FK → categories)
 CREATE TABLE categorisation_rules (
@@ -129,6 +130,7 @@ CREATE TABLE categorisation_rules (
 );
 
 CREATE INDEX categorisation_rules_user_id_idx ON categorisation_rules (user_id);
+CREATE UNIQUE INDEX categorisation_rules_user_pattern_idx ON categorisation_rules (user_id, pattern);
 
 -- 9. goals (no FK deps)
 CREATE TABLE goals (
@@ -185,6 +187,8 @@ CREATE TABLE budget_alert_preferences (
   browser_alerts BOOLEAN NOT NULL DEFAULT TRUE,
   email_alerts   BOOLEAN NOT NULL DEFAULT FALSE
 );
+
+CREATE INDEX budget_alert_prefs_user_budget_idx ON budget_alert_preferences (user_id, budget_id);
 
 -- 13. trading212_connections (FK → accounts)
 CREATE TABLE trading212_connections (
@@ -375,5 +379,7 @@ CREATE TABLE zakat_calculations (
   zakatable_amount  NUMERIC     NOT NULL,
   zakat_due         NUMERIC     NOT NULL,
   above_nisab       BOOLEAN     NOT NULL,
-  breakdown_json    TEXT
+  breakdown_json    JSONB
 );
+
+CREATE INDEX zakat_calculations_user_id_idx ON zakat_calculations (user_id);

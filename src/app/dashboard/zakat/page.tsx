@@ -58,11 +58,9 @@ export default async function ZakatPage() {
   let breakdownAccounts: { name: string; type: string | null; balance: number }[] = [];
   let breakdownDebts: { name: string; remainingAmount: number }[] = [];
   if (latest?.breakdown_json) {
-    try {
-      const parsed = JSON.parse(latest.breakdown_json);
-      breakdownAccounts = parsed.accounts ?? [];
-      breakdownDebts = parsed.debts ?? [];
-    } catch { /* ignore parse errors */ }
+    const parsed = latest.breakdown_json as { accounts?: typeof breakdownAccounts; debts?: typeof breakdownDebts };
+    breakdownAccounts = parsed.accounts ?? [];
+    breakdownDebts = parsed.debts ?? [];
   }
 
   return (

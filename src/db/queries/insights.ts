@@ -19,6 +19,7 @@ export async function getDashboardInsights(
   userId: string,
   budgets: Array<{ budgetCategory: string; budgetAmount: number; budgetSpent: number }>,
   goals: Array<{ name: string; saved_amount: number; target_amount: number }>,
+  baseCurrency = 'GBP',
 ): Promise<Insight[]> {
   const insights: Insight[] = [];
 
@@ -69,7 +70,7 @@ export async function getDashboardInsights(
       insights.push({
         id: `budget-over-${b.budgetCategory}`,
         icon: 'alert-triangle',
-        message: `${b.budgetCategory} budget exceeded by ${formatCurrency(b.budgetSpent - b.budgetAmount)}`,
+        message: `${b.budgetCategory} budget exceeded by ${formatCurrency(b.budgetSpent - b.budgetAmount, baseCurrency)}`,
         link: '/dashboard/budgets',
         variant: 'warning',
       });
@@ -90,7 +91,7 @@ export async function getDashboardInsights(
     insights.push({
       id: 'upcoming-recurring',
       icon: 'calendar',
-      message: `${upcomingRecurringRows.length} recurring payment${upcomingRecurringRows.length !== 1 ? 's' : ''} due this week (${formatCurrency(totalUpcoming)})`,
+      message: `${upcomingRecurringRows.length} recurring payment${upcomingRecurringRows.length !== 1 ? 's' : ''} due this week (${formatCurrency(totalUpcoming, baseCurrency)})`,
       link: '/dashboard/recurring',
       variant: 'info',
     });
@@ -129,7 +130,7 @@ export async function getDashboardInsights(
       insights.push({
         id: `goal-${g.name}`,
         icon: 'target',
-        message: `${g.name} is ${Math.round(pct)}% funded — ${formatCurrency(remaining)} to go`,
+        message: `${g.name} is ${Math.round(pct)}% funded — ${formatCurrency(remaining, baseCurrency)} to go`,
         link: '/dashboard/goals',
         variant: 'success',
       });
@@ -226,10 +227,10 @@ async function getUpcomingRecurring(userId: string) {
     );
 }
 
-function formatCurrency(amount: number): string {
+function formatCurrency(amount: number, currency = 'GBP'): string {
   return new Intl.NumberFormat('en-GB', {
     style: 'currency',
-    currency: 'GBP',
+    currency,
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(Math.abs(amount));

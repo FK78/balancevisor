@@ -1,8 +1,8 @@
 'use server';
 
 import { db } from '@/index';
-import { budgetsTable } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { budgetsTable, sharedAccessTable } from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
 import { revalidateDomains } from '@/lib/revalidate';
 import { getCurrentUserId } from '@/lib/auth';
 import { requireUUID, sanitizeNumber, sanitizeEnum, requireDate } from '@/lib/sanitize';
@@ -54,6 +54,7 @@ export async function deleteBudget(id: string) {
 
   await requireOwnership(budgetsTable, id, userId, 'budget');
 
+  await db.delete(sharedAccessTable).where(and(eq(sharedAccessTable.resource_type, 'budget'), eq(sharedAccessTable.resource_id, id)));
   await db.delete(budgetsTable).where(eq(budgetsTable.id, id));
 
   revalidateDomains('budgets');

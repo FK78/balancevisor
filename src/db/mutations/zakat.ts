@@ -57,10 +57,10 @@ export async function triggerZakatCalculation(isAuto = false) {
     zakatable_amount: breakdown.zakatableAmount,
     zakat_due: breakdown.zakatDue,
     above_nisab: breakdown.aboveNisab,
-    breakdown_json: JSON.stringify({
+    breakdown_json: {
       accounts: breakdown.accounts,
       debts: breakdown.debts,
-    }),
+    },
   });
 
   revalidatePath('/dashboard/zakat');
