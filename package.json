@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "analyze": "ANALYZE=true next build --webpack",
+    "analyze": "ANALYZE=true next build --webpack"
   },
   "dependencies": {
     "@ai-sdk/groq": "^3.0.26",
