@@ -2,7 +2,8 @@
 
 import { db } from '@/index';
 import { accountsTable, transactionsTable, transactionSplitsTable } from '@/db/schema';
-import { revalidatePath } from 'next/cache';
+import { revalidateDomains } from '@/lib/revalidate';
+import { toDateString } from '@/lib/date';
 import { eq, sql } from 'drizzle-orm';
 import { getCurrentUserId, getCurrentUserEmail } from '@/lib/auth';
 import { hasEditAccess } from '@/db/queries/sharing';
@@ -26,7 +27,7 @@ function computeNextRecurringDate(dateStr: string, pattern: string | null): stri
     case 'yearly': d.setFullYear(d.getFullYear() + 1); break;
     default: return null;
   }
-  return d.toISOString().split('T')[0];
+  return toDateString(d);
 }
 
 type DbClient = typeof db;
@@ -100,8 +101,7 @@ export async function addTransaction(formData: FormData) {
     return inserted;
   });
 
-  revalidatePath('/dashboard/transactions');
-  revalidatePath('/dashboard/accounts');
+  revalidateDomains('transactions', 'accounts');
 
   await checkBudgetAlerts(userId);
   invalidateByUser(userId);
@@ -169,8 +169,7 @@ export async function editTransaction(formData: FormData) {
     return updated;
   });
 
-  revalidatePath('/dashboard/transactions');
-  revalidatePath('/dashboard/accounts');
+  revalidateDomains('transactions', 'accounts');
 
   await checkBudgetAlerts(userId);
   invalidateByUser(userId);
@@ -226,9 +225,7 @@ export async function addTransfer(formData: FormData) {
     return inserted;
   });
 
-  revalidatePath('/dashboard/transactions');
-  revalidatePath('/dashboard/accounts');
-  revalidatePath('/dashboard');
+  revalidateDomains('transactions', 'accounts');
   invalidateByUser(userId);
 
   return result;
@@ -283,8 +280,7 @@ export async function deleteTransaction(id: string) {
     }
   });
 
-  revalidatePath('/dashboard/transactions');
-  revalidatePath('/dashboard/accounts');
+  revalidateDomains('transactions', 'accounts');
   invalidateByUser(userId);
 }
 
@@ -345,9 +341,7 @@ export async function addSplitTransaction(
     return inserted;
   });
 
-  revalidatePath('/dashboard/transactions');
-  revalidatePath('/dashboard/accounts');
-  revalidatePath('/dashboard');
+  revalidateDomains('transactions', 'accounts');
 
   await checkBudgetAlerts(userId);
 

@@ -3,7 +3,7 @@
 import { db } from '@/index';
 import { categorisationRulesTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
+import { revalidateDomains } from '@/lib/revalidate';
 import { getCurrentUserId } from '@/lib/auth';
 import { requireString, requireUUID, sanitizeNumber } from '@/lib/sanitize';
 
@@ -21,7 +21,7 @@ export async function addCategorisationRule(formData: FormData) {
     priority,
   });
 
-  revalidatePath('/dashboard/categories');
+  revalidateDomains('categories');
 }
 
 export async function editCategorisationRule(id: string, formData: FormData) {
@@ -35,12 +35,12 @@ export async function editCategorisationRule(id: string, formData: FormData) {
     priority,
   }).where(eq(categorisationRulesTable.id, id));
 
-  revalidatePath('/dashboard/categories');
+  revalidateDomains('categories');
 }
 
 export async function deleteCategorisationRule(id: string) {
   await db.delete(categorisationRulesTable).where(eq(categorisationRulesTable.id, id));
-  revalidatePath('/dashboard/categories');
+  revalidateDomains('categories');
 }
 
 /**
@@ -84,5 +84,5 @@ export async function learnCategorisationRule(pattern: string, categoryId: strin
     });
   }
 
-  revalidatePath('/dashboard/categories');
+  revalidateDomains('categories');
 }

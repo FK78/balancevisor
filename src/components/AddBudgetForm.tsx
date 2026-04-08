@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toDateString } from "@/lib/date";
 import { Plus, Pencil, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,7 +49,7 @@ export function BudgetFormDialog({ categories, budget }: { categories: Category[
   const [isPending, startTransition] = useTransition();
   const [formKey, setFormKey] = useState(0);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = toDateString(new Date());
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) {

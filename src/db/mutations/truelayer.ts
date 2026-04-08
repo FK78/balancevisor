@@ -10,6 +10,7 @@ import {
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getCurrentUserId } from "@/lib/auth";
+import { toDateString } from "@/lib/date";
 import { encryptForUser, decryptForUser, getUserKey } from "@/lib/encryption";
 import {
   TrueLayerTokens,
@@ -185,10 +186,8 @@ export async function importFromTrueLayer() {
           .where(eq(truelayerConnectionsTable.id, connection.id));
       }
 
-      const to = new Date().toISOString().split("T")[0];
-      const from = new Date(Date.now() - 730 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0];
+      const to = toDateString(new Date());
+      const from = toDateString(new Date(Date.now() - 730 * 24 * 60 * 60 * 1000));
 
       let tlTransactions;
       try {

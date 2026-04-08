@@ -3,14 +3,12 @@
 import { db } from "@/index";
 import { investmentGroupsTable, manualHoldingsTable } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidateDomains } from "@/lib/revalidate";
 import { getCurrentUserId } from "@/lib/auth";
 import { requireString, sanitizeColor, sanitizeUUID } from "@/lib/sanitize";
 
 function revalidate() {
-  revalidatePath("/dashboard/investments");
-  revalidatePath("/dashboard/accounts");
-  revalidatePath("/dashboard");
+  revalidateDomains('investments', 'accounts');
 }
 
 export async function addInvestmentGroup(formData: FormData) {

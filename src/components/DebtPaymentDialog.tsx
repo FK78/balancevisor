@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toDateString } from "@/lib/date";
 import { Banknote, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,7 +41,7 @@ export function DebtPaymentDialog({
   const [view, setView] = useState<"form" | "success">("form");
   const [isPending, startTransition] = useTransition();
   const [accountId, setAccountId] = useState("");
-  const today = new Date().toISOString().split("T")[0];
+  const today = toDateString(new Date());
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) {

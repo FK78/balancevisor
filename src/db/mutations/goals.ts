@@ -3,9 +3,10 @@
 import { db } from '@/index';
 import { goalsTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
+import { revalidateDomains } from '@/lib/revalidate';
 import { getCurrentUserId } from '@/lib/auth';
 import { requireString, sanitizeNumber, sanitizeDate, sanitizeString, sanitizeColor } from '@/lib/sanitize';
+import { requireOwnership } from '@/lib/ownership';
 
 export async function addGoal(formData: FormData) {
   const userId = await getCurrentUserId();
@@ -26,20 +27,14 @@ export async function addGoal(formData: FormData) {
     icon,
     color,
   }).returning({ id: goalsTable.id });
-  revalidatePath('/dashboard/goals');
-  revalidatePath('/dashboard');
+  revalidateDomains('goals');
   return result;
 }
 
 export async function editGoal(id: string, formData: FormData) {
   const userId = await getCurrentUserId();
 
-  const [goal] = await db.select({ user_id: goalsTable.user_id })
-    .from(goalsTable)
-    .where(eq(goalsTable.id, id));
-  if (!goal || goal.user_id !== userId) {
-    throw new Error('Goal not found or access denied');
-  }
+  await requireOwnership(goalsTable, id, userId, 'goal');
 
   const name = requireString(formData.get('name') as string, 'Goal name');
   const target_amount = sanitizeNumber(formData.get('target_amount') as string, 'Target amount', { required: true, min: 0.01 });
@@ -56,23 +51,16 @@ export async function editGoal(id: string, formData: FormData) {
     icon,
     color,
   }).where(eq(goalsTable.id, id));
-  revalidatePath('/dashboard/goals');
-  revalidatePath('/dashboard');
+  revalidateDomains('goals');
 }
 
 export async function deleteGoal(id: string) {
   const userId = await getCurrentUserId();
 
-  const [goal] = await db.select({ user_id: goalsTable.user_id })
-    .from(goalsTable)
-    .where(eq(goalsTable.id, id));
-  if (!goal || goal.user_id !== userId) {
-    throw new Error('Goal not found or access denied');
-  }
+  await requireOwnership(goalsTable, id, userId, 'goal');
 
   await db.delete(goalsTable).where(eq(goalsTable.id, id));
-  revalidatePath('/dashboard/goals');
-  revalidatePath('/dashboard');
+  revalidateDomains('goals');
 }
 
 export async function contributeToGoal(id: string, amount: number) {
@@ -82,17 +70,18 @@ export async function contributeToGoal(id: string, amount: number) {
     throw new Error('Amount must be positive');
   }
 
-  const [goal] = await db.select({ saved_amount: goalsTable.saved_amount, user_id: goalsTable.user_id })
+  await requireOwnership(goalsTable, id, userId, 'goal');
+
+  const [goal] = await db.select({ saved_amount: goalsTable.saved_amount })
     .from(goalsTable)
     .where(eq(goalsTable.id, id));
 
-  if (!goal || goal.user_id !== userId) {
-    throw new Error('Goal not found or access denied');
+  if (!goal) {
+    throw new Error('Goal not found');
   }
 
   await db.update(goalsTable).set({
     saved_amount: goal.saved_amount + amount,
   }).where(eq(goalsTable.id, id));
-  revalidatePath('/dashboard/goals');
-  revalidatePath('/dashboard');
+  revalidateDomains('goals');
 }

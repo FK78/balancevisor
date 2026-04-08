@@ -4,19 +4,9 @@ import { db } from "@/index";
 import { sharedAccessTable, accountsTable, budgetsTable, categoriesTable } from "@/db/schema";
 import { eq, and, or, inArray } from "drizzle-orm";
 import { decryptForUser, getUserKey } from "@/lib/encryption";
+import type { SharedAccess } from "@/lib/types";
 
-export type SharedAccess = {
-  id: string;
-  owner_id: string;
-  shared_with_id: string | null;
-  shared_with_email: string;
-  resource_type: "account" | "budget";
-  resource_id: string;
-  permission: "view" | "edit";
-  status: "pending" | "accepted" | "declined";
-  created_at: Date;
-  accepted_at: Date | null;
-};
+export type { SharedAccess };
 
 /**
  * Get all shares where the current user is the owner (things they've shared out).

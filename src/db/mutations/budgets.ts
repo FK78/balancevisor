@@ -2,11 +2,11 @@
 
 import { db } from '@/index';
 import { budgetsTable } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
+import { eq } from 'drizzle-orm';
+import { revalidateDomains } from '@/lib/revalidate';
 import { getCurrentUserId } from '@/lib/auth';
 import { requireUUID, sanitizeNumber, sanitizeEnum, requireDate } from '@/lib/sanitize';
-import { UnauthorizedError } from '@/lib/errors';
+import { requireOwnership } from '@/lib/ownership';
 import { invalidateByUser } from '@/lib/cache';
 
 export async function addBudget(formData: FormData) {
@@ -24,23 +24,14 @@ export async function addBudget(formData: FormData) {
     period,
     start_date,
   }).returning({ id: budgetsTable.id });
-  revalidatePath('/onboarding');
-  revalidatePath('/dashboard/budgets');
+  revalidateDomains('budgets', 'onboarding');
   return result;
 }
 
 export async function editBudget(id: string, formData: FormData) {
   const userId = await getCurrentUserId();
 
-  // Verify ownership
-  const [budget] = await db
-    .select({ user_id: budgetsTable.user_id })
-    .from(budgetsTable)
-    .where(eq(budgetsTable.id, id));
-
-  if (!budget || budget.user_id !== userId) {
-    throw new UnauthorizedError('budget');
-  }
+  await requireOwnership(budgetsTable, id, userId, 'budget');
 
   const category_id = requireUUID(formData.get('category_id') as string, 'Category');
   const amount = sanitizeNumber(formData.get('amount') as string, 'Amount', { required: true, min: 0.01 });
@@ -54,25 +45,17 @@ export async function editBudget(id: string, formData: FormData) {
     start_date,
   }).where(eq(budgetsTable.id, id));
 
-  revalidatePath('/dashboard/budgets');
+  revalidateDomains('budgets');
   invalidateByUser(userId);
 }
 
 export async function deleteBudget(id: string) {
   const userId = await getCurrentUserId();
 
-  // Verify ownership
-  const [budget] = await db
-    .select({ user_id: budgetsTable.user_id })
-    .from(budgetsTable)
-    .where(eq(budgetsTable.id, id));
-
-  if (!budget || budget.user_id !== userId) {
-    throw new UnauthorizedError('budget');
-  }
+  await requireOwnership(budgetsTable, id, userId, 'budget');
 
   await db.delete(budgetsTable).where(eq(budgetsTable.id, id));
 
-  revalidatePath('/dashboard/budgets');
+  revalidateDomains('budgets');
   invalidateByUser(userId);
 }

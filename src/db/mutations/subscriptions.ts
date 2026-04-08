@@ -3,7 +3,7 @@
 import { db } from '@/index';
 import { subscriptionsTable, accountsTable } from '@/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
+import { revalidateDomains } from '@/lib/revalidate';
 import { getCurrentUserId } from '@/lib/auth';
 import { createTransaction } from '@/db/mutations/transactions';
 import { checkBudgetAlerts } from '@/lib/budget-alerts';
@@ -54,10 +54,7 @@ export async function addSubscription(formData: FormData) {
 
   await checkBudgetAlerts(userId);
 
-  revalidatePath('/dashboard/subscriptions');
-  revalidatePath('/dashboard/transactions');
-  revalidatePath('/dashboard/accounts');
-  revalidatePath('/dashboard');
+  revalidateDomains('subscriptions', 'transactions', 'accounts');
   return result;
 }
 
@@ -90,8 +87,7 @@ export async function editSubscription(id: string, formData: FormData) {
     icon,
   }).where(and(eq(subscriptionsTable.id, id), eq(subscriptionsTable.user_id, userId)));
 
-  revalidatePath('/dashboard/subscriptions');
-  revalidatePath('/dashboard');
+  revalidateDomains('subscriptions');
 }
 
 export async function deleteSubscription(id: string) {
@@ -99,8 +95,7 @@ export async function deleteSubscription(id: string) {
   await db.delete(subscriptionsTable).where(
     and(eq(subscriptionsTable.id, id), eq(subscriptionsTable.user_id, userId))
   );
-  revalidatePath('/dashboard/subscriptions');
-  revalidatePath('/dashboard');
+  revalidateDomains('subscriptions');
 }
 
 export async function toggleSubscription(id: string) {
@@ -116,6 +111,5 @@ export async function toggleSubscription(id: string) {
     is_active: !sub.is_active,
   }).where(and(eq(subscriptionsTable.id, id), eq(subscriptionsTable.user_id, userId)));
 
-  revalidatePath('/dashboard/subscriptions');
-  revalidatePath('/dashboard');
+  revalidateDomains('subscriptions');
 }

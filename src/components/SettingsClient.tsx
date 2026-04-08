@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTheme } from "@/components/ThemeProvider";
+import { toDateString } from "@/lib/date";
 import { MFASettings } from "@/components/MFASettings";
 import {
   updateDisplayName,
@@ -45,14 +46,7 @@ import {
   deleteAccount,
   exportUserData,
 } from "@/db/mutations/settings";
-
-const currencyLabels: Record<string, string> = {
-  GBP: "British Pound (£)",
-  USD: "US Dollar ($)",
-  EUR: "Euro (€)",
-  CAD: "Canadian Dollar (CA$)",
-  AUD: "Australian Dollar (A$)",
-};
+import { currencyLabels } from "@/lib/labels";
 
 type Props = {
   displayName: string;
@@ -122,7 +116,7 @@ export function SettingsClient({
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `balancevisor-export-${new Date().toISOString().split("T")[0]}.json`;
+        a.download = `balancevisor-export-${toDateString(new Date())}.json`;
         a.click();
         URL.revokeObjectURL(url);
         toast.success("Data exported");

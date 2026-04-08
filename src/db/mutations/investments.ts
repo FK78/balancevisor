@@ -4,15 +4,15 @@ import { db } from "@/index";
 import { createTransaction } from "@/db/mutations/transactions";
 import { trading212ConnectionsTable, manualHoldingsTable, holdingSalesTable, accountsTable } from "@/db/schema";
 import { eq, and, isNotNull, sql } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidateDomains } from "@/lib/revalidate";
 import { getCurrentUserId } from "@/lib/auth";
+import { toDateString } from "@/lib/date";
 import { encryptForUser, getUserKey } from "@/lib/encryption";
 import { getQuote } from "@/lib/yahoo-finance";
 import { requireString, sanitizeNumber, sanitizeEnum, sanitizeUUID } from "@/lib/sanitize";
 
 function revalidateInvestments() {
-  revalidatePath("/dashboard/investments");
-  revalidatePath("/dashboard");
+  revalidateDomains('investments');
 }
 
 export async function connectTrading212(formData: FormData) {
@@ -219,7 +219,7 @@ export async function recordHoldingSale(formData: FormData) {
   await db.insert(holdingSalesTable).values({
     holding_id: holdingId,
     user_id: userId,
-    date: date.toISOString().split('T')[0],
+    date: toDateString(date),
     quantity,
     price_per_unit: pricePerUnit,
     total_amount: totalAmount,
@@ -235,7 +235,7 @@ export async function recordHoldingSale(formData: FormData) {
       type: 'sale',
       amount: totalAmount,
       description,
-      date: date.toISOString().split('T')[0],
+      date: toDateString(date),
       account_id: cashAccountId,
       category_id: null,
       is_recurring: false,
@@ -250,8 +250,7 @@ export async function recordHoldingSale(formData: FormData) {
       .set({ balance: sql`${accountsTable.balance} + ${totalAmount}` })
       .where(eq(accountsTable.id, cashAccountId));
 
-    revalidatePath('/dashboard/transactions');
-    revalidatePath('/dashboard/accounts');
+    revalidateDomains('transactions', 'accounts');
   }
 
   revalidateInvestments();

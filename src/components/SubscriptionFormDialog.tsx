@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toDateString } from "@/lib/date";
 import { Plus, Pencil, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -204,7 +205,7 @@ export function SubscriptionFormDialog({
                     id="next_billing_date"
                     name="next_billing_date"
                     type="date"
-                    defaultValue={subscription?.next_billing_date ?? new Date().toISOString().split("T")[0]}
+                    defaultValue={subscription?.next_billing_date ?? toDateString(new Date())}
                     required
                   />
                 </div>

@@ -5,6 +5,7 @@ import { accountsTable, transactionsTable } from '@/db/schema';
 import { revalidatePath } from 'next/cache';
 import { eq, sql } from 'drizzle-orm';
 import { getCurrentUserId } from '@/lib/auth';
+import { requireOwnership } from '@/lib/ownership';
 import { checkBudgetAlerts } from '@/lib/budget-alerts';
 import { encryptForUser, getUserKey } from '@/lib/encryption';
 import { fetchUserRules, matchAgainstRules } from '@/lib/auto-categorise';
@@ -109,15 +110,7 @@ export async function importTransactionsFromCSV(
 ): Promise<{ imported: number; skipped: number; errors: string[] }> {
   const userId = await getCurrentUserId();
 
-  // Verify the account belongs to this user
-  const [account] = await db
-    .select({ id: accountsTable.id, user_id: accountsTable.user_id })
-    .from(accountsTable)
-    .where(eq(accountsTable.id, accountId));
-
-  if (!account || account.user_id !== userId) {
-    throw new Error('Account not found or access denied');
-  }
+  await requireOwnership(accountsTable, accountId, userId, 'account');
 
   const allRows = parseCSV(csvText);
   if (allRows.length < 2) {

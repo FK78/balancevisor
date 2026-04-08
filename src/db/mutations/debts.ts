@@ -3,11 +3,12 @@
 import { db } from '@/index';
 import { debtsTable, debtPaymentsTable, accountsTable } from '@/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
+import { revalidateDomains } from '@/lib/revalidate';
 import { getCurrentUserId } from '@/lib/auth';
 import { createTransaction } from '@/db/mutations/transactions';
 import { checkBudgetAlerts } from '@/lib/budget-alerts';
 import { requireString, sanitizeNumber, sanitizeDate, sanitizeString, sanitizeColor } from '@/lib/sanitize';
+import { requireOwnership } from '@/lib/ownership';
 
 export async function addDebt(formData: FormData) {
   const userId = await getCurrentUserId();
@@ -33,21 +34,14 @@ export async function addDebt(formData: FormData) {
     color,
   }).returning({ id: debtsTable.id });
 
-  revalidatePath('/dashboard/debts');
-  revalidatePath('/dashboard');
+  revalidateDomains('debts');
   return result;
 }
 
 export async function editDebt(id: string, formData: FormData) {
   const userId = await getCurrentUserId();
 
-  // Verify ownership
-  const [debt] = await db.select({ user_id: debtsTable.user_id })
-    .from(debtsTable)
-    .where(eq(debtsTable.id, id));
-  if (!debt || debt.user_id !== userId) {
-    throw new Error('Debt not found or access denied');
-  }
+  await requireOwnership(debtsTable, id, userId, 'debt');
 
   const name = requireString(formData.get('name') as string, 'Debt name');
   const original = sanitizeNumber(formData.get('original_amount') as string, 'Original amount', { required: true, min: 0.01 });
@@ -70,35 +64,20 @@ export async function editDebt(id: string, formData: FormData) {
     is_paid_off: remaining <= 0,
   }).where(eq(debtsTable.id, id));
 
-  revalidatePath('/dashboard/debts');
-  revalidatePath('/dashboard');
+  revalidateDomains('debts');
 }
 
 export async function deleteDebt(id: string) {
   const userId = await getCurrentUserId();
   await db.delete(debtsTable).where(and(eq(debtsTable.id, id), eq(debtsTable.user_id, userId)));
-  revalidatePath('/dashboard/debts');
-  revalidatePath('/dashboard');
+  revalidateDomains('debts');
 }
 
 export async function recordDebtPayment(debtId: string, amount: number, date: string, accountId: string, note?: string) {
   const userId = await getCurrentUserId();
 
-  // Verify the debt belongs to this user
-  const [debtOwnership] = await db.select({ user_id: debtsTable.user_id })
-    .from(debtsTable)
-    .where(eq(debtsTable.id, debtId));
-  if (!debtOwnership || debtOwnership.user_id !== userId) {
-    throw new Error('Debt not found or access denied');
-  }
-
-  // Verify the account belongs to this user
-  const [accountOwnership] = await db.select({ user_id: accountsTable.user_id })
-    .from(accountsTable)
-    .where(eq(accountsTable.id, accountId));
-  if (!accountOwnership || accountOwnership.user_id !== userId) {
-    throw new Error('Account not found or access denied');
-  }
+  await requireOwnership(debtsTable, debtId, userId, 'debt');
+  await requireOwnership(accountsTable, accountId, userId, 'account');
 
   // Insert payment record
   await db.insert(debtPaymentsTable).values({
@@ -141,8 +120,5 @@ export async function recordDebtPayment(debtId: string, amount: number, date: st
 
   await checkBudgetAlerts(userId);
 
-  revalidatePath('/dashboard/debts');
-  revalidatePath('/dashboard/transactions');
-  revalidatePath('/dashboard/accounts');
-  revalidatePath('/dashboard');
+  revalidateDomains('debts', 'transactions', 'accounts');
 }
