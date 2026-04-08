@@ -26,7 +26,12 @@ import { getCategoryIcon } from "@/lib/categoryIcons";
 import { getCurrentUserId, getCurrentUserEmail } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
-import { BudgetCharts } from "@/components/BudgetCharts";
+import dynamic from "next/dynamic";
+
+const BudgetCharts = dynamic(
+  () => import("@/components/BudgetCharts").then((mod) => mod.BudgetCharts),
+  { loading: () => <div className="min-h-[300px]" /> }
+);
 import { BudgetAlertSettings } from "@/components/BudgetAlertSettings";
 import { getAlertPreferencesByUser } from "@/db/queries/budget-alerts";
 import { getSharesByOwner, getPendingInvitations } from "@/db/queries/sharing";

@@ -20,6 +20,7 @@ import { getSubscriptions, getActiveSubscriptionsTotals, toMonthlyAmount } from 
 import { getCategoriesByUser } from "@/db/queries/categories";
 import { getAccountsWithDetails } from "@/db/queries/accounts";
 import { getCurrentUserId } from "@/lib/auth";
+import { toDateString } from "@/lib/date";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { SubscriptionFormDialog } from "@/components/SubscriptionFormDialog";
@@ -47,10 +48,10 @@ export default async function SubscriptionsPage() {
   const activeCount = subscriptions.filter((s) => s.is_active).length;
   const pausedCount = subscriptions.filter((s) => !s.is_active).length;
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = toDateString(new Date());
   const next7 = new Date();
   next7.setDate(next7.getDate() + 7);
-  const next7Str = next7.toISOString().split("T")[0];
+  const next7Str = toDateString(next7);
   const upcomingCount = subscriptions.filter(
     (s) => s.is_active && s.next_billing_date >= today && s.next_billing_date <= next7Str
   ).length;

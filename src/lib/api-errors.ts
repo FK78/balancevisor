@@ -5,7 +5,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { AppError, errorToJson } from "@/lib/errors";
+import { AppError } from "@/lib/errors";
 
 /**
  * Create a standardized API error response.

@@ -22,7 +22,7 @@ import {
   type DailyCategoryExpensePoint,
 } from "@/db/queries/transactions";
 import { formatCurrency, formatCompactCurrency } from "@/lib/formatCurrency";
-import { formatDayLabel } from "@/lib/date";
+import { formatDayLabel, toDateString } from "@/lib/date";
 import {
   Bar,
   BarChart,
@@ -43,7 +43,7 @@ function getWeekStartKey(dayKey: string) {
   const day = date.getDay();
   const diffToMonday = (day + 6) % 7;
   const monday = new Date(date.getFullYear(), date.getMonth(), date.getDate() - diffToMonday);
-  return monday.toISOString().split("T")[0];
+  return toDateString(monday);
 }
 
 export function TransactionsInsightsCharts({

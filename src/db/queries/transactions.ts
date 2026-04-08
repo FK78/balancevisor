@@ -2,17 +2,18 @@ import { db } from '@/index';
 import { transactionsTable, categoriesTable, accountsTable } from '@/db/schema';
 import { and, desc, eq, ne, sql, sum, gte, lte, lt } from 'drizzle-orm';
 import { getMonthRange, getRecentMonthKeys, getRecentDayKeys, getTomorrowString, getNextMonthFirstString } from '@/lib/date';
-import { decrypt } from '@/lib/encryption';
+import { decryptForUser, getUserKey } from '@/lib/encryption';
 import { getCached, setCached, cacheKey } from '@/lib/cache';
 
 // User tag for cache invalidation
 const userTag = (userId: string) => `user:${userId}`;
 
-function decryptTransactionRows<T extends { description?: string | null; accountName?: string | null }>(rows: T[]): T[] {
+async function decryptTransactionRows<T extends { description?: string | null; accountName?: string | null }>(rows: T[], userId: string): Promise<T[]> {
+  const userKey = await getUserKey(userId);
   return rows.map(row => ({
     ...row,
-    ...(row.description != null && { description: decrypt(row.description) }),
-    ...(row.accountName != null && { accountName: decrypt(row.accountName) }),
+    ...(row.description != null && { description: decryptForUser(row.description, userKey) }),
+    ...(row.accountName != null && { accountName: decryptForUser(row.accountName, userKey) }),
   }));
 }
 
@@ -80,7 +81,7 @@ export async function getTransactionsForExport(
       ),
     )
     .orderBy(desc(transactionsTable.date), desc(transactionsTable.id));
-  return decryptTransactionRows(rows);
+  return decryptTransactionRows(rows, userId);
 }
 
 export async function getTransactionsCount(userId: string, startDate?: string, endDate?: string, accountId?: string) {
@@ -121,7 +122,7 @@ export async function getTransactionsWithDetailsPaginated(
     .orderBy(desc(transactionsTable.date), desc(transactionsTable.id))
     .limit(safePageSize)
     .offset(offset);
-  return decryptTransactionRows(rows);
+  return decryptTransactionRows(rows, userId);
 }
 
 export async function getTotalsByType(
@@ -196,7 +197,7 @@ export async function searchTransactions(
   const allRows = await query
     .orderBy(desc(transactionsTable.date), desc(transactionsTable.id))
     .limit(MAX_SEARCH_ROWS);
-  const decrypted = decryptTransactionRows(allRows);
+  const decrypted = await decryptTransactionRows(allRows, userId);
 
   const needle = search.toLowerCase();
   const filtered = decrypted.filter((row) => {
@@ -224,7 +225,7 @@ export async function getLatestFiveTransactionsWithDetails(userId: string) {
   const rows = await baseTransactionsQuery(userId)
     .orderBy(desc(transactionsTable.date))
     .limit(5);
-  return decryptTransactionRows(rows);
+  return decryptTransactionRows(rows, userId);
 }
 
 export async function getSavingsDepositTotal(userId: string, startDate: string, endDate: string): Promise<number> {

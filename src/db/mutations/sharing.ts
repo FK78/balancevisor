@@ -3,17 +3,10 @@
 import { db } from "@/index";
 import { sharedAccessTable } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
-import { getCurrentUserId } from "@/lib/auth";
+import { revalidateDomains } from "@/lib/revalidate";
+import { getCurrentUserId, getCurrentUserEmail } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { requireString, sanitizeEnum } from "@/lib/sanitize";
-
-async function getCurrentUserEmail(): Promise<string> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user?.email) throw new Error("User email not available");
-  return user.email;
-}
 
 /**
  * Look up a Supabase user ID by email. Returns null if not found.
@@ -80,9 +73,7 @@ export async function shareResource(formData: FormData) {
       },
     });
 
-  revalidatePath("/dashboard/accounts");
-  revalidatePath("/dashboard/budgets");
-  revalidatePath("/dashboard");
+  revalidateDomains('sharing');
 }
 
 export async function acceptInvitation(invitationId: string) {
@@ -112,9 +103,7 @@ export async function acceptInvitation(invitationId: string) {
     })
     .where(eq(sharedAccessTable.id, invitationId));
 
-  revalidatePath("/dashboard/accounts");
-  revalidatePath("/dashboard/budgets");
-  revalidatePath("/dashboard");
+  revalidateDomains('sharing');
 }
 
 export async function declineInvitation(invitationId: string) {
@@ -139,7 +128,7 @@ export async function declineInvitation(invitationId: string) {
     .set({ status: "declined" })
     .where(eq(sharedAccessTable.id, invitationId));
 
-  revalidatePath("/dashboard");
+  revalidateDomains('sharing');
 }
 
 export async function revokeShare(shareId: string) {
@@ -154,9 +143,7 @@ export async function revokeShare(shareId: string) {
       ),
     );
 
-  revalidatePath("/dashboard/accounts");
-  revalidatePath("/dashboard/budgets");
-  revalidatePath("/dashboard");
+  revalidateDomains('sharing');
 }
 
 export async function leaveSharedResource(shareId: string) {
@@ -179,7 +166,5 @@ export async function leaveSharedResource(shareId: string) {
 
   await db.delete(sharedAccessTable).where(eq(sharedAccessTable.id, shareId));
 
-  revalidatePath("/dashboard/accounts");
-  revalidatePath("/dashboard/budgets");
-  revalidatePath("/dashboard");
+  revalidateDomains('sharing');
 }

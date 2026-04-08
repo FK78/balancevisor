@@ -2,14 +2,9 @@
 
 import { DeleteConfirmButton } from "@/components/DeleteConfirmButton";
 import { deleteManualHolding } from "@/db/mutations/investments";
+import type { ManualHolding } from "@/lib/types";
 
-type Holding = {
-  id: string;
-  ticker: string | null;
-  name: string;
-};
-
-export function DeleteHoldingButton({ holding }: { holding: Holding }) {
+export function DeleteHoldingButton({ holding }: { holding: Pick<ManualHolding, "id" | "ticker" | "name"> }) {
   return (
     <DeleteConfirmButton
       onDelete={() => deleteManualHolding(holding.id)}

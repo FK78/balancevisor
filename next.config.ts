@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import { withSentryConfig } from "@sentry/nextjs";
 import withBundleAnalyzer from "@next/bundle-analyzer";
 
 const nextConfig: NextConfig = {
@@ -47,7 +46,7 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "script-src 'self' 'unsafe-inline'",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "connect-src 'self' https://*.supabase.co https://*.supabase.in https://*.truelayer.com https://*.truelayer-sandbox.com https://live.trading212.com https://demo.trading212.com https://api.groq.com https://*.groq.com",
@@ -64,30 +63,6 @@ const nextConfig: NextConfig = {
   },
 };
 
-const sentryConfig = {
-  // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
-  // This can increase your server load as well as your hosting bill.
-  // Note: Check that the configured route will not match with your Next.js middleware, otherwise reporting of client-
-  // side errors will fail.
-  tunnelRoute: "/monitoring",
-
-  // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)
-  // See the following for more information:
-  // https://docs.sentry.io/product/crons/
-  // https://vercel.com/docs/cron-jobs
-  automaticVercelMonitors: true,
-
-  // Tree-shaking options for reducing bundle size
-  sentry: {
-    treeshake: {
-      // Automatically tree-shake Sentry logger statements to reduce bundle size
-      removeDebugLogging: true,
-    },
-  },
-};
-
-const bundleAnalyzerConfig = withBundleAnalyzer({
+export default withBundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
 })(nextConfig);
-
-export default withSentryConfig(bundleAnalyzerConfig, sentryConfig);

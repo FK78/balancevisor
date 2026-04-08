@@ -2,14 +2,9 @@
 
 import { DeleteConfirmButton } from "@/components/DeleteConfirmButton";
 import { deleteAccount } from "@/db/mutations/accounts";
+import type { AccountWithDetails } from "@/lib/types";
 
-type Account = {
-  id: string;
-  accountName: string;
-  transactions: number;
-};
-
-export function DeleteAccountButton({ account }: { account: Account }) {
+export function DeleteAccountButton({ account }: { account: Pick<AccountWithDetails, "id" | "accountName" | "transactions"> }) {
   return (
     <DeleteConfirmButton
       onDelete={() => deleteAccount(account.id)}

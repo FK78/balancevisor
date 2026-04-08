@@ -33,7 +33,7 @@ export function NextFeatureButtonClient({ pendingFeatures }: { pendingFeatures: 
   const [isVisible, setIsVisible] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
 
-  const currentFeature = ROUTE_TO_FEATURE[pathname] || "";
+  const currentFeature = (pathname ? ROUTE_TO_FEATURE[pathname] : "") || "";
   const remainingFeatures = pendingFeatures.filter((f) => f !== currentFeature);
   const nextFeature = remainingFeatures[0];
 

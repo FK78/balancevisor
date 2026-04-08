@@ -19,7 +19,12 @@ import { getCategoryIcon } from "@/lib/categoryIcons";
 import { getCurrentUserId } from "@/lib/auth";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { Tags, Wand2 } from "lucide-react";
-import { CategoryCharts } from "@/components/CategoryCharts";
+import dynamic from "next/dynamic";
+
+const CategoryCharts = dynamic(
+  () => import("@/components/CategoryCharts").then((mod) => mod.CategoryCharts),
+  { loading: () => <div className="min-h-[300px]" /> }
+);
 
 export default async function Categories() {
   const userId = await getCurrentUserId();

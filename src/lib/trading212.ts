@@ -48,7 +48,8 @@ async function t212Fetch<T>(apiKey: string, apiSecret: string, environment: stri
   const credentials = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64");
   const res = await fetch(`${baseUrl}${path}`, {
     headers: { Authorization: `Basic ${credentials}` },
-    next: { revalidate: 0 },
+    next: { revalidate: 60 },
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!res.ok) {

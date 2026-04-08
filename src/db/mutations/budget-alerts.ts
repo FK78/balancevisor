@@ -3,7 +3,7 @@
 import { db } from '@/index';
 import { budgetAlertPreferencesTable, budgetNotificationsTable } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
+import { revalidateDomains } from '@/lib/revalidate';
 import { getCurrentUserId } from '@/lib/auth';
 
 export async function upsertAlertPreferences(
@@ -37,14 +37,14 @@ export async function upsertAlertPreferences(
     });
   }
 
-  revalidatePath('/dashboard/budgets');
+  revalidateDomains('budgets');
 }
 
 export async function markNotificationRead(notificationId: string) {
   await db.update(budgetNotificationsTable)
     .set({ is_read: true })
     .where(eq(budgetNotificationsTable.id, notificationId));
-  revalidatePath('/dashboard');
+  revalidateDomains();
 }
 
 export async function markAllNotificationsRead() {
@@ -57,7 +57,7 @@ export async function markAllNotificationsRead() {
         eq(budgetNotificationsTable.is_read, false),
       )
     );
-  revalidatePath('/dashboard');
+  revalidateDomains();
 }
 
 export async function createNotification(

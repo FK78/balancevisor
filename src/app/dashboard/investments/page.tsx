@@ -31,7 +31,7 @@ import { getAccountsWithDetails } from "@/db/queries/accounts";
 import { getGroupsByUser } from "@/db/queries/investment-groups";
 import { getT212AccountSummary, getT212Positions, type T212Position } from "@/lib/trading212";
 import { getQuotes } from "@/lib/yahoo-finance";
-import { decrypt } from "@/lib/encryption";
+import { decryptForUser, getUserKey } from "@/lib/encryption";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { ConnectTrading212Dialog } from "@/components/ConnectTrading212Dialog";
 import { AddHoldingDialog } from "@/components/AddHoldingDialog";
@@ -104,8 +104,9 @@ export default async function InvestmentsPage() {
 
   if (isT212Connected) {
     try {
-      const apiKey = decrypt(t212Connection.api_key_encrypted);
-      const apiSecret = decrypt(t212Connection.api_secret_encrypted);
+      const userKey = await getUserKey(userId);
+      const apiKey = decryptForUser(t212Connection.api_key_encrypted, userKey);
+      const apiSecret = decryptForUser(t212Connection.api_secret_encrypted, userKey);
       const [summary, positions] = await Promise.all([
         getT212AccountSummary(apiKey, apiSecret, t212Connection.environment),
         getT212Positions(apiKey, apiSecret, t212Connection.environment),

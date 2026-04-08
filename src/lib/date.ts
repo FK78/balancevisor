@@ -56,6 +56,12 @@ export function formatMonthLabel(month: string): string {
   return new Intl.DateTimeFormat("en-GB", { month: "short", year: "2-digit" }).format(date);
 }
 
+export function addDays(date: Date, days: number): Date {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
 export function formatDayLabel(day: string): string {
   return new Intl.DateTimeFormat("en-GB", {
     month: "short",
