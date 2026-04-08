@@ -6,8 +6,6 @@ import { eq, and, or, inArray } from "drizzle-orm";
 import { decryptForUser, getUserKey } from "@/lib/encryption";
 import type { SharedAccess } from "@/lib/types";
 
-export type { SharedAccess };
-
 /**
  * Get all shares where the current user is the owner (things they've shared out).
  */

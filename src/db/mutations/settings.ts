@@ -24,7 +24,7 @@ import {
   transactionSplitsTable,
 } from '@/db/schema';
 import { eq, or, inArray } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
+import { revalidateDomains } from '@/lib/revalidate';
 import { getCurrentUserId, getCurrentUserEmail } from '@/lib/auth';
 import { decryptForUser, getUserKey } from '@/lib/encryption';
 import { createClient } from '@/lib/supabase/server';
@@ -43,8 +43,7 @@ export async function updateDisplayName(formData: FormData) {
 
   if (error) return { error: error.message };
 
-  revalidatePath('/dashboard');
-  revalidatePath('/dashboard/settings');
+  revalidateDomains('settings');
   return { success: true };
 }
 
@@ -63,11 +62,7 @@ export async function updateBaseCurrency(formData: FormData): Promise<{ success?
         .where(eq(accountsTable.user_id, userId));
     });
 
-    revalidatePath('/dashboard');
-    revalidatePath('/dashboard/settings');
-    revalidatePath('/dashboard/accounts');
-    revalidatePath('/dashboard/transactions');
-    revalidatePath('/dashboard/budgets');
+    revalidateDomains('settings', 'accounts', 'transactions', 'budgets');
     return { success: true };
   } catch {
     return { error: 'Failed to update currency.' };

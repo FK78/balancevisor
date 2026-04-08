@@ -9,19 +9,25 @@ import { createTransaction } from '@/db/mutations/transactions';
 import { checkBudgetAlerts } from '@/lib/budget-alerts';
 import { requireString, sanitizeNumber, sanitizeEnum, requireDate, sanitizeUUID, sanitizeURL, sanitizeString, sanitizeColor } from '@/lib/sanitize';
 
+function parseSubscriptionForm(formData: FormData) {
+  return {
+    name: requireString(formData.get('name') as string, 'Subscription name'),
+    amount: sanitizeNumber(formData.get('amount') as string, 'Amount', { required: true, min: 0.01 }),
+    accountId: requireString(formData.get('account_id') as string, 'Account'),
+    categoryId: sanitizeUUID(formData.get('category_id') as string),
+    nextBillingDate: requireDate(formData.get('next_billing_date') as string, 'Next billing date'),
+    currency: sanitizeEnum(formData.get('currency') as string, ['GBP', 'USD', 'EUR'] as const, 'GBP'),
+    billing_cycle: sanitizeEnum(formData.get('billing_cycle') as string, ['weekly', 'monthly', 'quarterly', 'yearly'] as const, 'monthly'),
+    url: sanitizeURL(formData.get('url') as string),
+    notes: sanitizeString(formData.get('notes') as string, 500),
+    color: sanitizeColor(formData.get('color') as string),
+    icon: sanitizeString(formData.get('icon') as string, 50),
+  };
+}
+
 export async function addSubscription(formData: FormData) {
   const userId = await getCurrentUserId();
-  const name = requireString(formData.get('name') as string, 'Subscription name');
-  const amount = sanitizeNumber(formData.get('amount') as string, 'Amount', { required: true, min: 0.01 });
-  const accountId = requireString(formData.get('account_id') as string, 'Account');
-  const categoryId = sanitizeUUID(formData.get('category_id') as string);
-  const nextBillingDate = requireDate(formData.get('next_billing_date') as string, 'Next billing date');
-  const currency = sanitizeEnum(formData.get('currency') as string, ['GBP', 'USD', 'EUR'] as const, 'GBP');
-  const billing_cycle = sanitizeEnum(formData.get('billing_cycle') as string, ['weekly', 'monthly', 'quarterly', 'yearly'] as const, 'monthly');
-  const url = sanitizeURL(formData.get('url') as string);
-  const notes = sanitizeString(formData.get('notes') as string, 500);
-  const color = sanitizeColor(formData.get('color') as string);
-  const icon = sanitizeString(formData.get('icon') as string, 50);
+  const { name, amount, accountId, categoryId, nextBillingDate, currency, billing_cycle, url, notes, color, icon } = parseSubscriptionForm(formData);
 
   const [result] = await db.insert(subscriptionsTable).values({
     user_id: userId,
@@ -60,18 +66,7 @@ export async function addSubscription(formData: FormData) {
 
 export async function editSubscription(id: string, formData: FormData) {
   const userId = await getCurrentUserId();
-
-  const name = requireString(formData.get('name') as string, 'Subscription name');
-  const amount = sanitizeNumber(formData.get('amount') as string, 'Amount', { required: true, min: 0.01 });
-  const accountId = requireString(formData.get('account_id') as string, 'Account');
-  const categoryId = sanitizeUUID(formData.get('category_id') as string);
-  const nextBillingDate = requireDate(formData.get('next_billing_date') as string, 'Next billing date');
-  const currency = sanitizeEnum(formData.get('currency') as string, ['GBP', 'USD', 'EUR'] as const, 'GBP');
-  const billing_cycle = sanitizeEnum(formData.get('billing_cycle') as string, ['weekly', 'monthly', 'quarterly', 'yearly'] as const, 'monthly');
-  const url = sanitizeURL(formData.get('url') as string);
-  const notes = sanitizeString(formData.get('notes') as string, 500);
-  const color = sanitizeColor(formData.get('color') as string);
-  const icon = sanitizeString(formData.get('icon') as string, 50);
+  const { name, amount, accountId, categoryId, nextBillingDate, currency, billing_cycle, url, notes, color, icon } = parseSubscriptionForm(formData);
 
   await db.update(subscriptionsTable).set({
     name,

@@ -2,7 +2,7 @@
 
 import { db } from '@/index';
 import { accountsTable, transactionsTable } from '@/db/schema';
-import { revalidatePath } from 'next/cache';
+import { revalidateDomains } from '@/lib/revalidate';
 import { eq, sql } from 'drizzle-orm';
 import { getCurrentUserId } from '@/lib/auth';
 import { requireOwnership } from '@/lib/ownership';
@@ -220,8 +220,7 @@ export async function importTransactionsFromCSV(
 
   const imported = validRows.length;
 
-  revalidatePath('/dashboard/transactions');
-  revalidatePath('/dashboard/accounts');
+  revalidateDomains('transactions', 'accounts');
 
   await checkBudgetAlerts(userId);
 

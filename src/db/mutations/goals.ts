@@ -8,15 +8,20 @@ import { getCurrentUserId } from '@/lib/auth';
 import { requireString, sanitizeNumber, sanitizeDate, sanitizeString, sanitizeColor } from '@/lib/sanitize';
 import { requireOwnership } from '@/lib/ownership';
 
+function parseGoalForm(formData: FormData) {
+  return {
+    name: requireString(formData.get('name') as string, 'Goal name'),
+    target_amount: sanitizeNumber(formData.get('target_amount') as string, 'Target amount', { required: true, min: 0.01 }),
+    saved_amount: sanitizeNumber(formData.get('saved_amount') as string, 'Saved amount'),
+    target_date: sanitizeDate(formData.get('target_date') as string),
+    icon: sanitizeString(formData.get('icon') as string, 50),
+    color: sanitizeColor(formData.get('color') as string),
+  };
+}
+
 export async function addGoal(formData: FormData) {
   const userId = await getCurrentUserId();
-
-  const name = requireString(formData.get('name') as string, 'Goal name');
-  const target_amount = sanitizeNumber(formData.get('target_amount') as string, 'Target amount', { required: true, min: 0.01 });
-  const saved_amount = sanitizeNumber(formData.get('saved_amount') as string, 'Saved amount');
-  const target_date = sanitizeDate(formData.get('target_date') as string);
-  const icon = sanitizeString(formData.get('icon') as string, 50);
-  const color = sanitizeColor(formData.get('color') as string);
+  const { name, target_amount, saved_amount, target_date, icon, color } = parseGoalForm(formData);
 
   const [result] = await db.insert(goalsTable).values({
     user_id: userId,
@@ -35,13 +40,7 @@ export async function editGoal(id: string, formData: FormData) {
   const userId = await getCurrentUserId();
 
   await requireOwnership(goalsTable, id, userId, 'goal');
-
-  const name = requireString(formData.get('name') as string, 'Goal name');
-  const target_amount = sanitizeNumber(formData.get('target_amount') as string, 'Target amount', { required: true, min: 0.01 });
-  const saved_amount = sanitizeNumber(formData.get('saved_amount') as string, 'Saved amount');
-  const target_date = sanitizeDate(formData.get('target_date') as string);
-  const icon = sanitizeString(formData.get('icon') as string, 50);
-  const color = sanitizeColor(formData.get('color') as string);
+  const { name, target_amount, saved_amount, target_date, icon, color } = parseGoalForm(formData);
 
   await db.update(goalsTable).set({
     name,

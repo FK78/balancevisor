@@ -8,7 +8,7 @@ import {
   categoriesTable,
 } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidateDomains } from "@/lib/revalidate";
 import { getCurrentUserId } from "@/lib/auth";
 import { toDateString } from "@/lib/date";
 import { encryptForUser, decryptForUser, getUserKey } from "@/lib/encryption";
@@ -260,9 +260,7 @@ export async function importFromTrueLayer() {
       .where(eq(truelayerConnectionsTable.id, connection.id));
   }
 
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/accounts");
-  revalidatePath("/dashboard/transactions");
+  revalidateDomains('accounts', 'transactions');
 
   return { accountsImported, transactionsImported };
 }
@@ -370,5 +368,5 @@ export async function disconnectTrueLayer(connectionId: string) {
       ),
     );
 
-  revalidatePath("/dashboard/accounts");
+  revalidateDomains('accounts');
 }

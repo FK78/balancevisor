@@ -10,17 +10,22 @@ import { checkBudgetAlerts } from '@/lib/budget-alerts';
 import { requireString, sanitizeNumber, sanitizeDate, sanitizeString, sanitizeColor } from '@/lib/sanitize';
 import { requireOwnership } from '@/lib/ownership';
 
+function parseDebtForm(formData: FormData) {
+  return {
+    name: requireString(formData.get('name') as string, 'Debt name'),
+    original_amount: sanitizeNumber(formData.get('original_amount') as string, 'Original amount', { required: true, min: 0.01 }),
+    remaining_amount: sanitizeNumber(formData.get('remaining_amount') as string, 'Remaining amount', { required: true, min: 0 }),
+    interest_rate: sanitizeNumber(formData.get('interest_rate') as string, 'Interest rate', { min: 0, max: 100 }),
+    minimum_payment: sanitizeNumber(formData.get('minimum_payment') as string, 'Minimum payment', { min: 0 }),
+    due_date: sanitizeDate(formData.get('due_date') as string),
+    lender: sanitizeString(formData.get('lender') as string),
+    color: sanitizeColor(formData.get('color') as string, '#6366f1'),
+  };
+}
+
 export async function addDebt(formData: FormData) {
   const userId = await getCurrentUserId();
-
-  const name = requireString(formData.get('name') as string, 'Debt name');
-  const original_amount = sanitizeNumber(formData.get('original_amount') as string, 'Original amount', { required: true, min: 0.01 });
-  const remaining_amount = sanitizeNumber(formData.get('remaining_amount') as string, 'Remaining amount', { required: true, min: 0 });
-  const interest_rate = sanitizeNumber(formData.get('interest_rate') as string, 'Interest rate', { min: 0, max: 100 });
-  const minimum_payment = sanitizeNumber(formData.get('minimum_payment') as string, 'Minimum payment', { min: 0 });
-  const due_date = sanitizeDate(formData.get('due_date') as string);
-  const lender = sanitizeString(formData.get('lender') as string);
-  const color = sanitizeColor(formData.get('color') as string, '#6366f1');
+  const { name, original_amount, remaining_amount, interest_rate, minimum_payment, due_date, lender, color } = parseDebtForm(formData);
 
   const [result] = await db.insert(debtsTable).values({
     user_id: userId,
@@ -42,26 +47,18 @@ export async function editDebt(id: string, formData: FormData) {
   const userId = await getCurrentUserId();
 
   await requireOwnership(debtsTable, id, userId, 'debt');
-
-  const name = requireString(formData.get('name') as string, 'Debt name');
-  const original = sanitizeNumber(formData.get('original_amount') as string, 'Original amount', { required: true, min: 0.01 });
-  const remaining = sanitizeNumber(formData.get('remaining_amount') as string, 'Remaining amount', { required: true, min: 0 });
-  const interest_rate = sanitizeNumber(formData.get('interest_rate') as string, 'Interest rate', { min: 0, max: 100 });
-  const minimum_payment = sanitizeNumber(formData.get('minimum_payment') as string, 'Minimum payment', { min: 0 });
-  const due_date = sanitizeDate(formData.get('due_date') as string);
-  const lender = sanitizeString(formData.get('lender') as string);
-  const color = sanitizeColor(formData.get('color') as string, '#6366f1');
+  const { name, original_amount, remaining_amount, interest_rate, minimum_payment, due_date, lender, color } = parseDebtForm(formData);
 
   await db.update(debtsTable).set({
     name,
-    original_amount: original,
-    remaining_amount: remaining,
+    original_amount,
+    remaining_amount,
     interest_rate,
     minimum_payment,
     due_date,
     lender,
     color,
-    is_paid_off: remaining <= 0,
+    is_paid_off: remaining_amount <= 0,
   }).where(eq(debtsTable.id, id));
 
   revalidateDomains('debts');
