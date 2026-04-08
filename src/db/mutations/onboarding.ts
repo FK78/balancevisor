@@ -127,6 +127,9 @@ export async function completeOnboarding() {
 export async function completeOnboardingWithFeatures(features: string[]) {
   const userId = await getCurrentUserId();
 
+  // Create per-user encryption key if it doesn't exist yet
+  await createUserKey(userId);
+
   await upsertOnboardingState(userId, {
     completed: true,
     completed_at: new Date(),
@@ -171,6 +174,9 @@ export async function getNextPendingFeature(): Promise<string | null> {
 
 export async function skipOnboarding() {
   const userId = await getCurrentUserId();
+
+  // Create per-user encryption key if it doesn't exist yet
+  await createUserKey(userId);
 
   await upsertOnboardingState(userId, {
     use_default_categories: false,

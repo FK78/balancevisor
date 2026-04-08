@@ -1,5 +1,3 @@
-'use server';
-
 export { generateMfaSetup } from './setup';
 export { verifyMfaSetup, verifyMfaLogin } from './verify';
 export { enableMfa } from './enable';

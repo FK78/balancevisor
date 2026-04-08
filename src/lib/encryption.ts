@@ -198,6 +198,15 @@ export async function getUserKey(userId: string): Promise<Buffer> {
 export async function createUserKey(userId: string): Promise<void> {
   const { userKeysTable } = await import("@/db/schema");
   const { db } = await import("@/index");
+  const { eq } = await import("drizzle-orm");
+
+  // Check if user already has a key — avoid duplicate insert
+  const [existing] = await db
+    .select({ user_id: userKeysTable.user_id })
+    .from(userKeysTable)
+    .where(eq(userKeysTable.user_id, userId));
+
+  if (existing) return;
 
   const newUserKey = randomBytes(32);
   const encryptedUserKey = encrypt(newUserKey.toString("hex"));
@@ -206,7 +215,7 @@ export async function createUserKey(userId: string): Promise<void> {
     user_id: userId,
     encrypted_key: encryptedUserKey,
     key_version: 1,
-  });
+  }).onConflictDoNothing();
 
   userKeyCache.set(userId, newUserKey);
 }
@@ -314,7 +323,6 @@ export async function rotateMasterKey(): Promise<number> {
     throw new Error(`${newEnvVar} env var is not set. Add the new key before rotating.`);
   }
 
-  const oldKey = getMasterKey();
   const newKey = Buffer.from(newKeyHex, "hex");
 
   const allUserKeys = await db.select().from(userKeysTable);
@@ -322,7 +330,7 @@ export async function rotateMasterKey(): Promise<number> {
 
   for (const row of allUserKeys) {
     const userKeyHex = decrypt(row.encrypted_key);
-    const newEncrypted = encryptWithKey(userKeyHex, newKey);
+    const newEncrypted = encryptWithKey(userKeyHex, newKey, newVersion);
 
     await db
       .update(userKeysTable)
@@ -340,7 +348,7 @@ export async function rotateMasterKey(): Promise<number> {
   return rotated;
 }
 
-function encryptWithKey(plaintextHex: string, key: Buffer): string {
+function encryptWithKey(plaintextHex: string, key: Buffer, version: string = CURRENT_KEY_VERSION): string {
   const iv = randomBytes(IV_LENGTH);
   const cipher = createCipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
   const encrypted = Buffer.concat([
@@ -348,5 +356,5 @@ function encryptWithKey(plaintextHex: string, key: Buffer): string {
     cipher.final(),
   ]);
   const authTag = cipher.getAuthTag();
-  return [iv.toString("hex"), authTag.toString("hex"), encrypted.toString("hex")].join(":");
+  return [version, iv.toString("hex"), authTag.toString("hex"), encrypted.toString("hex")].join(":");
 }

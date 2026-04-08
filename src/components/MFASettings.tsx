@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Badge } from '@/components/ui/badge';
 import { checkMfaStatus, disableMfa, regenerateBackupCodes, getBackupCodes } from '@/db/mutations/mfa';
 import { MFASetupWizard } from '@/components/MFASetupWizard';
-import { Loader2, Shield, ShieldAlert, ShieldCheck, Download, Copy, Key, AlertCircle } from 'lucide-react';
+import { Loader2, Shield, ShieldAlert, ShieldCheck, Key, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface BackupCodeInfo {
@@ -123,25 +123,6 @@ export function MFASettings() {
     } finally {
       setIsRegeneratingCodes(false);
     }
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success('Copied to clipboard');
-  };
-
-  const downloadBackupCodes = () => {
-    const unusedCodes = backupCodes.filter(code => !code.used);
-    const content = `BalanceVisor Backup Codes\nGenerated: ${new Date().toLocaleDateString()}\nUnused Codes: ${unusedCodes.length} of ${backupCodes.length}\n\n${unusedCodes.map((code, i) => `${i + 1}. ${code}`).join('\n')}\n\nImportant: Store these codes in a safe place. Each code can only be used once.`;
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'balancevisor-backup-codes.txt';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
 
   const unusedBackupCodes = backupCodes.filter(code => !code.used).length;
@@ -266,7 +247,7 @@ export function MFASettings() {
                       onClick={() => setBackupCodesDialogOpen(true)}
                       disabled={isLoadingBackupCodes}
                     >
-                      View Codes
+                      View Status
                     </Button>
                     <Button
                       variant="outline"
@@ -412,29 +393,10 @@ export function MFASettings() {
             <div className="bg-muted rounded-lg p-4">
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <p className="font-medium">Remaining Codes</p>
+                  <p className="font-medium">Backup Code Status</p>
                   <p className="text-sm text-muted-foreground">
-                    {unusedBackupCodes} of {totalBackupCodes} codes available
+                    {unusedBackupCodes} of {totalBackupCodes} codes remaining
                   </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => backupCodes.forEach(code => !code.used && copyToClipboard(code.id))}
-                    disabled={unusedBackupCodes === 0}
-                  >
-                    <Copy className="mr-1 h-3 w-3" />
-                    Copy All
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={downloadBackupCodes}
-                  >
-                    <Download className="mr-1 h-3 w-3" />
-                    Download
-                  </Button>
                 </div>
               </div>
               
@@ -443,24 +405,30 @@ export function MFASettings() {
                   <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {backupCodes.map((code) => (
-                    <div
-                      key={code.id}
-                      className={`font-mono text-sm p-2 rounded text-center ${
-                        code.used
-                          ? 'bg-destructive/10 text-destructive line-through'
-                          : 'bg-background'
-                      }`}
-                    >
-                      {code.id}
-                      {code.used && (
-                        <span className="block text-xs text-destructive/70 mt-1">
-                          Used {code.used_at ? new Date(code.used_at).toLocaleDateString() : ''}
-                        </span>
-                      )}
-                    </div>
-                  ))}
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Backup codes are securely hashed and cannot be displayed after initial generation.
+                    If you need new codes, regenerate them below. The new codes will be downloaded automatically.
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {backupCodes.map((code) => (
+                      <div
+                        key={code.id}
+                        className={`text-sm p-2 rounded text-center ${
+                          code.used
+                            ? 'bg-destructive/10 text-destructive'
+                            : 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                        }`}
+                      >
+                        {code.used ? 'Used' : 'Available'}
+                        {code.used && code.used_at && (
+                          <span className="block text-xs text-destructive/70 mt-1">
+                            {new Date(code.used_at).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

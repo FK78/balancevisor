@@ -29,7 +29,6 @@ export function LoginFormWithMFA({
   const [isLoading, setIsLoading] = useState(false);
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaFactorId, setMfaFactorId] = useState<string>('');
-  const [mfaSession, setMfaSession] = useState<any>(null);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -40,35 +39,29 @@ export function LoginFormWithMFA({
     setMfaRequired(false);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        // Check if this is an MFA required error
-        if (error.message.includes('MFA') || error.message.includes('factor')) {
-          // User has MFA enabled, need to get the factor ID
-          const { data: factors } = await supabase.auth.mfa.listFactors();
-          const totpFactors = factors?.totp || [];
-          
-          if (totpFactors.length > 0) {
-            setMfaFactorId(totpFactors[0].id);
-            setMfaRequired(true);
-            return;
-          }
-        }
         throw error;
       }
 
-      // Check if MFA is required via session data
-      if (data.session?.aal === 'aal2') {
-        // Already authenticated with MFA
-        router.push('/dashboard');
-      } else {
-        // Password-only authentication successful
-        router.push('/dashboard');
+      // After successful password auth, check if user has MFA factors enrolled.
+      // Supabase returns an AAL1 session; we must challenge TOTP to upgrade to AAL2.
+      const { data: factors } = await supabase.auth.mfa.listFactors();
+      const totpFactors = factors?.totp?.filter(f => f.status === 'verified') || [];
+
+      if (totpFactors.length > 0) {
+        // MFA is enabled — show verification dialog
+        setMfaFactorId(totpFactors[0].id);
+        setMfaRequired(true);
+        return;
       }
+
+      // No MFA — proceed to dashboard
+      router.push('/dashboard');
     } catch (err: unknown) {
       setError(userError('login', err, 'Unable to sign in. Please try again.'));
     } finally {

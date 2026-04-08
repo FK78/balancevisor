@@ -3,7 +3,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentUserId } from '@/lib/auth';
 import { rateLimiters } from '@/lib/rate-limiter';
-import { generate, verify } from 'otplib';
 
 export interface VerifyMfaSetupResult {
   success: boolean;
@@ -14,7 +13,7 @@ export interface VerifyMfaSetupResult {
 export async function verifyMfaSetup(
   factorId: string,
   token: string,
-  secret: string
+  _secret: string
 ): Promise<VerifyMfaSetupResult> {
   const supabase = await createClient();
   const userId = await getCurrentUserId();
@@ -30,21 +29,9 @@ export async function verifyMfaSetup(
   }
 
   try {
-    // Verify the TOTP token
-    const verificationResult = await verify({
-      secret,
-      token,
-      epochTolerance: 1, // Allow 1 step before/after for clock drift
-    });
-
-    if (!verificationResult.valid) {
-      return {
-        success: false,
-        error: 'Invalid verification code. Please try again.',
-      };
-    }
-
-    // Create a challenge for the factor (required for verification)
+    // Create a challenge for the factor and verify via Supabase.
+    // Supabase holds the TOTP secret from enroll(), so it verifies the token
+    // against the same secret the user scanned from the QR code.
     const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({
       factorId,
     });
@@ -57,7 +44,6 @@ export async function verifyMfaSetup(
       };
     }
 
-    // Verify the factor with Supabase using the challenge
     const { error: verifyError } = await supabase.auth.mfa.verify({
       factorId,
       challengeId: challenge.id,
@@ -68,7 +54,7 @@ export async function verifyMfaSetup(
       console.error('Error verifying MFA factor with Supabase:', verifyError);
       return {
         success: false,
-        error: `Failed to verify MFA: ${verifyError.message}`,
+        error: 'Invalid verification code. Please try again.',
       };
     }
 
@@ -128,7 +114,7 @@ export async function verifyMfaLogin(
     }
 
     // Verify the token with Supabase
-    const { data: verifyData, error: verifyError } = await supabase.auth.mfa.verify({
+    const { error: verifyError } = await supabase.auth.mfa.verify({
       factorId,
       challengeId: challenge.id,
       code: token,

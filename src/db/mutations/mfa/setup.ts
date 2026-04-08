@@ -3,14 +3,12 @@
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentUserId } from '@/lib/auth';
 import { rateLimiters } from '@/lib/rate-limiter';
-import { generateSecret, generateURI } from 'otplib';
-import * as QRCode from 'qrcode';
 import * as crypto from 'crypto';
 
 interface MFASetupData {
   qrCodeDataUrl: string;
   secret: string;
-  factorId?: string;
+  factorId: string;
 }
 
 export async function generateMfaSetup(): Promise<MFASetupData> {
@@ -30,26 +28,12 @@ export async function generateMfaSetup(): Promise<MFASetupData> {
     throw new Error('User not authenticated or email not available');
   }
 
-  // Generate TOTP secret
-  const secret = generateSecret(); // Base32-encoded secret
-  
-  // Generate TOTP URI for QR code
-  const issuer = 'BalanceVisor';
-  const label = user.email;
-  const uri = generateURI({
-    issuer,
-    label,
-    secret,
-  });
-  
-  // Generate QR code as data URL
-  const qrCodeDataUrl = await QRCode.toDataURL(uri);
-  
-  // Enroll the factor with Supabase (but don't enable it yet)
+  // Enroll the factor with Supabase — use Supabase's secret and QR code
+  // so that challenge/verify will work against the same secret the user scans.
   const { data: factor, error } = await supabase.auth.mfa.enroll({
     factorType: 'totp',
     friendlyName: 'Authenticator App',
-    issuer,
+    issuer: 'BalanceVisor',
   });
 
   if (error) {
@@ -57,12 +41,9 @@ export async function generateMfaSetup(): Promise<MFASetupData> {
     throw new Error(`Failed to set up MFA: ${error.message}`);
   }
 
-  // Store the secret temporarily in the factor's metadata
-  // In a real implementation, you might want to store this encrypted
-  // For now, we'll return it to the frontend and verify immediately
   return {
-    qrCodeDataUrl,
-    secret,
+    qrCodeDataUrl: factor.totp.qr_code,
+    secret: factor.totp.secret,
     factorId: factor.id,
   };
 }

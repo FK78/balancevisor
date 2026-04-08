@@ -25,11 +25,14 @@ function assert(condition: boolean, message: string) {
 }
 
 function assertThrows(fn: () => void, message: string) {
+  let threw = false;
   try {
     fn();
-    throw new Error(`Expected function to throw but it didn't: ${message}`);
   } catch {
-    // Expected
+    threw = true;
+  }
+  if (!threw) {
+    throw new Error(`Expected function to throw but it didn't: ${message}`);
   }
 }
 

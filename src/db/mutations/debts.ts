@@ -2,7 +2,7 @@
 
 import { db } from '@/index';
 import { debtsTable, debtPaymentsTable, accountsTable } from '@/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getCurrentUserId } from '@/lib/auth';
 import { createTransaction } from '@/db/mutations/transactions';
@@ -39,6 +39,16 @@ export async function addDebt(formData: FormData) {
 }
 
 export async function editDebt(id: string, formData: FormData) {
+  const userId = await getCurrentUserId();
+
+  // Verify ownership
+  const [debt] = await db.select({ user_id: debtsTable.user_id })
+    .from(debtsTable)
+    .where(eq(debtsTable.id, id));
+  if (!debt || debt.user_id !== userId) {
+    throw new Error('Debt not found or access denied');
+  }
+
   const name = requireString(formData.get('name') as string, 'Debt name');
   const original = sanitizeNumber(formData.get('original_amount') as string, 'Original amount', { required: true, min: 0.01 });
   const remaining = sanitizeNumber(formData.get('remaining_amount') as string, 'Remaining amount', { required: true, min: 0 });
@@ -65,7 +75,8 @@ export async function editDebt(id: string, formData: FormData) {
 }
 
 export async function deleteDebt(id: string) {
-  await db.delete(debtsTable).where(eq(debtsTable.id, id));
+  const userId = await getCurrentUserId();
+  await db.delete(debtsTable).where(and(eq(debtsTable.id, id), eq(debtsTable.user_id, userId)));
   revalidatePath('/dashboard/debts');
   revalidatePath('/dashboard');
 }

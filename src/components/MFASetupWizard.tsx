@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -97,8 +97,28 @@ export function MFASetupWizard({ open, onOpenChange, onSuccess }: MFASetupWizard
     }
   };
 
-  const handleSkipBackupCodes = () => {
-    setCurrentStep('complete');
+  const handleSkipBackupCodes = async () => {
+    if (!setupData?.factorId) {
+      setError('Setup data missing. Please restart setup.');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await enableMfa(setupData.factorId, password, false);
+      
+      if (result.success) {
+        setCurrentStep('complete');
+        toast.success('Two-factor authentication enabled successfully!');
+      } else {
+        setError(result.error || 'Failed to enable MFA');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to enable MFA');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleComplete = () => {

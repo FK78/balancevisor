@@ -6,7 +6,7 @@ import { trading212ConnectionsTable, manualHoldingsTable, holdingSalesTable, acc
 import { eq, and, isNotNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getCurrentUserId } from "@/lib/auth";
-import { encrypt } from "@/lib/encryption";
+import { encryptForUser, getUserKey } from "@/lib/encryption";
 import { getQuote } from "@/lib/yahoo-finance";
 import { requireString, sanitizeNumber, sanitizeEnum, sanitizeUUID } from "@/lib/sanitize";
 
@@ -22,8 +22,9 @@ export async function connectTrading212(formData: FormData) {
   const environment = sanitizeEnum(formData.get("environment") as string, ["live", "demo"] as const, "live");
   const accountId = sanitizeUUID(formData.get("account_id") as string);
 
-  const encryptedKey = encrypt(apiKey);
-  const encryptedSecret = encrypt(apiSecret);
+  const userKey = await getUserKey(userId);
+  const encryptedKey = encryptForUser(apiKey, userKey);
+  const encryptedSecret = encryptForUser(apiSecret, userKey);
 
   await db
     .insert(trading212ConnectionsTable)

@@ -22,20 +22,17 @@ export async function enableMfa(
   const supabase = await createClient();
   const userId = await getCurrentUserId();
 
-  // Verify password first
-  const { error: signInError } = await supabase.auth.signInWithPassword({
-    email: '', // We need to get user email first
-    password,
-  });
-
-  if (signInError) {
+  // Rate limiting for MFA enable attempts
+  const rateLimitKey = `mfa-enable:${userId}`;
+  const { allowed, retryAfter } = rateLimiters.auth.consume(rateLimitKey);
+  if (!allowed) {
     return {
       success: false,
-      error: 'Invalid password. Please try again.',
+      error: `Too many attempts. Please try again in ${retryAfter} seconds.`,
     };
   }
 
-  // Get user email
+  // Get user email first
   const { data: { user } } = await supabase.auth.getUser();
   if (!user || !user.email) {
     return {
@@ -44,13 +41,13 @@ export async function enableMfa(
     };
   }
 
-  // Re-authenticate with email
-  const { error: reauthError } = await supabase.auth.signInWithPassword({
+  // Verify password by re-authenticating
+  const { error: signInError } = await supabase.auth.signInWithPassword({
     email: user.email,
     password,
   });
 
-  if (reauthError) {
+  if (signInError) {
     return {
       success: false,
       error: 'Invalid password. Please try again.',
