@@ -1,6 +1,6 @@
 export default function ReportsLoading() {
   return (
-    <div className="mx-auto max-w-7xl space-y-8 p-6 md:p-10">
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
       <div className="space-y-2">
         <div className="bg-muted h-9 w-32 animate-pulse rounded-md" />
         <div className="bg-muted h-4 w-52 animate-pulse rounded-md" />

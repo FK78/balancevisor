@@ -51,7 +51,7 @@ export default function RootLayout({
             {children}
           </QueryProvider>
         </ThemeProvider>
-        <Toaster richColors closeButton position="bottom-right" />
+        <Toaster richColors closeButton position="top-center" className="md:!bottom-4 md:!top-auto md:!right-4 md:!left-auto" />
         <ServiceWorkerRegistrar />
       </body>
     </html>

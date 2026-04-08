@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -23,12 +21,8 @@ import {
   Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { NumberTicker } from "@/components/ui/number-ticker";
-import { BlurFade } from "@/components/ui/blur-fade";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
-import { BorderBeam } from "@/components/ui/border-beam";
 import { AnimatedShinyText } from "@/components/ui/animated-shiny-text";
-import { DotPattern } from "@/components/ui/dot-pattern";
 
 const features = [
   {
@@ -190,43 +184,43 @@ export default function Home() {
       {/* Hero */}
       <header className="relative overflow-hidden px-6 py-28 sm:py-36 lg:py-44">
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(99,102,241,0.10),transparent)]" />
-        <DotPattern className="absolute inset-0 -z-10 opacity-[0.03] dark:opacity-[0.05] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_50%,black,transparent)]" />
+        <div className="dot-pattern absolute inset-0 -z-10 opacity-[0.03] dark:opacity-[0.05] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_50%,black,transparent)]" />
         <div className="absolute top-20 left-1/4 -z-10 h-80 w-80 rounded-full bg-indigo-300/20 blur-3xl animate-pulse-glow" />
         <div className="absolute bottom-10 right-1/4 -z-10 h-72 w-72 rounded-full bg-cyan-300/20 blur-3xl animate-pulse-glow" style={{ animationDelay: '2s' }} />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -z-10 h-96 w-96 rounded-full bg-violet-200/10 blur-3xl animate-pulse-glow" style={{ animationDelay: '3s' }} />
 
-        <div className="mx-auto max-w-3xl text-center">
-          <div className="animate-fade-in-up mb-8 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-5 py-2 text-sm font-medium text-primary">
-            <Sparkles className="h-4 w-4" />
-            100% free — no ads, no premium tier
+        <div className="mx-auto max-w-3xl text-center animate-fade-in-up">
+          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-5 py-2.5 text-sm font-medium text-primary shadow-sm shadow-primary/5">
+            <AnimatedShinyText className="inline-flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              100% free — no ads, no premium tier
+            </AnimatedShinyText>
           </div>
-          <h1 className="animate-fade-in-up text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl" style={{ animationDelay: "0.1s" }}>
+          <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl leading-[1.1]">
             Your money, finally{" "}
-            <span className="bg-gradient-to-r from-primary via-amber-500 to-rose-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-indigo-500 via-violet-500 to-cyan-400 bg-clip-text text-transparent">
               under control
             </span>
           </h1>
-          <p className="animate-fade-in-up mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground" style={{ animationDelay: "0.2s" }}>
+          <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
             Wealth helps you track spending, set budgets, manage investments,
             crush savings goals, and see your full financial picture in one beautifully simple dashboard.
           </p>
-          <div className="animate-fade-in-up mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center" style={{ animationDelay: "0.3s" }}>
-            <Button asChild size="lg" className="w-full sm:w-auto text-base px-8">
-              <Link href="/auth/sign-up">
-                <ShimmerButton
-                  shimmerColor="#a78bfa"
-                  shimmerSize="0.05em"
-                  background="linear-gradient(135deg, #6366f1, #8b5cf6)"
-                  className="w-full sm:w-auto text-base px-8 py-3 font-semibold"
-                >
-                  Start tracking for free <ArrowRight className="ml-2 h-4 w-4 inline" />
-                </ShimmerButton>
-              </Link>
-              <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
-                <Link href="/auth/login">I already have an account</Link>
-              </Button>
-            </div>
-          </BlurFade>
+          <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <Link href="/auth/sign-up">
+              <ShimmerButton
+                shimmerColor="#a78bfa"
+                shimmerSize="0.05em"
+                background="linear-gradient(135deg, #6366f1, #8b5cf6)"
+                className="w-full sm:w-auto text-base px-8 py-3 font-semibold"
+              >
+                Start tracking for free <ArrowRight className="ml-2 h-4 w-4 inline" />
+              </ShimmerButton>
+            </Link>
+            <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
+              <Link href="/auth/login">I already have an account</Link>
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -239,15 +233,12 @@ export default function Home() {
             { value: 6, label: "Chart views", prefix: "" },
             { value: 0, label: "Forever", prefix: "£" },
           ].map((stat) => (
-            <BlurFade key={stat.label} delay={0.1} inView>
-              <div className="space-y-1">
-                <p className="text-3xl font-extrabold gradient-text">
-                  {stat.prefix}
-                  <NumberTicker value={stat.value} />
-                </p>
-                <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-              </div>
-            </BlurFade>
+            <div key={stat.label} className="space-y-1">
+              <p className="text-3xl font-extrabold gradient-text">
+                {stat.prefix}{stat.value}
+              </p>
+              <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
+            </div>
           ))}
         </div>
       </section>
@@ -265,21 +256,20 @@ export default function Home() {
               No bloat, no upsells. Every feature is included from day one.
             </p>
           </div>
-          <div className="mt-16 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {features.map((f, i) => (
-              <BlurFade key={f.title} delay={0.05 * i} inView>
-                <div
-                  className="group rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-6 transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 hover:border-primary/20"
-                >
-                  <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${f.bg} transition-transform duration-300 group-hover:scale-110`}>
-                    <f.icon className={`h-6 w-6 ${f.color}`} />
-                  </div>
-                  <h3 className="mt-5 text-base font-bold">{f.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                    {f.description}
-                  </p>
+          <div className="mt-16 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 animate-fade-in-up-stagger">
+            {features.map((f) => (
+              <div
+                key={f.title}
+                className="group rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-6 transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 hover:border-primary/20"
+              >
+                <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${f.bg} transition-transform duration-300 group-hover:scale-110`}>
+                  <f.icon className={`h-6 w-6 ${f.color}`} />
                 </div>
-              </BlurFade>
+                <h3 className="mt-5 text-base font-bold">{f.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  {f.description}
+                </p>
+              </div>
             ))}
           </div>
         </div>
@@ -298,16 +288,14 @@ export default function Home() {
           </div>
           <div className="mt-16 grid gap-10 sm:grid-cols-3 relative">
             <div className="hidden sm:block absolute top-8 left-[20%] right-[20%] h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-            {steps.map((s, i) => (
-              <BlurFade key={s.step} delay={0.15 * i} inView>
-                <div className="flex flex-col items-center text-center relative">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-primary/10 to-primary/5 text-3xl ring-4 ring-background shadow-lg shadow-primary/5">
-                    {s.emoji}
-                  </div>
-                  <h3 className="mt-5 text-base font-bold">{s.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{s.description}</p>
+            {steps.map((s) => (
+              <div key={s.step} className="flex flex-col items-center text-center relative">
+                <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-primary/10 to-primary/5 text-3xl ring-4 ring-background shadow-lg shadow-primary/5">
+                  {s.emoji}
                 </div>
-              </BlurFade>
+                <h3 className="mt-5 text-base font-bold">{s.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{s.description}</p>
+              </div>
             ))}
           </div>
         </div>
@@ -315,9 +303,9 @@ export default function Home() {
 
       {/* Security callout */}
       <section className="px-6 py-24">
-        <div className="mx-auto max-w-3xl rounded-3xl border border-border/60 bg-gradient-to-br from-primary/5 via-card to-amber-500/5 p-8 sm:p-12">
+        <div className="relative mx-auto max-w-3xl rounded-3xl border border-primary/10 bg-gradient-to-br from-indigo-500/5 via-card to-cyan-500/5 p-8 sm:p-12 shadow-lg shadow-primary/5 overflow-hidden">
           <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:text-left">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5">
               <Shield className="h-8 w-8 text-primary" />
             </div>
             <div>
@@ -333,8 +321,10 @@ export default function Home() {
       </section>
 
       {/* Final CTA */}
-      <section className="border-t border-border/60 px-6 py-24 sm:py-32">
-        <div className="mx-auto max-w-2xl text-center">
+      <section className="relative border-t border-border/40 px-6 py-24 sm:py-32 overflow-hidden">
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_60%_50%_at_50%_50%,rgba(99,102,241,0.04),transparent)]" />
+        <div className="dot-pattern absolute inset-0 -z-10 opacity-[0.02] dark:opacity-[0.04] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,black,transparent)]" />
+        <div className="mx-auto max-w-2xl text-center animate-fade-in-up">
           <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
             Ready to take control?
           </h2>
@@ -343,20 +333,18 @@ export default function Home() {
             it&apos;s completely free. No catches.
           </p>
           <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-            <Button asChild size="lg" className="w-full sm:w-auto text-base px-8">
-              <Link href="/auth/sign-up">
-                <ShimmerButton
-                  shimmerColor="#a78bfa"
-                  shimmerSize="0.05em"
-                  background="linear-gradient(135deg, #6366f1, #8b5cf6)"
-                  className="w-full sm:w-auto text-base px-8 py-3 font-semibold"
-                >
-                  Create your free account <ArrowRight className="ml-2 h-4 w-4 inline" />
-                </ShimmerButton>
-              </Link>
-            </div>
+            <Link href="/auth/sign-up">
+              <ShimmerButton
+                shimmerColor="#a78bfa"
+                shimmerSize="0.05em"
+                background="linear-gradient(135deg, #6366f1, #8b5cf6)"
+                className="w-full sm:w-auto text-base px-8 py-3 font-semibold"
+              >
+                Create your free account <ArrowRight className="ml-2 h-4 w-4 inline" />
+              </ShimmerButton>
+            </Link>
           </div>
-        </BlurFade>
+        </div>
       </section>
 
       {/* Footer */}

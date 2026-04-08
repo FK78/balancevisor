@@ -14,6 +14,7 @@ import { InstallPrompt } from "@/components/InstallPrompt";
 import { ChatPanelWrapper as ChatPanel } from "@/components/ChatPanelWrapper";
 import { BankSyncTrigger } from "@/components/BankSyncTrigger";
 import { NextFeatureButtonClient } from "@/components/NextFeatureButtonClient";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 
 export default async function DashboardLayout({
   children,
@@ -36,15 +37,15 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-background">
-      <nav className="sticky top-0 z-50 border-b border-border/40 bg-background/70 backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-6 px-6 md:px-10">
+      <nav className="sticky top-0 z-50 border-b border-border bg-background/70 backdrop-blur-2xl backdrop-saturate-150">
+        <div className="mx-auto flex h-12 max-w-7xl items-center justify-between gap-4 px-4 md:h-14 md:gap-6 md:px-10">
           <div className="flex items-center gap-6">
             <Link
               href="/dashboard"
               className="flex items-center gap-2.5 text-lg font-bold tracking-tight"
             >
               <Image src="/logo.svg" alt="Wealth logo" width={30} height={30} />
-              Wealth
+              <span className="hidden sm:inline">Wealth</span>
             </Link>
             <DashboardNav />
           </div>
@@ -54,13 +55,18 @@ export default async function DashboardLayout({
             <Suspense>
               <NotificationBellServer />
             </Suspense>
-            <Suspense>
-              <AuthButton />
-            </Suspense>
+            <div className="hidden md:block">
+              <Suspense>
+                <AuthButton />
+              </Suspense>
+            </div>
           </div>
         </div>
       </nav>
-      {children}
+      <div className="pb-20 md:pb-0">
+        {children}
+      </div>
+      <MobileBottomNav />
       <InstallPrompt />
       <BankSyncTrigger />
       {pendingFeaturesList.length > 0 && (

@@ -82,6 +82,7 @@ export function AddHoldingDialog({
   // Debounce the search query
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
+    setShowDropdown(value.length >= 1);
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       // React Query will refetch when searchQuery changes
@@ -219,7 +220,7 @@ export function AddHoldingDialog({
                     <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md">
                       {searchResults.map((r) => (
                         <button
-                          key={r.ticker}
+                          key={`${r.ticker}-${r.exchange ?? ''}`}
                           type="button"
                           className="flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-accent"
                           onClick={() => handleSelectTicker(r)}

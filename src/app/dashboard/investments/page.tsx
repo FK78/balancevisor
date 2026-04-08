@@ -42,6 +42,7 @@ import { RefreshPricesButton } from "@/components/RefreshPricesButton";
 import { InvestmentGroupDialog } from "@/components/InvestmentGroupDialog";
 import { DeleteGroupButton } from "@/components/DeleteGroupButton";
 import { RealizedGainsTable } from "@/components/RealizedGainsTable";
+import { PortfolioAIAnalysis } from "@/components/PortfolioAIAnalysis";
 const InvestmentCharts = dynamic<{ holdings: NormalisedHolding[]; currency: string }>(
   () => import("@/components/InvestmentCharts").then(mod => mod.InvestmentCharts),
   {
@@ -70,6 +71,7 @@ type NormalisedHolding = {
   groupId?: string | null;
   groupName?: string | null;
   groupColor?: string | null;
+  pricePending?: boolean;
 };
 
 export default async function InvestmentsPage() {
@@ -194,6 +196,7 @@ export default async function InvestmentsPage() {
       groupId: h.group_id,
       groupName: h.group_id ? groupMap.get(h.group_id)?.name ?? null : null,
       groupColor: h.group_id ? groupMap.get(h.group_id)?.color ?? null : null,
+      pricePending: (h.investment_type ?? 'stock') === 'stock' && h.ticker != null && !h.last_price_update && !quote,
     });
   }
 
@@ -208,13 +211,10 @@ export default async function InvestmentsPage() {
   const sortedHoldings = [...holdings].sort((a, b) => b.value - a.value);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8 p-6 md:p-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between page-header-gradient">
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Investments</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Track your portfolio across Trading 212 and manual holdings.
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Investments</h1>
         </div>
         <div className="flex flex-wrap gap-2">
           <ConnectTrading212Dialog
@@ -334,6 +334,9 @@ export default async function InvestmentsPage() {
       {holdings.length > 0 && (
         <InvestmentCharts holdings={sortedHoldings} currency={baseCurrency} />
       )}
+
+      {/* AI Portfolio Analysis */}
+      {holdings.length > 0 && <PortfolioAIAnalysis />}
 
       {/* Holdings table */}
       {holdings.length === 0 ? (
@@ -502,6 +505,9 @@ export default async function InvestmentsPage() {
                                 </TableCell>
                                 <TableCell className="text-right tabular-nums">
                                   {formatCurrency(h.currentPrice, h.currency)}
+                                  {h.pricePending && (
+                                    <p className="text-[10px] text-amber-500">Price pending</p>
+                                  )}
                                 </TableCell>
                                 <TableCell className="text-right tabular-nums font-medium">
                                   {formatCurrency(h.value, baseCurrency)}

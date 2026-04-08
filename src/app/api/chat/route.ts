@@ -9,7 +9,7 @@ import { getDebtsSummary } from "@/db/queries/debts";
 import { getActiveSubscriptionsTotals, getUpcomingRenewals } from "@/db/queries/subscriptions";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { getMonthlyIncomeExpenseTrend, getTotalsByType, getTotalSpendByCategoryThisMonth } from "@/db/queries/transactions";
-import { getInvestmentValue } from "@/lib/investment-value";
+import { getPortfolioSnapshot, formatPortfolioContext } from "@/lib/portfolio-data";
 import { getMonthRange } from "@/lib/date";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { rateLimiters } from "@/lib/rate-limiter";
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
     lastMonthExpenses,
     spendByCategory,
     monthlyTrend,
-    investmentValue,
+    portfolioSnapshot,
   ] = await Promise.all([
     getAccountsWithDetails(userId),
     getBudgets(userId),
@@ -59,8 +59,11 @@ export async function POST(req: Request) {
     getTotalsByType(userId, "expense", lastMonth.start, lastMonth.end),
     getTotalSpendByCategoryThisMonth(userId),
     getMonthlyIncomeExpenseTrend(userId, 6),
-    getInvestmentValue(userId),
+    getPortfolioSnapshot(userId),
   ]);
+
+  const investmentValue = portfolioSnapshot.totalValue;
+  const portfolioContext = formatPortfolioContext(portfolioSnapshot);
 
   const liabilityTypes = new Set(["creditCard"]);
   const totalAssets = accounts
@@ -82,6 +85,8 @@ Currency: ${baseCurrency}
 - Total assets: ${formatCurrency(totalAssets, baseCurrency)}
 - Total liabilities: ${formatCurrency(totalLiabilities, baseCurrency)}
 - Investment value: ${formatCurrency(investmentValue, baseCurrency)}
+
+${portfolioContext}
 
 ### Income & Expenses (This Month)
 - Income: ${formatCurrency(income, baseCurrency)}

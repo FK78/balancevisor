@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { BlurFade } from "@/components/ui/blur-fade";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { TransactionFormDialog } from "@/components/AddTransactionForm";
@@ -36,7 +35,7 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowDownLeft, ArrowRightLeft, ArrowUpDown, ArrowUpRight, ChevronDown, ChevronRight, Download, Receipt, RefreshCw, Search, Split, X, Wallet } from "lucide-react";
+import { ArrowRightLeft, ArrowUpDown, ChevronDown, ChevronRight, Download, Loader2, Receipt, RefreshCw, Search, Split, Tag, X, Wallet } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -46,6 +45,7 @@ import {
 } from "@/components/ui/select";
 import { SplitTransactionDialog } from "@/components/SplitTransactionDialog";
 import { deleteTransaction } from "@/db/mutations/transactions";
+import { bulkAutoCategorise } from "@/db/mutations/bulk-categorise";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { toDateString, addDays } from "@/lib/date";
 import type { AccountWithDetails, CategoryWithColor, TransactionWithDetails, SplitDetail } from "@/lib/types";
@@ -67,6 +67,38 @@ function DeleteTransactionButton({
       successTitle="Transaction deleted"
       successDescription="The transaction has been removed."
     />
+  );
+}
+
+function BulkCategoriseButton({ count }: { count: number }) {
+  const router = useRouter();
+  const [isPending, setIsPending] = useState(false);
+
+  async function handleClick() {
+    setIsPending(true);
+    try {
+      const result = await bulkAutoCategorise();
+      if (result.categorised > 0) {
+        const { toast } = await import("sonner");
+        toast.success(`Auto-categorised ${result.categorised} transaction${result.categorised !== 1 ? "s" : ""}${result.remaining > 0 ? ` (${result.remaining} unmatched)` : ""}`);
+        router.refresh();
+      } else {
+        const { toast } = await import("sonner");
+        toast.info("No matching rules found. Create rules by editing transaction categories.");
+      }
+    } catch {
+      const { toast } = await import("sonner");
+      toast.error("Failed to auto-categorise");
+    } finally {
+      setIsPending(false);
+    }
+  }
+
+  return (
+    <Button size="sm" variant="outline" onClick={handleClick} disabled={isPending}>
+      {isPending ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Tag className="mr-1 h-3.5 w-3.5" />}
+      Categorise {count}
+    </Button>
   );
 }
 
@@ -113,6 +145,7 @@ export function TransactionsClient({
   dailyCategoryExpenses,
   currency,
   splits,
+  uncategorisedCount,
 }: {
   transactions: Transaction[];
   accounts: AccountWithDetails[];
@@ -130,6 +163,7 @@ export function TransactionsClient({
   dailyCategoryExpenses: DailyCategoryExpensePoint[];
   currency: string;
   splits?: Record<string, SplitDetail[]>;
+  uncategorisedCount?: number;
 }) {
   const router = useRouter();
   const [expandedSplits, setExpandedSplits] = useState<Set<string>>(new Set());
@@ -376,16 +410,13 @@ export function TransactionsClient({
   const rows = table.getRowModel().rows;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8 p-6 md:p-10">
-      <div className="flex items-start justify-between page-header-gradient">
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Transactions</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Review and manage your recent financial activity.
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Transactions</h1>
         </div>
         {canCreateTransaction ? (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <ImportCSVDialog
               accounts={accounts}
               onImported={() => router.refresh()}
@@ -401,6 +432,9 @@ export function TransactionsClient({
               categories={categories}
               onSaved={() => router.refresh()}
             />
+            {(uncategorisedCount ?? 0) > 0 && (
+              <BulkCategoriseButton count={uncategorisedCount ?? 0} />
+            )}
             <QuickAddTransaction
               onSaved={handleTransactionsAdded}
             />
@@ -522,63 +556,23 @@ export function TransactionsClient({
         </CardContent>
       </Card>
 
-      {/* Summary cards */}
-      <BlurFade delay={0.05} inView>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card className="summary-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div>
-              <CardDescription className="text-sm font-medium">
-                Total Transactions
-              </CardDescription>
-              <p className="text-muted-foreground text-xs">{dateLabel}</p>
-            </div>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/8">
-              <Receipt className="text-primary h-4 w-4" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <CardTitle className="text-2xl">{totalTransactions}</CardTitle>
-          </CardContent>
-        </Card>
-        <Card className="summary-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div>
-              <CardDescription className="text-sm font-medium">
-                Total Income
-              </CardDescription>
-              <p className="text-muted-foreground text-xs">{dateLabel}</p>
-            </div>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/30">
-              <ArrowUpRight className="h-4 w-4 text-emerald-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <CardTitle className="text-2xl text-emerald-600">
-              {formatCurrency(totalIncome, currency)}
-            </CardTitle>
-          </CardContent>
-        </Card>
-        <Card className="summary-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div>
-              <CardDescription className="text-sm font-medium">
-                Total Expenses
-              </CardDescription>
-              <p className="text-muted-foreground text-xs">{dateLabel}</p>
-            </div>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-100 dark:bg-red-900/30">
-              <ArrowDownLeft className="h-4 w-4 text-red-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <CardTitle className="text-2xl text-red-600">
-              {formatCurrency(totalExpenses, currency)}
-            </CardTitle>
-          </CardContent>
-        </Card>
-      </div>
-      </BlurFade>
+      {/* Compact stats */}
+      <Card>
+        <CardContent className="grid grid-cols-3 divide-x py-4">
+          <div className="px-4 text-center">
+            <p className="text-xs text-muted-foreground">Transactions</p>
+            <p className="text-lg font-semibold tabular-nums">{totalTransactions}</p>
+          </div>
+          <div className="px-4 text-center">
+            <p className="text-xs text-muted-foreground">Income</p>
+            <p className="text-lg font-semibold tabular-nums text-emerald-600">{formatCurrency(totalIncome, currency)}</p>
+          </div>
+          <div className="px-4 text-center">
+            <p className="text-xs text-muted-foreground">Expenses</p>
+            <p className="text-lg font-semibold tabular-nums text-red-600">{formatCurrency(totalExpenses, currency)}</p>
+          </div>
+        </CardContent>
+      </Card>
 
       <TransactionsInsightsCharts
         dailyTrend={dailyTrend}
