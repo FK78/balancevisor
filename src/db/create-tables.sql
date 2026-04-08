@@ -342,3 +342,32 @@ CREATE TABLE mfa_backup_codes (
 );
 
 CREATE INDEX mfa_backup_codes_user_id_idx ON mfa_backup_codes (user_id);
+
+-- 24. zakat_settings (no FK deps)
+CREATE TABLE zakat_settings (
+  id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id           UUID        NOT NULL UNIQUE,
+  anniversary_date  DATE        NOT NULL,
+  use_lunar_calendar BOOLEAN    NOT NULL DEFAULT FALSE,
+  nisab_type        VARCHAR(10) NOT NULL DEFAULT 'gold',
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 25. zakat_calculations (no FK deps)
+CREATE TABLE zakat_calculations (
+  id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id           UUID        NOT NULL,
+  calculated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  is_auto           BOOLEAN     NOT NULL DEFAULT FALSE,
+  nisab_value       NUMERIC     NOT NULL,
+  total_assets      NUMERIC     NOT NULL,
+  cash_and_savings  NUMERIC     NOT NULL DEFAULT 0,
+  investment_value  NUMERIC     NOT NULL DEFAULT 0,
+  total_liabilities NUMERIC     NOT NULL DEFAULT 0,
+  debt_deductions   NUMERIC     NOT NULL DEFAULT 0,
+  zakatable_amount  NUMERIC     NOT NULL,
+  zakat_due         NUMERIC     NOT NULL,
+  above_nisab       BOOLEAN     NOT NULL,
+  breakdown_json    TEXT
+);
