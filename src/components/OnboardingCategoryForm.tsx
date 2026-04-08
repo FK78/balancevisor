@@ -21,7 +21,7 @@ export function OnboardingCategoryForm({ action }: { action: AddCategoryAction }
   }, [iconSearch]);
 
   return (
-    <form action={action} className="grid gap-4 rounded-md border p-4">
+    <form action={action} className="grid gap-4 rounded-xl bg-muted/30 p-4">
       <input type="hidden" name="color" value={selectedColor} />
       <input type="hidden" name="icon" value={selectedIcon ?? ""} />
 

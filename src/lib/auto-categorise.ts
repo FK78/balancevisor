@@ -1,21 +1,62 @@
-import { db } from '@/index';
-import { categorisationRulesTable } from '@/db/schema';
-import { eq, desc } from 'drizzle-orm';
-import { groq } from '@ai-sdk/groq';
-import { generateText } from 'ai';
-import { z } from 'zod';
-import { getCategoriesByUser } from '@/db/queries/categories';
-import { logger } from '@/lib/logger';
+import { db } from "@/index";
+import { categorisationRulesTable } from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
+import { groq } from "@ai-sdk/groq";
+import { generateText } from "ai";
+import { z } from "zod";
+import { getCategoriesByUser } from "@/db/queries/categories";
+import { logger } from "@/lib/logger";
 
 const categoriseSchema = z.object({
   category_id: z.string().nullable(),
   confidence: z.number().min(0).max(1),
 });
 
+export type CategorisationRule = {
+  pattern: string;
+  category_id: string | null;
+};
+
+/**
+ * Fetch all categorisation rules for a user from the database.
+ * Call this once and pass the result to matchAgainstRules to avoid
+ * N+1 queries when categorising multiple transactions in a loop.
+ */
+export async function fetchUserRules(
+  userId: string,
+): Promise<CategorisationRule[]> {
+  return db
+    .select({
+      pattern: categorisationRulesTable.pattern,
+      category_id: categorisationRulesTable.category_id,
+    })
+    .from(categorisationRulesTable)
+    .where(eq(categorisationRulesTable.user_id, userId))
+    .orderBy(desc(categorisationRulesTable.priority));
+}
+
+/**
+ * Pure function — matches a description against a pre-fetched rule list.
+ * No database calls. Use this inside loops after calling fetchUserRules once.
+ * Returns the category_id of the first matching rule, or null if no match.
+ */
+export function matchAgainstRules(
+  rules: CategorisationRule[],
+  description: string,
+): string | null {
+  const descLower = description.toLowerCase();
+  for (const rule of rules) {
+    if (!rule.category_id) continue;
+    if (descLower.includes(rule.pattern.toLowerCase())) {
+      return rule.category_id;
+    }
+  }
+  return null;
+}
+
 /**
  * Matches a transaction description against the user's categorisation rules.
- * Rules are checked in priority order (highest first).
- * Pattern matching is case-insensitive substring match.
+ * Fetches rules from the DB on every call — use matchAgainstRules in loops.
  * Falls back to AI categorisation if no rule matches and GROQ_API_KEY is set.
  * Returns the category_id of the first matching rule, or null if no match.
  */
@@ -23,25 +64,10 @@ export async function matchCategorisationRule(
   userId: string,
   description: string,
 ): Promise<string | null> {
-  const rules = await db.select({
-    pattern: categorisationRulesTable.pattern,
-    category_id: categorisationRulesTable.category_id,
-  })
-    .from(categorisationRulesTable)
-    .where(eq(categorisationRulesTable.user_id, userId))
-    .orderBy(desc(categorisationRulesTable.priority));
+  const rules = await fetchUserRules(userId);
+  const match = matchAgainstRules(rules, description);
+  if (match) return match;
 
-  const descLower = description.toLowerCase();
-
-  for (const rule of rules) {
-    if (!rule.category_id) continue;
-    const pattern = rule.pattern.toLowerCase();
-    if (descLower.includes(pattern)) {
-      return rule.category_id;
-    }
-  }
-
-  // Fallback: AI-powered categorisation
   if (process.env.GROQ_API_KEY) {
     return aiCategorise(userId, description);
   }
@@ -61,10 +87,12 @@ async function aiCategorise(
     const categories = await getCategoriesByUser(userId);
     if (categories.length === 0) return null;
 
-    const categoryList = categories.map((c) => `- id: "${c.id}" → ${c.name}`).join('\n');
+    const categoryList = categories
+      .map((c) => `- id: "${c.id}" → ${c.name}`)
+      .join("\n");
 
     const { text: responseText } = await generateText({
-      model: groq('openai/gpt-oss-20b'),
+      model: groq("openai/gpt-oss-20b"),
       prompt: `You are a financial transaction categoriser. Given a transaction description and a list of categories, pick the single best category.
 
 Transaction: "${description}"

@@ -161,7 +161,7 @@ export function AccountQuickAdd({ currency, onAddAccount, existingAccounts }: Ac
           Add custom account
         </Button>
       ) : (
-        <form onSubmit={handleCustomSubmit} className="space-y-4 rounded-lg border p-4">
+        <form onSubmit={handleCustomSubmit} className="space-y-4 rounded-xl bg-muted/30 p-4">
           <div className="grid gap-2">
             <Label htmlFor="custom-name">Account Name</Label>
             <Input
