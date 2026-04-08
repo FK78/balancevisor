@@ -1,6 +1,6 @@
 'use server';
 
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { debtsTable, debtPaymentsTable, accountsTable } from '@/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { revalidateDomains } from '@/lib/revalidate';
@@ -27,7 +27,8 @@ export async function addDebt(formData: FormData) {
   const userId = await getCurrentUserId();
   const { name, original_amount, remaining_amount, interest_rate, minimum_payment, due_date, lender, color } = parseDebtForm(formData);
 
-  const [result] = await db.insert(debtsTable).values({
+  const userDb = await getUserDb(userId);
+  const [result] = await userDb.insert(debtsTable).values({
     user_id: userId,
     name,
     original_amount,
@@ -49,7 +50,8 @@ export async function editDebt(id: string, formData: FormData) {
   await requireOwnership(debtsTable, id, userId, 'debt');
   const { name, original_amount, remaining_amount, interest_rate, minimum_payment, due_date, lender, color } = parseDebtForm(formData);
 
-  await db.update(debtsTable).set({
+  const userDb = await getUserDb(userId);
+  await userDb.update(debtsTable).set({
     name,
     original_amount,
     remaining_amount,
@@ -66,7 +68,8 @@ export async function editDebt(id: string, formData: FormData) {
 
 export async function deleteDebt(id: string) {
   const userId = await getCurrentUserId();
-  await db.delete(debtsTable).where(and(eq(debtsTable.id, id), eq(debtsTable.user_id, userId)));
+  const userDb = await getUserDb(userId);
+  await userDb.delete(debtsTable).where(and(eq(debtsTable.id, id), eq(debtsTable.user_id, userId)));
   revalidateDomains('debts');
 }
 
@@ -77,16 +80,18 @@ export async function recordDebtPayment(debtId: string, amount: number, date: st
   await requireOwnership(accountsTable, accountId, userId, 'account');
 
   // Insert payment record
-  await db.insert(debtPaymentsTable).values({
+  const userDb = await getUserDb(userId);
+  await userDb.insert(debtPaymentsTable).values({
     debt_id: debtId,
     account_id: accountId,
     amount,
     date,
     note: note || null,
+    user_id: userId,
   });
 
   // Reduce remaining amount
-  const [debt] = await db.select({
+  const [debt] = await userDb.select({
     remaining_amount: debtsTable.remaining_amount,
     name: debtsTable.name,
   })
@@ -95,7 +100,7 @@ export async function recordDebtPayment(debtId: string, amount: number, date: st
 
   if (debt) {
     const newRemaining = Math.max(debt.remaining_amount - amount, 0);
-    await db.update(debtsTable).set({
+    await userDb.update(debtsTable).set({
       remaining_amount: newRemaining,
       is_paid_off: newRemaining <= 0,
     }).where(eq(debtsTable.id, debtId));
@@ -109,9 +114,10 @@ export async function recordDebtPayment(debtId: string, amount: number, date: st
     date,
     account_id: accountId,
     category_id: null,
+    user_id: userId,
   }, userId);
 
-  await db.update(accountsTable)
+  await userDb.update(accountsTable)
     .set({ balance: sql`${accountsTable.balance} - ${amount}` })
     .where(eq(accountsTable.id, accountId));
 

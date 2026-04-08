@@ -1,22 +1,25 @@
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { budgetAlertPreferencesTable, budgetNotificationsTable } from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 
-export async function getAlertPreferences(budgetId: string) {
-  const [row] = await db.select()
+export async function getAlertPreferences(budgetId: string, userId: string) {
+  const userDb = await getUserDb(userId);
+  const [row] = await userDb.select()
     .from(budgetAlertPreferencesTable)
     .where(eq(budgetAlertPreferencesTable.budget_id, budgetId));
   return row ?? null;
 }
 
 export async function getAlertPreferencesByUser(userId: string) {
-  return await db.select()
+  const userDb = await getUserDb(userId);
+  return await userDb.select()
     .from(budgetAlertPreferencesTable)
     .where(eq(budgetAlertPreferencesTable.user_id, userId));
 }
 
 export async function getUnreadNotifications(userId: string) {
-  return await db.select()
+  const userDb = await getUserDb(userId);
+  return await userDb.select()
     .from(budgetNotificationsTable)
     .where(
       and(
@@ -28,7 +31,8 @@ export async function getUnreadNotifications(userId: string) {
 }
 
 export async function getAllNotifications(userId: string, limit = 20) {
-  return await db.select()
+  const userDb = await getUserDb(userId);
+  return await userDb.select()
     .from(budgetNotificationsTable)
     .where(eq(budgetNotificationsTable.user_id, userId))
     .orderBy(desc(budgetNotificationsTable.created_at))
@@ -36,7 +40,8 @@ export async function getAllNotifications(userId: string, limit = 20) {
 }
 
 export async function getUnreadCount(userId: string) {
-  const rows = await db.select()
+  const userDb = await getUserDb(userId);
+  const rows = await userDb.select()
     .from(budgetNotificationsTable)
     .where(
       and(

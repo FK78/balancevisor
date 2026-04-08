@@ -1,6 +1,6 @@
 'use server';
 
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { mfaBackupCodesTable } from '@/db/schema';
 import { getCurrentUserId } from '@/lib/auth';
 import { eq, and } from 'drizzle-orm';
@@ -22,7 +22,8 @@ export interface UseBackupCodeResult {
 export async function getBackupCodes(): Promise<BackupCodeInfo[]> {
   const userId = await getCurrentUserId();
 
-  const codes = await db.select({
+  const userDb = await getUserDb(userId);
+  const codes = await userDb.select({
     id: mfaBackupCodesTable.id,
     used: mfaBackupCodesTable.used,
     used_at: mfaBackupCodesTable.used_at,
@@ -46,7 +47,8 @@ export async function useBackupCode(code: string): Promise<UseBackupCodeResult> 
   const codeHash = crypto.createHash('sha256').update(code).digest('hex');
 
   // Find the backup code
-  const [backupCode] = await db.select()
+  const userDb = await getUserDb(userId);
+  const [backupCode] = await userDb.select()
     .from(mfaBackupCodesTable)
     .where(
       and(
@@ -64,7 +66,7 @@ export async function useBackupCode(code: string): Promise<UseBackupCodeResult> 
   }
 
   // Mark the code as used
-  await db.update(mfaBackupCodesTable)
+  await userDb.update(mfaBackupCodesTable)
     .set({
       used: true,
       used_at: new Date(),
@@ -81,7 +83,8 @@ export async function regenerateBackupCodes(): Promise<string[]> {
   const userId = await getCurrentUserId();
 
   // Delete existing backup codes
-  await db.delete(mfaBackupCodesTable).where(eq(mfaBackupCodesTable.user_id, userId));
+  const userDb = await getUserDb(userId);
+  await userDb.delete(mfaBackupCodesTable).where(eq(mfaBackupCodesTable.user_id, userId));
 
   // Generate new backup codes
   const codes: string[] = [];
@@ -98,7 +101,7 @@ export async function regenerateBackupCodes(): Promise<string[]> {
   }));
 
   if (codeHashes.length > 0) {
-    await db.insert(mfaBackupCodesTable).values(codeHashes);
+    await userDb.insert(mfaBackupCodesTable).values(codeHashes);
   }
 
   return codes;

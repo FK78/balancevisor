@@ -1,4 +1,4 @@
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { subscriptionsTable, categoriesTable } from '@/db/schema';
 import { eq, desc, and, lte, gte } from 'drizzle-orm';
 
@@ -22,7 +22,8 @@ const subscriptionSelect = {
 };
 
 export async function getSubscriptions(userId: string) {
-  return await db
+  const userDb = await getUserDb(userId);
+  return await userDb
     .select(subscriptionSelect)
     .from(subscriptionsTable)
     .leftJoin(categoriesTable, eq(subscriptionsTable.category_id, categoriesTable.id))
@@ -48,7 +49,8 @@ export function toYearlyAmount(amount: number, cycle: string): number {
 }
 
 export async function getActiveSubscriptionsTotals(userId: string) {
-  const subs = await db
+  const userDb = await getUserDb(userId);
+  const subs = await userDb
     .select({
       amount: subscriptionsTable.amount,
       billing_cycle: subscriptionsTable.billing_cycle,
@@ -77,7 +79,8 @@ export async function getUpcomingRenewals(userId: string, withinDays = 7) {
   futureDate.setDate(futureDate.getDate() + withinDays);
   const futureDateStr = futureDate.toISOString().split('T')[0];
 
-  return await db
+  const userDb = await getUserDb(userId);
+  return await userDb
     .select(subscriptionSelect)
     .from(subscriptionsTable)
     .leftJoin(categoriesTable, eq(subscriptionsTable.category_id, categoriesTable.id))

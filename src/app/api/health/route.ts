@@ -1,4 +1,4 @@
-import { db } from '@/index';
+import { adminDb } from '@/db/rls-context';
 import { sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
@@ -25,7 +25,7 @@ export async function GET() {
   // Test database connection with a simple query
   try {
     const dbStart = Date.now();
-    await db.execute(sql`SELECT 1`);
+    await adminDb.execute(sql`SELECT 1`);
     const dbLatency = Date.now() - dbStart;
     health.checks.database.latency = dbLatency;
   } catch (error) {

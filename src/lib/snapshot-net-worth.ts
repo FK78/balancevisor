@@ -1,4 +1,4 @@
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { netWorthSnapshotsTable, accountsTable } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { getInvestmentValue } from '@/lib/investment-value';
@@ -12,7 +12,8 @@ export async function snapshotNetWorthIfNeeded(userId: string, prefetchedInvestm
   const today = new Date().toISOString().split('T')[0];
 
   // Check if today's snapshot already exists
-  const [existing] = await db
+  const userDb = await getUserDb(userId);
+  const [existing] = await userDb
     .select({ id: netWorthSnapshotsTable.id })
     .from(netWorthSnapshotsTable)
     .where(
@@ -26,7 +27,7 @@ export async function snapshotNetWorthIfNeeded(userId: string, prefetchedInvestm
   if (existing) return;
 
   // Compute current net worth
-  const accounts = await db
+  const accounts = await userDb
     .select({ type: accountsTable.type, balance: accountsTable.balance })
     .from(accountsTable)
     .where(eq(accountsTable.user_id, userId));
@@ -53,7 +54,7 @@ export async function snapshotNetWorthIfNeeded(userId: string, prefetchedInvestm
   const netWorth = totalAssets - totalLiabilities + investmentValue;
 
   // Insert snapshot (ON CONFLICT DO NOTHING for race safety)
-  await db
+  await userDb
     .insert(netWorthSnapshotsTable)
     .values({
       user_id: userId,

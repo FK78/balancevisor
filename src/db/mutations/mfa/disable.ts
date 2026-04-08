@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentUserId } from '@/lib/auth';
 import { rateLimiters } from '@/lib/rate-limiter';
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { mfaBackupCodesTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
@@ -56,7 +56,8 @@ export async function disableMfa(password: string): Promise<DisableMfaResult> {
     }
 
     // Delete all backup codes for the user
-    await db.delete(mfaBackupCodesTable).where(eq(mfaBackupCodesTable.user_id, userId));
+    const userDb = await getUserDb(userId);
+    await userDb.delete(mfaBackupCodesTable).where(eq(mfaBackupCodesTable.user_id, userId));
 
     // Update user metadata
     const metadata = user.user_metadata || {};

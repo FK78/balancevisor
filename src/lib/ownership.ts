@@ -6,7 +6,7 @@
  * of hand-rolling ownership checks.
  */
 
-import { db } from "@/index";
+import { getUserDb } from "@/db/rls-context";
 import { eq } from "drizzle-orm";
 import { UnauthorizedError } from "@/lib/errors";
 import type { PgTable, PgColumn } from "drizzle-orm/pg-core";
@@ -31,7 +31,8 @@ export async function requireOwnership(
   userId: string,
   label: string,
 ): Promise<void> {
-  const [row] = await db
+  const userDb = await getUserDb(userId);
+  const [row] = await userDb
     .select({ user_id: table.user_id })
     .from(table)
     .where(eq(table.id, id));

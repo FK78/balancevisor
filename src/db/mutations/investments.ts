@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/index";
+import { getUserDb } from "@/db/rls-context";
 import { createTransaction } from "@/db/mutations/transactions";
 import { trading212ConnectionsTable, manualHoldingsTable, holdingSalesTable, accountsTable } from "@/db/schema";
 import { eq, and, isNotNull, sql } from "drizzle-orm";
@@ -26,7 +26,8 @@ export async function connectTrading212(formData: FormData) {
   const encryptedKey = encryptForUser(apiKey, userKey);
   const encryptedSecret = encryptForUser(apiSecret, userKey);
 
-  await db
+  const userDb = await getUserDb(userId);
+  await userDb
     .insert(trading212ConnectionsTable)
     .values({
       user_id: userId,
@@ -51,7 +52,8 @@ export async function connectTrading212(formData: FormData) {
 
 export async function disconnectTrading212() {
   const userId = await getCurrentUserId();
-  await db
+  const userDb = await getUserDb(userId);
+  await userDb
     .delete(trading212ConnectionsTable)
     .where(eq(trading212ConnectionsTable.user_id, userId));
   revalidateInvestments();
@@ -84,7 +86,8 @@ export async function addManualHolding(formData: FormData) {
     ticker = tickerRaw ? tickerRaw.toUpperCase() : null;
   }
 
-  await db.insert(manualHoldingsTable).values({
+  const userDb = await getUserDb(userId);
+  await userDb.insert(manualHoldingsTable).values({
     user_id: userId,
     ticker,
     name,
@@ -107,7 +110,8 @@ export async function editManualHolding(id: string, formData: FormData) {
   const userId = await getCurrentUserId();
   
   // Fetch existing holding to know its investment_type
-  const existing = await db
+  const userDb = await getUserDb(userId);
+  const existing = await userDb
     .select()
     .from(manualHoldingsTable)
     .where(
@@ -143,7 +147,7 @@ export async function editManualHolding(id: string, formData: FormData) {
     ticker = tickerRaw ? tickerRaw.toUpperCase() : null;
   }
 
-  await db
+  await userDb
     .update(manualHoldingsTable)
     .set({
       ticker,
@@ -167,7 +171,8 @@ export async function editManualHolding(id: string, formData: FormData) {
 
 export async function deleteManualHolding(id: string) {
   const userId = await getCurrentUserId();
-  await db
+  const userDb = await getUserDb(userId);
+  await userDb
     .delete(manualHoldingsTable)
     .where(
       and(
@@ -191,7 +196,8 @@ export async function recordHoldingSale(formData: FormData) {
   const notes = (formData.get("notes") as string) || null;
 
   // Fetch holding
-  const [holding] = await db
+  const userDb = await getUserDb(userId);
+  const [holding] = await userDb
     .select()
     .from(manualHoldingsTable)
     .where(
@@ -208,7 +214,7 @@ export async function recordHoldingSale(formData: FormData) {
   const realizedGain = (pricePerUnit - holding.average_price) * quantity;
 
   // Update holding quantity (reduce)
-  await db
+  await userDb
     .update(manualHoldingsTable)
     .set({
       quantity: holding.quantity - quantity,
@@ -216,7 +222,7 @@ export async function recordHoldingSale(formData: FormData) {
     .where(eq(manualHoldingsTable.id, holdingId));
 
   // Insert sale record
-  await db.insert(holdingSalesTable).values({
+  await userDb.insert(holdingSalesTable).values({
     holding_id: holdingId,
     user_id: userId,
     date: toDateString(date),
@@ -243,10 +249,11 @@ export async function recordHoldingSale(formData: FormData) {
       next_recurring_date: null,
       transfer_account_id: null,
       is_split: false,
+      user_id: userId,
     }, userId);
 
     // Update account balance
-    await db.update(accountsTable)
+    await userDb.update(accountsTable)
       .set({ balance: sql`${accountsTable.balance} + ${totalAmount}` })
       .where(eq(accountsTable.id, cashAccountId));
 
@@ -258,7 +265,8 @@ export async function recordHoldingSale(formData: FormData) {
 
 export async function refreshManualHoldingPrices() {
   const userId = await getCurrentUserId();
-  const holdings = await db
+  const userDb = await getUserDb(userId);
+  const holdings = await userDb
     .select()
     .from(manualHoldingsTable)
     .where(
@@ -272,7 +280,7 @@ export async function refreshManualHoldingPrices() {
   const updates = holdings.map(async (holding) => {
     const quote = await getQuote(holding.ticker!);
     if (quote) {
-      await db
+      await userDb
         .update(manualHoldingsTable)
         .set({
           current_price: quote.currentPrice,

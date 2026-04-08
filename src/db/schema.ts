@@ -73,11 +73,13 @@ export const transactionsTable = pgTable("transactions", {
   transfer_account_id: uuid("transfer_account_id").references(() => accountsTable.id),
   truelayer_id: varchar("truelayer_id", { length: 255 }),
   is_split: boolean("is_split").notNull().default(false),
+  user_id: uuid("user_id").notNull(),
 }, (table) => [{
   accountIdx: index("transactions_account_id_idx").on(table.account_id),
   categoryIdx: index("transactions_category_id_idx").on(table.category_id),
   dateIdx: index("transactions_date_idx").on(table.date),
   accountDateIdx: index("transactions_account_id_date_idx").on(table.account_id, table.date),
+  userIdx: index("transactions_user_id_idx").on(table.user_id),
 }]);
 
 export const budgetsTable = pgTable("budgets", {
@@ -139,9 +141,11 @@ export const debtPaymentsTable = pgTable("debt_payments", {
   amount: numeric({ mode: "number" }).notNull(),
   date: date().notNull(),
   note: text(),
+  user_id: uuid("user_id").notNull(),
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [{
   debtIdx: index("debt_payments_debt_id_idx").on(table.debt_id),
+  userIdx: index("debt_payments_user_id_idx").on(table.user_id),
 }]);
 
 export const budgetAlertPreferencesTable = pgTable("budget_alert_preferences", {
@@ -240,8 +244,10 @@ export const transactionSplitsTable = pgTable("transaction_splits", {
   category_id: uuid("category_id").references(() => categoriesTable.id),
   amount: numeric({ mode: "number" }).notNull(),
   description: text(),
+  user_id: uuid("user_id").notNull(),
 }, (table) => [{
   transactionIdx: index("transaction_splits_transaction_id_idx").on(table.transaction_id),
+  userIdx: index("transaction_splits_user_id_idx").on(table.user_id),
 }]);
 
 export const netWorthSnapshotsTable = pgTable("net_worth_snapshots", {

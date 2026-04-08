@@ -1,4 +1,4 @@
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { transactionSplitsTable, categoriesTable } from '@/db/schema';
 import { eq, inArray } from 'drizzle-orm';
 
@@ -12,18 +12,20 @@ const splitSelect = {
   description: transactionSplitsTable.description,
 };
 
-export async function getSplitsForTransaction(transactionId: string) {
-  return await db
+export async function getSplitsForTransaction(transactionId: string, userId: string) {
+  const userDb = await getUserDb(userId);
+  return await userDb
     .select(splitSelect)
     .from(transactionSplitsTable)
     .leftJoin(categoriesTable, eq(transactionSplitsTable.category_id, categoriesTable.id))
     .where(eq(transactionSplitsTable.transaction_id, transactionId));
 }
 
-export async function getSplitsForTransactions(transactionIds: string[]) {
+export async function getSplitsForTransactions(transactionIds: string[], userId: string) {
   if (transactionIds.length === 0) return new Map<string, SplitRow[]>();
 
-  const rows = await db
+  const userDb = await getUserDb(userId);
+  const rows = await userDb
     .select(splitSelect)
     .from(transactionSplitsTable)
     .leftJoin(categoriesTable, eq(transactionSplitsTable.category_id, categoriesTable.id))

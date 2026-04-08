@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/index";
+import { getUserDb } from "@/db/rls-context";
 import { sharedAccessTable, accountsTable, budgetsTable, categoriesTable } from "@/db/schema";
 import { eq, and, or, inArray } from "drizzle-orm";
 import { decryptForUser, getUserKey } from "@/lib/encryption";
@@ -10,7 +10,8 @@ import type { SharedAccess } from "@/lib/types";
  * Get all shares where the current user is the owner (things they've shared out).
  */
 export async function getSharesByOwner(userId: string): Promise<SharedAccess[]> {
-  return db
+  const userDb = await getUserDb(userId);
+  return userDb
     .select()
     .from(sharedAccessTable)
     .where(eq(sharedAccessTable.owner_id, userId));
@@ -25,7 +26,8 @@ export async function getSharesForResource(
   resourceType: "account" | "budget",
   resourceId: string,
 ): Promise<SharedAccess[]> {
-  return db
+  const userDb = await getUserDb(userId);
+  return userDb
     .select()
     .from(sharedAccessTable)
     .where(
@@ -44,7 +46,8 @@ export async function getPendingInvitations(
   userId: string,
   email: string,
 ): Promise<(SharedAccess & { resourceName: string })[]> {
-  const rows = await db
+  const userDb = await getUserDb(userId);
+  const rows = await userDb
     .select()
     .from(sharedAccessTable)
     .where(
@@ -63,7 +66,7 @@ export async function getPendingInvitations(
 
   const accountNameMap = new Map<string, string>();
   if (accountIds.length > 0) {
-    const accounts = await db
+    const accounts = await userDb
       .select({ id: accountsTable.id, name: accountsTable.name, user_id: accountsTable.user_id })
       .from(accountsTable)
       .where(inArray(accountsTable.id, accountIds));
@@ -84,7 +87,7 @@ export async function getPendingInvitations(
 
   const budgetNameMap = new Map<string, string>();
   if (budgetIds.length > 0) {
-    const budgetRows = await db
+    const budgetRows = await userDb
       .select({ id: budgetsTable.id, name: categoriesTable.name })
       .from(budgetsTable)
       .innerJoin(categoriesTable, eq(categoriesTable.id, budgetsTable.category_id))
@@ -112,7 +115,8 @@ export async function getSharedAccountIds(
   userId: string,
   email: string,
 ): Promise<string[]> {
-  const rows = await db
+  const userDb = await getUserDb(userId);
+  const rows = await userDb
     .select({ resource_id: sharedAccessTable.resource_id })
     .from(sharedAccessTable)
     .where(
@@ -135,7 +139,8 @@ export async function getSharedBudgetIds(
   userId: string,
   email: string,
 ): Promise<string[]> {
-  const rows = await db
+  const userDb = await getUserDb(userId);
+  const rows = await userDb
     .select({ resource_id: sharedAccessTable.resource_id })
     .from(sharedAccessTable)
     .where(
@@ -160,15 +165,16 @@ export async function hasEditAccess(
   resourceType: "account" | "budget",
   resourceId: string,
 ): Promise<boolean> {
+  const userDb = await getUserDb(userId);
   // Check ownership first
   if (resourceType === "account") {
-    const [owned] = await db
+    const [owned] = await userDb
       .select({ id: accountsTable.id })
       .from(accountsTable)
       .where(and(eq(accountsTable.id, resourceId), eq(accountsTable.user_id, userId)));
     if (owned) return true;
   } else {
-    const [owned] = await db
+    const [owned] = await userDb
       .select({ id: budgetsTable.id })
       .from(budgetsTable)
       .where(and(eq(budgetsTable.id, resourceId), eq(budgetsTable.user_id, userId)));
@@ -176,7 +182,7 @@ export async function hasEditAccess(
   }
 
   // Check shared access
-  const [shared] = await db
+  const [shared] = await userDb
     .select({ id: sharedAccessTable.id })
     .from(sharedAccessTable)
     .where(

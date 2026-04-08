@@ -1,6 +1,6 @@
 'use server';
 
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { budgetsTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { revalidateDomains } from '@/lib/revalidate';
@@ -17,7 +17,8 @@ export async function addBudget(formData: FormData) {
   const period = sanitizeEnum(formData.get('period') as string, ['monthly', 'weekly'] as const, 'monthly');
   const start_date = requireDate(formData.get('start_date') as string, 'Start date');
 
-  const [result] = await db.insert(budgetsTable).values({
+  const userDb = await getUserDb(userId);
+  const [result] = await userDb.insert(budgetsTable).values({
     user_id: userId,
     category_id,
     amount,
@@ -38,7 +39,8 @@ export async function editBudget(id: string, formData: FormData) {
   const period = sanitizeEnum(formData.get('period') as string, ['monthly', 'weekly'] as const, 'monthly');
   const start_date = requireDate(formData.get('start_date') as string, 'Start date');
 
-  await db.update(budgetsTable).set({
+  const userDb = await getUserDb(userId);
+  await userDb.update(budgetsTable).set({
     category_id,
     amount,
     period,
@@ -54,7 +56,8 @@ export async function deleteBudget(id: string) {
 
   await requireOwnership(budgetsTable, id, userId, 'budget');
 
-  await db.delete(budgetsTable).where(eq(budgetsTable.id, id));
+  const userDb = await getUserDb(userId);
+  await userDb.delete(budgetsTable).where(eq(budgetsTable.id, id));
 
   revalidateDomains('budgets');
   invalidateByUser(userId);

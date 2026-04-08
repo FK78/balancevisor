@@ -1,6 +1,6 @@
 'use server';
 
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { transactionsTable, accountsTable } from '@/db/schema';
 import { revalidateDomains } from '@/lib/revalidate';
 import { eq, and } from 'drizzle-orm';
@@ -16,7 +16,8 @@ export async function cancelRecurring(transactionId: string) {
   const userId = await getCurrentUserId();
 
   // Verify ownership
-  const [txn] = await db
+  const userDb = await getUserDb(userId);
+  const [txn] = await userDb
     .select({ account_id: transactionsTable.account_id })
     .from(transactionsTable)
     .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
@@ -29,7 +30,7 @@ export async function cancelRecurring(transactionId: string) {
 
   if (!txn) throw new Error('Transaction not found');
 
-  await db
+  await userDb
     .update(transactionsTable)
     .set({
       is_recurring: false,
@@ -51,7 +52,8 @@ export async function updateRecurringPattern(formData: FormData) {
   const nextDate = sanitizeDate(formData.get('next_recurring_date') as string);
 
   // Verify ownership
-  const [txn] = await db
+  const userDb = await getUserDb(userId);
+  const [txn] = await userDb
     .select({ account_id: transactionsTable.account_id })
     .from(transactionsTable)
     .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
@@ -64,7 +66,7 @@ export async function updateRecurringPattern(formData: FormData) {
 
   if (!txn) throw new Error('Transaction not found');
 
-  await db
+  await userDb
     .update(transactionsTable)
     .set({
       recurring_pattern: pattern as typeof transactionsTable.$inferInsert['recurring_pattern'],

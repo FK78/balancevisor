@@ -1,6 +1,6 @@
 'use server';
 
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { accountsTable, transactionsTable } from '@/db/schema';
 import { revalidateDomains } from '@/lib/revalidate';
 import { eq, sql } from 'drizzle-orm';
@@ -200,12 +200,14 @@ export async function importTransactionsFromCSV(
       is_recurring: false as const,
       recurring_pattern: null,
       next_recurring_date: null,
+      user_id: userId,
     };
   });
 
   // Batch insert all rows + update balance in a single transaction
   const BATCH_SIZE = 500;
-  await db.transaction(async (tx) => {
+  const userDb = await getUserDb(userId);
+  await userDb.transaction(async (tx) => {
     for (let i = 0; i < insertValues.length; i += BATCH_SIZE) {
       await tx.insert(transactionsTable).values(insertValues.slice(i, i + BATCH_SIZE));
     }

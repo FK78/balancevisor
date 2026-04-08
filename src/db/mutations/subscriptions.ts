@@ -1,6 +1,6 @@
 'use server';
 
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { subscriptionsTable, accountsTable } from '@/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { revalidateDomains } from '@/lib/revalidate';
@@ -29,7 +29,8 @@ export async function addSubscription(formData: FormData) {
   const userId = await getCurrentUserId();
   const { name, amount, accountId, categoryId, nextBillingDate, currency, billing_cycle, url, notes, color, icon } = parseSubscriptionForm(formData);
 
-  const [result] = await db.insert(subscriptionsTable).values({
+  const userDb = await getUserDb(userId);
+  const [result] = await userDb.insert(subscriptionsTable).values({
     user_id: userId,
     name,
     amount,
@@ -52,9 +53,10 @@ export async function addSubscription(formData: FormData) {
     date: nextBillingDate,
     account_id: accountId,
     category_id: categoryId,
+    user_id: userId,
   }, userId);
 
-  await db.update(accountsTable)
+  await userDb.update(accountsTable)
     .set({ balance: sql`${accountsTable.balance} - ${amount}` })
     .where(eq(accountsTable.id, accountId));
 
@@ -68,7 +70,8 @@ export async function editSubscription(id: string, formData: FormData) {
   const userId = await getCurrentUserId();
   const { name, amount, accountId, categoryId, nextBillingDate, currency, billing_cycle, url, notes, color, icon } = parseSubscriptionForm(formData);
 
-  await db.update(subscriptionsTable).set({
+  const userDb = await getUserDb(userId);
+  await userDb.update(subscriptionsTable).set({
     name,
     amount,
     currency,
@@ -87,7 +90,8 @@ export async function editSubscription(id: string, formData: FormData) {
 
 export async function deleteSubscription(id: string) {
   const userId = await getCurrentUserId();
-  await db.delete(subscriptionsTable).where(
+  const userDb = await getUserDb(userId);
+  await userDb.delete(subscriptionsTable).where(
     and(eq(subscriptionsTable.id, id), eq(subscriptionsTable.user_id, userId))
   );
   revalidateDomains('subscriptions');
@@ -96,13 +100,14 @@ export async function deleteSubscription(id: string) {
 export async function toggleSubscription(id: string) {
   const userId = await getCurrentUserId();
 
-  const [sub] = await db.select({ is_active: subscriptionsTable.is_active })
+  const userDb = await getUserDb(userId);
+  const [sub] = await userDb.select({ is_active: subscriptionsTable.is_active })
     .from(subscriptionsTable)
     .where(and(eq(subscriptionsTable.id, id), eq(subscriptionsTable.user_id, userId)));
 
   if (!sub) return;
 
-  await db.update(subscriptionsTable).set({
+  await userDb.update(subscriptionsTable).set({
     is_active: !sub.is_active,
   }).where(and(eq(subscriptionsTable.id, id), eq(subscriptionsTable.user_id, userId)));
 

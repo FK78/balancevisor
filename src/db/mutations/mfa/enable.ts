@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentUserId } from '@/lib/auth';
 import { rateLimiters } from '@/lib/rate-limiter';
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { mfaBackupCodesTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import * as crypto from 'crypto';
@@ -70,7 +70,8 @@ export async function enableMfa(
     let backupCodes: string[] = [];
     if (generateNewBackupCodes) {
       // Delete existing backup codes
-      await db.delete(mfaBackupCodesTable).where(eq(mfaBackupCodesTable.user_id, userId));
+      const userDb = await getUserDb(userId);
+      await userDb.delete(mfaBackupCodesTable).where(eq(mfaBackupCodesTable.user_id, userId));
 
       // Generate new backup codes
       backupCodes = await generateBackupCodes();
@@ -83,7 +84,7 @@ export async function enableMfa(
       }));
 
       if (codeHashes.length > 0) {
-        await db.insert(mfaBackupCodesTable).values(codeHashes);
+        await userDb.insert(mfaBackupCodesTable).values(codeHashes);
       }
     }
 

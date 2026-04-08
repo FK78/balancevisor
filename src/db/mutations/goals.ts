@@ -1,6 +1,6 @@
 'use server';
 
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { goalsTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { revalidateDomains } from '@/lib/revalidate';
@@ -23,7 +23,8 @@ export async function addGoal(formData: FormData) {
   const userId = await getCurrentUserId();
   const { name, target_amount, saved_amount, target_date, icon, color } = parseGoalForm(formData);
 
-  const [result] = await db.insert(goalsTable).values({
+  const userDb = await getUserDb(userId);
+  const [result] = await userDb.insert(goalsTable).values({
     user_id: userId,
     name,
     target_amount,
@@ -42,7 +43,8 @@ export async function editGoal(id: string, formData: FormData) {
   await requireOwnership(goalsTable, id, userId, 'goal');
   const { name, target_amount, saved_amount, target_date, icon, color } = parseGoalForm(formData);
 
-  await db.update(goalsTable).set({
+  const userDb = await getUserDb(userId);
+  await userDb.update(goalsTable).set({
     name,
     target_amount,
     saved_amount,
@@ -58,7 +60,8 @@ export async function deleteGoal(id: string) {
 
   await requireOwnership(goalsTable, id, userId, 'goal');
 
-  await db.delete(goalsTable).where(eq(goalsTable.id, id));
+  const userDb = await getUserDb(userId);
+  await userDb.delete(goalsTable).where(eq(goalsTable.id, id));
   revalidateDomains('goals');
 }
 
@@ -71,7 +74,8 @@ export async function contributeToGoal(id: string, amount: number) {
 
   await requireOwnership(goalsTable, id, userId, 'goal');
 
-  const [goal] = await db.select({ saved_amount: goalsTable.saved_amount })
+  const userDb = await getUserDb(userId);
+  const [goal] = await userDb.select({ saved_amount: goalsTable.saved_amount })
     .from(goalsTable)
     .where(eq(goalsTable.id, id));
 
@@ -79,7 +83,7 @@ export async function contributeToGoal(id: string, amount: number) {
     throw new Error('Goal not found');
   }
 
-  await db.update(goalsTable).set({
+  await userDb.update(goalsTable).set({
     saved_amount: goal.saved_amount + amount,
   }).where(eq(goalsTable.id, id));
   revalidateDomains('goals');

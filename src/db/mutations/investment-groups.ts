@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/index";
+import { getUserDb } from "@/db/rls-context";
 import { investmentGroupsTable, manualHoldingsTable } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidateDomains } from "@/lib/revalidate";
@@ -17,7 +17,8 @@ export async function addInvestmentGroup(formData: FormData) {
   const accountId = sanitizeUUID(formData.get("account_id") as string);
   const color = sanitizeColor(formData.get("color") as string);
 
-  const [result] = await db
+  const userDb = await getUserDb(userId);
+  const [result] = await userDb
     .insert(investmentGroupsTable)
     .values({
       user_id: userId,
@@ -38,7 +39,8 @@ export async function editInvestmentGroup(formData: FormData) {
   const color = sanitizeColor(formData.get("color") as string);
   const accountId = sanitizeUUID(formData.get("account_id") as string);
 
-  await db
+  const userDb = await getUserDb(userId);
+  await userDb
     .update(investmentGroupsTable)
     .set({ name, color, account_id: accountId })
     .where(
@@ -55,7 +57,8 @@ export async function deleteInvestmentGroup(groupId: string) {
   const userId = await getCurrentUserId();
 
   // Holdings in this group will have group_id set to null (ON DELETE SET NULL)
-  await db
+  const userDb = await getUserDb(userId);
+  await userDb
     .delete(investmentGroupsTable)
     .where(
       and(
@@ -70,7 +73,8 @@ export async function deleteInvestmentGroup(groupId: string) {
 export async function assignHoldingToGroup(holdingId: string, groupId: string | null) {
   const userId = await getCurrentUserId();
 
-  await db
+  const userDb = await getUserDb(userId);
+  await userDb
     .update(manualHoldingsTable)
     .set({ group_id: groupId })
     .where(

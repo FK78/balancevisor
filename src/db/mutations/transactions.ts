@@ -1,6 +1,6 @@
 'use server';
 
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { accountsTable, transactionsTable, transactionSplitsTable } from '@/db/schema';
 import { revalidateDomains } from '@/lib/revalidate';
 import { toDateString } from '@/lib/date';
@@ -30,17 +30,19 @@ function computeNextRecurringDate(dateStr: string, pattern: string | null): stri
   return toDateString(d);
 }
 
-type DbClient = typeof db;
-type TransactionDb = Parameters<Parameters<DbClient['transaction']>[0]>[0];
+type UserDb = Awaited<ReturnType<typeof getUserDb>>;
+type TransactionDb = Parameters<Parameters<UserDb['transaction']>[0]>[0];
 
 export async function createTransaction(
   transaction: Transaction,
   userId: string,
-  tx: DbClient | TransactionDb = db,
+  tx?: UserDb | TransactionDb,
 ) {
+  if (!tx) tx = await getUserDb(userId);
   const userKey = await getUserKey(userId);
   return await tx.insert(transactionsTable).values({
     ...transaction,
+    user_id: userId,
     description: transaction.description ? encryptForUser(transaction.description, userKey) : transaction.description,
   }).returning({ id: transactionsTable.id });
 }
@@ -81,7 +83,8 @@ export async function addTransaction(formData: FormData) {
     if (matched) categoryId = matched;
   }
 
-  const result = await db.transaction(async (tx) => {
+  const userDb = await getUserDb(userId);
+  const result = await userDb.transaction(async (tx) => {
     const [inserted] = await createTransaction({
       type,
       amount,
@@ -92,6 +95,7 @@ export async function addTransaction(formData: FormData) {
       category_id: categoryId || (formData.get('category_id') as string) || null,
       recurring_pattern: recurringPattern as typeof transactionsTable.$inferInsert['recurring_pattern'],
       next_recurring_date: nextRecurringDate,
+      user_id: userId,
     }, userId, tx);
 
     await tx.update(accountsTable)
@@ -122,7 +126,8 @@ export async function editTransaction(formData: FormData) {
   if (!canEdit) throw new Error('You do not have access to this account');
 
   // Fetch old transaction to reverse its balance effect
-  const [old] = await db.select({
+  const userDb = await getUserDb(userId);
+  const [old] = await userDb.select({
     type: transactionsTable.type,
     amount: transactionsTable.amount,
     account_id: transactionsTable.account_id,
@@ -140,7 +145,7 @@ export async function editTransaction(formData: FormData) {
   const editDescription = sanitizeString(formData.get('description') as string) ?? '';
   const userKey = await getUserKey(userId);
 
-  const result = await db.transaction(async (tx) => {
+  const result = await userDb.transaction(async (tx) => {
     const [updated] = await tx.update(transactionsTable).set({
       type: newType,
       amount: newAmount,
@@ -198,7 +203,8 @@ export async function addTransfer(formData: FormData) {
   if (!canEditFrom) throw new Error('You do not have access to the source account');
   if (!canEditTo) throw new Error('You do not have access to the destination account');
 
-  const result = await db.transaction(async (tx) => {
+  const userDb = await getUserDb(userId);
+  const result = await userDb.transaction(async (tx) => {
     const [inserted] = await createTransaction({
       type: 'transfer',
       amount,
@@ -210,6 +216,7 @@ export async function addTransfer(formData: FormData) {
       category_id: null,
       recurring_pattern: null,
       next_recurring_date: null,
+      user_id: userId,
     }, userId, tx);
 
     // Deduct from source account
@@ -236,7 +243,8 @@ export async function deleteTransaction(id: string) {
   const userEmail = await getCurrentUserEmail();
 
   // Fetch transaction along with the owning account to verify access
-  const [txn] = await db.select({
+  const userDb = await getUserDb(userId);
+  const [txn] = await userDb.select({
     type: transactionsTable.type,
     amount: transactionsTable.amount,
     account_id: transactionsTable.account_id,
@@ -258,7 +266,7 @@ export async function deleteTransaction(id: string) {
     }
   }
 
-  await db.transaction(async (tx) => {
+  await userDb.transaction(async (tx) => {
     await tx.delete(transactionsTable).where(eq(transactionsTable.id, id));
 
     if (txn?.type === 'transfer') {
@@ -305,7 +313,8 @@ export async function addSplitTransaction(
 
   const userKey = await getUserKey(userId);
 
-  const parent = await db.transaction(async (tx) => {
+  const userDb = await getUserDb(userId);
+  const parent = await userDb.transaction(async (tx) => {
     // Create parent transaction with is_split = true, no single category
     const [inserted] = await tx.insert(transactionsTable).values({
       type,
@@ -318,6 +327,7 @@ export async function addSplitTransaction(
       recurring_pattern: null,
       next_recurring_date: null,
       is_split: true,
+      user_id: userId,
     }).returning({ id: transactionsTable.id });
 
     // Insert splits
@@ -328,6 +338,7 @@ export async function addSplitTransaction(
           category_id: s.category_id,
           amount: s.amount,
           description: s.description ? encryptForUser(s.description, userKey) : null,
+          user_id: userId,
         }))
       );
     }

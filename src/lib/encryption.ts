@@ -2,7 +2,7 @@ import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 import { LRUCache } from "lru-cache";
 import { eq } from "drizzle-orm";
 import { userKeysTable } from "@/db/schema";
-import { db } from "@/index";
+import { getUserDb, adminDb } from "@/db/rls-context";
 
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 12;
@@ -166,7 +166,8 @@ export async function getUserKey(userId: string): Promise<Buffer> {
   const cached = userKeyCache.get(userId);
   if (cached) return cached;
 
-  const [row] = await db
+  const userDb = await getUserDb(userId);
+  const [row] = await userDb
     .select({
       encrypted_key: userKeysTable.encrypted_key,
       key_version: userKeysTable.key_version,
@@ -181,7 +182,7 @@ export async function getUserKey(userId: string): Promise<Buffer> {
     if (cached2) return cached2;
 
     // Fallback: re-read from DB in case cache wasn't populated
-    const [retryRow] = await db
+    const [retryRow] = await userDb
       .select({ encrypted_key: userKeysTable.encrypted_key })
       .from(userKeysTable)
       .where(eq(userKeysTable.user_id, userId));
@@ -207,14 +208,15 @@ export async function getUserKey(userId: string): Promise<Buffer> {
  */
 export async function createUserKey(userId: string): Promise<void> {
   // Check if user already has a key — avoid duplicate insert
-  const [existing] = await db
+  const userDb = await getUserDb(userId);
+  const [existing] = await userDb
     .select({ user_id: userKeysTable.user_id })
     .from(userKeysTable)
     .where(eq(userKeysTable.user_id, userId));
 
   if (existing) {
     if (!userKeyCache.has(userId)) {
-      const [row] = await db
+      const [row] = await userDb
         .select({ encrypted_key: userKeysTable.encrypted_key })
         .from(userKeysTable)
         .where(eq(userKeysTable.user_id, userId));
@@ -229,7 +231,7 @@ export async function createUserKey(userId: string): Promise<void> {
   const newUserKey = randomBytes(32);
   const encryptedUserKey = encrypt(newUserKey.toString("hex"));
 
-  await db.insert(userKeysTable).values({
+  await userDb.insert(userKeysTable).values({
     user_id: userId,
     encrypted_key: encryptedUserKey,
     key_version: 1,
@@ -239,7 +241,7 @@ export async function createUserKey(userId: string): Promise<void> {
   // With onConflictDoNothing(), our insert may have been silently dropped
   // if another concurrent request inserted first. Caching the locally-generated
   // key would then poison the cache with a key that doesn't match the DB.
-  const [persisted] = await db
+  const [persisted] = await userDb
     .select({ encrypted_key: userKeysTable.encrypted_key })
     .from(userKeysTable)
     .where(eq(userKeysTable.user_id, userId));
@@ -350,14 +352,14 @@ export async function rotateMasterKey(): Promise<number> {
 
   const newKey = Buffer.from(newKeyHex, "hex");
 
-  const allUserKeys = await db.select().from(userKeysTable);
+  const allUserKeys = await adminDb.select().from(userKeysTable);
   let rotated = 0;
 
   for (const row of allUserKeys) {
     const userKeyHex = decrypt(row.encrypted_key);
     const newEncrypted = encryptWithKey(userKeyHex, newKey, newVersion);
 
-    await db
+    await adminDb
       .update(userKeysTable)
       .set({
         encrypted_key: newEncrypted,

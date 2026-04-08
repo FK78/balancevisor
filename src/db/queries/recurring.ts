@@ -1,4 +1,4 @@
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { transactionsTable, categoriesTable, accountsTable } from '@/db/schema';
 import { and, eq, isNotNull, desc } from 'drizzle-orm';
 import { decryptForUser, getUserKey } from '@/lib/encryption';
@@ -19,7 +19,8 @@ export type RecurringTransaction = {
 };
 
 export async function getRecurringTransactions(userId: string): Promise<RecurringTransaction[]> {
-  const rows = await db
+  const userDb = await getUserDb(userId);
+  const rows = await userDb
     .select({
       id: transactionsTable.id,
       description: transactionsTable.description,

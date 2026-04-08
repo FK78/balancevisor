@@ -1,6 +1,6 @@
 'use server';
 
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import {
   accountsTable,
   budgetAlertPreferencesTable,
@@ -52,7 +52,8 @@ export async function updateBaseCurrency(formData: FormData): Promise<{ success?
     const userId = await getCurrentUserId();
     const baseCurrency = normalizeBaseCurrency(formData.get('base_currency') as string | null);
 
-    await db.transaction(async (tx) => {
+    const userDb = await getUserDb(userId);
+    await userDb.transaction(async (tx) => {
       await tx.update(userOnboardingTable)
         .set({ base_currency: baseCurrency })
         .where(eq(userOnboardingTable.user_id, userId));
@@ -85,22 +86,23 @@ export async function deleteAccount(): Promise<{ success?: boolean; error?: stri
   const userId = user.id;
 
   // Gather IDs needed for cascade deletions
-  const userAccounts = await db.select({ id: accountsTable.id })
+  const userDb = await getUserDb(userId);
+  const userAccounts = await userDb.select({ id: accountsTable.id })
     .from(accountsTable)
     .where(eq(accountsTable.user_id, userId));
   const accountIds = userAccounts.map(a => a.id);
 
-  const userDebts = await db.select({ id: debtsTable.id })
+  const userDebts = await userDb.select({ id: debtsTable.id })
     .from(debtsTable)
     .where(eq(debtsTable.user_id, userId));
   const debtIds = userDebts.map(d => d.id);
 
-  const userHoldings = await db.select({ id: manualHoldingsTable.id })
+  const userHoldings = await userDb.select({ id: manualHoldingsTable.id })
     .from(manualHoldingsTable)
     .where(eq(manualHoldingsTable.user_id, userId));
   const holdingIds = userHoldings.map(h => h.id);
 
-  await db.transaction(async (tx) => {
+  await userDb.transaction(async (tx) => {
     // --- Leaf records (no children) ---
 
     // Debt payments (child of debts)
@@ -182,17 +184,18 @@ export async function exportUserData() {
   const userId = await getCurrentUserId();
   const userKey = await getUserKey(userId);
 
-  const accounts = await db.select().from(accountsTable).where(eq(accountsTable.user_id, userId));
+  const userDb = await getUserDb(userId);
+  const accounts = await userDb.select().from(accountsTable).where(eq(accountsTable.user_id, userId));
   const accountIds = accounts.map(a => a.id);
 
   const [categories, transactions, budgets, goals, subscriptions] = await Promise.all([
-    db.select().from(categoriesTable).where(eq(categoriesTable.user_id, userId)),
+    userDb.select().from(categoriesTable).where(eq(categoriesTable.user_id, userId)),
     accountIds.length > 0
-      ? db.select().from(transactionsTable).where(inArray(transactionsTable.account_id, accountIds))
+      ? userDb.select().from(transactionsTable).where(inArray(transactionsTable.account_id, accountIds))
       : Promise.resolve([]),
-    db.select().from(budgetsTable).where(eq(budgetsTable.user_id, userId)),
-    db.select().from(goalsTable).where(eq(goalsTable.user_id, userId)),
-    db.select().from(subscriptionsTable).where(eq(subscriptionsTable.user_id, userId)),
+    userDb.select().from(budgetsTable).where(eq(budgetsTable.user_id, userId)),
+    userDb.select().from(goalsTable).where(eq(goalsTable.user_id, userId)),
+    userDb.select().from(subscriptionsTable).where(eq(subscriptionsTable.user_id, userId)),
   ]);
 
   // Decrypt encrypted fields so user receives readable data

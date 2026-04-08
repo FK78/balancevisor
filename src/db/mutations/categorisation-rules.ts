@@ -1,6 +1,6 @@
 'use server';
 
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { categorisationRulesTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { revalidateDomains } from '@/lib/revalidate';
@@ -14,7 +14,8 @@ export async function addCategorisationRule(formData: FormData) {
   const category_id = requireUUID(formData.get('category_id') as string, 'Category');
   const priority = sanitizeNumber(formData.get('priority') as string, 'Priority');
 
-  await db.insert(categorisationRulesTable).values({
+  const userDb = await getUserDb(userId);
+  await userDb.insert(categorisationRulesTable).values({
     user_id: userId,
     pattern,
     category_id,
@@ -29,7 +30,9 @@ export async function editCategorisationRule(id: string, formData: FormData) {
   const category_id = requireUUID(formData.get('category_id') as string, 'Category');
   const priority = sanitizeNumber(formData.get('priority') as string, 'Priority');
 
-  await db.update(categorisationRulesTable).set({
+  const userId = await getCurrentUserId();
+  const userDb = await getUserDb(userId);
+  await userDb.update(categorisationRulesTable).set({
     pattern,
     category_id,
     priority,
@@ -39,7 +42,9 @@ export async function editCategorisationRule(id: string, formData: FormData) {
 }
 
 export async function deleteCategorisationRule(id: string) {
-  await db.delete(categorisationRulesTable).where(eq(categorisationRulesTable.id, id));
+  const userId = await getCurrentUserId();
+  const userDb = await getUserDb(userId);
+  await userDb.delete(categorisationRulesTable).where(eq(categorisationRulesTable.id, id));
   revalidateDomains('categories');
 }
 
@@ -51,7 +56,8 @@ export async function deleteCategorisationRule(id: string) {
 export async function learnCategorisationRule(pattern: string, categoryId: string) {
   const userId = await getCurrentUserId();
 
-  const rules = await db
+  const userDb = await getUserDb(userId);
+  const rules = await userDb
     .select({
       id: categorisationRulesTable.id,
       pattern: categorisationRulesTable.pattern,
@@ -72,11 +78,11 @@ export async function learnCategorisationRule(pattern: string, categoryId: strin
   );
 
   if (samePattern) {
-    await db.update(categorisationRulesTable)
+    await userDb.update(categorisationRulesTable)
       .set({ category_id: categoryId })
       .where(eq(categorisationRulesTable.id, samePattern.id));
   } else {
-    await db.insert(categorisationRulesTable).values({
+    await userDb.insert(categorisationRulesTable).values({
       user_id: userId,
       pattern,
       category_id: categoryId,

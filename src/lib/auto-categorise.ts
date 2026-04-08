@@ -1,4 +1,4 @@
-import { db } from "@/index";
+import { getUserDb } from "@/db/rls-context";
 import { categorisationRulesTable } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { groq } from "@ai-sdk/groq";
@@ -25,7 +25,8 @@ export type CategorisationRule = {
 export async function fetchUserRules(
   userId: string,
 ): Promise<CategorisationRule[]> {
-  return db
+  const userDb = await getUserDb(userId);
+  return userDb
     .select({
       pattern: categorisationRulesTable.pattern,
       category_id: categorisationRulesTable.category_id,

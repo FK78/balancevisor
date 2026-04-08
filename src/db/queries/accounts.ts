@@ -1,4 +1,4 @@
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { transactionsTable, accountsTable, sharedAccessTable } from '@/db/schema';
 import { eq, sql, or, and, inArray } from 'drizzle-orm';
 import { decryptForUser, getUserKey } from '@/lib/encryption';
@@ -6,7 +6,8 @@ import type { AccountWithDetails } from '@/lib/types';
 
 export async function getAccountsWithDetails(userId: string): Promise<AccountWithDetails[]> {
   const userKey = await getUserKey(userId);
-  const rows = await db.select({
+  const userDb = await getUserDb(userId);
+  const rows = await userDb.select({
     id: accountsTable.id,
     accountName: accountsTable.name,
     name: accountsTable.name,
@@ -31,7 +32,8 @@ export async function getAccountsWithDetails(userId: string): Promise<AccountWit
 
 export async function getSharedAccounts(userId: string, email: string): Promise<AccountWithDetails[]> {
   // Get accepted shared account IDs
-  const sharedRows = await db
+  const userDb = await getUserDb(userId);
+  const sharedRows = await userDb
     .select({
       resource_id: sharedAccessTable.resource_id,
       owner_id: sharedAccessTable.owner_id,
@@ -54,7 +56,7 @@ export async function getSharedAccounts(userId: string, email: string): Promise<
   const sharedAccountIds = sharedRows.map((r) => r.resource_id);
   const ownerMap = new Map(sharedRows.map((r) => [r.resource_id, r.owner_id]));
 
-  const rows = await db
+  const rows = await userDb
     .select({
       id: accountsTable.id,
       accountName: accountsTable.name,

@@ -1,9 +1,10 @@
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { debtsTable, debtPaymentsTable } from '@/db/schema';
 import { eq, desc, sum } from 'drizzle-orm';
 
 export async function getDebts(userId: string) {
-  return await db
+  const userDb = await getUserDb(userId);
+  return await userDb
     .select()
     .from(debtsTable)
     .where(eq(debtsTable.user_id, userId))
@@ -36,16 +37,18 @@ export async function getDebtsSummary(userId: string) {
   };
 }
 
-export async function getPaymentsForDebt(debtId: string) {
-  return await db
+export async function getPaymentsForDebt(debtId: string, userId: string) {
+  const userDb = await getUserDb(userId);
+  return await userDb
     .select()
     .from(debtPaymentsTable)
     .where(eq(debtPaymentsTable.debt_id, debtId))
     .orderBy(desc(debtPaymentsTable.date));
 }
 
-export async function getTotalPaidForDebt(debtId: string): Promise<number> {
-  const [row] = await db
+export async function getTotalPaidForDebt(debtId: string, userId: string): Promise<number> {
+  const userDb = await getUserDb(userId);
+  const [row] = await userDb
     .select({ total: sum(debtPaymentsTable.amount) })
     .from(debtPaymentsTable)
     .where(eq(debtPaymentsTable.debt_id, debtId));

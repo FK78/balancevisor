@@ -1,6 +1,6 @@
 'use server';
 
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { categoriesTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { revalidateDomains } from '@/lib/revalidate';
@@ -14,7 +14,8 @@ export async function addCategory(formData: FormData) {
   const color = sanitizeColor(formData.get('color') as string);
   const icon = sanitizeString(formData.get('icon') as string, 50);
 
-  const [result] = await db.insert(categoriesTable).values({
+  const userDb = await getUserDb(userId);
+  const [result] = await userDb.insert(categoriesTable).values({
     user_id: userId,
     name,
     color,
@@ -29,7 +30,9 @@ export async function editCategory(id: string, formData: FormData) {
   const color = sanitizeColor(formData.get('color') as string);
   const icon = sanitizeString(formData.get('icon') as string, 50);
 
-  await db.update(categoriesTable).set({
+  const userId = await getCurrentUserId();
+  const userDb = await getUserDb(userId);
+  await userDb.update(categoriesTable).set({
     name,
     color,
     icon,
@@ -38,6 +41,8 @@ export async function editCategory(id: string, formData: FormData) {
 }
 
 export async function deleteCategory(id: string) {
-  await db.delete(categoriesTable).where(eq(categoriesTable.id, id));
+  const userId = await getCurrentUserId();
+  const userDb = await getUserDb(userId);
+  await userDb.delete(categoriesTable).where(eq(categoriesTable.id, id));
   revalidateDomains('categories');
 }

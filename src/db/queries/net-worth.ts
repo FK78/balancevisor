@@ -1,4 +1,4 @@
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { netWorthSnapshotsTable } from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { getCached, setCached, cacheKey } from '@/lib/cache';
@@ -18,7 +18,8 @@ export async function getNetWorthHistory(userId: string, limit = 90): Promise<Ne
     return cached;
   }
 
-  const result = await db
+  const userDb = await getUserDb(userId);
+  const result = await userDb
     .select({
       date: netWorthSnapshotsTable.date,
       net_worth: netWorthSnapshotsTable.net_worth,
@@ -39,7 +40,8 @@ export async function getNetWorthHistory(userId: string, limit = 90): Promise<Ne
 export type NetWorthPoint = NetWorthHistoryResult[number];
 
 export async function hasSnapshotForDate(userId: string, date: string): Promise<boolean> {
-  const [row] = await db
+  const userDb = await getUserDb(userId);
+  const [row] = await userDb
     .select({ id: netWorthSnapshotsTable.id })
     .from(netWorthSnapshotsTable)
     .where(

@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/index";
+import { getUserDb } from "@/db/rls-context";
 import { sharedAccessTable } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidateDomains } from "@/lib/revalidate";
@@ -48,7 +48,8 @@ export async function shareResource(formData: FormData) {
     // If the RPC doesn't exist, proceed without the user ID
   }
 
-  await db
+  const userDb = await getUserDb(userId);
+  await userDb
     .insert(sharedAccessTable)
     .values({
       owner_id: userId,
@@ -81,7 +82,8 @@ export async function acceptInvitation(invitationId: string) {
   const email = await getCurrentUserEmail();
 
   // Verify the invitation belongs to this user
-  const [invitation] = await db
+  const userDb = await getUserDb(userId);
+  const [invitation] = await userDb
     .select()
     .from(sharedAccessTable)
     .where(eq(sharedAccessTable.id, invitationId));
@@ -94,7 +96,7 @@ export async function acceptInvitation(invitationId: string) {
     throw new Error("This invitation is not for you");
   }
 
-  await db
+  await userDb
     .update(sharedAccessTable)
     .set({
       status: "accepted",
@@ -110,7 +112,8 @@ export async function declineInvitation(invitationId: string) {
   const userId = await getCurrentUserId();
   const email = await getCurrentUserEmail();
 
-  const [invitation] = await db
+  const userDb = await getUserDb(userId);
+  const [invitation] = await userDb
     .select()
     .from(sharedAccessTable)
     .where(eq(sharedAccessTable.id, invitationId));
@@ -123,7 +126,7 @@ export async function declineInvitation(invitationId: string) {
     throw new Error("This invitation is not for you");
   }
 
-  await db
+  await userDb
     .update(sharedAccessTable)
     .set({ status: "declined" })
     .where(eq(sharedAccessTable.id, invitationId));
@@ -134,7 +137,8 @@ export async function declineInvitation(invitationId: string) {
 export async function revokeShare(shareId: string) {
   const userId = await getCurrentUserId();
 
-  await db
+  const userDb = await getUserDb(userId);
+  await userDb
     .delete(sharedAccessTable)
     .where(
       and(
@@ -151,7 +155,8 @@ export async function leaveSharedResource(shareId: string) {
   const email = await getCurrentUserEmail();
 
   // Can only leave shares where you're the recipient
-  const [share] = await db
+  const userDb = await getUserDb(userId);
+  const [share] = await userDb
     .select()
     .from(sharedAccessTable)
     .where(eq(sharedAccessTable.id, shareId));
@@ -164,7 +169,7 @@ export async function leaveSharedResource(shareId: string) {
     throw new Error("Not your share to leave");
   }
 
-  await db.delete(sharedAccessTable).where(eq(sharedAccessTable.id, shareId));
+  await userDb.delete(sharedAccessTable).where(eq(sharedAccessTable.id, shareId));
 
   revalidateDomains('sharing');
 }

@@ -1,4 +1,4 @@
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { transactionsTable, accountsTable } from '@/db/schema';
 import { eq, and, lte, isNotNull, sql } from 'drizzle-orm';
 
@@ -40,7 +40,8 @@ function balanceDelta(type: 'income' | 'expense' | 'transfer' | 'sale', amount: 
 export async function generateDueRecurringTransactions(userId: string): Promise<number> {
   const today = new Date().toISOString().split('T')[0];
 
-  const dueRecurring = await db
+  const userDb = await getUserDb(userId);
+  const dueRecurring = await userDb
     .select({
       id: transactionsTable.id,
       account_id: transactionsTable.account_id,
@@ -73,7 +74,7 @@ export async function generateDueRecurringTransactions(userId: string): Promise<
 
     // Generate all due occurrences (could be multiple if user hasn't visited in a while)
     while (nextDate <= today) {
-      await db.insert(transactionsTable).values({
+      await userDb.insert(transactionsTable).values({
         account_id: src.account_id,
         category_id: src.category_id,
         type: src.type,
@@ -83,11 +84,12 @@ export async function generateDueRecurringTransactions(userId: string): Promise<
         is_recurring: false,
         recurring_pattern: null,
         next_recurring_date: null,
+        user_id: userId,
       });
 
       // Update account balance
       if (src.account_id) {
-        await db.update(accountsTable)
+        await userDb.update(accountsTable)
           .set({ balance: sql`${accountsTable.balance} + ${balanceDelta(src.type, src.amount)}` })
           .where(eq(accountsTable.id, src.account_id));
       }
@@ -97,7 +99,7 @@ export async function generateDueRecurringTransactions(userId: string): Promise<
     }
 
     // Advance the source transaction's next_recurring_date
-    await db.update(transactionsTable)
+    await userDb.update(transactionsTable)
       .set({ next_recurring_date: nextDate })
       .where(eq(transactionsTable.id, src.id));
   }

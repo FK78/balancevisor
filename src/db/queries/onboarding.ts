@@ -1,10 +1,11 @@
-import { db } from '@/index';
+import { getUserDb, adminDb } from '@/db/rls-context';
 import { defaultCategoryTemplatesTable, userOnboardingTable } from '@/db/schema';
 import { asc, eq } from 'drizzle-orm';
 import { DEFAULT_BASE_CURRENCY, normalizeBaseCurrency } from '@/lib/currency';
 
 export async function getOnboardingState(userId: string) {
-  const [row] = await db.select()
+  const userDb = await getUserDb(userId);
+  const [row] = await userDb.select()
     .from(userOnboardingTable)
     .where(eq(userOnboardingTable.user_id, userId))
     .limit(1);
@@ -23,14 +24,15 @@ export async function getUserBaseCurrency(userId: string) {
 }
 
 export async function getDefaultCategoryTemplates() {
-  return await db.select()
+  return await adminDb.select()
     .from(defaultCategoryTemplatesTable)
     .where(eq(defaultCategoryTemplatesTable.is_active, true))
     .orderBy(asc(defaultCategoryTemplatesTable.sort_order), asc(defaultCategoryTemplatesTable.id));
 }
 
 export async function getPendingFeatures(userId: string): Promise<string | null> {
-  const [row] = await db.select({ pending_features: userOnboardingTable.pending_features })
+  const userDb = await getUserDb(userId);
+  const [row] = await userDb.select({ pending_features: userOnboardingTable.pending_features })
     .from(userOnboardingTable)
     .where(eq(userOnboardingTable.user_id, userId))
     .limit(1);

@@ -1,6 +1,6 @@
 'use server';
 
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { accountsTable, transactionsTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { revalidateDomains } from '@/lib/revalidate';
@@ -20,7 +20,8 @@ export async function addAccount(formData: FormData) {
   const type = sanitizeEnum(formData.get('type') as string, ['currentAccount', 'savings', 'creditCard', 'investment'] as const, 'currentAccount');
   const balance = sanitizeNumber(formData.get('balance') as string, 'Balance');
 
-  const [result] = await db.insert(accountsTable).values({
+  const userDb = await getUserDb(userId);
+  const [result] = await userDb.insert(accountsTable).values({
     user_id: userId,
     name: encryptForUser(name, userKey),
     type,
@@ -42,7 +43,8 @@ export async function editAccount(id: string, formData: FormData) {
   const type = sanitizeEnum(formData.get('type') as string, ['currentAccount', 'savings', 'creditCard', 'investment'] as const, 'currentAccount');
   const balance = sanitizeNumber(formData.get('balance') as string, 'Balance');
 
-  await db.update(accountsTable).set({
+  const userDb = await getUserDb(userId);
+  await userDb.update(accountsTable).set({
     name: encryptForUser(name, userKey),
     type,
     balance,
@@ -58,8 +60,9 @@ export async function deleteAccount(id: string) {
 
   await requireOwnership(accountsTable, id, userId, 'account');
 
-  await db.delete(transactionsTable).where(eq(transactionsTable.account_id, id));
-  await db.delete(accountsTable).where(eq(accountsTable.id, id));
+  const userDb = await getUserDb(userId);
+  await userDb.delete(transactionsTable).where(eq(transactionsTable.account_id, id));
+  await userDb.delete(accountsTable).where(eq(accountsTable.id, id));
 
   revalidateDomains('accounts');
   invalidateByUser(userId);

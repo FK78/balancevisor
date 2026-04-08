@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/index";
+import { getUserDb } from "@/db/rls-context";
 import { investmentGroupsTable } from "@/db/schema";
 import { eq, and, asc } from "drizzle-orm";
 
@@ -16,7 +16,8 @@ export type InvestmentGroup = {
 };
 
 export async function getGroupsByAccount(userId: string, accountId: string): Promise<InvestmentGroup[]> {
-  return db
+  const userDb = await getUserDb(userId);
+  return userDb
     .select()
     .from(investmentGroupsTable)
     .where(
@@ -29,7 +30,8 @@ export async function getGroupsByAccount(userId: string, accountId: string): Pro
 }
 
 export async function getGroupsByUser(userId: string): Promise<InvestmentGroup[]> {
-  return db
+  const userDb = await getUserDb(userId);
+  return userDb
     .select()
     .from(investmentGroupsTable)
     .where(eq(investmentGroupsTable.user_id, userId))
@@ -37,7 +39,8 @@ export async function getGroupsByUser(userId: string): Promise<InvestmentGroup[]
 }
 
 export async function getGroupById(userId: string, groupId: string): Promise<InvestmentGroup | null> {
-  const rows = await db
+  const userDb = await getUserDb(userId);
+  const rows = await userDb
     .select()
     .from(investmentGroupsTable)
     .where(

@@ -1,6 +1,6 @@
 'use server';
 
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { budgetAlertPreferencesTable, budgetNotificationsTable } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { revalidateDomains } from '@/lib/revalidate';
@@ -14,7 +14,8 @@ export async function upsertAlertPreferences(
 ) {
   const userId = await getCurrentUserId();
 
-  const [existing] = await db.select()
+  const userDb = await getUserDb(userId);
+  const [existing] = await userDb.select()
     .from(budgetAlertPreferencesTable)
     .where(
       and(
@@ -24,11 +25,11 @@ export async function upsertAlertPreferences(
     );
 
   if (existing) {
-    await db.update(budgetAlertPreferencesTable)
+    await userDb.update(budgetAlertPreferencesTable)
       .set({ threshold, browser_alerts: browserAlerts, email_alerts: emailAlerts })
       .where(eq(budgetAlertPreferencesTable.id, existing.id));
   } else {
-    await db.insert(budgetAlertPreferencesTable).values({
+    await userDb.insert(budgetAlertPreferencesTable).values({
       budget_id: budgetId,
       user_id: userId,
       threshold,
@@ -41,7 +42,9 @@ export async function upsertAlertPreferences(
 }
 
 export async function markNotificationRead(notificationId: string) {
-  await db.update(budgetNotificationsTable)
+  const userId = await getCurrentUserId();
+  const userDb = await getUserDb(userId);
+  await userDb.update(budgetNotificationsTable)
     .set({ is_read: true })
     .where(eq(budgetNotificationsTable.id, notificationId));
   revalidateDomains();
@@ -49,7 +52,8 @@ export async function markNotificationRead(notificationId: string) {
 
 export async function markAllNotificationsRead() {
   const userId = await getCurrentUserId();
-  await db.update(budgetNotificationsTable)
+  const userDb = await getUserDb(userId);
+  await userDb.update(budgetNotificationsTable)
     .set({ is_read: true })
     .where(
       and(
@@ -66,7 +70,8 @@ export async function createNotification(
   alertType: 'threshold_warning' | 'over_budget',
   message: string,
 ) {
-  return await db.insert(budgetNotificationsTable).values({
+  const userDb = await getUserDb(userId);
+  return await userDb.insert(budgetNotificationsTable).values({
     user_id: userId,
     budget_id: budgetId,
     alert_type: alertType,

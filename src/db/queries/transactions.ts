@@ -1,4 +1,4 @@
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { transactionsTable, categoriesTable, accountsTable } from '@/db/schema';
 import { and, desc, eq, ne, sql, sum, gte, lte, lt } from 'drizzle-orm';
 import { getMonthRange, getRecentMonthKeys, getRecentDayKeys, getTomorrowString, getNextMonthFirstString } from '@/lib/date';
@@ -32,8 +32,10 @@ const transactionSelect = {
   is_split: transactionsTable.is_split,
 };
 
-function baseTransactionsQuery(userId: string) {
-  return db.select(transactionSelect)
+type UserDb = Awaited<ReturnType<typeof getUserDb>>;
+
+function baseTransactionsQuery(userDb: UserDb, userId: string) {
+  return userDb.select(transactionSelect)
     .from(transactionsTable)
     .leftJoin(categoriesTable, eq(transactionsTable.category_id, categoriesTable.id))
     .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
@@ -58,7 +60,8 @@ export async function getTransactionsForExport(
   startDate: string,
   endDate: string,
 ): Promise<ExportTransaction[]> {
-  const rows = await db
+  const userDb = await getUserDb(userId);
+  const rows = await userDb
     .select({
       id: transactionsTable.id,
       date: transactionsTable.date,
@@ -90,7 +93,8 @@ export async function getTransactionsCount(userId: string, startDate?: string, e
   if (endDate) conditions.push(lte(transactionsTable.date, endDate));
   if (accountId) conditions.push(eq(transactionsTable.account_id, accountId));
 
-  const [row] = await db
+  const userDb = await getUserDb(userId);
+  const [row] = await userDb
     .select({ total: sql<number>`count(*)`.mapWith(Number) })
     .from(transactionsTable)
     .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
@@ -113,7 +117,8 @@ export async function getTransactionsWithDetailsPaginated(
     : 10;
   const offset = (safePage - 1) * safePageSize;
 
-  let query = baseTransactionsQuery(userId);
+  const userDb = await getUserDb(userId);
+  let query = baseTransactionsQuery(userDb, userId);
   if (startDate) query = query.where(gte(transactionsTable.date, startDate));
   if (endDate) query = query.where(lte(transactionsTable.date, endDate));
   if (accountId) query = query.where(eq(transactionsTable.account_id, accountId));
@@ -146,7 +151,8 @@ export async function getTotalsByType(
   if (endDate) conditions.push(lte(transactionsTable.date, endDate));
   if (accountId) conditions.push(eq(transactionsTable.account_id, accountId));
 
-  const [row] = await db
+  const userDb = await getUserDb(userId);
+  const [row] = await userDb
     .select({ total: sum(transactionsTable.amount) })
     .from(transactionsTable)
     .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
@@ -182,7 +188,8 @@ export async function searchTransactions(
   const safePageSize = Number.isFinite(pageSize) && pageSize > 0 ? Math.floor(pageSize) : 10;
 
   const MAX_SEARCH_ROWS = 1000;
-  let query = baseTransactionsQuery(userId);
+  const userDb = await getUserDb(userId);
+  let query = baseTransactionsQuery(userDb, userId);
   let effectiveStartDate = startDate;
   const effectiveEndDate = endDate;
   if (!startDate && !endDate) {
@@ -222,14 +229,16 @@ export async function searchTransactions(
 }
 
 export async function getLatestFiveTransactionsWithDetails(userId: string) {
-  const rows = await baseTransactionsQuery(userId)
+  const userDb = await getUserDb(userId);
+  const rows = await baseTransactionsQuery(userDb, userId)
     .orderBy(desc(transactionsTable.date))
     .limit(5);
   return decryptTransactionRows(rows, userId);
 }
 
 export async function getSavingsDepositTotal(userId: string, startDate: string, endDate: string): Promise<number> {
-  const [row] = await db
+  const userDb = await getUserDb(userId);
+  const [row] = await userDb
     .select({ total: sum(transactionsTable.amount) })
     .from(transactionsTable)
     .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
@@ -254,7 +263,8 @@ export async function getTotalSpendByCategoryThisMonth(userId: string): Promise<
 
   const { start, end } = getMonthRange();
 
-  const result = await db.select({
+  const userDb = await getUserDb(userId);
+  const result = await userDb.select({
     category: categoriesTable.name,
     total: sum(transactionsTable.amount),
     color: categoriesTable.color
@@ -313,7 +323,8 @@ export async function getMonthlyIncomeExpenseTrend(userId: string, monthCount = 
   const [startMonth] = monthKeys;
   const endMonth = getNextMonthFirstString();
 
-  const rows = await db
+  const userDb = await getUserDb(userId);
+  const rows = await userDb
     .select({
       month: sql<string>`to_char(date_trunc('month', ${transactionsTable.date}), 'YYYY-MM')`,
       type: transactionsTable.type,
@@ -375,7 +386,8 @@ export async function getDailyIncomeExpenseTrend(userId: string, dayCount = 30):
   const [startDay] = dayKeys;
   const endDay = getTomorrowString();
 
-  const rows = await db
+  const userDb = await getUserDb(userId);
+  const rows = await userDb
     .select({
       day: sql<string>`to_char(${transactionsTable.date}, 'YYYY-MM-DD')`,
       type: transactionsTable.type,
@@ -437,7 +449,8 @@ export async function getDailyExpenseByCategory(userId: string, dayCount = 30): 
   const [startDay] = dayKeys;
   const endDay = getTomorrowString();
 
-  const rows = await db
+  const userDb = await getUserDb(userId);
+  const rows = await userDb
     .select({
       day: sql<string>`to_char(${transactionsTable.date}, 'YYYY-MM-DD')`,
       category: categoriesTable.name,
@@ -475,7 +488,8 @@ export async function getMonthlyCategorySpendTrend(userId: string, monthCount = 
   const [startMonth] = monthKeys;
   const endMonth = getNextMonthFirstString();
 
-  const rows = await db
+  const userDb = await getUserDb(userId);
+  const rows = await userDb
     .select({
       month: sql<string>`to_char(date_trunc('month', ${transactionsTable.date}), 'YYYY-MM')`,
       category: categoriesTable.name,

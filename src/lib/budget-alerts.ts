@@ -1,4 +1,4 @@
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import {
   budgetsTable,
   budgetAlertPreferencesTable,
@@ -34,7 +34,8 @@ type BudgetWithSpend = {
 async function getBudgetsWithSpendAndPrefs(userId: string): Promise<BudgetWithSpend[]> {
   const { start, end } = getMonthRange();
 
-  const budgets = await db.select({
+  const userDb = await getUserDb(userId);
+  const budgets = await userDb.select({
     budgetId: budgetsTable.id,
     categoryName: categoriesTable.name,
     budgetAmount: budgetsTable.amount,
@@ -50,7 +51,7 @@ async function getBudgetsWithSpendAndPrefs(userId: string): Promise<BudgetWithSp
     .where(eq(budgetsTable.user_id, userId))
     .groupBy(budgetsTable.id, categoriesTable.name, budgetsTable.amount);
 
-  const prefs = await db.select()
+  const prefs = await userDb.select()
     .from(budgetAlertPreferencesTable)
     .where(eq(budgetAlertPreferencesTable.user_id, userId));
 
@@ -82,7 +83,8 @@ async function getRecentNotificationKeys(
 
   const { start } = getMonthRange();
 
-  const rows = await db.select({
+  const userDb = await getUserDb(userId);
+  const rows = await userDb.select({
     budget_id: budgetNotificationsTable.budget_id,
     alert_type: budgetNotificationsTable.alert_type,
   })

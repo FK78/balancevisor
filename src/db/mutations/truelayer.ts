@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/index";
+import { getUserDb } from "@/db/rls-context";
 import {
   truelayerConnectionsTable,
   accountsTable,
@@ -34,7 +34,8 @@ export async function saveTrueLayerConnection(
   const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
   const userKey = await getUserKey(userId);
 
-  const [connection] = await db
+  const userDb = await getUserDb(userId);
+  const [connection] = await userDb
     .insert(truelayerConnectionsTable)
     .values({
       user_id: userId,
@@ -51,8 +52,9 @@ export async function saveTrueLayerConnection(
 // Get a valid access token, refreshing if expired
 // ---------------------------------------------------------------------------
 
-async function getValidToken(connectionId: string): Promise<string> {
-  const [conn] = await db
+async function getValidToken(connectionId: string, userId: string): Promise<string> {
+  const userDb = await getUserDb(userId);
+  const [conn] = await userDb
     .select()
     .from(truelayerConnectionsTable)
     .where(eq(truelayerConnectionsTable.id, connectionId));
@@ -68,7 +70,7 @@ async function getValidToken(connectionId: string): Promise<string> {
   const tokens = await refreshAccessToken(decryptForUser(conn.refresh_token, userKey));
   const newExpiry = new Date(Date.now() + tokens.expires_in * 1000);
 
-  await db
+  await userDb
     .update(truelayerConnectionsTable)
     .set({
       access_token: encryptForUser(tokens.access_token, userKey),
@@ -103,7 +105,8 @@ export async function importFromTrueLayer() {
   const baseCurrency = await getUserBaseCurrency(userId);
   const userKey = await getUserKey(userId);
 
-  const connections = await db
+  const userDb = await getUserDb(userId);
+  const connections = await userDb
     .select()
     .from(truelayerConnectionsTable)
     .where(eq(truelayerConnectionsTable.user_id, userId));
@@ -122,11 +125,11 @@ export async function importFromTrueLayer() {
   let transactionsImported = 0;
 
   for (const connection of connections) {
-    const accessToken = await getValidToken(connection.id);
+    const accessToken = await getValidToken(connection.id, userId);
     const tlAccounts = await fetchAccounts(accessToken);
 
     for (const tlAccount of tlAccounts) {
-      const [existing] = await db
+      const [existing] = await userDb
         .select({ id: accountsTable.id })
         .from(accountsTable)
         .where(
@@ -152,13 +155,13 @@ export async function importFromTrueLayer() {
       let localAccountId: string;
 
       if (existing) {
-        await db
+        await userDb
           .update(accountsTable)
           .set({ balance })
           .where(eq(accountsTable.id, existing.id));
         localAccountId = existing.id;
       } else {
-        const [created] = await db
+        const [created] = await userDb
           .insert(accountsTable)
           .values({
             user_id: userId,
@@ -180,7 +183,7 @@ export async function importFromTrueLayer() {
       }
 
       if (tlAccount.provider?.display_name && !connection.provider_name) {
-        await db
+        await userDb
           .update(truelayerConnectionsTable)
           .set({ provider_name: tlAccount.provider.display_name })
           .where(eq(truelayerConnectionsTable.id, connection.id));
@@ -209,7 +212,7 @@ export async function importFromTrueLayer() {
       }
 
       // Fetch categories once per account, not once per transaction
-      const categories = await db
+      const categories = await userDb
         .select({ id: categoriesTable.id, name: categoriesTable.name })
         .from(categoriesTable)
         .where(eq(categoriesTable.user_id, userId));
@@ -220,7 +223,7 @@ export async function importFromTrueLayer() {
         categories[0];
 
       for (const tlTxn of tlTransactions) {
-        const [existingTxn] = await db
+        const [existingTxn] = await userDb
           .select({ id: transactionsTable.id })
           .from(transactionsTable)
           .where(eq(transactionsTable.truelayer_id, tlTxn.transaction_id));
@@ -237,7 +240,7 @@ export async function importFromTrueLayer() {
         const matchedCategoryId = matchAgainstRules(rules, description);
         const categoryId = matchedCategoryId ?? uncategorised?.id ?? null;
 
-        await db.insert(transactionsTable).values({
+        await userDb.insert(transactionsTable).values({
           account_id: localAccountId,
           category_id: categoryId,
           type,
@@ -246,6 +249,7 @@ export async function importFromTrueLayer() {
           date: tlTxn.timestamp ? tlTxn.timestamp.split("T")[0] : to,
           is_recurring: false,
           truelayer_id: tlTxn.transaction_id,
+          user_id: userId,
         });
 
         transactionsImported++;
@@ -254,7 +258,7 @@ export async function importFromTrueLayer() {
   }
 
   for (const connection of connections) {
-    await db
+    await userDb
       .update(truelayerConnectionsTable)
       .set({ last_synced_at: new Date() })
       .where(eq(truelayerConnectionsTable.id, connection.id));
@@ -278,7 +282,8 @@ export async function syncBankIfNeeded(): Promise<{
 }> {
   const userId = await getCurrentUserId();
 
-  const connections = await db
+  const userDb = await getUserDb(userId);
+  const connections = await userDb
     .select({
       id: truelayerConnectionsTable.id,
       last_synced_at: truelayerConnectionsTable.last_synced_at,
@@ -316,7 +321,8 @@ export async function syncBankIfNeeded(): Promise<{
 export async function getTrueLayerConnections() {
   const userId = await getCurrentUserId();
 
-  return db
+  const userDb = await getUserDb(userId);
+  return userDb
     .select({
       id: truelayerConnectionsTable.id,
       provider_name: truelayerConnectionsTable.provider_name,
@@ -334,7 +340,8 @@ export async function getTrueLayerConnections() {
 export async function disconnectTrueLayer(connectionId: string) {
   const userId = await getCurrentUserId();
 
-  const linkedAccounts = await db
+  const userDb = await getUserDb(userId);
+  const linkedAccounts = await userDb
     .select({ id: accountsTable.id })
     .from(accountsTable)
     .where(
@@ -345,12 +352,12 @@ export async function disconnectTrueLayer(connectionId: string) {
     );
 
   for (const account of linkedAccounts) {
-    await db
+    await userDb
       .delete(transactionsTable)
       .where(eq(transactionsTable.account_id, account.id));
   }
 
-  await db
+  await userDb
     .delete(accountsTable)
     .where(
       and(
@@ -359,7 +366,7 @@ export async function disconnectTrueLayer(connectionId: string) {
       ),
     );
 
-  await db
+  await userDb
     .delete(truelayerConnectionsTable)
     .where(
       and(

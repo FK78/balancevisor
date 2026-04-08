@@ -1,6 +1,6 @@
 'use server';
 
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { accountsTable, categoriesTable, defaultCategoryTemplatesTable, userOnboardingTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { revalidateDomains } from '@/lib/revalidate';
@@ -16,7 +16,8 @@ async function upsertOnboardingState(userId: string, updates: Partial<{
   completed_at: Date | null;
   pending_features: string | null;
 }>) {
-  await db.insert(userOnboardingTable).values({
+  const userDb = await getUserDb(userId);
+  await userDb.insert(userOnboardingTable).values({
     user_id: userId,
     base_currency: normalizeBaseCurrency(updates.base_currency ?? DEFAULT_BASE_CURRENCY),
     use_default_categories: updates.use_default_categories ?? false,
@@ -29,7 +30,8 @@ async function upsertOnboardingState(userId: string, updates: Partial<{
 }
 
 async function insertMissingDefaultCategories(userId: string) {
-  const templates = await db.select()
+  const userDb = await getUserDb(userId);
+  const templates = await userDb.select()
     .from(defaultCategoryTemplatesTable)
     .where(eq(defaultCategoryTemplatesTable.is_active, true));
 
@@ -37,7 +39,7 @@ async function insertMissingDefaultCategories(userId: string) {
     return;
   }
 
-  const existingCategories = await db.select({ name: categoriesTable.name })
+  const existingCategories = await userDb.select({ name: categoriesTable.name })
     .from(categoriesTable)
     .where(eq(categoriesTable.user_id, userId));
 
@@ -52,7 +54,7 @@ async function insertMissingDefaultCategories(userId: string) {
     }));
 
   if (rowsToInsert.length > 0) {
-    await db.insert(categoriesTable).values(rowsToInsert);
+    await userDb.insert(categoriesTable).values(rowsToInsert);
   }
 }
 
@@ -60,7 +62,8 @@ export async function setBaseCurrency(formData: FormData) {
   const userId = await getCurrentUserId();
   const baseCurrency = normalizeBaseCurrency(formData.get('base_currency') as string | null);
 
-  await db.transaction(async (tx) => {
+  const userDb = await getUserDb(userId);
+  await userDb.transaction(async (tx) => {
     await tx.insert(userOnboardingTable).values({
       user_id: userId,
       base_currency: baseCurrency,
@@ -143,7 +146,8 @@ export async function completeOnboardingAndRedirectWithFeatures(features: string
 
 export async function markFeatureVisited(feature: string) {
   const userId = await getCurrentUserId();
-  const state = await db.select({ pending_features: userOnboardingTable.pending_features })
+  const userDb = await getUserDb(userId);
+  const state = await userDb.select({ pending_features: userOnboardingTable.pending_features })
     .from(userOnboardingTable)
     .where(eq(userOnboardingTable.user_id, userId))
     .limit(1);
@@ -153,7 +157,7 @@ export async function markFeatureVisited(feature: string) {
   const pendingFeatures: string[] = JSON.parse(state[0].pending_features);
   const updatedFeatures = pendingFeatures.filter((f) => f !== feature);
 
-  await db.update(userOnboardingTable)
+  await userDb.update(userOnboardingTable)
     .set({ pending_features: updatedFeatures.length > 0 ? JSON.stringify(updatedFeatures) : null })
     .where(eq(userOnboardingTable.user_id, userId));
 
@@ -162,7 +166,8 @@ export async function markFeatureVisited(feature: string) {
 
 export async function getNextPendingFeature(): Promise<string | null> {
   const userId = await getCurrentUserId();
-  const state = await db.select({ pending_features: userOnboardingTable.pending_features })
+  const userDb = await getUserDb(userId);
+  const state = await userDb.select({ pending_features: userOnboardingTable.pending_features })
     .from(userOnboardingTable)
     .where(eq(userOnboardingTable.user_id, userId))
     .limit(1);

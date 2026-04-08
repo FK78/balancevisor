@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/index";
+import { getUserDb } from "@/db/rls-context";
 import { trading212ConnectionsTable, manualHoldingsTable, accountsTable, holdingSalesTable } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { getCurrentUserId } from "@/lib/auth";
@@ -16,7 +16,8 @@ export async function searchTickers(query: string) {
 }
 
 export async function getTrading212Connection(userId: string) {
-  const rows = await db
+  const userDb = await getUserDb(userId);
+  const rows = await userDb
     .select()
     .from(trading212ConnectionsTable)
     .where(eq(trading212ConnectionsTable.user_id, userId))
@@ -24,8 +25,9 @@ export async function getTrading212Connection(userId: string) {
   return rows[0] ?? null;
 }
 
-export async function getInvestmentsByAccountId(accountId: string) {
-  return db
+export async function getInvestmentsByAccountId(accountId: string, userId: string) {
+  const userDb = await getUserDb(userId);
+  return userDb
     .select({
       id: manualHoldingsTable.id,
       ticker: manualHoldingsTable.ticker,
@@ -41,7 +43,8 @@ export async function getInvestmentsByAccountId(accountId: string) {
 }
 
 export async function getHoldingSales(userId: string) {
-  const rows = await db
+  const userDb = await getUserDb(userId);
+  const rows = await userDb
     .select({
       id: holdingSalesTable.id,
       holding_id: holdingSalesTable.holding_id,
@@ -74,8 +77,9 @@ export async function getHoldingSales(userId: string) {
   }));
 }
 
-export async function getT212ConnectionByAccountId(accountId: string) {
-  const rows = await db
+export async function getT212ConnectionByAccountId(accountId: string, userId: string) {
+  const userDb = await getUserDb(userId);
+  const rows = await userDb
     .select()
     .from(trading212ConnectionsTable)
     .where(eq(trading212ConnectionsTable.account_id, accountId))
@@ -84,7 +88,8 @@ export async function getT212ConnectionByAccountId(accountId: string) {
 }
 
 export async function getManualHoldings(userId: string) {
-  const rows = await db
+  const userDb = await getUserDb(userId);
+  const rows = await userDb
     .select({
       id: manualHoldingsTable.id,
       user_id: manualHoldingsTable.user_id,

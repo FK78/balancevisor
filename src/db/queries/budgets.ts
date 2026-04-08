@@ -1,4 +1,4 @@
-import { db } from '@/index';
+import { getUserDb } from '@/db/rls-context';
 import { transactionsTable, budgetsTable, categoriesTable, sharedAccessTable } from '@/db/schema';
 import { eq, sum, sql, and, or, inArray, gte, lt } from 'drizzle-orm';
 
@@ -15,7 +15,8 @@ function getCurrentPeriodRange(): { start: string; end: string } {
 export async function getBudgets(userId: string) {
   const { start, end } = getCurrentPeriodRange();
 
-  const rows = await db.select({
+  const userDb = await getUserDb(userId);
+  const rows = await userDb.select({
     id: budgetsTable.id,
     category_id: budgetsTable.category_id,
     budgetCategory: categoriesTable.name,
@@ -40,7 +41,8 @@ export async function getBudgets(userId: string) {
 }
 
 export async function getSharedBudgets(userId: string, email: string) {
-  const sharedRows = await db
+  const userDb = await getUserDb(userId);
+  const sharedRows = await userDb
     .select({ resource_id: sharedAccessTable.resource_id })
     .from(sharedAccessTable)
     .where(
@@ -60,7 +62,7 @@ export async function getSharedBudgets(userId: string, email: string) {
 
   const { start, end } = getCurrentPeriodRange();
 
-  const rows = await db.select({
+  const rows = await userDb.select({
     id: budgetsTable.id,
     category_id: budgetsTable.category_id,
     budgetCategory: categoriesTable.name,
