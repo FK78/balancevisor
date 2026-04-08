@@ -120,6 +120,7 @@ export async function importFromTrueLayer() {
 
   let accountsImported = 0;
   let transactionsImported = 0;
+  const importedTransactionIds: string[] = [];
 
   for (const connection of connections) {
     const accessToken = await getValidToken(connection.id);
@@ -237,7 +238,7 @@ export async function importFromTrueLayer() {
         const matchedCategoryId = matchAgainstRules(rules, description);
         const categoryId = matchedCategoryId ?? uncategorised?.id ?? null;
 
-        await db.insert(transactionsTable).values({
+        const [inserted] = await db.insert(transactionsTable).values({
           user_id: userId,
           account_id: localAccountId,
           category_id: categoryId,
@@ -247,8 +248,9 @@ export async function importFromTrueLayer() {
           date: tlTxn.timestamp ? tlTxn.timestamp.split("T")[0] : to,
           is_recurring: false,
           truelayer_id: tlTxn.transaction_id,
-        });
+        }).returning({ id: transactionsTable.id });
 
+        importedTransactionIds.push(inserted.id);
         transactionsImported++;
       }
     }
@@ -263,7 +265,7 @@ export async function importFromTrueLayer() {
 
   revalidateDomains('accounts', 'transactions');
 
-  return { accountsImported, transactionsImported };
+  return { accountsImported, transactionsImported, transactionIds: importedTransactionIds };
 }
 
 // ---------------------------------------------------------------------------
@@ -276,6 +278,7 @@ export async function syncBankIfNeeded(): Promise<{
   synced: boolean;
   accountsImported: number;
   transactionsImported: number;
+  transactionIds: string[];
 }> {
   const userId = await getCurrentUserId();
 
@@ -288,7 +291,7 @@ export async function syncBankIfNeeded(): Promise<{
     .where(eq(truelayerConnectionsTable.user_id, userId));
 
   if (connections.length === 0) {
-    return { synced: false, accountsImported: 0, transactionsImported: 0 };
+    return { synced: false, accountsImported: 0, transactionsImported: 0, transactionIds: [] };
   }
 
   const now = Date.now();
@@ -298,7 +301,7 @@ export async function syncBankIfNeeded(): Promise<{
   );
 
   if (!needsSync) {
-    return { synced: false, accountsImported: 0, transactionsImported: 0 };
+    return { synced: false, accountsImported: 0, transactionsImported: 0, transactionIds: [] };
   }
 
   try {
@@ -306,7 +309,7 @@ export async function syncBankIfNeeded(): Promise<{
     return { synced: true, ...result };
   } catch (err) {
     logger.error("truelayer.sync", "Auto-sync failed", err);
-    return { synced: false, accountsImported: 0, transactionsImported: 0 };
+    return { synced: false, accountsImported: 0, transactionsImported: 0, transactionIds: [] };
   }
 }
 

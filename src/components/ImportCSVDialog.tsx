@@ -36,6 +36,7 @@ type ImportResult = {
   imported: number;
   skipped: number;
   errors: string[];
+  transactionIds?: string[];
 };
 
 function parseCSVLineForPreview(line: string): string[] {
@@ -226,6 +227,15 @@ export function ImportCSVDialog({
         setStep("result");
         if (res.imported > 0) {
           toast.success(`Imported ${res.imported} transaction${res.imported !== 1 ? "s" : ""}`);
+
+          // Fire-and-forget AI enrichment for imported transactions
+          if (res.transactionIds && res.transactionIds.length > 0) {
+            fetch("/api/ai-enrich-transactions", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ transactionIds: res.transactionIds }),
+            }).catch(() => {});
+          }
         }
         if (res.errors.length > 0) {
           toast.error(`${res.errors.length} error${res.errors.length !== 1 ? "s" : ""} during import`);

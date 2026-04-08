@@ -74,6 +74,8 @@ export const transactionsTable = pgTable("transactions", {
   transfer_account_id: uuid("transfer_account_id").references(() => accountsTable.id, { onDelete: "set null" }),
   truelayer_id: varchar("truelayer_id", { length: 255 }),
   is_split: boolean("is_split").notNull().default(false),
+  subscription_id: uuid("subscription_id").references(() => subscriptionsTable.id, { onDelete: "set null" }),
+  linked_debt_id: uuid("linked_debt_id").references(() => debtsTable.id, { onDelete: "set null" }),
 }, (table) => [{
   userIdx: index("transactions_user_id_idx").on(table.user_id),
   accountIdx: index("transactions_account_id_idx").on(table.account_id),
@@ -317,3 +319,26 @@ export const mfaBackupCodesTable = pgTable("mfa_backup_codes", {
 }, (table) => [{
   userIdx: index("mfa_backup_codes_user_id_idx").on(table.user_id),
 }])
+
+export const reviewFlagTypeEnum = pgEnum("review_flag_type", [
+  "subscription_amount_mismatch",
+  "possible_debt_payment",
+  "possible_subscription",
+]);
+
+export const transactionReviewFlagsTable = pgTable("transaction_review_flags", {
+  id: uuid().primaryKey().defaultRandom(),
+  user_id: uuid("user_id").notNull(),
+  transaction_id: uuid("transaction_id").notNull().references(() => transactionsTable.id, { onDelete: "cascade" }),
+  flag_type: reviewFlagTypeEnum("flag_type").notNull(),
+  suggested_subscription_id: uuid("suggested_subscription_id").references(() => subscriptionsTable.id, { onDelete: "cascade" }),
+  suggested_debt_id: uuid("suggested_debt_id").references(() => debtsTable.id, { onDelete: "cascade" }),
+  expected_amount: numeric("expected_amount", { mode: "number" }),
+  actual_amount: numeric("actual_amount", { mode: "number" }).notNull(),
+  is_resolved: boolean("is_resolved").notNull().default(false),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [{
+  userIdx: index("review_flags_user_id_idx").on(table.user_id),
+  transactionIdx: index("review_flags_transaction_id_idx").on(table.transaction_id),
+  unresolvedIdx: index("review_flags_unresolved_idx").on(table.user_id, table.is_resolved),
+}]);

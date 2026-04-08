@@ -107,14 +107,14 @@ export async function importTransactionsFromCSV(
   mapping: CsvColumnMapping,
   accountId: string,
   defaultType: 'income' | 'expense' | 'auto',
-): Promise<{ imported: number; skipped: number; errors: string[] }> {
+): Promise<{ imported: number; skipped: number; errors: string[]; transactionIds: string[] }> {
   const userId = await getCurrentUserId();
 
   await requireOwnership(accountsTable, accountId, userId, 'account');
 
   const allRows = parseCSV(csvText);
   if (allRows.length < 2) {
-    return { imported: 0, skipped: 0, errors: ['CSV must have a header row and at least one data row.'] };
+    return { imported: 0, skipped: 0, errors: ['CSV must have a header row and at least one data row.'], transactionIds: [] };
   }
 
   // Skip header row
@@ -174,6 +174,7 @@ export async function importTransactionsFromCSV(
       imported: 0,
       skipped: dataRows.length,
       errors: errors.slice(0, 20),
+      transactionIds: [],
     };
   }
 
@@ -206,9 +207,11 @@ export async function importTransactionsFromCSV(
 
   // Batch insert all rows + update balance in a single transaction
   const BATCH_SIZE = 500;
+  const insertedIds: string[] = [];
   await db.transaction(async (tx) => {
     for (let i = 0; i < insertValues.length; i += BATCH_SIZE) {
-      await tx.insert(transactionsTable).values(insertValues.slice(i, i + BATCH_SIZE));
+      const batch = await tx.insert(transactionsTable).values(insertValues.slice(i, i + BATCH_SIZE)).returning({ id: transactionsTable.id });
+      insertedIds.push(...batch.map((r) => r.id));
     }
 
     if (totalBalanceDelta !== 0) {
@@ -229,5 +232,6 @@ export async function importTransactionsFromCSV(
     imported,
     skipped: dataRows.length - imported,
     errors: errors.slice(0, 20), // Cap error messages
+    transactionIds: insertedIds,
   };
 }
