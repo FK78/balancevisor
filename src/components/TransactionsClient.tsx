@@ -385,7 +385,7 @@ export function TransactionsClient({
           </p>
         </div>
         {canCreateTransaction ? (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <ImportCSVDialog
               accounts={accounts}
               onImported={() => router.refresh()}

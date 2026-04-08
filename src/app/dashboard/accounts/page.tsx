@@ -112,7 +112,7 @@ export default async function Accounts() {
             Manage and monitor all your linked accounts.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <ConnectBankButton connections={truelayerConnections} />
           <AccountFormDialog />
         </div>

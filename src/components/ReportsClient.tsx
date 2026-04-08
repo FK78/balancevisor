@@ -209,7 +209,7 @@ export function ReportsClient({
             Financial insights and analytics across your accounts.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {([3, 6, 12] as RangeOption[]).map((option) => (
             <Button
               key={option}
