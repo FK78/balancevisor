@@ -74,18 +74,7 @@
     background-position: calc(-100% - var(--shiny-width)) 0;}
   30%, 60% {
     background-position: calc(100% + var(--shiny-width)) 0;}}
-  --animate-marquee: marquee var(--duration) infinite linear;
-  --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
-  @keyframes marquee {
-  from {
-    transform: translateX(0);}
-  to {
-    transform: translateX(calc(-100% - var(--gap)));}}
-  @keyframes marquee-vertical {
-  from {
-    transform: translateY(0);}
-  to {
-    transform: translateY(calc(-100% - var(--gap)));}}}
+}
 
 /* ── Light: cool slate + indigo/violet/cyan ── */
 :root {
@@ -249,6 +238,12 @@
 
 .animate-pulse-glow {
   animation: pulse-glow 4s ease-in-out infinite;
+}
+
+/* ── CSS dot pattern (replaces motion-powered DotPattern component) ── */
+.dot-pattern {
+  background-image: radial-gradient(circle, currentColor 1px, transparent 1px);
+  background-size: 16px 16px;
 }
 
 /* ── Gradient text utility ── */

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { BlurFade } from "@/components/ui/blur-fade";
 import {
   Card,
   CardContent,
@@ -127,7 +126,6 @@ export default async function Budgets() {
           </CardContent>
         </Card>
       ) : (
-        <BlurFade delay={0.1} inView>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {budgets.map((budget) => {
             const percent = Math.min(
@@ -252,7 +250,6 @@ export default async function Budgets() {
             );
           })}
         </div>
-        </BlurFade>
       )}
     </div>
   );
