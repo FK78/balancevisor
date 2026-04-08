@@ -2,7 +2,7 @@
 
 import { db } from "@/index";
 import { trading212ConnectionsTable, manualHoldingsTable, accountsTable, holdingSalesTable } from "@/db/schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, gt, and } from "drizzle-orm";
 import { getCurrentUserId } from "@/lib/auth";
 import { searchTicker } from "@/lib/yahoo-finance";
 import { decryptForUser, getUserKey } from "@/lib/encryption";
@@ -105,7 +105,7 @@ export async function getManualHoldings(userId: string) {
     })
     .from(manualHoldingsTable)
     .leftJoin(accountsTable, eq(manualHoldingsTable.account_id, accountsTable.id))
-    .where(eq(manualHoldingsTable.user_id, userId));
+    .where(and(eq(manualHoldingsTable.user_id, userId), gt(manualHoldingsTable.quantity, 0)));
 
   const userKey = await getUserKey(userId);
   return rows.map((row) => ({

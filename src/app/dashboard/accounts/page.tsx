@@ -171,7 +171,7 @@ export default async function Accounts() {
                     <div>
                       <CardTitle className="text-base">
                         <Link
-                          href={`/dashboard/transactions?account=${account.id}`}
+                          href={`/dashboard/accounts/${account.id}`}
                           className="hover:underline"
                         >
                           {account.accountName}
@@ -179,7 +179,7 @@ export default async function Accounts() {
                       </CardTitle>
                       <CardDescription className="text-xs">
                         <Link
-                          href={`/dashboard/transactions?account=${account.id}`}
+                          href={`/dashboard/accounts/${account.id}`}
                           className="hover:underline"
                         >
                           {account.transactions} transactions
@@ -214,7 +214,7 @@ export default async function Accounts() {
                 </CardHeader>
                 <CardContent>
                   <Link
-                    href={`/dashboard/transactions?account=${account.id}`}
+                    href={`/dashboard/accounts/${account.id}`}
                     className={`text-2xl font-bold tabular-nums hover:underline ${account.balance >= 0 ? "text-foreground" : "text-red-600"
                       }`}
                   >
