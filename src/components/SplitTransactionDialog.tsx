@@ -207,7 +207,7 @@ export function SplitTransactionDialog({
                     <SelectContent>
                       {accounts.map((a) => (
                         <SelectItem key={a.id} value={String(a.id)}>
-                          {a.accountName}
+                          {a.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
