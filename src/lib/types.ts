@@ -28,6 +28,8 @@ import type {
   netWorthSnapshotsTable,
   sharedAccessTable,
   defaultCategoryTemplatesTable,
+  zakatSettingsTable,
+  zakatCalculationsTable,
 } from "@/db/schema";
 
 // ---------------------------------------------------------------------------
@@ -96,6 +98,11 @@ export type NewSharedAccess = InferInsertModel<typeof sharedAccessTable>;
 
 export type DefaultCategoryTemplate = InferSelectModel<typeof defaultCategoryTemplatesTable>;
 export type NewDefaultCategoryTemplate = InferInsertModel<typeof defaultCategoryTemplatesTable>;
+
+export type ZakatSettings = InferSelectModel<typeof zakatSettingsTable>;
+export type NewZakatSettings = InferInsertModel<typeof zakatSettingsTable>;
+export type ZakatCalculation = InferSelectModel<typeof zakatCalculationsTable>;
+export type NewZakatCalculation = InferInsertModel<typeof zakatCalculationsTable>;
 
 // ---------------------------------------------------------------------------
 // UI-specific types (with decrypted fields and computed values)
