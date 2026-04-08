@@ -48,29 +48,45 @@ export default async function Transactions({
   let totalTransactions: number;
   let totalIncome: number;
   let totalExpenses: number;
+  let accounts;
+  let categories;
+  let dailyTrend;
+  let dailyCategoryExpenses;
+  let baseCurrency;
 
-  if (search) {
-    const result = await searchTransactions(userId, search, requestedPage, PAGE_SIZE, startDate, endDate, accountId);
-    transactions = result.transactions;
-    totalTransactions = result.totalCount;
-    totalIncome = result.totalIncome;
-    totalExpenses = result.totalExpenses;
-  } else {
-    [transactions, totalTransactions, totalIncome, totalExpenses] = await Promise.all([
-      getTransactionsWithDetailsPaginated(userId, requestedPage, PAGE_SIZE, startDate, endDate, accountId),
-      getTransactionsCount(userId, startDate, endDate, accountId),
-      getTotalsByType(userId, 'income', startDate, endDate, accountId),
-      getTotalsByType(userId, 'expense', startDate, endDate, accountId),
-    ]);
-  }
-
-  const [accounts, categories, dailyTrend, dailyCategoryExpenses, baseCurrency] = await Promise.all([
+  // Shared fetches that are always needed regardless of search
+  const sharedFetches = [
     getAccountsWithDetails(userId),
     getCategoriesByUser(userId),
     getDailyIncomeExpenseTrend(userId, 90),
     getDailyExpenseByCategory(userId, 90),
     getUserBaseCurrency(userId),
-  ]);
+  ] as const;
+
+  if (search) {
+    const [result, ...shared] = await Promise.all([
+      searchTransactions(userId, search, requestedPage, PAGE_SIZE, startDate, endDate, accountId),
+      ...sharedFetches,
+    ]);
+    transactions = result.transactions;
+    totalTransactions = result.totalCount;
+    totalIncome = result.totalIncome;
+    totalExpenses = result.totalExpenses;
+    [accounts, categories, dailyTrend, dailyCategoryExpenses, baseCurrency] = shared;
+  } else {
+    const [txns, count, inc, exp, ...shared] = await Promise.all([
+      getTransactionsWithDetailsPaginated(userId, requestedPage, PAGE_SIZE, startDate, endDate, accountId),
+      getTransactionsCount(userId, startDate, endDate, accountId),
+      getTotalsByType(userId, 'income', startDate, endDate, accountId),
+      getTotalsByType(userId, 'expense', startDate, endDate, accountId),
+      ...sharedFetches,
+    ]);
+    transactions = txns;
+    totalTransactions = count;
+    totalIncome = inc;
+    totalExpenses = exp;
+    [accounts, categories, dailyTrend, dailyCategoryExpenses, baseCurrency] = shared;
+  }
 
   const totalPages = Math.max(1, Math.ceil(totalTransactions / PAGE_SIZE));
 

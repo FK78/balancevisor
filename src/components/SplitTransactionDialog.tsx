@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toDateString } from "@/lib/date";
 import { Plus, Minus, CheckCircle2, Loader2, Split } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,7 +54,7 @@ export function SplitTransactionDialog({
   const [type, setType] = useState<"expense" | "income">("expense");
   const [description, setDescription] = useState("");
   const [accountId, setAccountId] = useState("");
-  const [txnDate, setTxnDate] = useState(new Date().toISOString().split("T")[0]);
+  const [txnDate, setTxnDate] = useState(toDateString(new Date()));
   const [splits, setSplits] = useState<SplitRow[]>([emptyRow(0), emptyRow(1)]);
   const [nextKey, setNextKey] = useState(2);
 
@@ -81,7 +82,7 @@ export function SplitTransactionDialog({
     setType("expense");
     setDescription("");
     setAccountId("");
-    setTxnDate(new Date().toISOString().split("T")[0]);
+    setTxnDate(toDateString(new Date()));
     setSplits([emptyRow(0), emptyRow(1)]);
     setNextKey(2);
     setFormKey((k) => k + 1);
@@ -207,7 +208,7 @@ export function SplitTransactionDialog({
                     <SelectContent>
                       {accounts.map((a) => (
                         <SelectItem key={a.id} value={String(a.id)}>
-                          {a.accountName}
+                          {a.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -231,7 +232,7 @@ export function SplitTransactionDialog({
                     type="date"
                     value={txnDate}
                     onChange={(e) => setTxnDate(e.target.value)}
-                    max={new Date().toISOString().split("T")[0]}
+                    max={toDateString(new Date())}
                     required
                   />
                 </div>

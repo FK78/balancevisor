@@ -2,7 +2,7 @@
 
 import { db } from '@/index';
 import { transactionsTable, accountsTable } from '@/db/schema';
-import { revalidatePath } from 'next/cache';
+import { revalidateDomains } from '@/lib/revalidate';
 import { eq, and } from 'drizzle-orm';
 import { getCurrentUserId } from '@/lib/auth';
 import { requireString, sanitizeEnum, sanitizeDate } from '@/lib/sanitize';
@@ -38,9 +38,7 @@ export async function cancelRecurring(transactionId: string) {
     })
     .where(eq(transactionsTable.id, transactionId));
 
-  revalidatePath('/dashboard/recurring');
-  revalidatePath('/dashboard/transactions');
-  revalidatePath('/dashboard');
+  revalidateDomains('recurring', 'transactions');
 }
 
 /**
@@ -74,7 +72,5 @@ export async function updateRecurringPattern(formData: FormData) {
     })
     .where(eq(transactionsTable.id, transactionId));
 
-  revalidatePath('/dashboard/recurring');
-  revalidatePath('/dashboard/transactions');
-  revalidatePath('/dashboard');
+  revalidateDomains('recurring', 'transactions');
 }

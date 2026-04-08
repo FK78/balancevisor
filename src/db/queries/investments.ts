@@ -5,12 +5,14 @@ import { trading212ConnectionsTable, manualHoldingsTable, accountsTable, holding
 import { eq, desc } from "drizzle-orm";
 import { getCurrentUserId } from "@/lib/auth";
 import { searchTicker } from "@/lib/yahoo-finance";
-import { decrypt } from "@/lib/encryption";
+import { decryptForUser, getUserKey } from "@/lib/encryption";
 
 export async function searchTickers(query: string) {
   await getCurrentUserId();
   if (!query || query.length < 1) return [];
-  return searchTicker(query);
+  const sanitized = query.trim().slice(0, 100);
+  if (sanitized.length === 0) return [];
+  return searchTicker(sanitized);
 }
 
 export async function getTrading212Connection(userId: string) {
@@ -65,9 +67,10 @@ export async function getHoldingSales(userId: string) {
     .where(eq(holdingSalesTable.user_id, userId))
     .orderBy(desc(holdingSalesTable.date));
 
+  const userKey = await getUserKey(userId);
   return rows.map(row => ({
     ...row,
-    cashAccountName: row.cashAccountName ? decrypt(row.cashAccountName) : null,
+    cashAccountName: row.cashAccountName ? decryptForUser(row.cashAccountName, userKey) : null,
   }));
 }
 
@@ -104,8 +107,9 @@ export async function getManualHoldings(userId: string) {
     .leftJoin(accountsTable, eq(manualHoldingsTable.account_id, accountsTable.id))
     .where(eq(manualHoldingsTable.user_id, userId));
 
+  const userKey = await getUserKey(userId);
   return rows.map((row) => ({
     ...row,
-    accountName: row.accountName ? decrypt(row.accountName) : null,
+    accountName: row.accountName ? decryptForUser(row.accountName, userKey) : null,
   }));
 }

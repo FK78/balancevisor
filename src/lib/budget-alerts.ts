@@ -6,7 +6,7 @@ import {
   categoriesTable,
   transactionsTable,
 } from '@/db/schema';
-import { eq, sum, and, gte, lt, desc } from 'drizzle-orm';
+import { eq, sum, and, gte, lt, inArray } from 'drizzle-orm';
 import { createNotification } from '@/db/mutations/budget-alerts';
 import { sendBudgetAlertEmail } from '@/lib/email';
 import { createClient } from '@/lib/supabase/server';
@@ -70,25 +70,30 @@ async function getBudgetsWithSpendAndPrefs(userId: string): Promise<BudgetWithSp
   });
 }
 
-async function hasRecentNotification(
+/**
+ * Batch-fetch all recent notifications for the given budgets this month.
+ * Returns a Set of "budgetId:alertType" keys for O(1) lookup.
+ */
+async function getRecentNotificationKeys(
   userId: string,
-  budgetId: string,
-  alertType: 'threshold_warning' | 'over_budget',
-): Promise<boolean> {
+  budgetIds: string[],
+): Promise<Set<string>> {
+  if (budgetIds.length === 0) return new Set();
+
   const { start } = getMonthRange();
 
-  const [existing] = await db.select({ id: budgetNotificationsTable.id })
+  const rows = await db.select({
+    budget_id: budgetNotificationsTable.budget_id,
+    alert_type: budgetNotificationsTable.alert_type,
+  })
     .from(budgetNotificationsTable)
     .where(and(
       eq(budgetNotificationsTable.user_id, userId),
-      eq(budgetNotificationsTable.budget_id, budgetId),
-      eq(budgetNotificationsTable.alert_type, alertType),
+      inArray(budgetNotificationsTable.budget_id, budgetIds),
       gte(budgetNotificationsTable.created_at, new Date(start)),
-    ))
-    .orderBy(desc(budgetNotificationsTable.created_at))
-    .limit(1);
+    ));
 
-  return !!existing;
+  return new Set(rows.map(r => `${r.budget_id}:${r.alert_type}`));
 }
 
 export type TriggeredAlert = {
@@ -116,6 +121,11 @@ export async function checkBudgetAlerts(userId: string): Promise<TriggeredAlert[
     userEmail = user?.email ?? undefined;
   }
 
+  const activeBudgetIds = budgets
+    .filter(b => (b.browserAlerts || b.emailAlerts) && b.budgetAmount > 0)
+    .map(b => b.budgetId);
+  const recentKeys = await getRecentNotificationKeys(userId, activeBudgetIds);
+
   for (const b of budgets) {
     if (!b.browserAlerts && !b.emailAlerts) continue;
     if (b.budgetAmount <= 0) continue;
@@ -123,7 +133,7 @@ export async function checkBudgetAlerts(userId: string): Promise<TriggeredAlert[
     const percent = (b.spent / b.budgetAmount) * 100;
 
     if (percent >= 100) {
-      const already = await hasRecentNotification(userId, b.budgetId, 'over_budget');
+      const already = recentKeys.has(`${b.budgetId}:over_budget`);
       if (!already) {
         const message = `You've exceeded your ${b.categoryName} budget! Spent ${percent.toFixed(0)}% of your ${b.categoryName} budget.`;
         await createNotification(userId, b.budgetId, 'over_budget', message);
@@ -148,7 +158,7 @@ export async function checkBudgetAlerts(userId: string): Promise<TriggeredAlert[
         }
       }
     } else if (percent >= b.threshold) {
-      const already = await hasRecentNotification(userId, b.budgetId, 'threshold_warning');
+      const already = recentKeys.has(`${b.budgetId}:threshold_warning`);
       if (!already) {
         const message = `Heads up — you've used ${percent.toFixed(0)}% of your ${b.categoryName} budget.`;
         await createNotification(userId, b.budgetId, 'threshold_warning', message);

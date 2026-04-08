@@ -2,12 +2,13 @@
 
 import { db } from '@/index';
 import { accountsTable, transactionsTable } from '@/db/schema';
-import { revalidatePath } from 'next/cache';
+import { revalidateDomains } from '@/lib/revalidate';
 import { eq, sql } from 'drizzle-orm';
 import { getCurrentUserId } from '@/lib/auth';
+import { requireOwnership } from '@/lib/ownership';
 import { checkBudgetAlerts } from '@/lib/budget-alerts';
-import { encrypt } from '@/lib/encryption';
-import { matchCategorisationRule } from '@/lib/auto-categorise';
+import { encryptForUser, getUserKey } from '@/lib/encryption';
+import { fetchUserRules, matchAgainstRules } from '@/lib/auto-categorise';
 import { sanitizeString } from '@/lib/sanitize';
 
 type CsvColumnMapping = {
@@ -109,15 +110,7 @@ export async function importTransactionsFromCSV(
 ): Promise<{ imported: number; skipped: number; errors: string[] }> {
   const userId = await getCurrentUserId();
 
-  // Verify the account belongs to this user
-  const [account] = await db
-    .select({ id: accountsTable.id })
-    .from(accountsTable)
-    .where(eq(accountsTable.id, accountId));
-
-  if (!account) {
-    throw new Error('Account not found');
-  }
+  await requireOwnership(accountsTable, accountId, userId, 'account');
 
   const allRows = parseCSV(csvText);
   if (allRows.length < 2) {
@@ -176,41 +169,58 @@ export async function importTransactionsFromCSV(
     });
   }
 
-  let imported = 0;
+  if (validRows.length === 0) {
+    return {
+      imported: 0,
+      skipped: dataRows.length,
+      errors: errors.slice(0, 20),
+    };
+  }
+
+  // Fetch categorisation rules and user encryption key once (not per-row)
+  const [rules, userKey] = await Promise.all([
+    fetchUserRules(userId),
+    getUserKey(userId),
+  ]);
+
+  // Build all insert values in memory
   let totalBalanceDelta = 0;
-
-  for (const row of validRows) {
-    // Auto-categorise based on description
-    const categoryId = await matchCategorisationRule(userId, row.description);
-
+  const insertValues = validRows.map((row) => {
+    const categoryId = matchAgainstRules(rules, row.description);
     const delta = row.type === 'income' ? row.amount : -row.amount;
+    totalBalanceDelta += delta;
 
-    await db.insert(transactionsTable).values({
+    return {
       account_id: accountId,
       category_id: categoryId,
       type: row.type,
       amount: row.amount,
-      description: encrypt(row.description),
+      description: encryptForUser(row.description, userKey),
       date: row.date,
-      is_recurring: false,
+      is_recurring: false as const,
       recurring_pattern: null,
       next_recurring_date: null,
-    });
+    };
+  });
 
-    totalBalanceDelta += delta;
-    imported++;
-  }
+  // Batch insert all rows + update balance in a single transaction
+  const BATCH_SIZE = 500;
+  await db.transaction(async (tx) => {
+    for (let i = 0; i < insertValues.length; i += BATCH_SIZE) {
+      await tx.insert(transactionsTable).values(insertValues.slice(i, i + BATCH_SIZE));
+    }
 
-  // Update account balance in one go
-  if (totalBalanceDelta !== 0) {
-    await db
-      .update(accountsTable)
-      .set({ balance: sql`${accountsTable.balance} + ${totalBalanceDelta}` })
-      .where(eq(accountsTable.id, accountId));
-  }
+    if (totalBalanceDelta !== 0) {
+      await tx
+        .update(accountsTable)
+        .set({ balance: sql`${accountsTable.balance} + ${totalBalanceDelta}` })
+        .where(eq(accountsTable.id, accountId));
+    }
+  });
 
-  revalidatePath('/dashboard/transactions');
-  revalidatePath('/dashboard/accounts');
+  const imported = validRows.length;
+
+  revalidateDomains('transactions', 'accounts');
 
   await checkBudgetAlerts(userId);
 

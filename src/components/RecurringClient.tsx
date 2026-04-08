@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toDateString } from "@/lib/date";
 import {
   Card,
   CardContent,
@@ -58,15 +59,8 @@ import {
 } from "lucide-react";
 import { cancelRecurring, updateRecurringPattern } from "@/db/mutations/recurring";
 import { formatCurrency } from "@/lib/formatCurrency";
+import { recurringPatternLabels as patternLabels } from "@/lib/labels";
 import type { RecurringTransaction } from "@/db/queries/recurring";
-
-const patternLabels: Record<string, string> = {
-  daily: "Daily",
-  weekly: "Weekly",
-  biweekly: "Every 2 weeks",
-  monthly: "Monthly",
-  yearly: "Yearly",
-};
 
 type Props = {
   recurring: RecurringTransaction[];
@@ -211,7 +205,7 @@ export function RecurringClient({
     return r.type === filter;
   });
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = toDateString(new Date());
 
   if (recurring.length === 0) {
     return (
@@ -285,7 +279,7 @@ export function RecurringClient({
                   (() => {
                     const next7 = new Date();
                     next7.setDate(next7.getDate() + 7);
-                    return r.next_recurring_date! <= next7.toISOString().split("T")[0];
+                    return r.next_recurring_date! <= toDateString(next7);
                   })();
                 return (
                   <TableRow key={r.id}>

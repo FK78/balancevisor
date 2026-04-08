@@ -1,28 +1,18 @@
 "use client";
 
-import { useTransition } from "react";
-import { Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { DeleteConfirmButton } from "@/components/DeleteConfirmButton";
 import { deleteCategorisationRule } from "@/db/mutations/categorisation-rules";
 
 export function DeleteRuleButton({ ruleId }: { ruleId: string }) {
-  const [isPending, startTransition] = useTransition();
-
-  function handleDelete() {
-    startTransition(async () => {
-      await deleteCategorisationRule(ruleId);
-    });
-  }
-
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="h-7 w-7 text-muted-foreground hover:text-destructive"
-      onClick={handleDelete}
-      disabled={isPending}
-    >
-      <Trash2 className="h-3.5 w-3.5" />
-    </Button>
+    <DeleteConfirmButton
+      dialogTitle="Delete rule?"
+      dialogDescription="Are you sure you want to delete this categorisation rule? This action cannot be undone."
+      onDelete={() => deleteCategorisationRule(ruleId)}
+      successTitle="Rule deleted"
+      successDescription="The categorisation rule has been removed."
+      triggerClassName="h-7 w-7 text-muted-foreground hover:text-destructive"
+      triggerIconClassName="h-3.5 w-3.5"
+    />
   );
 }

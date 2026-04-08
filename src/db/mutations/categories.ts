@@ -3,7 +3,7 @@
 import { db } from '@/index';
 import { categoriesTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
+import { revalidateDomains } from '@/lib/revalidate';
 import { getCurrentUserId } from '@/lib/auth';
 import { requireString, sanitizeColor, sanitizeString } from '@/lib/sanitize';
 
@@ -20,8 +20,7 @@ export async function addCategory(formData: FormData) {
     color,
     icon,
   }).returning({ id: categoriesTable.id });
-  revalidatePath('/onboarding');
-  revalidatePath('/dashboard/categories');
+  revalidateDomains('categories', 'onboarding');
   return result;
 }
 
@@ -35,10 +34,10 @@ export async function editCategory(id: string, formData: FormData) {
     color,
     icon,
   }).where(eq(categoriesTable.id, id));
-  revalidatePath('/dashboard/categories');
+  revalidateDomains('categories');
 }
 
 export async function deleteCategory(id: string) {
   await db.delete(categoriesTable).where(eq(categoriesTable.id, id));
-  revalidatePath('/dashboard/categories');
+  revalidateDomains('categories');
 }

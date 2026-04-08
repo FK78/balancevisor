@@ -2,21 +2,9 @@
 
 import { db } from "@/index";
 import { sharedAccessTable, accountsTable, budgetsTable, categoriesTable } from "@/db/schema";
-import { eq, and, or } from "drizzle-orm";
-import { decrypt } from "@/lib/encryption";
-
-export type SharedAccess = {
-  id: string;
-  owner_id: string;
-  shared_with_id: string | null;
-  shared_with_email: string;
-  resource_type: "account" | "budget";
-  resource_id: string;
-  permission: "view" | "edit";
-  status: "pending" | "accepted" | "declined";
-  created_at: Date;
-  accepted_at: Date | null;
-};
+import { eq, and, or, inArray } from "drizzle-orm";
+import { decryptForUser, getUserKey } from "@/lib/encryption";
+import type { SharedAccess } from "@/lib/types";
 
 /**
  * Get all shares where the current user is the owner (things they've shared out).
@@ -30,8 +18,10 @@ export async function getSharesByOwner(userId: string): Promise<SharedAccess[]> 
 
 /**
  * Get all shares for a specific resource (account or budget).
+ * Only the resource owner may list shares.
  */
 export async function getSharesForResource(
+  userId: string,
   resourceType: "account" | "budget",
   resourceId: string,
 ): Promise<SharedAccess[]> {
@@ -40,6 +30,7 @@ export async function getSharesForResource(
     .from(sharedAccessTable)
     .where(
       and(
+        eq(sharedAccessTable.owner_id, userId),
         eq(sharedAccessTable.resource_type, resourceType),
         eq(sharedAccessTable.resource_id, resourceId),
       ),
@@ -66,29 +57,52 @@ export async function getPendingInvitations(
       ),
     );
 
-  // Enrich with resource names
-  const enriched = await Promise.all(
-    rows.map(async (row) => {
-      let resourceName = "Unknown";
-      if (row.resource_type === "account") {
-        const [account] = await db
-          .select({ name: accountsTable.name })
-          .from(accountsTable)
-          .where(eq(accountsTable.id, row.resource_id));
-        if (account) resourceName = decrypt(account.name);
-      } else if (row.resource_type === "budget") {
-        const [budget] = await db
-          .select({ name: categoriesTable.name })
-          .from(budgetsTable)
-          .innerJoin(categoriesTable, eq(categoriesTable.id, budgetsTable.category_id))
-          .where(eq(budgetsTable.id, row.resource_id));
-        if (budget) resourceName = budget.name;
-      }
-      return { ...row, resourceName };
-    }),
-  );
+  // Batch-fetch resource names to avoid N+1 queries
+  const accountIds = rows.filter((r) => r.resource_type === "account").map((r) => r.resource_id);
+  const budgetIds = rows.filter((r) => r.resource_type === "budget").map((r) => r.resource_id);
 
-  return enriched;
+  const accountNameMap = new Map<string, string>();
+  if (accountIds.length > 0) {
+    const accounts = await db
+      .select({ id: accountsTable.id, name: accountsTable.name, user_id: accountsTable.user_id })
+      .from(accountsTable)
+      .where(inArray(accountsTable.id, accountIds));
+
+    // Group by owner to minimize getUserKey calls
+    const byOwner = new Map<string, typeof accounts>();
+    for (const a of accounts) {
+      if (!byOwner.has(a.user_id)) byOwner.set(a.user_id, []);
+      byOwner.get(a.user_id)!.push(a);
+    }
+    for (const [ownerId, ownerAccounts] of byOwner) {
+      const ownerKey = await getUserKey(ownerId);
+      for (const a of ownerAccounts) {
+        accountNameMap.set(a.id, decryptForUser(a.name, ownerKey));
+      }
+    }
+  }
+
+  const budgetNameMap = new Map<string, string>();
+  if (budgetIds.length > 0) {
+    const budgetRows = await db
+      .select({ id: budgetsTable.id, name: categoriesTable.name })
+      .from(budgetsTable)
+      .innerJoin(categoriesTable, eq(categoriesTable.id, budgetsTable.category_id))
+      .where(inArray(budgetsTable.id, budgetIds));
+    for (const b of budgetRows) {
+      budgetNameMap.set(b.id, b.name);
+    }
+  }
+
+  return rows.map((row) => {
+    let resourceName = "Unknown";
+    if (row.resource_type === "account") {
+      resourceName = accountNameMap.get(row.resource_id) ?? "Unknown";
+    } else if (row.resource_type === "budget") {
+      resourceName = budgetNameMap.get(row.resource_id) ?? "Unknown";
+    }
+    return { ...row, resourceName };
+  });
 }
 
 /**

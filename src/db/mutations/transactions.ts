@@ -2,12 +2,13 @@
 
 import { db } from '@/index';
 import { accountsTable, transactionsTable, transactionSplitsTable } from '@/db/schema';
-import { revalidatePath } from 'next/cache';
+import { revalidateDomains } from '@/lib/revalidate';
+import { toDateString } from '@/lib/date';
 import { eq, sql } from 'drizzle-orm';
 import { getCurrentUserId, getCurrentUserEmail } from '@/lib/auth';
 import { hasEditAccess } from '@/db/queries/sharing';
 import { checkBudgetAlerts } from '@/lib/budget-alerts';
-import { encrypt } from '@/lib/encryption';
+import { encryptForUser, getUserKey } from '@/lib/encryption';
 import { matchCategorisationRule } from '@/lib/auto-categorise';
 import { invalidateByUser } from '@/lib/cache';
 import { requireString, sanitizeNumber, sanitizeEnum, requireDate, sanitizeUUID, sanitizeString } from '@/lib/sanitize';
@@ -26,7 +27,7 @@ function computeNextRecurringDate(dateStr: string, pattern: string | null): stri
     case 'yearly': d.setFullYear(d.getFullYear() + 1); break;
     default: return null;
   }
-  return d.toISOString().split('T')[0];
+  return toDateString(d);
 }
 
 type DbClient = typeof db;
@@ -34,11 +35,13 @@ type TransactionDb = Parameters<Parameters<DbClient['transaction']>[0]>[0];
 
 export async function createTransaction(
   transaction: Transaction,
+  userId: string,
   tx: DbClient | TransactionDb = db,
 ) {
+  const userKey = await getUserKey(userId);
   return await tx.insert(transactionsTable).values({
     ...transaction,
-    description: transaction.description ? encrypt(transaction.description) : transaction.description,
+    description: transaction.description ? encryptForUser(transaction.description, userKey) : transaction.description,
   }).returning({ id: transactionsTable.id });
 }
 
@@ -89,7 +92,7 @@ export async function addTransaction(formData: FormData) {
       category_id: categoryId || (formData.get('category_id') as string) || null,
       recurring_pattern: recurringPattern as typeof transactionsTable.$inferInsert['recurring_pattern'],
       next_recurring_date: nextRecurringDate,
-    }, tx);
+    }, userId, tx);
 
     await tx.update(accountsTable)
       .set({ balance: sql`${accountsTable.balance} + ${balanceDelta(type, amount)}` })
@@ -98,8 +101,7 @@ export async function addTransaction(formData: FormData) {
     return inserted;
   });
 
-  revalidatePath('/dashboard/transactions');
-  revalidatePath('/dashboard/accounts');
+  revalidateDomains('transactions', 'accounts');
 
   await checkBudgetAlerts(userId);
   invalidateByUser(userId);
@@ -136,12 +138,13 @@ export async function editTransaction(formData: FormData) {
     : null;
 
   const editDescription = sanitizeString(formData.get('description') as string) ?? '';
+  const userKey = await getUserKey(userId);
 
   const result = await db.transaction(async (tx) => {
     const [updated] = await tx.update(transactionsTable).set({
       type: newType,
       amount: newAmount,
-      description: encrypt(editDescription),
+      description: encryptForUser(editDescription, userKey),
       is_recurring: isRecurring,
       date: txnDate,
       account_id: newAccountId,
@@ -166,8 +169,7 @@ export async function editTransaction(formData: FormData) {
     return updated;
   });
 
-  revalidatePath('/dashboard/transactions');
-  revalidatePath('/dashboard/accounts');
+  revalidateDomains('transactions', 'accounts');
 
   await checkBudgetAlerts(userId);
   invalidateByUser(userId);
@@ -187,6 +189,15 @@ export async function addTransfer(formData: FormData) {
     throw new Error('Source and destination accounts must be different');
   }
 
+  // Verify ownership of both accounts
+  const userEmail = await getCurrentUserEmail();
+  const [canEditFrom, canEditTo] = await Promise.all([
+    hasEditAccess(userId, userEmail, 'account', fromAccountId),
+    hasEditAccess(userId, userEmail, 'account', toAccountId),
+  ]);
+  if (!canEditFrom) throw new Error('You do not have access to the source account');
+  if (!canEditTo) throw new Error('You do not have access to the destination account');
+
   const result = await db.transaction(async (tx) => {
     const [inserted] = await createTransaction({
       type: 'transfer',
@@ -199,7 +210,7 @@ export async function addTransfer(formData: FormData) {
       category_id: null,
       recurring_pattern: null,
       next_recurring_date: null,
-    }, tx);
+    }, userId, tx);
 
     // Deduct from source account
     await tx.update(accountsTable)
@@ -214,9 +225,7 @@ export async function addTransfer(formData: FormData) {
     return inserted;
   });
 
-  revalidatePath('/dashboard/transactions');
-  revalidatePath('/dashboard/accounts');
-  revalidatePath('/dashboard');
+  revalidateDomains('transactions', 'accounts');
   invalidateByUser(userId);
 
   return result;
@@ -271,8 +280,7 @@ export async function deleteTransaction(id: string) {
     }
   });
 
-  revalidatePath('/dashboard/transactions');
-  revalidatePath('/dashboard/accounts');
+  revalidateDomains('transactions', 'accounts');
   invalidateByUser(userId);
 }
 
@@ -291,13 +299,18 @@ export async function addSplitTransaction(
   splits: SplitInput[],
 ) {
   const userId = await getCurrentUserId();
+  const userEmail = await getCurrentUserEmail();
+  const canEdit = await hasEditAccess(userId, userEmail, 'account', accountId);
+  if (!canEdit) throw new Error('You do not have access to this account');
+
+  const userKey = await getUserKey(userId);
 
   const parent = await db.transaction(async (tx) => {
     // Create parent transaction with is_split = true, no single category
     const [inserted] = await tx.insert(transactionsTable).values({
       type,
       amount: totalAmount,
-      description: encrypt(description),
+      description: encryptForUser(description, userKey),
       is_recurring: false,
       date: txnDate,
       account_id: accountId,
@@ -314,7 +327,7 @@ export async function addSplitTransaction(
           transaction_id: inserted.id,
           category_id: s.category_id,
           amount: s.amount,
-          description: s.description ? encrypt(s.description) : null,
+          description: s.description ? encryptForUser(s.description, userKey) : null,
         }))
       );
     }
@@ -328,9 +341,7 @@ export async function addSplitTransaction(
     return inserted;
   });
 
-  revalidatePath('/dashboard/transactions');
-  revalidatePath('/dashboard/accounts');
-  revalidatePath('/dashboard');
+  revalidateDomains('transactions', 'accounts');
 
   await checkBudgetAlerts(userId);
 

@@ -31,7 +31,9 @@ export async function GET() {
   } catch (error) {
     health.status = 'degraded';
     health.checks.database.status = 'error';
-    health.checks.database.error = error instanceof Error ? error.message : String(error);
+    health.checks.database.error = process.env.NODE_ENV === 'production'
+      ? 'Database connection failed'
+      : (error instanceof Error ? error.message : String(error));
   }
 
   // Determine overall status

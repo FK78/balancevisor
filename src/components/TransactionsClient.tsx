@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { BlurFade } from "@/components/ui/blur-fade";
 import { useRouter } from "next/navigation";
-import { useState, useEffect, useCallback, useMemo, useTransition } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { TransactionFormDialog } from "@/components/AddTransactionForm";
 import { QuickAddTransaction } from "@/components/QuickAddTransaction";
 import { TransferFormDialog } from "@/components/AddTransferForm";
@@ -27,17 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { DeleteConfirmButton } from "@/components/DeleteConfirmButton";
 import {
   ColumnDef,
   flexRender,
@@ -46,7 +36,7 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowDownLeft, ArrowRightLeft, ArrowUpDown, ArrowUpRight, ChevronDown, ChevronRight, Download, Receipt, RefreshCw, Search, Split, Trash2, X, Wallet } from "lucide-react";
+import { ArrowDownLeft, ArrowRightLeft, ArrowUpDown, ArrowUpRight, ChevronDown, ChevronRight, Download, Receipt, RefreshCw, Search, Split, X, Wallet } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -57,7 +47,7 @@ import {
 import { SplitTransactionDialog } from "@/components/SplitTransactionDialog";
 import { deleteTransaction } from "@/db/mutations/transactions";
 import { formatCurrency } from "@/lib/formatCurrency";
-import { toast } from "sonner";
+import { toDateString, addDays } from "@/lib/date";
 import type { AccountWithDetails, CategoryWithColor, TransactionWithDetails, SplitDetail } from "@/lib/types";
 import { TransactionsInsightsCharts } from "@/components/TransactionsInsightsCharts";
 import type { DailyCashflowPoint, DailyCategoryExpensePoint } from "@/db/queries/transactions";
@@ -67,68 +57,31 @@ function DeleteTransactionButton({
 }: {
   transaction: Transaction;
 }) {
-  const [confirming, setConfirming] = useState(false);
-  const [isPending, startTransition] = useTransition();
-
-  function handleDelete() {
-    startTransition(async () => {
-      try {
-        await deleteTransaction(transaction.id);
-        toast.success("Transaction deleted");
-      } catch {
-        toast.error("Something went wrong. Please try again.");
-      } finally {
-        setConfirming(false);
-      }
-    });
-  }
-
   return (
-    <AlertDialog open={confirming} onOpenChange={setConfirming}>
-      <AlertDialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-muted-foreground hover:text-destructive"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete transaction?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This will permanently delete &ldquo;{transaction.description}&rdquo;. This action cannot be undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            className="bg-destructive text-white hover:bg-destructive/90"
-            disabled={isPending}
-            onClick={(e) => {
-              e.preventDefault();
-              handleDelete();
-            }}
-          >
-            Delete
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <DeleteConfirmButton
+      dialogTitle="Delete transaction?"
+      dialogDescription={
+        <>This will permanently delete &ldquo;{transaction.description}&rdquo;. This action cannot be undone.</>
+      }
+      onDelete={() => deleteTransaction(transaction.id)}
+      successTitle="Transaction deleted"
+      successDescription="The transaction has been removed."
+    />
   );
 }
 
 // Use shared types from @/lib/types
 type Transaction = TransactionWithDetails;
 
+const dateFormatter = new Intl.DateTimeFormat("en-GB", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+
 function formatDate(date: string | null) {
   if (!date) return "—";
-  return new Intl.DateTimeFormat("en-GB", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(date));
+  return dateFormatter.format(new Date(date));
 }
 
 function getPageHref(page: number, startDate?: string, endDate?: string, search?: string, accountId?: string) {
@@ -142,18 +95,6 @@ function getPageHref(page: number, startDate?: string, endDate?: string, search?
   return `/dashboard/transactions${qs ? `?${qs}` : ""}`;
 }
 
-function formatDateInput(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function addDays(date: Date, days: number) {
-  const next = new Date(date);
-  next.setDate(next.getDate() + days);
-  return next;
-}
 
 export function TransactionsClient({
   transactions,
@@ -198,8 +139,8 @@ export function TransactionsClient({
   const [filterStartDate, setFilterStartDate] = useState(activeStartDate ?? "");
   const [filterEndDate, setFilterEndDate] = useState(activeEndDate ?? "");
   const [filterAccountId, setFilterAccountId] = useState(activeAccountId ?? "__all__");
-  const [exportStartDate, setExportStartDate] = useState(() => formatDateInput(addDays(new Date(), -30)));
-  const [exportEndDate, setExportEndDate] = useState(() => formatDateInput(new Date()));
+  const [exportStartDate, setExportStartDate] = useState(() => toDateString(addDays(new Date(), -30)));
+  const [exportEndDate, setExportEndDate] = useState(() => toDateString(new Date()));
   const isAccountFilterActive = !!activeAccountId;
   const isDateFilterActive = !!activeStartDate || !!activeEndDate;
   const isFilterActive = isDateFilterActive || isAccountFilterActive;

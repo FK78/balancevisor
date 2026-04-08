@@ -2,6 +2,7 @@ import { groq } from "@ai-sdk/groq";
 import { generateText } from "ai";
 import { z } from "zod";
 import { getCurrentUserId } from "@/lib/auth";
+import { toDateString } from "@/lib/date";
 import { getAccountsWithDetails } from "@/db/queries/accounts";
 import { getCategoriesByUser } from "@/db/queries/categories";
 import { rateLimiters } from "@/lib/rate-limiter";
@@ -48,7 +49,7 @@ export async function POST(req: Request) {
     .map((c) => `- id: "${c.id}" → ${c.name}`)
     .join("\n");
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = toDateString(new Date());
 
   const { text: responseText } = await generateText({
     model: groq("openai/gpt-oss-20b"),

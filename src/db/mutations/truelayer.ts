@@ -8,9 +8,10 @@ import {
   categoriesTable,
 } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidateDomains } from "@/lib/revalidate";
 import { getCurrentUserId } from "@/lib/auth";
-import { encrypt, decrypt } from "@/lib/encryption";
+import { toDateString } from "@/lib/date";
+import { encryptForUser, decryptForUser, getUserKey } from "@/lib/encryption";
 import {
   TrueLayerTokens,
   refreshAccessToken,
@@ -31,13 +32,14 @@ export async function saveTrueLayerConnection(
   tokens: TrueLayerTokens,
 ) {
   const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
+  const userKey = await getUserKey(userId);
 
   const [connection] = await db
     .insert(truelayerConnectionsTable)
     .values({
       user_id: userId,
-      access_token: encrypt(tokens.access_token),
-      refresh_token: encrypt(tokens.refresh_token),
+      access_token: encryptForUser(tokens.access_token, userKey),
+      refresh_token: encryptForUser(tokens.refresh_token, userKey),
       token_expires_at: expiresAt,
     })
     .returning({ id: truelayerConnectionsTable.id });
@@ -57,18 +59,20 @@ async function getValidToken(connectionId: string): Promise<string> {
 
   if (!conn) throw new Error("TrueLayer connection not found");
 
+  const userKey = await getUserKey(conn.user_id);
+
   if (conn.token_expires_at > new Date()) {
-    return decrypt(conn.access_token);
+    return decryptForUser(conn.access_token, userKey);
   }
 
-  const tokens = await refreshAccessToken(decrypt(conn.refresh_token));
+  const tokens = await refreshAccessToken(decryptForUser(conn.refresh_token, userKey));
   const newExpiry = new Date(Date.now() + tokens.expires_in * 1000);
 
   await db
     .update(truelayerConnectionsTable)
     .set({
-      access_token: encrypt(tokens.access_token),
-      refresh_token: encrypt(tokens.refresh_token),
+      access_token: encryptForUser(tokens.access_token, userKey),
+      refresh_token: encryptForUser(tokens.refresh_token, userKey),
       token_expires_at: newExpiry,
     })
     .where(eq(truelayerConnectionsTable.id, connectionId));
@@ -97,6 +101,7 @@ function mapAccountType(
 export async function importFromTrueLayer() {
   const userId = await getCurrentUserId();
   const baseCurrency = await getUserBaseCurrency(userId);
+  const userKey = await getUserKey(userId);
 
   const connections = await db
     .select()
@@ -157,9 +162,10 @@ export async function importFromTrueLayer() {
           .insert(accountsTable)
           .values({
             user_id: userId,
-            name: encrypt(
+            name: encryptForUser(
               tlAccount.display_name ||
                 `${tlAccount.provider?.display_name ?? "Bank"} Account`,
+              userKey,
             ),
             type: mapAccountType(tlAccount.account_type),
             balance,
@@ -180,10 +186,8 @@ export async function importFromTrueLayer() {
           .where(eq(truelayerConnectionsTable.id, connection.id));
       }
 
-      const to = new Date().toISOString().split("T")[0];
-      const from = new Date(Date.now() - 730 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0];
+      const to = toDateString(new Date());
+      const from = toDateString(new Date(Date.now() - 730 * 24 * 60 * 60 * 1000));
 
       let tlTransactions;
       try {
@@ -238,7 +242,7 @@ export async function importFromTrueLayer() {
           category_id: categoryId,
           type,
           amount,
-          description: encrypt(description),
+          description: encryptForUser(description, userKey),
           date: tlTxn.timestamp ? tlTxn.timestamp.split("T")[0] : to,
           is_recurring: false,
           truelayer_id: tlTxn.transaction_id,
@@ -256,9 +260,7 @@ export async function importFromTrueLayer() {
       .where(eq(truelayerConnectionsTable.id, connection.id));
   }
 
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/accounts");
-  revalidatePath("/dashboard/transactions");
+  revalidateDomains('accounts', 'transactions');
 
   return { accountsImported, transactionsImported };
 }
@@ -366,5 +368,5 @@ export async function disconnectTrueLayer(connectionId: string) {
       ),
     );
 
-  revalidatePath("/dashboard/accounts");
+  revalidateDomains('accounts');
 }

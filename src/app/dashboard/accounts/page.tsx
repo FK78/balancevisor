@@ -24,7 +24,12 @@ import { formatCurrency } from "@/lib/formatCurrency";
 import { getCurrentUserId, getCurrentUserEmail } from "@/lib/auth";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { getSharesByOwner, getPendingInvitations } from "@/db/queries/sharing";
-import { AccountCharts } from "@/components/AccountCharts";
+import dynamic from "next/dynamic";
+
+const AccountCharts = dynamic(
+  () => import("@/components/AccountCharts").then((mod) => mod.AccountCharts),
+  { loading: () => <div className="min-h-[300px]" /> }
+);
 import { getTrueLayerConnections } from "@/db/mutations/truelayer";
 import { getManualHoldings, getTrading212Connection } from "@/db/queries/investments";
 import Link from "next/link";

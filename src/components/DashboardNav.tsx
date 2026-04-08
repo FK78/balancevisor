@@ -48,7 +48,8 @@ const moreItems = [
 
 const allItems = [...primaryItems, ...moreItems];
 
-function isActive(href: string, pathname: string) {
+function isActive(href: string, pathname: string | null) {
+  if (!pathname) return false;
   return href === "/dashboard"
     ? pathname === "/dashboard"
     : pathname.startsWith(href);

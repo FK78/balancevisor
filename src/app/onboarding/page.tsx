@@ -28,16 +28,9 @@ import { AccountQuickAdd } from "@/components/AccountQuickAdd";
 import { CategorySelector } from "@/components/CategorySelector";
 import { FeaturesStep } from "@/components/FeaturesStep";
 import { ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { currencyLabels } from "@/lib/labels";
 
 type Step = "welcome" | "accounts" | "categories" | "features" | "review";
-
-const currencyLabels: Record<(typeof SUPPORTED_BASE_CURRENCIES)[number], string> = {
-  GBP: "British Pound (\u00a3)",
-  USD: "US Dollar ($)",
-  EUR: "Euro (\u20ac)",
-  CAD: "Canadian Dollar (CA$)",
-  AUD: "Australian Dollar (A$)",
-};
 
 const ALL_STEPS: Step[] = ["welcome", "accounts", "categories", "features", "review"];
 

@@ -1,8 +1,20 @@
-import { db } from '@/index'; // you'll create this shared db instance
+import { db } from '@/index';
 import { transactionsTable, budgetsTable, categoriesTable, sharedAccessTable } from '@/db/schema';
-import { eq, sum, sql, and, or, inArray } from 'drizzle-orm';
+import { eq, sum, sql, and, or, inArray, gte, lt } from 'drizzle-orm';
+
+function getCurrentPeriodRange(): { start: string; end: string } {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  return {
+    start: start.toISOString().split('T')[0],
+    end: end.toISOString().split('T')[0],
+  };
+}
 
 export async function getBudgets(userId: string) {
+  const { start, end } = getCurrentPeriodRange();
+
   const rows = await db.select({
     id: budgetsTable.id,
     category_id: budgetsTable.category_id,
@@ -16,7 +28,11 @@ export async function getBudgets(userId: string) {
   })
     .from(budgetsTable)
     .innerJoin(categoriesTable, eq(categoriesTable.id, budgetsTable.category_id))
-    .leftJoin(transactionsTable, eq(transactionsTable.category_id, budgetsTable.category_id))
+    .leftJoin(transactionsTable, and(
+      eq(transactionsTable.category_id, budgetsTable.category_id),
+      gte(transactionsTable.date, start),
+      lt(transactionsTable.date, end),
+    ))
     .where(eq(budgetsTable.user_id, userId))
     .groupBy(budgetsTable.id, budgetsTable.category_id, categoriesTable.name, categoriesTable.color, categoriesTable.icon, budgetsTable.amount, budgetsTable.period, budgetsTable.start_date);
 
@@ -42,6 +58,8 @@ export async function getSharedBudgets(userId: string, email: string) {
 
   const sharedBudgetIds = sharedRows.map((r) => r.resource_id);
 
+  const { start, end } = getCurrentPeriodRange();
+
   const rows = await db.select({
     id: budgetsTable.id,
     category_id: budgetsTable.category_id,
@@ -55,7 +73,11 @@ export async function getSharedBudgets(userId: string, email: string) {
   })
     .from(budgetsTable)
     .innerJoin(categoriesTable, eq(categoriesTable.id, budgetsTable.category_id))
-    .leftJoin(transactionsTable, eq(transactionsTable.category_id, budgetsTable.category_id))
+    .leftJoin(transactionsTable, and(
+      eq(transactionsTable.category_id, budgetsTable.category_id),
+      gte(transactionsTable.date, start),
+      lt(transactionsTable.date, end),
+    ))
     .where(inArray(budgetsTable.id, sharedBudgetIds))
     .groupBy(budgetsTable.id, budgetsTable.category_id, categoriesTable.name, categoriesTable.color, categoriesTable.icon, budgetsTable.amount, budgetsTable.period, budgetsTable.start_date);
 

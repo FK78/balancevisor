@@ -38,8 +38,11 @@ function addToTagIndex(key: CacheKey, tags: string[]): void {
 }
 
 function removeFromTagIndex(key: CacheKey): void {
-  for (const keys of tagIndex.values()) {
-    keys.delete(key);
+  const entry = cache.get(key) as CacheEntry<unknown> | undefined;
+  if (entry) {
+    for (const tag of entry.tags) {
+      tagIndex.get(tag)?.delete(key);
+    }
   }
 }
 

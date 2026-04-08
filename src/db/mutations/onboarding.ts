@@ -3,10 +3,11 @@
 import { db } from '@/index';
 import { accountsTable, categoriesTable, defaultCategoryTemplatesTable, userOnboardingTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
+import { revalidateDomains } from '@/lib/revalidate';
 import { redirect } from 'next/navigation';
 import { getCurrentUserId } from '@/lib/auth';
 import { DEFAULT_BASE_CURRENCY, normalizeBaseCurrency } from '@/lib/currency';
+import { createUserKey } from '@/lib/encryption';
 
 async function upsertOnboardingState(userId: string, updates: Partial<{
   base_currency: string;
@@ -76,11 +77,7 @@ export async function setBaseCurrency(formData: FormData) {
       .where(eq(accountsTable.user_id, userId));
   });
 
-  revalidatePath('/onboarding');
-  revalidatePath('/dashboard');
-  revalidatePath('/dashboard/accounts');
-  revalidatePath('/dashboard/budgets');
-  revalidatePath('/dashboard/transactions');
+  revalidateDomains('onboarding', 'accounts', 'budgets', 'transactions');
   redirect('/onboarding?step=accounts');
 }
 
@@ -99,7 +96,7 @@ export async function continueFromCategories(formData: FormData) {
     await insertMissingDefaultCategories(userId);
   }
 
-  revalidatePath('/onboarding');
+  revalidateDomains('onboarding');
   if (intent === 'apply') {
     redirect('/onboarding?step=categories');
   }
@@ -107,30 +104,41 @@ export async function continueFromCategories(formData: FormData) {
   redirect('/onboarding?step=features');
 }
 
-export async function completeOnboarding() {
-  const userId = await getCurrentUserId();
+const FEATURE_ROUTES: Record<string, string> = {
+  budgets: '/dashboard/budgets',
+  goals: '/dashboard/goals',
+  debts: '/dashboard/debts',
+  subscriptions: '/dashboard/subscriptions',
+  investments: '/dashboard/investments',
+};
 
+async function finishOnboarding(userId: string, features?: string[]) {
+  await createUserKey(userId);
   await upsertOnboardingState(userId, {
     completed: true,
     completed_at: new Date(),
+    pending_features: features && features.length > 0 ? JSON.stringify(features) : null,
   });
+  revalidateDomains('onboarding');
+}
 
-  revalidatePath('/onboarding');
-  revalidatePath('/dashboard');
+export async function completeOnboarding() {
+  const userId = await getCurrentUserId();
+  await finishOnboarding(userId);
   redirect('/dashboard');
 }
 
-export async function completeOnboardingWithFeatures(features: string[]) {
+export async function skipOnboarding() {
   const userId = await getCurrentUserId();
+  await finishOnboarding(userId);
+  redirect('/dashboard');
+}
 
-  await upsertOnboardingState(userId, {
-    completed: true,
-    completed_at: new Date(),
-    pending_features: features.length > 0 ? JSON.stringify(features) : null,
-  });
-
-  revalidatePath('/onboarding');
-  revalidatePath('/dashboard');
+export async function completeOnboardingAndRedirectWithFeatures(features: string[], firstFeature?: string) {
+  const userId = await getCurrentUserId();
+  await finishOnboarding(userId, features);
+  const route = firstFeature ? FEATURE_ROUTES[firstFeature] : '/dashboard';
+  redirect(route || '/dashboard');
 }
 
 export async function markFeatureVisited(feature: string) {
@@ -149,7 +157,7 @@ export async function markFeatureVisited(feature: string) {
     .set({ pending_features: updatedFeatures.length > 0 ? JSON.stringify(updatedFeatures) : null })
     .where(eq(userOnboardingTable.user_id, userId));
 
-  revalidatePath('/dashboard');
+  revalidateDomains();
 }
 
 export async function getNextPendingFeature(): Promise<string | null> {
@@ -163,65 +171,4 @@ export async function getNextPendingFeature(): Promise<string | null> {
 
   const pendingFeatures: string[] = JSON.parse(state[0].pending_features);
   return pendingFeatures.length > 0 ? pendingFeatures[0] : null;
-}
-
-export async function skipOnboarding() {
-  const userId = await getCurrentUserId();
-
-  await upsertOnboardingState(userId, {
-    use_default_categories: false,
-    completed: true,
-    completed_at: new Date(),
-  });
-
-  revalidatePath('/onboarding');
-  revalidatePath('/dashboard');
-  redirect('/dashboard');
-}
-
-export async function completeOnboardingAndRedirect(feature?: string) {
-  const userId = await getCurrentUserId();
-
-  await upsertOnboardingState(userId, {
-    completed: true,
-    completed_at: new Date(),
-  });
-
-  revalidatePath('/onboarding');
-  revalidatePath('/dashboard');
-
-  const FEATURE_ROUTES: Record<string, string> = {
-    budgets: '/dashboard/budgets',
-    goals: '/dashboard/goals',
-    debts: '/dashboard/debts',
-    subscriptions: '/dashboard/subscriptions',
-    investments: '/dashboard/investments',
-  };
-
-  const route = feature ? FEATURE_ROUTES[feature] : '/dashboard';
-  redirect(route || '/dashboard');
-}
-
-export async function completeOnboardingAndRedirectWithFeatures(features: string[], firstFeature?: string) {
-  const userId = await getCurrentUserId();
-
-  await upsertOnboardingState(userId, {
-    completed: true,
-    completed_at: new Date(),
-    pending_features: features.length > 0 ? JSON.stringify(features) : null,
-  });
-
-  revalidatePath('/onboarding');
-  revalidatePath('/dashboard');
-
-  const FEATURE_ROUTES: Record<string, string> = {
-    budgets: '/dashboard/budgets',
-    goals: '/dashboard/goals',
-    debts: '/dashboard/debts',
-    subscriptions: '/dashboard/subscriptions',
-    investments: '/dashboard/investments',
-  };
-
-  const route = firstFeature ? FEATURE_ROUTES[firstFeature] : '/dashboard';
-  redirect(route || '/dashboard');
 }
