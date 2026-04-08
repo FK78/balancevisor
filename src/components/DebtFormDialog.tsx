@@ -6,20 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormDialog } from "@/components/FormDialog";
 import { addDebt, editDebt } from "@/db/mutations/debts";
+import type { DebtWithProgress } from "@/lib/types";
 
-type Debt = {
-  id: string;
-  name: string;
-  original_amount: number;
-  remaining_amount: number;
-  interest_rate: number;
-  minimum_payment: number;
-  due_date: string | null;
-  lender: string | null;
-  color: string;
-};
+type DebtFormData = Omit<DebtWithProgress, "is_paid_off" | "created_at">;
 
-export function DebtFormDialog({ debt }: { debt?: Debt }) {
+export function DebtFormDialog({ debt }: { debt?: DebtFormData }) {
   const isEdit = !!debt;
 
   return (

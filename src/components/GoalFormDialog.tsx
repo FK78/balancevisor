@@ -4,18 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormDialog } from "@/components/FormDialog";
 import { addGoal, editGoal } from "@/db/mutations/goals";
+import type { GoalWithProgress } from "@/lib/types";
 
-type Goal = {
-  id: string;
-  name: string;
-  target_amount: number;
-  saved_amount: number;
-  target_date: string | null;
-  icon: string | null;
-  color: string;
-};
+type GoalFormData = Omit<GoalWithProgress, "created_at">;
 
-export function GoalFormDialog({ goal }: { goal?: Goal }) {
+export function GoalFormDialog({ goal }: { goal?: GoalFormData }) {
   const isEdit = !!goal;
 
   return (
