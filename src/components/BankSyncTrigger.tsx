@@ -31,7 +31,9 @@ export function BankSyncTrigger() {
   useEffect(() => {
     if (ran.current) return;
     ran.current = true;
-    queueMicrotask(doSync);
+    // Delay sync to avoid competing with initial hydration/rendering
+    const timer = setTimeout(doSync, 3000);
+    return () => clearTimeout(timer);
   }, [doSync]);
 
   return null;

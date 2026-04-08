@@ -4,7 +4,12 @@ import {
   getMonthlyIncomeExpenseTrend,
   getMonthlyCategorySpendTrend,
 } from "@/db/queries/transactions";
-import { ReportsClient } from "@/components/ReportsClient";
+import dynamic from "next/dynamic";
+
+const ReportsClient = dynamic(
+  () => import("@/components/ReportsClient").then((mod) => mod.ReportsClient),
+  { loading: () => <div className="min-h-[400px]" /> }
+);
 
 export default async function ReportsPage() {
   const userId = await getCurrentUserId();

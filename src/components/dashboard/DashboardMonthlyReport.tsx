@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useInView } from "@/hooks/useInView";
 import Link from "next/link";
 import {
   Card,
@@ -13,6 +14,7 @@ import { Sparkles, ArrowRight, Loader2 } from "lucide-react";
 import { formatMarkdown } from "@/lib/formatMarkdown";
 
 export function DashboardMonthlyReport() {
+  const { ref: viewRef, inView } = useInView<HTMLDivElement>();
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,10 +73,10 @@ export function DashboardMonthlyReport() {
   }, []);
 
   useEffect(() => {
-    if (hasFetched.current) return;
+    if (!inView || hasFetched.current) return;
     hasFetched.current = true;
     fetchSummary();
-  }, [fetchSummary]);
+  }, [inView, fetchSummary]);
 
   useEffect(() => {
     return () => abortRef.current?.abort();
@@ -86,7 +88,7 @@ export function DashboardMonthlyReport() {
     : "";
 
   return (
-    <Card>
+    <Card ref={viewRef}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">

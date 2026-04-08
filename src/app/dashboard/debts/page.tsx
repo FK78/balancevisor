@@ -16,8 +16,13 @@ import { DeleteConfirmButton } from "@/components/DeleteConfirmButton";
 import { deleteDebt } from "@/db/mutations/debts";
 import { Badge } from "@/components/ui/badge";
 import { CreditCard, CheckCircle2, TrendingDown, Percent } from "lucide-react";
-import { DebtPayoffStrategies } from "@/components/DebtPayoffStrategies";
 import { DebtAIAdvisor } from "@/components/DebtAIAdvisor";
+import dynamic from "next/dynamic";
+
+const DebtPayoffStrategies = dynamic(
+  () => import("@/components/DebtPayoffStrategies").then((mod) => mod.DebtPayoffStrategies),
+  { loading: () => <div className="min-h-[300px]" /> }
+);
 
 export default async function DebtsPage() {
   const userId = await getCurrentUserId();

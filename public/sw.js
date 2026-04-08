@@ -1,5 +1,5 @@
 const CACHE_NAME = "wealth-v3";
-const FONT_CACHE = "wealth-fonts-v1";
+const FONT_CACHE = "wealth-fonts-v1"; // legacy — fonts now self-hosted via next/font
 const OFFLINE_URL = "/offline.html";
 
 const PRECACHE_URLS = [

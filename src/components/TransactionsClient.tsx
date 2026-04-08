@@ -49,8 +49,13 @@ import { bulkAutoCategorise } from "@/db/mutations/bulk-categorise";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { toDateString, addDays } from "@/lib/date";
 import type { AccountWithDetails, CategoryWithColor, TransactionWithDetails, SplitDetail } from "@/lib/types";
-import { TransactionsInsightsCharts } from "@/components/TransactionsInsightsCharts";
 import type { DailyCashflowPoint, DailyCategoryExpensePoint } from "@/db/queries/transactions";
+import dynamic from "next/dynamic";
+
+const TransactionsInsightsCharts = dynamic(
+  () => import("@/components/TransactionsInsightsCharts").then((mod) => mod.TransactionsInsightsCharts),
+  { loading: () => <div className="min-h-[300px]" /> }
+);
 
 function DeleteTransactionButton({
   transaction,

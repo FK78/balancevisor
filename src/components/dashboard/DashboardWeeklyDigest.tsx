@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useInView } from "@/hooks/useInView";
 import {
   Card,
   CardContent,
@@ -19,6 +20,7 @@ type DigestState = {
 };
 
 export function DashboardWeeklyDigest() {
+  const { ref: viewRef, inView } = useInView<HTMLDivElement>();
   const [state, setState] = useState<DigestState>({
     text: "",
     loading: true,
@@ -81,17 +83,17 @@ export function DashboardWeeklyDigest() {
   }, []);
 
   useEffect(() => {
-    if (hasFetched.current) return;
+    if (!inView || hasFetched.current) return;
     hasFetched.current = true;
     fetchDigest(false);
-  }, [fetchDigest]);
+  }, [inView, fetchDigest]);
 
   useEffect(() => {
     return () => abortRef.current?.abort();
   }, []);
 
   return (
-    <Card>
+    <Card ref={viewRef}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">

@@ -25,9 +25,11 @@ export default async function DashboardLayout({
   const [onboardingComplete, pendingFeatures] = await Promise.all([
     hasCompletedOnboarding(userId),
     getPendingFeatures(userId),
-    generateDueRecurringTransactions(userId),
-    autoCalculateZakatIfDue(userId),
   ]);
+
+  // Fire-and-forget: these write ops don't produce data needed for rendering
+  generateDueRecurringTransactions(userId).catch(() => {});
+  autoCalculateZakatIfDue(userId).catch(() => {});
 
   if (!onboardingComplete) {
     redirect("/onboarding");

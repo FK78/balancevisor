@@ -69,6 +69,8 @@ export default async function Home() {
     claimsResult,
     goals,
     upcomingRenewals,
+    forecast,
+    anomalies,
   ] = await Promise.all([
     getLatestFiveTransactionsWithDetails(userId),
     getAccountsWithDetails(userId),
@@ -83,6 +85,8 @@ export default async function Home() {
     supabase.auth.getClaims(),
     getGoals(userId),
     getUpcomingRenewals(userId, 7),
+    getCashflowForecast(userId),
+    getSpendingAnomalies(userId),
   ]);
 
   // Fire-and-forget: snapshot uses the already-fetched investmentValue to avoid duplicate API calls
@@ -111,11 +115,7 @@ export default async function Home() {
     return pct >= 80;
   });
 
-  const [insights, forecast, anomalies] = await Promise.all([
-    getDashboardInsights(userId, budgets, goals, baseCurrency),
-    getCashflowForecast(userId),
-    getSpendingAnomalies(userId),
-  ]);
+  const insights = await getDashboardInsights(userId, budgets, goals, baseCurrency);
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
