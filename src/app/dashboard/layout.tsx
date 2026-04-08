@@ -13,6 +13,7 @@ import { InstallPrompt } from "@/components/InstallPrompt";
 import { ChatPanelWrapper as ChatPanel } from "@/components/ChatPanelWrapper";
 import { BankSyncTrigger } from "@/components/BankSyncTrigger";
 import { NextFeatureButtonClient } from "@/components/NextFeatureButtonClient";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 
 export default async function DashboardLayout({
   children,
@@ -42,7 +43,7 @@ export default async function DashboardLayout({
               className="flex items-center gap-2.5 text-lg font-bold tracking-tight"
             >
               <Image src="/logo.svg" alt="BalanceVisor logo" width={30} height={30} />
-              BalanceVisor
+              <span className="hidden sm:inline">BalanceVisor</span>
             </Link>
             <DashboardNav />
           </div>
@@ -52,13 +53,18 @@ export default async function DashboardLayout({
             <Suspense>
               <NotificationBellServer />
             </Suspense>
-            <Suspense>
-              <AuthButton />
-            </Suspense>
+            <div className="hidden md:block">
+              <Suspense>
+                <AuthButton />
+              </Suspense>
+            </div>
           </div>
         </div>
       </nav>
-      {children}
+      <div className="pb-20 md:pb-0">
+        {children}
+      </div>
+      <MobileBottomNav />
       <InstallPrompt />
       <BankSyncTrigger />
       {pendingFeaturesList.length > 0 && (

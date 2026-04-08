@@ -63,7 +63,7 @@ export function NextFeatureButtonClient({ pendingFeatures }: { pendingFeatures: 
   return (
     <div
       className={cn(
-        "fixed bottom-6 right-6 z-50 transition-all duration-300",
+        "fixed bottom-22 right-6 z-50 transition-all duration-300 md:bottom-6",
         isVisible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
       )}
     >
