@@ -42,6 +42,7 @@ import { RefreshPricesButton } from "@/components/RefreshPricesButton";
 import { InvestmentGroupDialog } from "@/components/InvestmentGroupDialog";
 import { DeleteGroupButton } from "@/components/DeleteGroupButton";
 import { RealizedGainsTable } from "@/components/RealizedGainsTable";
+import { PortfolioAIAnalysis } from "@/components/PortfolioAIAnalysis";
 const InvestmentCharts = dynamic<{ holdings: NormalisedHolding[]; currency: string }>(
   () => import("@/components/InvestmentCharts").then(mod => mod.InvestmentCharts),
   {
@@ -333,6 +334,9 @@ export default async function InvestmentsPage() {
       {holdings.length > 0 && (
         <InvestmentCharts holdings={sortedHoldings} currency={baseCurrency} />
       )}
+
+      {/* AI Portfolio Analysis */}
+      {holdings.length > 0 && <PortfolioAIAnalysis />}
 
       {/* Holdings table */}
       {holdings.length === 0 ? (
