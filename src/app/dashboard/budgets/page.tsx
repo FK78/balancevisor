@@ -9,9 +9,11 @@ import {
   Users,
 } from "lucide-react";
 import { getBudgets, getSharedBudgets, getAvgMonthlySpendByCategory } from "@/db/queries/budgets";
+import { getSmartBudgetSuggestions } from "@/lib/budget-suggestions";
 import { getCategoriesByUser } from "@/db/queries/categories";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { BudgetFormDialog } from "@/components/AddBudgetForm";
+import { SmartBudgetSuggestions } from "@/components/SmartBudgetSuggestions";
 import { DeleteBudgetButton } from "@/components/DeleteBudgetButton";
 import { ShareDialog } from "@/components/ShareDialog";
 import { PendingInvitations } from "@/components/PendingInvitations";
@@ -56,6 +58,8 @@ export default async function Budgets() {
   }
 
   const alertPrefsMap = new Map(alertPrefs.map(p => [p.budget_id, p]));
+
+  const budgetSuggestions = await getSmartBudgetSuggestions(userId, ownedBudgets);
 
   const totalBudget = budgets.reduce((sum, b) => sum + b.budgetAmount, 0);
   const totalSpent = budgets.reduce((sum, b) => sum + b.budgetSpent, 0);
@@ -102,6 +106,10 @@ export default async function Budgets() {
           </div>
         </CardContent>
       </Card>
+
+      {budgetSuggestions.length > 0 && (
+        <SmartBudgetSuggestions suggestions={budgetSuggestions} currency={baseCurrency} />
+      )}
 
       {budgets.length > 0 && (
         <BudgetCharts budgets={budgets} currency={baseCurrency} />
