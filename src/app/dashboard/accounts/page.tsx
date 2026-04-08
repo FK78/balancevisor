@@ -8,7 +8,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import {
   CreditCard,
-  DollarSign,
   PiggyBank,
   TrendingUp,
   Users,
@@ -33,7 +32,6 @@ const AccountCharts = dynamic(
 import { getTrueLayerConnections } from "@/db/mutations/truelayer";
 import { getManualHoldings, getTrading212Connection } from "@/db/queries/investments";
 import Link from "next/link";
-import { BlurFade } from "@/components/ui/blur-fade";
 
 const typeConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   currentAccount: { label: "Current Account", variant: "secondary" },
@@ -105,12 +103,9 @@ export default async function Accounts() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
-      <div className="flex flex-col gap-3 page-header-gradient sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Accounts</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Manage and monitor all your linked accounts.
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Accounts</h1>
         </div>
         <div className="flex flex-wrap gap-2">
           <ConnectBankButton connections={truelayerConnections} />
@@ -122,57 +117,25 @@ export default async function Accounts() {
         <PendingInvitations invitations={accountPendingInvitations} />
       )}
 
-      {/* Summary row */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <BlurFade delay={0} inView><Card className="summary-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription className="text-sm font-semibold">
-              Net Worth
-            </CardDescription>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/8">
-              <DollarSign className="text-primary h-4 w-4" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <CardTitle className={`text-2xl ${totalBalance < 0 ? "text-red-600" : ""}`}>
+      {/* Compact stats */}
+      <Card>
+        <CardContent className="grid grid-cols-3 divide-x py-4">
+          <div className="px-4 text-center">
+            <p className="text-xs text-muted-foreground">Net Worth</p>
+            <p className={`text-lg font-semibold tabular-nums ${totalBalance < 0 ? "text-red-600" : ""}`}>
               {totalBalance < 0 ? "−" : ""}{formatCurrency(totalBalance, baseCurrency)}
-            </CardTitle>
-            <p className="text-muted-foreground mt-1 text-xs">
-              Across {accounts.length} accounts
             </p>
-          </CardContent>
-        </Card></BlurFade>
-        <BlurFade delay={0.05} inView><Card className="summary-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription className="text-sm font-semibold">
-              Total Assets
-            </CardDescription>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/30">
-              <TrendingUp className="h-4 w-4 text-emerald-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <CardTitle className={`text-2xl ${totalAssets < 0 ? "text-red-600" : "text-emerald-600"}`}>
-              {totalAssets < 0 ? "−" : ""}{formatCurrency(totalAssets, baseCurrency)}
-            </CardTitle>
-          </CardContent>
-        </Card></BlurFade>
-        <BlurFade delay={0.1} inView><Card className="summary-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription className="text-sm font-semibold">
-              Total Liabilities
-            </CardDescription>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-100 dark:bg-red-900/30">
-              <CreditCard className="h-4 w-4 text-red-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <CardTitle className="text-2xl text-red-600">
-              {formatCurrency(totalLiabilities, baseCurrency)}
-            </CardTitle>
-          </CardContent>
-        </Card></BlurFade>
-      </div>
+          </div>
+          <div className="px-4 text-center">
+            <p className="text-xs text-muted-foreground">Assets</p>
+            <p className="text-lg font-semibold tabular-nums text-emerald-600">{formatCurrency(totalAssets, baseCurrency)}</p>
+          </div>
+          <div className="px-4 text-center">
+            <p className="text-xs text-muted-foreground">Liabilities</p>
+            <p className="text-lg font-semibold tabular-nums text-red-600">{formatCurrency(totalLiabilities, baseCurrency)}</p>
+          </div>
+        </CardContent>
+      </Card>
 
       {accounts.length > 0 && (
         <AccountCharts accounts={accounts} currency={baseCurrency} />

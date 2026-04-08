@@ -47,12 +47,9 @@ export default async function Categories() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
-      <div className="flex flex-col gap-3 page-header-gradient sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Categories</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Manage your spending categories.
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Categories</h1>
         </div>
         <CategoryFormDialog />
       </div>

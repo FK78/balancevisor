@@ -39,12 +39,9 @@ export default async function GoalsPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between page-header-gradient">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Goals</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Set targets and track your progress towards financial goals.
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Goals</h1>
         </div>
         <GoalFormDialog />
       </div>

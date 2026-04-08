@@ -1,4 +1,3 @@
-import { BlurFade } from "@/components/ui/blur-fade";
 import {
   Card,
   CardContent,
@@ -10,11 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   CalendarClock,
-  CreditCard,
-  DollarSign,
   ExternalLink,
   Repeat,
-  TrendingUp,
 } from "lucide-react";
 import { getSubscriptions, getActiveSubscriptionsTotals, toMonthlyAmount } from "@/db/queries/subscriptions";
 import { getCategoriesByUser } from "@/db/queries/categories";
@@ -58,93 +54,34 @@ export default async function SubscriptionsPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between page-header-gradient">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Subscriptions</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Track and manage all your recurring subscriptions.
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Subscriptions</h1>
         </div>
         <SubscriptionFormDialog categories={categories} accounts={accounts} />
       </div>
 
-      {/* Summary cards */}
-      <BlurFade delay={0.05} inView>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-        <Card className="summary-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription className="text-sm font-semibold">
-              Monthly Cost
-            </CardDescription>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/8">
-              <DollarSign className="text-primary h-4 w-4" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <CardTitle className="text-2xl">
-              {formatCurrency(totals.monthly, baseCurrency)}
-            </CardTitle>
-            <p className="text-muted-foreground mt-1 text-xs">
-              {activeCount} active subscription{activeCount !== 1 ? "s" : ""}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="summary-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription className="text-sm font-semibold">
-              Yearly Cost
-            </CardDescription>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-100 dark:bg-violet-900/30">
-              <TrendingUp className="h-4 w-4 text-violet-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <CardTitle className="text-2xl text-violet-600">
-              {formatCurrency(totals.yearly, baseCurrency)}
-            </CardTitle>
-            <p className="text-muted-foreground mt-1 text-xs">
-              Projected annual spend
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="summary-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription className="text-sm font-semibold">
-              Due This Week
-            </CardDescription>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-100 dark:bg-sky-900/30">
-              <CalendarClock className="h-4 w-4 text-sky-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <CardTitle className="text-2xl">
-              {upcomingCount}
-            </CardTitle>
-            <p className="text-muted-foreground mt-1 text-xs">
-              Renewal{upcomingCount !== 1 ? "s" : ""} in the next 7 days
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="summary-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription className="text-sm font-semibold">
-              Paused
-            </CardDescription>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted">
-              <CreditCard className="text-muted-foreground h-4 w-4" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <CardTitle className="text-2xl">
-              {pausedCount}
-            </CardTitle>
-            <p className="text-muted-foreground mt-1 text-xs">
-              Inactive subscription{pausedCount !== 1 ? "s" : ""}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-      </BlurFade>
+      {/* Compact stats */}
+      <Card>
+        <CardContent className="grid grid-cols-2 gap-4 py-4 sm:grid-cols-4 sm:divide-x sm:gap-0">
+          <div className="px-4 text-center">
+            <p className="text-xs text-muted-foreground">Monthly</p>
+            <p className="text-lg font-semibold tabular-nums">{formatCurrency(totals.monthly, baseCurrency)}</p>
+          </div>
+          <div className="px-4 text-center">
+            <p className="text-xs text-muted-foreground">Yearly</p>
+            <p className="text-lg font-semibold tabular-nums text-violet-600">{formatCurrency(totals.yearly, baseCurrency)}</p>
+          </div>
+          <div className="px-4 text-center">
+            <p className="text-xs text-muted-foreground">Due This Week</p>
+            <p className="text-lg font-semibold tabular-nums">{upcomingCount}</p>
+          </div>
+          <div className="px-4 text-center">
+            <p className="text-xs text-muted-foreground">Paused</p>
+            <p className="text-lg font-semibold tabular-nums">{pausedCount}</p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Subscription cards */}
       {subscriptions.length === 0 ? (

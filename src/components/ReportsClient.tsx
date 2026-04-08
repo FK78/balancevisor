@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BlurFade } from "@/components/ui/blur-fade";
 import {
   Card,
   CardContent,
@@ -38,14 +37,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import {
-  ArrowDownLeft,
-  ArrowUpRight,
-  PiggyBank,
-  Percent,
-  TrendingUp,
-  TrendingDown,
-} from "lucide-react";
 
 type RangeOption = 3 | 6 | 12;
 
@@ -202,12 +193,9 @@ export function ReportsClient({
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between page-header-gradient">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Reports</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Financial insights and analytics across your accounts.
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Reports</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {([3, 6, 12] as RangeOption[]).map((option) => (
@@ -223,85 +211,33 @@ export function ReportsClient({
         </div>
       </div>
 
-      {/* KPI cards */}
-      <BlurFade delay={0.05} inView>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
-        <Card className="summary-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription className="text-sm font-semibold">Income</CardDescription>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-              <ArrowUpRight className="h-3.5 w-3.5 text-emerald-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <CardTitle className="text-xl tabular-nums text-emerald-600">
-              {formatCurrency(totalIncome, currency)}
-            </CardTitle>
-            <p className="text-muted-foreground mt-0.5 text-xs">{range}-month total</p>
-          </CardContent>
-        </Card>
-        <Card className="summary-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription className="text-sm font-semibold">Expenses</CardDescription>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30">
-              <ArrowDownLeft className="h-3.5 w-3.5 text-red-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <CardTitle className="text-xl tabular-nums text-red-600">
-              {formatCurrency(totalExpenses, currency)}
-            </CardTitle>
-            <p className="text-muted-foreground mt-0.5 text-xs">{range}-month total</p>
-          </CardContent>
-        </Card>
-        <Card className="summary-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription className="text-sm font-semibold">Net Savings</CardDescription>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/8">
-              <PiggyBank className="h-3.5 w-3.5 text-primary" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <CardTitle className={`text-xl tabular-nums ${totalNet >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+      {/* Compact stats */}
+      <Card>
+        <CardContent className="grid grid-cols-2 gap-4 py-4 sm:grid-cols-5 sm:divide-x sm:gap-0">
+          <div className="px-3 text-center">
+            <p className="text-xs text-muted-foreground">Income</p>
+            <p className="text-lg font-semibold tabular-nums text-emerald-600">{formatCurrency(totalIncome, currency)}</p>
+          </div>
+          <div className="px-3 text-center">
+            <p className="text-xs text-muted-foreground">Expenses</p>
+            <p className="text-lg font-semibold tabular-nums text-red-600">{formatCurrency(totalExpenses, currency)}</p>
+          </div>
+          <div className="px-3 text-center">
+            <p className="text-xs text-muted-foreground">Net Savings</p>
+            <p className={`text-lg font-semibold tabular-nums ${totalNet >= 0 ? "text-emerald-600" : "text-red-600"}`}>
               {totalNet >= 0 ? "+" : "−"}{formatCurrency(Math.abs(totalNet), currency)}
-            </CardTitle>
-            <p className="text-muted-foreground mt-0.5 text-xs">{range}-month total</p>
-          </CardContent>
-        </Card>
-        <Card className="summary-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription className="text-sm font-semibold">Savings Rate</CardDescription>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-900/30">
-              <Percent className="h-3.5 w-3.5 text-violet-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <CardTitle className={`text-xl tabular-nums ${savingsRate >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-              {savingsRate.toFixed(1)}%
-            </CardTitle>
-            <p className="text-muted-foreground mt-0.5 text-xs">of total income</p>
-          </CardContent>
-        </Card>
-        <Card className="summary-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription className="text-sm font-semibold">Avg Monthly Spend</CardDescription>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-100 dark:bg-cyan-900/30">
-              {avgMonthlyExpense > 0 ? (
-                <TrendingDown className="h-3.5 w-3.5 text-cyan-500" />
-              ) : (
-                <TrendingUp className="h-3.5 w-3.5 text-cyan-500" />
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <CardTitle className="text-xl tabular-nums">
-              {formatCurrency(avgMonthlyExpense, currency)}
-            </CardTitle>
-            <p className="text-muted-foreground mt-0.5 text-xs">per month</p>
-          </CardContent>
-        </Card>
-      </div>
-      </BlurFade>
+            </p>
+          </div>
+          <div className="px-3 text-center">
+            <p className="text-xs text-muted-foreground">Savings Rate</p>
+            <p className={`text-lg font-semibold tabular-nums ${savingsRate >= 0 ? "text-emerald-600" : "text-red-600"}`}>{savingsRate.toFixed(1)}%</p>
+          </div>
+          <div className="px-3 text-center">
+            <p className="text-xs text-muted-foreground">Avg/mo Spend</p>
+            <p className="text-lg font-semibold tabular-nums">{formatCurrency(avgMonthlyExpense, currency)}</p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Monthly income vs expenses */}
       <Card>
