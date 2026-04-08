@@ -84,6 +84,22 @@ export async function deleteDebt(id: string) {
 export async function recordDebtPayment(debtId: string, amount: number, date: string, accountId: string, note?: string) {
   const userId = await getCurrentUserId();
 
+  // Verify the debt belongs to this user
+  const [debtOwnership] = await db.select({ user_id: debtsTable.user_id })
+    .from(debtsTable)
+    .where(eq(debtsTable.id, debtId));
+  if (!debtOwnership || debtOwnership.user_id !== userId) {
+    throw new Error('Debt not found or access denied');
+  }
+
+  // Verify the account belongs to this user
+  const [accountOwnership] = await db.select({ user_id: accountsTable.user_id })
+    .from(accountsTable)
+    .where(eq(accountsTable.id, accountId));
+  if (!accountOwnership || accountOwnership.user_id !== userId) {
+    throw new Error('Account not found or access denied');
+  }
+
   // Insert payment record
   await db.insert(debtPaymentsTable).values({
     debt_id: debtId,

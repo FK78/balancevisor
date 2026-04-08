@@ -10,11 +10,18 @@
  * - Unordered lists (-)
  * - Paragraphs (double newlines)
  */
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+}
+
 export function formatMarkdown(text: string): string {
-  let html = text
-    .replace(/&/g, "&")
-    .replace(/</g, "<")
-    .replace(/>/g, ">");
+  let html = escapeHtml(text);
 
   // Code blocks
   html = html.replace(/```(\w*)\n([\s\S]*?)```/g, "<pre><code>$2</code></pre>");

@@ -111,12 +111,12 @@ export async function importTransactionsFromCSV(
 
   // Verify the account belongs to this user
   const [account] = await db
-    .select({ id: accountsTable.id })
+    .select({ id: accountsTable.id, user_id: accountsTable.user_id })
     .from(accountsTable)
     .where(eq(accountsTable.id, accountId));
 
-  if (!account) {
-    throw new Error('Account not found');
+  if (!account || account.user_id !== userId) {
+    throw new Error('Account not found or access denied');
   }
 
   const allRows = parseCSV(csvText);

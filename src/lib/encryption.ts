@@ -114,23 +114,17 @@ export function encrypt(plaintext: string): string {
  * Handles both versioned (v1:iv:tag:ct) and legacy (iv:tag:ct) formats.
  */
 export function decrypt(encrypted: string): string {
-  try {
-    // Handle empty or null encrypted values
-    if (!encrypted || encrypted.trim() === '') {
-      return '';
-    }
-    
-    const { version, iv, authTag, ciphertext } = parseEncrypted(encrypted);
-    const key = getMasterKey(version);
-    const decipher = createDecipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
-    decipher.setAuthTag(authTag);
-    const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-    return decrypted.toString("utf8");
-  } catch (error) {
-    // Log the error but don't crash - return empty string for malformed encrypted data
-    console.error('Failed to decrypt data:', error instanceof Error ? error.message : String(error));
+  // Handle empty or null encrypted values
+  if (!encrypted || encrypted.trim() === '') {
     return '';
   }
+
+  const { version, iv, authTag, ciphertext } = parseEncrypted(encrypted);
+  const key = getMasterKey(version);
+  const decipher = createDecipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
+  decipher.setAuthTag(authTag);
+  const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+  return decrypted.toString("utf8");
 }
 
 /**
@@ -185,6 +179,19 @@ export async function getUserKey(userId: string): Promise<Buffer> {
     await createUserKey(userId);
     const cached2 = userKeyCache.get(userId);
     if (cached2) return cached2;
+
+    // Fallback: re-read from DB in case cache wasn't populated
+    const [retryRow] = await db
+      .select({ encrypted_key: userKeysTable.encrypted_key })
+      .from(userKeysTable)
+      .where(eq(userKeysTable.user_id, userId));
+    if (retryRow) {
+      const retryKeyHex = decrypt(retryRow.encrypted_key);
+      const retryKey = Buffer.from(retryKeyHex, "hex");
+      userKeyCache.set(userId, retryKey);
+      return retryKey;
+    }
+
     throw new Error(`No encryption key found for user ${userId}. Call createUserKey() first.`);
   }
 
@@ -205,7 +212,19 @@ export async function createUserKey(userId: string): Promise<void> {
     .from(userKeysTable)
     .where(eq(userKeysTable.user_id, userId));
 
-  if (existing) return;
+  if (existing) {
+    if (!userKeyCache.has(userId)) {
+      const [row] = await db
+        .select({ encrypted_key: userKeysTable.encrypted_key })
+        .from(userKeysTable)
+        .where(eq(userKeysTable.user_id, userId));
+      if (row) {
+        const keyHex = decrypt(row.encrypted_key);
+        userKeyCache.set(userId, Buffer.from(keyHex, "hex"));
+      }
+    }
+    return;
+  }
 
   const newUserKey = randomBytes(32);
   const encryptedUserKey = encrypt(newUserKey.toString("hex"));
@@ -252,27 +271,21 @@ export function encryptForUser(
  * Automatically handles versioned and legacy formats.
  */
 export function decryptForUser(encrypted: string, userKey: Buffer): string {
-  try {
-    // Handle empty or null encrypted values
-    if (!encrypted || encrypted.trim() === '') {
-      return '';
-    }
-
-    // If the value doesn't look like encrypted data, return it as-is (plain text / legacy data)
-    if (!isEncrypted(encrypted)) {
-      return encrypted;
-    }
-    
-    const { iv, authTag, ciphertext } = parseEncrypted(encrypted);
-    const decipher = createDecipheriv(ALGORITHM, userKey, iv, { authTagLength: AUTH_TAG_LENGTH });
-    decipher.setAuthTag(authTag);
-    const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-    return decrypted.toString("utf8");
-  } catch (error) {
-    // Log the error but don't crash - return empty string for malformed encrypted data
-    console.error('Failed to decrypt data:', error instanceof Error ? error.message : String(error));
+  // Handle empty or null encrypted values
+  if (!encrypted || encrypted.trim() === '') {
     return '';
   }
+
+  // If the value doesn't look like encrypted data, return it as-is (plain text / legacy data)
+  if (!isEncrypted(encrypted)) {
+    return encrypted;
+  }
+
+  const { iv, authTag, ciphertext } = parseEncrypted(encrypted);
+  const decipher = createDecipheriv(ALGORITHM, userKey, iv, { authTagLength: AUTH_TAG_LENGTH });
+  decipher.setAuthTag(authTag);
+  const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+  return decrypted.toString("utf8");
 }
 
 /**

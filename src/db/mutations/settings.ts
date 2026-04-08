@@ -25,7 +25,8 @@ import {
 } from '@/db/schema';
 import { eq, or, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import { getCurrentUserId } from '@/lib/auth';
+import { getCurrentUserId, getCurrentUserEmail } from '@/lib/auth';
+import { decryptForUser, getUserKey } from '@/lib/encryption';
 import { createClient } from '@/lib/supabase/server';
 import { normalizeBaseCurrency } from '@/lib/currency';
 import { sanitizeString } from '@/lib/sanitize';
@@ -184,6 +185,7 @@ export async function deleteAccount(): Promise<{ success?: boolean; error?: stri
 
 export async function exportUserData() {
   const userId = await getCurrentUserId();
+  const userKey = await getUserKey(userId);
 
   const accounts = await db.select().from(accountsTable).where(eq(accountsTable.user_id, userId));
   const accountIds = accounts.map(a => a.id);
@@ -198,11 +200,21 @@ export async function exportUserData() {
     db.select().from(subscriptionsTable).where(eq(subscriptionsTable.user_id, userId)),
   ]);
 
+  // Decrypt encrypted fields so user receives readable data
+  const decryptedAccounts = accounts.map(a => ({
+    ...a,
+    name: a.name ? decryptForUser(a.name, userKey) : a.name,
+  }));
+  const decryptedTransactions = transactions.map(t => ({
+    ...t,
+    description: t.description ? decryptForUser(t.description, userKey) : t.description,
+  }));
+
   return {
     exported_at: new Date().toISOString(),
-    accounts,
+    accounts: decryptedAccounts,
     categories,
-    transactions,
+    transactions: decryptedTransactions,
     budgets,
     goals,
     subscriptions,

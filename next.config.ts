@@ -47,7 +47,7 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "script-src 'self' 'unsafe-inline'",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "connect-src 'self' https://*.supabase.co https://*.supabase.in https://*.truelayer.com https://*.truelayer-sandbox.com https://live.trading212.com https://demo.trading212.com https://api.groq.com https://*.groq.com",

@@ -30,8 +30,10 @@ export async function getSharesByOwner(userId: string): Promise<SharedAccess[]> 
 
 /**
  * Get all shares for a specific resource (account or budget).
+ * Only the resource owner may list shares.
  */
 export async function getSharesForResource(
+  userId: string,
   resourceType: "account" | "budget",
   resourceId: string,
 ): Promise<SharedAccess[]> {
@@ -40,6 +42,7 @@ export async function getSharesForResource(
     .from(sharedAccessTable)
     .where(
       and(
+        eq(sharedAccessTable.owner_id, userId),
         eq(sharedAccessTable.resource_type, resourceType),
         eq(sharedAccessTable.resource_id, resourceId),
       ),

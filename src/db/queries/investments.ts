@@ -10,7 +10,9 @@ import { decryptForUser, getUserKey } from "@/lib/encryption";
 export async function searchTickers(query: string) {
   await getCurrentUserId();
   if (!query || query.length < 1) return [];
-  return searchTicker(query);
+  const sanitized = query.trim().slice(0, 100);
+  if (sanitized.length === 0) return [];
+  return searchTicker(sanitized);
 }
 
 export async function getTrading212Connection(userId: string) {

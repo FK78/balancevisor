@@ -190,7 +190,15 @@ export async function addTransfer(formData: FormData) {
     throw new Error('Source and destination accounts must be different');
   }
 
-  const userKey = await getUserKey(userId);
+  // Verify ownership of both accounts
+  const userEmail = await getCurrentUserEmail();
+  const [canEditFrom, canEditTo] = await Promise.all([
+    hasEditAccess(userId, userEmail, 'account', fromAccountId),
+    hasEditAccess(userId, userEmail, 'account', toAccountId),
+  ]);
+  if (!canEditFrom) throw new Error('You do not have access to the source account');
+  if (!canEditTo) throw new Error('You do not have access to the destination account');
+
   const result = await db.transaction(async (tx) => {
     const [inserted] = await createTransaction({
       type: 'transfer',
@@ -295,6 +303,10 @@ export async function addSplitTransaction(
   splits: SplitInput[],
 ) {
   const userId = await getCurrentUserId();
+  const userEmail = await getCurrentUserEmail();
+  const canEdit = await hasEditAccess(userId, userEmail, 'account', accountId);
+  if (!canEdit) throw new Error('You do not have access to this account');
+
   const userKey = await getUserKey(userId);
 
   const parent = await db.transaction(async (tx) => {
