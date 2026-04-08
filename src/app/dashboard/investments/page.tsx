@@ -208,10 +208,10 @@ export default async function InvestmentsPage() {
   const sortedHoldings = [...holdings].sort((a, b) => b.value - a.value);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8 p-6 md:p-10">
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between page-header-gradient">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Investments</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Investments</h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Track your portfolio across Trading 212 and manual holdings.
           </p>

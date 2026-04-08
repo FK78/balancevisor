@@ -69,10 +69,10 @@ export default async function Budgets() {
   const overBudgetCount = budgets.filter((b) => b.budgetSpent > b.budgetAmount).length;
   const spentPercent = totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(0) : "0";
   return (
-    <div className="mx-auto max-w-7xl space-y-8 p-6 md:p-10">
-      <div className="flex items-start justify-between page-header-gradient">
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
+      <div className="flex flex-col gap-3 page-header-gradient sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Budgets</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Budgets</h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Track your spending against monthly budgets.
           </p>

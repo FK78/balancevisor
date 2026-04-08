@@ -1,6 +1,6 @@
 export default function AccountsLoading() {
   return (
-    <div className="mx-auto max-w-7xl space-y-8 p-6 md:p-10">
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
       <div className="flex items-start justify-between">
         <div className="space-y-2">
           <div className="bg-muted h-9 w-36 animate-pulse rounded-md" />

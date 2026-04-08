@@ -154,12 +154,12 @@ export default async function Home() {
   });
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8 p-6 md:p-10">
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
       {/* Header with greeting and quick actions */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between page-header-gradient">
+      <div className="flex flex-col gap-3 page-header-gradient sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-1.5 text-sm">
+          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Dashboard</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
             Welcome back,{" "}
             <span className="font-semibold text-foreground">
               {user?.user_metadata?.display_name ||
@@ -169,7 +169,7 @@ export default async function Home() {
             . Here&apos;s your overview for {monthName}.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-shrink-0 sm:overflow-visible sm:px-0">
           <QuickAddTransaction />
           <Button asChild size="sm" variant="outline">
             <Link href="/dashboard/transactions">

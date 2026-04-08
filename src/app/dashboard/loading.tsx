@@ -1,6 +1,6 @@
 export default function DashboardLoading() {
   return (
-    <div className="mx-auto max-w-7xl space-y-8 p-6 md:p-10">
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
       <div className="space-y-2">
         <div className="bg-muted h-9 w-48 animate-pulse rounded-md" />
         <div className="bg-muted h-4 w-72 animate-pulse rounded-md" />
