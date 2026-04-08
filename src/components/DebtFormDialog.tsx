@@ -8,7 +8,7 @@ import { FormDialog } from "@/components/FormDialog";
 import { addDebt, editDebt } from "@/db/mutations/debts";
 import type { DebtWithProgress } from "@/lib/types";
 
-type DebtFormData = Omit<DebtWithProgress, "is_paid_off" | "created_at">;
+type DebtFormData = Omit<DebtWithProgress, "created_at">;
 
 export function DebtFormDialog({ debt }: { debt?: DebtFormData }) {
   const isEdit = !!debt;

@@ -13,7 +13,7 @@ import { matchCategorisationRule } from '@/lib/auto-categorise';
 import { invalidateByUser } from '@/lib/cache';
 import { requireString, sanitizeNumber, sanitizeEnum, requireDate, sanitizeUUID, sanitizeString } from '@/lib/sanitize';
 
-type Transaction = typeof transactionsTable.$inferInsert;
+type Transaction = Omit<typeof transactionsTable.$inferInsert, 'user_id'>;
 type RecurringPattern = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
 
 function computeNextRecurringDate(dateStr: string, pattern: string | null): string | null {
@@ -41,6 +41,7 @@ export async function createTransaction(
   const userKey = await getUserKey(userId);
   return await tx.insert(transactionsTable).values({
     ...transaction,
+    user_id: userId,
     description: transaction.description ? encryptForUser(transaction.description, userKey) : transaction.description,
   }).returning({ id: transactionsTable.id });
 }
@@ -307,6 +308,7 @@ export async function addSplitTransaction(
   const parent = await db.transaction(async (tx) => {
     // Create parent transaction with is_split = true, no single category
     const [inserted] = await tx.insert(transactionsTable).values({
+      user_id: userId,
       type,
       amount: totalAmount,
       description: encryptForUser(description, userKey),

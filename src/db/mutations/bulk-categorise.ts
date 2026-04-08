@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/index';
-import { transactionsTable, accountsTable } from '@/db/schema';
+import { transactionsTable } from '@/db/schema';
 import { and, eq, isNull } from 'drizzle-orm';
 import { getCurrentUserId } from '@/lib/auth';
 import { fetchUserRules, matchAgainstRules } from '@/lib/auto-categorise';
@@ -35,10 +35,9 @@ export async function bulkAutoCategorise(): Promise<BulkCategoriseResult> {
       description: transactionsTable.description,
     })
     .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(
       and(
-        eq(accountsTable.user_id, userId),
+        eq(transactionsTable.user_id, userId),
         isNull(transactionsTable.category_id),
       ),
     );

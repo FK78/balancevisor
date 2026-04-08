@@ -37,7 +37,7 @@ function baseTransactionsQuery(userId: string) {
     .from(transactionsTable)
     .leftJoin(categoriesTable, eq(transactionsTable.category_id, categoriesTable.id))
     .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
-    .where(eq(accountsTable.user_id, userId))
+    .where(eq(transactionsTable.user_id, userId))
     .$dynamic();
 }
 
@@ -75,7 +75,7 @@ export async function getTransactionsForExport(
     .leftJoin(categoriesTable, eq(transactionsTable.category_id, categoriesTable.id))
     .where(
       and(
-        eq(accountsTable.user_id, userId),
+        eq(transactionsTable.user_id, userId),
         gte(transactionsTable.date, startDate),
         lte(transactionsTable.date, endDate),
       ),
@@ -85,7 +85,7 @@ export async function getTransactionsForExport(
 }
 
 export async function getTransactionsCount(userId: string, startDate?: string, endDate?: string, accountId?: string) {
-  const conditions = [eq(accountsTable.user_id, userId)];
+  const conditions = [eq(transactionsTable.user_id, userId)];
   if (startDate) conditions.push(gte(transactionsTable.date, startDate));
   if (endDate) conditions.push(lte(transactionsTable.date, endDate));
   if (accountId) conditions.push(eq(transactionsTable.account_id, accountId));
@@ -93,7 +93,6 @@ export async function getTransactionsCount(userId: string, startDate?: string, e
   const [row] = await db
     .select({ total: sql<number>`count(*)`.mapWith(Number) })
     .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(and(...conditions));
 
   return row?.total ?? 0;
@@ -139,7 +138,7 @@ export async function getTotalsByType(
   }
 
   const conditions = [
-    eq(accountsTable.user_id, userId),
+    eq(transactionsTable.user_id, userId),
     eq(transactionsTable.type, type),
   ];
   if (startDate) conditions.push(gte(transactionsTable.date, startDate));
@@ -149,7 +148,6 @@ export async function getTotalsByType(
   const [row] = await db
     .select({ total: sum(transactionsTable.amount) })
     .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(and(...conditions));
 
   const result = Number(row?.total ?? 0);
@@ -235,7 +233,7 @@ export async function getSavingsDepositTotal(userId: string, startDate: string, 
     .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(
       and(
-        eq(accountsTable.user_id, userId),
+        eq(transactionsTable.user_id, userId),
         eq(accountsTable.type, 'savings'),
         gte(transactionsTable.date, startDate),
         lt(transactionsTable.date, endDate),
@@ -260,9 +258,8 @@ export async function getTotalSpendByCategoryThisMonth(userId: string): Promise<
     color: categoriesTable.color
   }).from(transactionsTable)
     .innerJoin(categoriesTable, eq(transactionsTable.category_id, categoriesTable.id))
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(and(
-      eq(accountsTable.user_id, userId),
+      eq(transactionsTable.user_id, userId),
       eq(transactionsTable.type, 'expense'),
       ne(categoriesTable.name, 'Salary'),
       gte(transactionsTable.date, start),
@@ -320,9 +317,8 @@ export async function getMonthlyIncomeExpenseTrend(userId: string, monthCount = 
       total: sql<number>`coalesce(sum(${transactionsTable.amount}), 0)`.mapWith(Number),
     })
     .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(and(
-      eq(accountsTable.user_id, userId),
+      eq(transactionsTable.user_id, userId),
       gte(transactionsTable.date, `${startMonth}-01`),
       lt(transactionsTable.date, endMonth),
     ))
@@ -382,9 +378,8 @@ export async function getDailyIncomeExpenseTrend(userId: string, dayCount = 30):
       total: sql<number>`coalesce(sum(${transactionsTable.amount}), 0)`.mapWith(Number),
     })
     .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(and(
-      eq(accountsTable.user_id, userId),
+      eq(transactionsTable.user_id, userId),
       gte(transactionsTable.date, startDay),
       lt(transactionsTable.date, endDay),
     ))
@@ -446,9 +441,8 @@ export async function getDailyExpenseByCategory(userId: string, dayCount = 30): 
     })
     .from(transactionsTable)
     .innerJoin(categoriesTable, eq(transactionsTable.category_id, categoriesTable.id))
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(and(
-      eq(accountsTable.user_id, userId),
+      eq(transactionsTable.user_id, userId),
       eq(transactionsTable.type, 'expense'),
       gte(transactionsTable.date, startDay),
       lt(transactionsTable.date, endDay),
@@ -484,9 +478,8 @@ export async function getMonthlyCategorySpendTrend(userId: string, monthCount = 
     })
     .from(transactionsTable)
     .innerJoin(categoriesTable, eq(transactionsTable.category_id, categoriesTable.id))
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(and(
-      eq(accountsTable.user_id, userId),
+      eq(transactionsTable.user_id, userId),
       eq(transactionsTable.type, 'expense'),
       gte(transactionsTable.date, `${startMonth}-01`),
       lt(transactionsTable.date, endMonth),

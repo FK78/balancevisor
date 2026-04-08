@@ -1,5 +1,5 @@
 import { db } from "@/index";
-import { transactionsTable, accountsTable } from "@/db/schema";
+import { transactionsTable } from "@/db/schema";
 import { and, eq, gte, desc } from "drizzle-orm";
 import { decryptForUser, getUserKey } from "@/lib/encryption";
 import { getMonthRange } from "@/lib/date";
@@ -34,10 +34,9 @@ export async function detectRecurringCandidates(userId: string): Promise<Recurri
       date: transactionsTable.date,
     })
     .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(
       and(
-        eq(accountsTable.user_id, userId),
+        eq(transactionsTable.user_id, userId),
         eq(transactionsTable.is_recurring, false),
         gte(transactionsTable.date, fourMonthsAgo.start),
       ),

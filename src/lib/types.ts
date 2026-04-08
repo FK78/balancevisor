@@ -160,7 +160,6 @@ export type DebtWithProgress = {
   due_date: string | null;
   lender: string | null;
   color: string;
-  is_paid_off: boolean;
   created_at: Date;
 };
 

@@ -111,6 +111,7 @@ export async function importUserData(
 
   const transactions = data.transactions.map(t => ({
     ...t,
+    user_id: userId,
     description: t.description ? encryptForUser(t.description, userKey) : t.description,
   }));
 

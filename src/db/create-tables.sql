@@ -47,7 +47,7 @@ CREATE TABLE user_onboarding (
 -- 3. truelayer_connections (no FK deps)
 CREATE TABLE truelayer_connections (
   id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id          UUID        NOT NULL,
+  user_id          UUID        NOT NULL UNIQUE,
   access_token     TEXT        NOT NULL,
   refresh_token    TEXT        NOT NULL,
   token_expires_at TIMESTAMPTZ NOT NULL,
@@ -84,8 +84,9 @@ CREATE INDEX categories_user_id_idx ON categories (user_id);
 -- 6. transactions (FK → accounts, categories)
 CREATE TABLE transactions (
   id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  account_id          UUID REFERENCES accounts(id),
-  category_id         UUID REFERENCES categories(id),
+  user_id             UUID             NOT NULL,
+  account_id          UUID REFERENCES accounts(id) ON DELETE CASCADE,
+  category_id         UUID REFERENCES categories(id) ON DELETE SET NULL,
   type                transaction_type NOT NULL,
   amount              NUMERIC          NOT NULL,
   description         TEXT             NOT NULL,
@@ -94,11 +95,12 @@ CREATE TABLE transactions (
   recurring_pattern   recurring_pattern,
   next_recurring_date DATE,
   created_at          DATE DEFAULT CURRENT_DATE,
-  transfer_account_id UUID REFERENCES accounts(id),
+  transfer_account_id UUID REFERENCES accounts(id) ON DELETE SET NULL,
   truelayer_id        VARCHAR(255),
   is_split            BOOLEAN NOT NULL DEFAULT FALSE
 );
 
+CREATE INDEX transactions_user_id_idx         ON transactions (user_id);
 CREATE INDEX transactions_account_id_idx      ON transactions (account_id);
 CREATE INDEX transactions_category_id_idx     ON transactions (category_id);
 CREATE INDEX transactions_date_idx            ON transactions (date);
@@ -108,20 +110,21 @@ CREATE INDEX transactions_account_id_date_idx ON transactions (account_id, date)
 CREATE TABLE budgets (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id     UUID    NOT NULL,
-  category_id UUID REFERENCES categories(id),
+  category_id UUID REFERENCES categories(id) ON DELETE CASCADE,
   amount      NUMERIC NOT NULL,
   period      period,
   start_date  DATE
 );
 
-CREATE INDEX budgets_user_id_idx ON budgets (user_id);
+CREATE INDEX budgets_user_id_idx     ON budgets (user_id);
+CREATE INDEX budgets_category_id_idx ON budgets (category_id);
 
 -- 8. categorisation_rules (FK → categories)
 CREATE TABLE categorisation_rules (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id     UUID         NOT NULL,
   pattern     VARCHAR(255) NOT NULL,
-  category_id UUID REFERENCES categories(id),
+  category_id UUID REFERENCES categories(id) ON DELETE CASCADE,
   priority    INTEGER      NOT NULL
 );
 
@@ -154,7 +157,6 @@ CREATE TABLE debts (
   due_date         DATE,
   lender           VARCHAR(255),
   color            VARCHAR(8)   NOT NULL DEFAULT '#ef4444',
-  is_paid_off      BOOLEAN      NOT NULL DEFAULT FALSE,
   created_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
@@ -164,14 +166,15 @@ CREATE INDEX debts_user_id_idx ON debts (user_id);
 CREATE TABLE debt_payments (
   id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   debt_id    UUID        NOT NULL REFERENCES debts(id) ON DELETE CASCADE,
-  account_id UUID        NOT NULL REFERENCES accounts(id),
+  account_id UUID        NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
   amount     NUMERIC     NOT NULL,
   date       DATE        NOT NULL,
   note       TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX debt_payments_debt_id_idx ON debt_payments (debt_id);
+CREATE INDEX debt_payments_debt_id_idx    ON debt_payments (debt_id);
+CREATE INDEX debt_payments_account_id_idx ON debt_payments (account_id);
 
 -- 12. budget_alert_preferences (FK → budgets)
 CREATE TABLE budget_alert_preferences (
@@ -206,6 +209,8 @@ CREATE TABLE investment_groups (
   created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
+CREATE INDEX investment_groups_user_id_idx ON investment_groups (user_id);
+
 -- 15. manual_holdings (FK → accounts, investment_groups)
 CREATE TABLE manual_holdings (
   id                       UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -236,7 +241,6 @@ CREATE TABLE holding_sales (
   date            DATE        NOT NULL,
   quantity        NUMERIC     NOT NULL,
   price_per_unit  NUMERIC     NOT NULL,
-  total_amount    NUMERIC     NOT NULL,
   realized_gain   NUMERIC     NOT NULL,
   cash_account_id UUID REFERENCES accounts(id) ON DELETE SET NULL,
   notes           TEXT,
@@ -255,8 +259,8 @@ CREATE TABLE subscriptions (
   currency          VARCHAR(3)   NOT NULL DEFAULT 'GBP',
   billing_cycle     billing_cycle NOT NULL DEFAULT 'monthly',
   next_billing_date DATE         NOT NULL,
-  category_id       UUID REFERENCES categories(id),
-  account_id        UUID         NOT NULL REFERENCES accounts(id),
+  category_id       UUID REFERENCES categories(id) ON DELETE SET NULL,
+  account_id        UUID         NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
   url               TEXT,
   notes             TEXT,
   is_active         BOOLEAN      NOT NULL DEFAULT TRUE,
@@ -265,13 +269,15 @@ CREATE TABLE subscriptions (
   created_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX subscriptions_user_id_idx ON subscriptions (user_id);
+CREATE INDEX subscriptions_user_id_idx     ON subscriptions (user_id);
+CREATE INDEX subscriptions_account_id_idx  ON subscriptions (account_id);
+CREATE INDEX subscriptions_category_id_idx ON subscriptions (category_id);
 
 -- 18. transaction_splits (FK → transactions, categories)
 CREATE TABLE transaction_splits (
   id             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   transaction_id UUID    NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
-  category_id    UUID REFERENCES categories(id),
+  category_id    UUID REFERENCES categories(id) ON DELETE SET NULL,
   amount         NUMERIC NOT NULL,
   description    TEXT
 );

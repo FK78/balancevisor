@@ -1,5 +1,5 @@
 import { db } from "@/index";
-import { transactionsTable, categoriesTable, accountsTable } from "@/db/schema";
+import { transactionsTable, categoriesTable } from "@/db/schema";
 import { and, eq, gte, lt, ne, sum, sql, desc } from "drizzle-orm";
 import { toDateString } from "@/lib/date";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
@@ -69,10 +69,9 @@ async function getCategorySpend(userId: string, start: string, end: string) {
     })
     .from(transactionsTable)
     .innerJoin(categoriesTable, eq(transactionsTable.category_id, categoriesTable.id))
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(
       and(
-        eq(accountsTable.user_id, userId),
+        eq(transactionsTable.user_id, userId),
         eq(transactionsTable.type, "expense"),
         ne(categoriesTable.name, "Salary"),
         gte(transactionsTable.date, start),
@@ -90,10 +89,9 @@ async function getWeekTotals(userId: string, start: string, end: string) {
       total: sql<number>`coalesce(sum(${transactionsTable.amount}), 0)`.mapWith(Number),
     })
     .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(
       and(
-        eq(accountsTable.user_id, userId),
+        eq(transactionsTable.user_id, userId),
         gte(transactionsTable.date, start),
         lt(transactionsTable.date, end),
       ),
@@ -118,10 +116,9 @@ async function getTopTransactions(userId: string, start: string, end: string) {
       date: transactionsTable.date,
     })
     .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(
       and(
-        eq(accountsTable.user_id, userId),
+        eq(transactionsTable.user_id, userId),
         eq(transactionsTable.type, "expense"),
         gte(transactionsTable.date, start),
         lt(transactionsTable.date, end),

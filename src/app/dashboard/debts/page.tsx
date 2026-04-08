@@ -127,7 +127,7 @@ export default async function DebtsPage() {
             const pct = debt.original_amount > 0
               ? Math.min(Math.round((paid / debt.original_amount) * 100), 100)
               : 0;
-            const isPaidOff = debt.is_paid_off;
+            const isPaidOff = debt.remaining_amount <= 0;
             const daysLeft = daysLeftMap.get(debt.id) ?? null;
 
             return (

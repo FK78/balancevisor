@@ -2,7 +2,7 @@
 
 import { db } from "@/index";
 import { trading212ConnectionsTable, manualHoldingsTable, accountsTable, holdingSalesTable } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { getCurrentUserId } from "@/lib/auth";
 import { searchTicker } from "@/lib/yahoo-finance";
 import { decryptForUser, getUserKey } from "@/lib/encryption";
@@ -48,7 +48,7 @@ export async function getHoldingSales(userId: string) {
       date: holdingSalesTable.date,
       quantity: holdingSalesTable.quantity,
       price_per_unit: holdingSalesTable.price_per_unit,
-      total_amount: holdingSalesTable.total_amount,
+      total_amount: sql<number>`${holdingSalesTable.quantity} * ${holdingSalesTable.price_per_unit}`.mapWith(Number),
       realized_gain: holdingSalesTable.realized_gain,
       cash_account_id: holdingSalesTable.cash_account_id,
       notes: holdingSalesTable.notes,

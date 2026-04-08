@@ -1,5 +1,5 @@
 import { db } from '@/index';
-import { transactionsTable, accountsTable } from '@/db/schema';
+import { transactionsTable } from '@/db/schema';
 import { and, eq, gte, lte } from 'drizzle-orm';
 import { decryptForUser, getUserKey } from '@/lib/encryption';
 
@@ -39,10 +39,9 @@ export async function findPotentialDuplicates(
       date: transactionsTable.date,
     })
     .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(
       and(
-        eq(accountsTable.user_id, userId),
+        eq(transactionsTable.user_id, userId),
         eq(transactionsTable.account_id, accountId),
         eq(transactionsTable.type, type),
         eq(transactionsTable.amount, amount),

@@ -39,7 +39,7 @@ export async function getRecurringTransactions(userId: string): Promise<Recurrin
     .leftJoin(categoriesTable, eq(transactionsTable.category_id, categoriesTable.id))
     .where(
       and(
-        eq(accountsTable.user_id, userId),
+        eq(transactionsTable.user_id, userId),
         eq(transactionsTable.is_recurring, true),
         isNotNull(transactionsTable.recurring_pattern),
       )
