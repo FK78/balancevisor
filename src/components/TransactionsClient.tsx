@@ -47,6 +47,7 @@ import {
 import { SplitTransactionDialog } from "@/components/SplitTransactionDialog";
 import { deleteTransaction } from "@/db/mutations/transactions";
 import { formatCurrency } from "@/lib/formatCurrency";
+import { toDateString, addDays } from "@/lib/date";
 import type { AccountWithDetails, CategoryWithColor, TransactionWithDetails, SplitDetail } from "@/lib/types";
 import { TransactionsInsightsCharts } from "@/components/TransactionsInsightsCharts";
 import type { DailyCashflowPoint, DailyCategoryExpensePoint } from "@/db/queries/transactions";
@@ -94,18 +95,6 @@ function getPageHref(page: number, startDate?: string, endDate?: string, search?
   return `/dashboard/transactions${qs ? `?${qs}` : ""}`;
 }
 
-function formatDateInput(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function addDays(date: Date, days: number) {
-  const next = new Date(date);
-  next.setDate(next.getDate() + days);
-  return next;
-}
 
 export function TransactionsClient({
   transactions,
@@ -150,8 +139,8 @@ export function TransactionsClient({
   const [filterStartDate, setFilterStartDate] = useState(activeStartDate ?? "");
   const [filterEndDate, setFilterEndDate] = useState(activeEndDate ?? "");
   const [filterAccountId, setFilterAccountId] = useState(activeAccountId ?? "__all__");
-  const [exportStartDate, setExportStartDate] = useState(() => formatDateInput(addDays(new Date(), -30)));
-  const [exportEndDate, setExportEndDate] = useState(() => formatDateInput(new Date()));
+  const [exportStartDate, setExportStartDate] = useState(() => toDateString(addDays(new Date(), -30)));
+  const [exportEndDate, setExportEndDate] = useState(() => toDateString(new Date()));
   const isAccountFilterActive = !!activeAccountId;
   const isDateFilterActive = !!activeStartDate || !!activeEndDate;
   const isFilterActive = isDateFilterActive || isAccountFilterActive;
