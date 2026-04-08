@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTheme } from "@/components/ThemeProvider";
+import { MFASettings } from "@/components/MFASettings";
 import {
   updateDisplayName,
   updateBaseCurrency,
@@ -266,6 +267,19 @@ export function SettingsClient({
           <p className="mt-2 text-xs text-muted-foreground">
             Downloads all your accounts, transactions, budgets, goals, categories, and subscriptions.
           </p>
+        </CardContent>
+      </Card>
+
+      {/* Security */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Security</CardTitle>
+          <CardDescription>
+            Manage your account security settings
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <MFASettings />
         </CardContent>
       </Card>
 

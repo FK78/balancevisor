@@ -266,3 +266,13 @@ export const userKeysTable = pgTable("user_keys", {
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
+
+// MFA backup codes table
+export const mfaBackupCodesTable = pgTable("mfa_backup_codes", {
+  id: uuid().primaryKey().defaultRandom(),
+  user_id: uuid("user_id").notNull(),
+  code_hash: text("code_hash").notNull(),
+  used: boolean().notNull().default(false),
+  used_at: timestamp("used_at", { withTimezone: true }),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})

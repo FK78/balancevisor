@@ -111,12 +111,23 @@ export function encrypt(plaintext: string): string {
  * Handles both versioned (v1:iv:tag:ct) and legacy (iv:tag:ct) formats.
  */
 export function decrypt(encrypted: string): string {
-  const { version, iv, authTag, ciphertext } = parseEncrypted(encrypted);
-  const key = getMasterKey(version);
-  const decipher = createDecipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
-  decipher.setAuthTag(authTag);
-  const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-  return decrypted.toString("utf8");
+  try {
+    // Handle empty or null encrypted values
+    if (!encrypted || encrypted.trim() === '') {
+      return '';
+    }
+    
+    const { version, iv, authTag, ciphertext } = parseEncrypted(encrypted);
+    const key = getMasterKey(version);
+    const decipher = createDecipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
+    decipher.setAuthTag(authTag);
+    const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+    return decrypted.toString("utf8");
+  } catch (error) {
+    // Log the error but don't crash - return empty string for malformed encrypted data
+    console.error('Failed to decrypt data:', error instanceof Error ? error.message : String(error));
+    return '';
+  }
 }
 
 /**
@@ -221,11 +232,22 @@ export function encryptForUser(
  * Automatically handles versioned and legacy formats.
  */
 export function decryptForUser(encrypted: string, userKey: Buffer): string {
-  const { iv, authTag, ciphertext } = parseEncrypted(encrypted);
-  const decipher = createDecipheriv(ALGORITHM, userKey, iv, { authTagLength: AUTH_TAG_LENGTH });
-  decipher.setAuthTag(authTag);
-  const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-  return decrypted.toString("utf8");
+  try {
+    // Handle empty or null encrypted values
+    if (!encrypted || encrypted.trim() === '') {
+      return '';
+    }
+    
+    const { iv, authTag, ciphertext } = parseEncrypted(encrypted);
+    const decipher = createDecipheriv(ALGORITHM, userKey, iv, { authTagLength: AUTH_TAG_LENGTH });
+    decipher.setAuthTag(authTag);
+    const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+    return decrypted.toString("utf8");
+  } catch (error) {
+    // Log the error but don't crash - return empty string for malformed encrypted data
+    console.error('Failed to decrypt data:', error instanceof Error ? error.message : String(error));
+    return '';
+  }
 }
 
 /**
@@ -248,8 +270,18 @@ export async function decryptWithUserKey(userId: string, encrypted: string): Pro
  * Check if data needs re-encryption with the current key version.
  */
 export function needsReencryption(encrypted: string): boolean {
-  const { version } = parseEncrypted(encrypted);
-  return version !== CURRENT_KEY_VERSION;
+  try {
+    // Handle empty or invalid encrypted values
+    if (!encrypted || encrypted.trim() === '') {
+      return false;
+    }
+    const { version } = parseEncrypted(encrypted);
+    return version !== CURRENT_KEY_VERSION;
+  } catch (error) {
+    // If we can't parse the encrypted value, assume it doesn't need re-encryption
+    console.error('Failed to check re-encryption needs:', error instanceof Error ? error.message : String(error));
+    return false;
+  }
 }
 
 /**
