@@ -10,6 +10,7 @@ import {
 import { getAccountsWithDetails } from "@/db/queries/accounts";
 import { getCategoriesByUser } from "@/db/queries/categories";
 import { getSplitsForTransactions } from "@/db/queries/transaction-splits";
+import { getUncategorisedCount } from "@/db/queries/insights";
 import { TransactionsClient } from "@/components/TransactionsClient";
 import { getCurrentUserId } from "@/lib/auth";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
@@ -53,6 +54,7 @@ export default async function Transactions({
   let dailyTrend;
   let dailyCategoryExpenses;
   let baseCurrency;
+  let uncategorisedCount: number = 0;
 
   // Shared fetches that are always needed regardless of search
   const sharedFetches = [
@@ -61,6 +63,7 @@ export default async function Transactions({
     getDailyIncomeExpenseTrend(userId, 90),
     getDailyExpenseByCategory(userId, 90),
     getUserBaseCurrency(userId),
+    getUncategorisedCount(userId),
   ] as const;
 
   if (search) {
@@ -72,7 +75,7 @@ export default async function Transactions({
     totalTransactions = result.totalCount;
     totalIncome = result.totalIncome;
     totalExpenses = result.totalExpenses;
-    [accounts, categories, dailyTrend, dailyCategoryExpenses, baseCurrency] = shared;
+    [accounts, categories, dailyTrend, dailyCategoryExpenses, baseCurrency, uncategorisedCount] = shared;
   } else {
     const [txns, count, inc, exp, ...shared] = await Promise.all([
       getTransactionsWithDetailsPaginated(userId, requestedPage, PAGE_SIZE, startDate, endDate, accountId),
@@ -127,6 +130,7 @@ export default async function Transactions({
       dailyCategoryExpenses={dailyCategoryExpenses}
       currency={baseCurrency}
       splits={serializedSplits}
+      uncategorisedCount={uncategorisedCount}
     />
   );
 }

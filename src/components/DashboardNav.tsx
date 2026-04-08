@@ -16,9 +16,7 @@ import {
   BarChart3,
   Settings,
   ChevronDown,
-  Menu,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,8 +41,6 @@ const moreItems = [
   { href: "/dashboard/recurring", label: "Recurring", icon: Repeat2 },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
-
-const allItems = [...primaryItems, ...moreItems];
 
 function isActive(href: string, pathname: string | null) {
   if (!pathname) return false;
@@ -107,32 +103,6 @@ export function DashboardNav() {
         </DropdownMenu>
       </div>
 
-      {/* Mobile: single hamburger dropdown */}
-      <div className="md:hidden">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm" aria-label="Open navigation menu">
-              <Menu className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-52">
-            {allItems.map((item) => {
-              const active = isActive(item.href, pathname);
-              return (
-                <DropdownMenuItem key={item.href} asChild>
-                  <Link
-                    href={item.href}
-                    className={`flex w-full items-center gap-2 ${active ? "font-semibold text-foreground" : ""}`}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    {item.label}
-                  </Link>
-                </DropdownMenuItem>
-              );
-            })}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
     </>
   );
 }
