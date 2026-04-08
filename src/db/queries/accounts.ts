@@ -1,10 +1,11 @@
 import { db } from '@/index';
 import { transactionsTable, accountsTable, sharedAccessTable } from '@/db/schema';
 import { eq, count, or, and, inArray } from 'drizzle-orm';
-import { decrypt } from '@/lib/encryption';
+import { decryptForUser, getUserKey } from '@/lib/encryption';
 import type { AccountWithDetails } from '@/lib/types';
 
 export async function getAccountsWithDetails(userId: string): Promise<AccountWithDetails[]> {
+  const userKey = await getUserKey(userId);
   const rows = await db.select({
     id: accountsTable.id,
     accountName: accountsTable.name,
@@ -32,8 +33,8 @@ export async function getAccountsWithDetails(userId: string): Promise<AccountWit
     );
   return rows.map(row => ({
     ...row,
-    accountName: decrypt(row.accountName),
-    name: decrypt(row.name),
+    accountName: decryptForUser(row.accountName, userKey),
+    name: decryptForUser(row.name, userKey),
     isShared: false,
     sharedBy: null,
   }));
@@ -91,11 +92,17 @@ export async function getSharedAccounts(userId: string, email: string): Promise<
       accountsTable.truelayer_connection_id
     );
 
-  return rows.map((row) => ({
-    ...row,
-    accountName: decrypt(row.accountName),
-    name: decrypt(row.name),
-    isShared: true,
-    sharedBy: ownerMap.get(row.id) ?? null,
+  // Decrypt with owner's key since data is encrypted with owner's key
+  const result = await Promise.all(rows.map(async (row) => {
+    const ownerId = row.user_id;
+    const ownerKey = await getUserKey(ownerId);
+    return {
+      ...row,
+      accountName: decryptForUser(row.accountName, ownerKey),
+      name: decryptForUser(row.name, ownerKey),
+      isShared: true,
+      sharedBy: ownerMap.get(row.id) ?? null,
+    };
   }));
+  return result;
 }

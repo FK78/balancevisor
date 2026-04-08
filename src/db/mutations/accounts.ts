@@ -6,7 +6,7 @@ import { eq, and } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getCurrentUserId } from '@/lib/auth';
 import { getUserBaseCurrency } from '@/db/queries/onboarding';
-import { encrypt } from '@/lib/encryption';
+import { encryptForUser, getUserKey } from '@/lib/encryption';
 import { requireString, sanitizeNumber, sanitizeEnum } from '@/lib/sanitize';
 import { UnauthorizedError } from '@/lib/errors';
 import { invalidateByUser } from '@/lib/cache';
@@ -14,6 +14,7 @@ import { invalidateByUser } from '@/lib/cache';
 export async function addAccount(formData: FormData) {
   const userId = await getCurrentUserId();
   const baseCurrency = await getUserBaseCurrency(userId);
+  const userKey = await getUserKey(userId);
 
   const name = requireString(formData.get('name') as string, 'Account name');
   const type = sanitizeEnum(formData.get('type') as string, ['currentAccount', 'savings', 'creditCard', 'investment'] as const, 'currentAccount');
@@ -21,7 +22,7 @@ export async function addAccount(formData: FormData) {
 
   const [result] = await db.insert(accountsTable).values({
     user_id: userId,
-    name: encrypt(name),
+    name: encryptForUser(name, userKey),
     type,
     balance,
     currency: baseCurrency,
@@ -35,6 +36,7 @@ export async function addAccount(formData: FormData) {
 export async function editAccount(id: string, formData: FormData) {
   const userId = await getCurrentUserId();
   const baseCurrency = await getUserBaseCurrency(userId);
+  const userKey = await getUserKey(userId);
 
   // Verify ownership
   const [account] = await db
@@ -51,7 +53,7 @@ export async function editAccount(id: string, formData: FormData) {
   const balance = sanitizeNumber(formData.get('balance') as string, 'Balance');
 
   await db.update(accountsTable).set({
-    name: encrypt(name),
+    name: encryptForUser(name, userKey),
     type,
     balance,
     currency: baseCurrency,

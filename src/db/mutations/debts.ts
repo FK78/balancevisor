@@ -71,6 +71,8 @@ export async function deleteDebt(id: string) {
 }
 
 export async function recordDebtPayment(debtId: string, amount: number, date: string, accountId: string, note?: string) {
+  const userId = await getCurrentUserId();
+
   // Insert payment record
   await db.insert(debtPaymentsTable).values({
     debt_id: debtId,
@@ -104,13 +106,12 @@ export async function recordDebtPayment(debtId: string, amount: number, date: st
     date,
     account_id: accountId,
     category_id: null,
-  });
+  }, userId);
 
   await db.update(accountsTable)
     .set({ balance: sql`${accountsTable.balance} - ${amount}` })
     .where(eq(accountsTable.id, accountId));
 
-  const userId = await getCurrentUserId();
   await checkBudgetAlerts(userId);
 
   revalidatePath('/dashboard/debts');

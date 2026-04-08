@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getCurrentUserId } from '@/lib/auth';
 import { DEFAULT_BASE_CURRENCY, normalizeBaseCurrency } from '@/lib/currency';
+import { createUserKey } from '@/lib/encryption';
 
 async function upsertOnboardingState(userId: string, updates: Partial<{
   base_currency: string;
@@ -110,6 +111,9 @@ export async function continueFromCategories(formData: FormData) {
 export async function completeOnboarding() {
   const userId = await getCurrentUserId();
 
+  // Create per-user encryption key if it doesn't exist yet
+  await createUserKey(userId);
+
   await upsertOnboardingState(userId, {
     completed: true,
     completed_at: new Date(),
@@ -182,6 +186,9 @@ export async function skipOnboarding() {
 export async function completeOnboardingAndRedirect(feature?: string) {
   const userId = await getCurrentUserId();
 
+  // Create per-user encryption key if it doesn't exist yet
+  await createUserKey(userId);
+
   await upsertOnboardingState(userId, {
     completed: true,
     completed_at: new Date(),
@@ -204,6 +211,9 @@ export async function completeOnboardingAndRedirect(feature?: string) {
 
 export async function completeOnboardingAndRedirectWithFeatures(features: string[], firstFeature?: string) {
   const userId = await getCurrentUserId();
+
+  // Create per-user encryption key if it doesn't exist yet
+  await createUserKey(userId);
 
   await upsertOnboardingState(userId, {
     completed: true,

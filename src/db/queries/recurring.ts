@@ -1,7 +1,7 @@
 import { db } from '@/index';
 import { transactionsTable, categoriesTable, accountsTable } from '@/db/schema';
 import { and, eq, isNotNull, desc } from 'drizzle-orm';
-import { decrypt } from '@/lib/encryption';
+import { decryptForUser, getUserKey } from '@/lib/encryption';
 
 export type RecurringTransaction = {
   id: string;
@@ -46,10 +46,11 @@ export async function getRecurringTransactions(userId: string): Promise<Recurrin
     )
     .orderBy(desc(transactionsTable.next_recurring_date));
 
+  const userKey = await getUserKey(userId);
   return rows.map((row) => ({
     ...row,
-    description: row.description ? decrypt(row.description) : '',
-    accountName: row.accountName ? decrypt(row.accountName) : '',
+    description: row.description ? decryptForUser(row.description, userKey) : '',
+    accountName: row.accountName ? decryptForUser(row.accountName, userKey) : '',
   }));
 }
 

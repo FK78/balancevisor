@@ -3,7 +3,7 @@
 import { db } from "@/index";
 import { sharedAccessTable, accountsTable, budgetsTable, categoriesTable } from "@/db/schema";
 import { eq, and, or } from "drizzle-orm";
-import { decrypt } from "@/lib/encryption";
+import { decryptForUser, getUserKey } from "@/lib/encryption";
 
 export type SharedAccess = {
   id: string;
@@ -72,10 +72,13 @@ export async function getPendingInvitations(
       let resourceName = "Unknown";
       if (row.resource_type === "account") {
         const [account] = await db
-          .select({ name: accountsTable.name })
+          .select({ name: accountsTable.name, user_id: accountsTable.user_id })
           .from(accountsTable)
           .where(eq(accountsTable.id, row.resource_id));
-        if (account) resourceName = decrypt(account.name);
+        if (account) {
+          const ownerKey = await getUserKey(account.user_id);
+          resourceName = decryptForUser(account.name, ownerKey);
+        }
       } else if (row.resource_type === "budget") {
         const [budget] = await db
           .select({ name: categoriesTable.name })

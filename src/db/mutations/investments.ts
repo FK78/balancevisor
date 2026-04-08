@@ -242,7 +242,7 @@ export async function recordHoldingSale(formData: FormData) {
       next_recurring_date: null,
       transfer_account_id: null,
       is_split: false,
-    });
+    }, userId);
 
     // Update account balance
     await db.update(accountsTable)

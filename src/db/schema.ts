@@ -257,3 +257,12 @@ export const budgetNotificationsTable = pgTable("budget_notifications", {
     emailed: boolean().notNull().default(false),
     created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 })
+
+// User encryption keys table (envelope encryption)
+export const userKeysTable = pgTable("user_keys", {
+  user_id: uuid("user_id").primaryKey(),
+  encrypted_key: text("encrypted_key").notNull(),
+  key_version: integer("key_version").notNull().default(1),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})

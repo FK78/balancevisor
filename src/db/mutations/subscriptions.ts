@@ -46,7 +46,7 @@ export async function addSubscription(formData: FormData) {
     date: nextBillingDate,
     account_id: accountId,
     category_id: categoryId,
-  });
+  }, userId);
 
   await db.update(accountsTable)
     .set({ balance: sql`${accountsTable.balance} - ${amount}` })
