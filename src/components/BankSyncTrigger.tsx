@@ -20,6 +20,15 @@ export function BankSyncTrigger() {
           `Synced ${res.accountsImported} account${res.accountsImported !== 1 ? "s" : ""}, ${res.transactionsImported} transaction${res.transactionsImported !== 1 ? "s" : ""}`,
           { id: toastId },
         );
+
+        // Fire-and-forget AI enrichment for synced transactions
+        if (res.transactionIds && res.transactionIds.length > 0) {
+          fetch("/api/ai-enrich-transactions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ transactionIds: res.transactionIds }),
+          }).catch(() => {});
+        }
       } else {
         toast.dismiss(toastId);
       }

@@ -19,6 +19,7 @@ CREATE TYPE shared_resource_type AS ENUM ('account', 'budget');
 CREATE TYPE shared_permission AS ENUM ('view', 'edit');
 CREATE TYPE shared_status AS ENUM ('pending', 'accepted', 'declined');
 CREATE TYPE alert_type AS ENUM ('threshold_warning', 'over_budget');
+CREATE TYPE review_flag_type AS ENUM ('subscription_amount_mismatch', 'possible_debt_payment', 'possible_subscription');
 
 -- ---------------------------------------------------------------------------
 -- Tables (ordered by foreign-key dependencies)
@@ -97,7 +98,9 @@ CREATE TABLE transactions (
   created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   transfer_account_id UUID REFERENCES accounts(id) ON DELETE SET NULL,
   truelayer_id        VARCHAR(255),
-  is_split            BOOLEAN NOT NULL DEFAULT FALSE
+  is_split            BOOLEAN NOT NULL DEFAULT FALSE,
+  subscription_id      UUID REFERENCES subscriptions(id) ON DELETE SET NULL,
+  linked_debt_id       UUID REFERENCES debts(id) ON DELETE SET NULL
 );
 
 CREATE INDEX transactions_user_id_idx         ON transactions (user_id);
@@ -383,3 +386,21 @@ CREATE TABLE zakat_calculations (
 );
 
 CREATE INDEX zakat_calculations_user_id_idx ON zakat_calculations (user_id);
+
+-- 24. transaction_review_flags (FK → transactions, subscriptions, debts)
+CREATE TABLE transaction_review_flags (
+  id                        UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id                   UUID              NOT NULL,
+  transaction_id            UUID              NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
+  flag_type                 review_flag_type  NOT NULL,
+  suggested_subscription_id UUID REFERENCES subscriptions(id) ON DELETE CASCADE,
+  suggested_debt_id         UUID REFERENCES debts(id) ON DELETE CASCADE,
+  expected_amount           NUMERIC,
+  actual_amount             NUMERIC           NOT NULL,
+  is_resolved               BOOLEAN           NOT NULL DEFAULT FALSE,
+  created_at                TIMESTAMPTZ       NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX review_flags_user_id_idx      ON transaction_review_flags (user_id);
+CREATE INDEX review_flags_transaction_id_idx ON transaction_review_flags (transaction_id);
+CREATE INDEX review_flags_unresolved_idx   ON transaction_review_flags (user_id, is_resolved);

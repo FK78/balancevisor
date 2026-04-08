@@ -16,6 +16,8 @@ import { getCurrentUserId } from "@/lib/auth";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { detectRecurringCandidates } from "@/lib/recurring-detection";
 import { RecurringDetectionBanner } from "@/components/RecurringDetectionBanner";
+import { TransactionReviewBanner } from "@/components/TransactionReviewBanner";
+import { getPendingReviewFlags } from "@/db/queries/review-flags";
 
 const PAGE_SIZE = 10;
 
@@ -115,15 +117,25 @@ export default async function Transactions({
   }
 
   // Detect recurring patterns (only on unfiltered first page)
-  const recurringCandidates = (!search && !startDate && !endDate && requestedPage === 1)
-    ? await detectRecurringCandidates(userId)
-    : [];
+  const [recurringCandidates, reviewFlags] = await Promise.all([
+    (!search && !startDate && !endDate && requestedPage === 1)
+      ? detectRecurringCandidates(userId)
+      : Promise.resolve([]),
+    (!search && !startDate && !endDate && requestedPage === 1)
+      ? getPendingReviewFlags(userId)
+      : Promise.resolve([]),
+  ]);
 
   return (
     <>
-    {recurringCandidates.length > 0 && (
-      <div className="mx-auto max-w-7xl px-4 pt-6 md:px-10 md:pt-10">
-        <RecurringDetectionBanner candidates={recurringCandidates} currency={baseCurrency} />
+    {(recurringCandidates.length > 0 || reviewFlags.length > 0) && (
+      <div className="mx-auto max-w-7xl px-4 pt-6 md:px-10 md:pt-10 space-y-4">
+        {reviewFlags.length > 0 && (
+          <TransactionReviewBanner flags={reviewFlags} currency={baseCurrency} />
+        )}
+        {recurringCandidates.length > 0 && (
+          <RecurringDetectionBanner candidates={recurringCandidates} currency={baseCurrency} />
+        )}
       </div>
     )}
     <TransactionsClient
