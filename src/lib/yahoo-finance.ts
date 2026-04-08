@@ -39,8 +39,8 @@ export async function getQuote(ticker: string): Promise<YahooQuote | null> {
       currentPrice: price,
       currency,
     };
-  } catch {
-    logger.warn("yahoo-finance", "Quote fetch failed", { ticker });
+  } catch (err) {
+    logger.warn("yahoo-finance", "Quote fetch failed", { ticker, error: err instanceof Error ? err.message : String(err) });
     return null;
   }
 }
@@ -69,8 +69,8 @@ export async function searchTicker(query: string) {
         name: (q.shortname ?? q.longname ?? q.symbol) as string,
         exchange: q.exchDisp as string | undefined,
       }));
-  } catch {
-    logger.warn("yahoo-finance", "Ticker search failed", { query });
+  } catch (err) {
+    logger.warn("yahoo-finance", "Ticker search failed", { query, error: err instanceof Error ? err.message : String(err) });
     return [];
   }
 }

@@ -70,6 +70,7 @@ type NormalisedHolding = {
   groupId?: string | null;
   groupName?: string | null;
   groupColor?: string | null;
+  pricePending?: boolean;
 };
 
 export default async function InvestmentsPage() {
@@ -194,6 +195,7 @@ export default async function InvestmentsPage() {
       groupId: h.group_id,
       groupName: h.group_id ? groupMap.get(h.group_id)?.name ?? null : null,
       groupColor: h.group_id ? groupMap.get(h.group_id)?.color ?? null : null,
+      pricePending: (h.investment_type ?? 'stock') === 'stock' && h.ticker != null && !h.last_price_update && !quote,
     });
   }
 
@@ -499,6 +501,9 @@ export default async function InvestmentsPage() {
                                 </TableCell>
                                 <TableCell className="text-right tabular-nums">
                                   {formatCurrency(h.currentPrice, h.currency)}
+                                  {h.pricePending && (
+                                    <p className="text-[10px] text-amber-500">Price pending</p>
+                                  )}
                                 </TableCell>
                                 <TableCell className="text-right tabular-nums font-medium">
                                   {formatCurrency(h.value, baseCurrency)}
