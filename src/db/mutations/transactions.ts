@@ -11,6 +11,7 @@ import { checkBudgetAlerts } from '@/lib/budget-alerts';
 import { encryptForUser, getUserKey } from '@/lib/encryption';
 import { matchCategorisationRule } from '@/lib/auto-categorise';
 import { invalidateByUser } from '@/lib/cache';
+import { matchTransactionsToSubscriptions, matchTransactionsToDebts } from '@/lib/transaction-intelligence';
 import { requireString, sanitizeNumber, sanitizeEnum, requireDate, sanitizeUUID, sanitizeString } from '@/lib/sanitize';
 
 type Transaction = Omit<typeof transactionsTable.$inferInsert, 'user_id'>;
@@ -105,6 +106,10 @@ export async function addTransaction(formData: FormData) {
 
   await checkBudgetAlerts(userId);
   invalidateByUser(userId);
+
+  // Run subscription + debt matching inline (fast, no AI)
+  matchTransactionsToSubscriptions(userId, [result.id]).catch(() => {});
+  matchTransactionsToDebts(userId, [result.id]).catch(() => {});
 
   return result;
 }
