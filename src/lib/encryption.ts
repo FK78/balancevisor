@@ -216,7 +216,19 @@ export async function createUserKey(userId: string): Promise<void> {
     key_version: 1,
   }).onConflictDoNothing();
 
-  userKeyCache.set(userId, newUserKey);
+  // Always read back the persisted key to handle race conditions.
+  // With onConflictDoNothing(), our insert may have been silently dropped
+  // if another concurrent request inserted first. Caching the locally-generated
+  // key would then poison the cache with a key that doesn't match the DB.
+  const [persisted] = await db
+    .select({ encrypted_key: userKeysTable.encrypted_key })
+    .from(userKeysTable)
+    .where(eq(userKeysTable.user_id, userId));
+
+  if (persisted) {
+    const persistedKeyHex = decrypt(persisted.encrypted_key);
+    userKeyCache.set(userId, Buffer.from(persistedKeyHex, "hex"));
+  }
 }
 
 /**
