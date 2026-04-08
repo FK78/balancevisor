@@ -82,7 +82,47 @@ CREATE TABLE categories (
 
 CREATE INDEX categories_user_id_idx ON categories (user_id);
 
--- 6. transactions (FK → accounts, categories)
+-- 6. debts (no FK deps)
+CREATE TABLE debts (
+  id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id          UUID         NOT NULL,
+  name             VARCHAR(255) NOT NULL,
+  original_amount  NUMERIC      NOT NULL,
+  remaining_amount NUMERIC      NOT NULL,
+  interest_rate    NUMERIC      NOT NULL DEFAULT 0,
+  minimum_payment  NUMERIC      NOT NULL DEFAULT 0,
+  due_date         DATE,
+  lender           VARCHAR(255),
+  color            VARCHAR(8)   NOT NULL DEFAULT '#ef4444',
+  created_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX debts_user_id_idx ON debts (user_id);
+
+-- 7. subscriptions (FK → categories, accounts)
+CREATE TABLE subscriptions (
+  id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id           UUID         NOT NULL,
+  name              VARCHAR(255) NOT NULL,
+  amount            NUMERIC      NOT NULL,
+  currency          VARCHAR(3)   NOT NULL DEFAULT 'GBP',
+  billing_cycle     billing_cycle NOT NULL DEFAULT 'monthly',
+  next_billing_date DATE         NOT NULL,
+  category_id       UUID REFERENCES categories(id) ON DELETE SET NULL,
+  account_id        UUID         NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  url               TEXT,
+  notes             TEXT,
+  is_active         BOOLEAN      NOT NULL DEFAULT TRUE,
+  color             VARCHAR(8)   NOT NULL DEFAULT '#6366f1',
+  icon              VARCHAR(255),
+  created_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX subscriptions_user_id_idx     ON subscriptions (user_id);
+CREATE INDEX subscriptions_account_id_idx  ON subscriptions (account_id);
+CREATE INDEX subscriptions_category_id_idx ON subscriptions (category_id);
+
+-- 8. transactions (FK → accounts, categories, subscriptions, debts)
 CREATE TABLE transactions (
   id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id             UUID             NOT NULL,
@@ -109,7 +149,7 @@ CREATE INDEX transactions_category_id_idx     ON transactions (category_id);
 CREATE INDEX transactions_date_idx            ON transactions (date);
 CREATE INDEX transactions_account_id_date_idx ON transactions (account_id, date);
 
--- 7. budgets (FK → categories)
+-- 9. budgets (FK → categories)
 CREATE TABLE budgets (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id     UUID    NOT NULL,
@@ -122,7 +162,7 @@ CREATE TABLE budgets (
 CREATE INDEX budgets_user_id_idx     ON budgets (user_id);
 CREATE INDEX budgets_category_id_idx ON budgets (category_id);
 
--- 8. categorisation_rules (FK → categories)
+-- 10. categorisation_rules (FK → categories)
 CREATE TABLE categorisation_rules (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id     UUID         NOT NULL,
@@ -133,7 +173,7 @@ CREATE TABLE categorisation_rules (
 
 CREATE INDEX categorisation_rules_user_id_idx ON categorisation_rules (user_id);
 
--- 9. goals (no FK deps)
+-- 11. goals (no FK deps)
 CREATE TABLE goals (
   id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id       UUID         NOT NULL,
@@ -148,24 +188,7 @@ CREATE TABLE goals (
 
 CREATE INDEX goals_user_id_idx ON goals (user_id);
 
--- 10. debts (no FK deps)
-CREATE TABLE debts (
-  id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id          UUID         NOT NULL,
-  name             VARCHAR(255) NOT NULL,
-  original_amount  NUMERIC      NOT NULL,
-  remaining_amount NUMERIC      NOT NULL,
-  interest_rate    NUMERIC      NOT NULL DEFAULT 0,
-  minimum_payment  NUMERIC      NOT NULL DEFAULT 0,
-  due_date         DATE,
-  lender           VARCHAR(255),
-  color            VARCHAR(8)   NOT NULL DEFAULT '#ef4444',
-  created_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX debts_user_id_idx ON debts (user_id);
-
--- 11. debt_payments (FK → debts, accounts)
+-- 12. debt_payments (FK → debts, accounts)
 CREATE TABLE debt_payments (
   id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   debt_id    UUID        NOT NULL REFERENCES debts(id) ON DELETE CASCADE,
@@ -179,7 +202,7 @@ CREATE TABLE debt_payments (
 CREATE INDEX debt_payments_debt_id_idx    ON debt_payments (debt_id);
 CREATE INDEX debt_payments_account_id_idx ON debt_payments (account_id);
 
--- 12. budget_alert_preferences (FK → budgets)
+-- 13. budget_alert_preferences (FK → budgets)
 CREATE TABLE budget_alert_preferences (
   id             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   budget_id      UUID    NOT NULL REFERENCES budgets(id) ON DELETE CASCADE,
@@ -189,7 +212,7 @@ CREATE TABLE budget_alert_preferences (
   email_alerts   BOOLEAN NOT NULL DEFAULT FALSE
 );
 
--- 13. trading212_connections (FK → accounts)
+-- 14. trading212_connections (FK → accounts)
 CREATE TABLE trading212_connections (
   id                   UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id              UUID        NOT NULL UNIQUE,
@@ -200,7 +223,7 @@ CREATE TABLE trading212_connections (
   connected_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 14. investment_groups (FK → accounts)
+-- 15. investment_groups (FK → accounts)
 CREATE TABLE investment_groups (
   id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id    UUID         NOT NULL,
@@ -214,7 +237,7 @@ CREATE TABLE investment_groups (
 
 CREATE INDEX investment_groups_user_id_idx ON investment_groups (user_id);
 
--- 15. manual_holdings (FK → accounts, investment_groups)
+-- 16. manual_holdings (FK → accounts, investment_groups)
 CREATE TABLE manual_holdings (
   id                       UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id                  UUID         NOT NULL,
@@ -236,7 +259,7 @@ CREATE TABLE manual_holdings (
 CREATE INDEX manual_holdings_user_id_idx    ON manual_holdings (user_id);
 CREATE INDEX manual_holdings_account_id_idx ON manual_holdings (account_id);
 
--- 16. holding_sales (FK → manual_holdings, accounts)
+-- 17. holding_sales (FK → manual_holdings, accounts)
 CREATE TABLE holding_sales (
   id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   holding_id      UUID        NOT NULL REFERENCES manual_holdings(id) ON DELETE CASCADE,
@@ -253,29 +276,6 @@ CREATE TABLE holding_sales (
 CREATE INDEX holding_sales_user_id_idx    ON holding_sales (user_id);
 CREATE INDEX holding_sales_holding_id_idx ON holding_sales (holding_id);
 
--- 17. subscriptions (FK → categories, accounts)
-CREATE TABLE subscriptions (
-  id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id           UUID         NOT NULL,
-  name              VARCHAR(255) NOT NULL,
-  amount            NUMERIC      NOT NULL,
-  currency          VARCHAR(3)   NOT NULL DEFAULT 'GBP',
-  billing_cycle     billing_cycle NOT NULL DEFAULT 'monthly',
-  next_billing_date DATE         NOT NULL,
-  category_id       UUID REFERENCES categories(id) ON DELETE SET NULL,
-  account_id        UUID         NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
-  url               TEXT,
-  notes             TEXT,
-  is_active         BOOLEAN      NOT NULL DEFAULT TRUE,
-  color             VARCHAR(8)   NOT NULL DEFAULT '#6366f1',
-  icon              VARCHAR(255),
-  created_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX subscriptions_user_id_idx     ON subscriptions (user_id);
-CREATE INDEX subscriptions_account_id_idx  ON subscriptions (account_id);
-CREATE INDEX subscriptions_category_id_idx ON subscriptions (category_id);
-
 -- 18. transaction_splits (FK → transactions, categories)
 CREATE TABLE transaction_splits (
   id             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -287,7 +287,7 @@ CREATE TABLE transaction_splits (
 
 CREATE INDEX transaction_splits_transaction_id_idx ON transaction_splits (transaction_id);
 
--- 19. net_worth_snapshots (no FK deps)
+-- 19. net_worth_snapshots (no deps)
 CREATE TABLE net_worth_snapshots (
   id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id           UUID        NOT NULL,
@@ -301,7 +301,7 @@ CREATE TABLE net_worth_snapshots (
 
 CREATE UNIQUE INDEX net_worth_snapshots_user_id_date_idx ON net_worth_snapshots (user_id, date);
 
--- 20. shared_access (no FK deps — resource_id is polymorphic)
+-- 20. shared_access (no deps — resource_id is polymorphic)
 CREATE TABLE shared_access (
   id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   owner_id          UUID                NOT NULL,
@@ -331,7 +331,7 @@ CREATE TABLE budget_notifications (
 
 CREATE INDEX budget_notifications_user_budget_idx ON budget_notifications (user_id, budget_id);
 
--- 22. user_keys (no FK deps — envelope encryption)
+-- 22. user_keys (no deps — envelope encryption)
 CREATE TABLE user_keys (
   user_id       UUID PRIMARY KEY,
   encrypted_key TEXT        NOT NULL,
@@ -340,7 +340,7 @@ CREATE TABLE user_keys (
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 23. mfa_backup_codes (no FK deps)
+-- 23. mfa_backup_codes (no deps)
 CREATE TABLE mfa_backup_codes (
   id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id    UUID        NOT NULL,
