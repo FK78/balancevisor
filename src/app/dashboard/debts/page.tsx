@@ -17,6 +17,7 @@ import { deleteDebt } from "@/db/mutations/debts";
 import { Badge } from "@/components/ui/badge";
 import { CreditCard, CheckCircle2, TrendingDown, Percent } from "lucide-react";
 import { DebtPayoffStrategies } from "@/components/DebtPayoffStrategies";
+import { DebtAIAdvisor } from "@/components/DebtAIAdvisor";
 
 export default async function DebtsPage() {
   const userId = await getCurrentUserId();
@@ -260,6 +261,9 @@ export default async function DebtsPage() {
           currency={baseCurrency}
         />
       )}
+
+      {/* AI Debt Advisor */}
+      {active.length > 0 && <DebtAIAdvisor />}
     </div>
   );
 }

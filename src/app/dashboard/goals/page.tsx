@@ -6,6 +6,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getGoals } from "@/db/queries/goals";
+import { getGoalForecasts } from "@/lib/goal-forecast";
+import { GoalForecastCard } from "@/components/GoalForecastCard";
 import { getCurrentUserId } from "@/lib/auth";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { formatCurrency } from "@/lib/formatCurrency";
@@ -20,6 +22,8 @@ export default async function GoalsPage() {
     getGoals(userId),
     getUserBaseCurrency(userId),
   ]);
+
+  const forecasts = goals.length > 0 ? await getGoalForecasts(userId, goals) : [];
 
   const totalTarget = goals.reduce((s, g) => s + g.target_amount, 0);
   const totalSaved = goals.reduce((s, g) => s + g.saved_amount, 0);
@@ -80,6 +84,11 @@ export default async function GoalsPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Goal Forecasting */}
+      {forecasts.length > 0 && (
+        <GoalForecastCard forecasts={forecasts} currency={baseCurrency} />
       )}
 
       {/* Goals grid */}

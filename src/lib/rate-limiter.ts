@@ -145,4 +145,10 @@ export const rateLimiters = {
 
   /** Portfolio AI analysis: 5 requests per 10 minutes. */
   portfolioAnalysis: new RateLimiter({ maxRequests: 5, windowMs: 10 * 60 * 1000 }),
+
+  /** Monthly AI report: 5 requests per 10 minutes. */
+  monthlyReport: new RateLimiter({ maxRequests: 5, windowMs: 10 * 60 * 1000 }),
+
+  /** AI debt advisor: 5 requests per 10 minutes. */
+  debtAdvisor: new RateLimiter({ maxRequests: 5, windowMs: 10 * 60 * 1000 }),
 };
