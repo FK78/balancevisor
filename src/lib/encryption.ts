@@ -182,6 +182,10 @@ export async function getUserKey(userId: string): Promise<Buffer> {
     .where(eq(userKeysTable.user_id, userId));
 
   if (!row) {
+    // Lazily create the key if it doesn't exist yet (e.g. user is mid-onboarding)
+    await createUserKey(userId);
+    const cached2 = userKeyCache.get(userId);
+    if (cached2) return cached2;
     throw new Error(`No encryption key found for user ${userId}. Call createUserKey() first.`);
   }
 
