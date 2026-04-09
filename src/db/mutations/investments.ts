@@ -20,20 +20,17 @@ function revalidateInvestments() {
 export async function connectTrading212(formData: FormData) {
   const userId = await getCurrentUserId();
   const apiKey = requireString(formData.get("apiKey") as string, "API key");
-  const apiSecret = requireString(formData.get("apiSecret") as string, "API secret");
   const environment = sanitizeEnum(formData.get("environment") as string, ["live", "demo"] as const, "live");
   const accountId = sanitizeUUID(formData.get("account_id") as string);
 
   const userKey = await getUserKey(userId);
   const encryptedKey = encryptForUser(apiKey, userKey);
-  const encryptedSecret = encryptForUser(apiSecret, userKey);
 
   await db
     .insert(trading212ConnectionsTable)
     .values({
       user_id: userId,
       api_key_encrypted: encryptedKey,
-      api_secret_encrypted: encryptedSecret,
       environment,
       account_id: accountId,
     })
@@ -41,7 +38,6 @@ export async function connectTrading212(formData: FormData) {
       target: trading212ConnectionsTable.user_id,
       set: {
         api_key_encrypted: encryptedKey,
-        api_secret_encrypted: encryptedSecret,
         environment,
         account_id: accountId,
         connected_at: new Date(),
@@ -71,7 +67,7 @@ export async function connectBroker(formData: FormData) {
     "trading212",
   ) as BrokerSource;
   const apiKey = requireString(formData.get("apiKey") as string, "API key");
-  const apiSecret = requireString(formData.get("apiSecret") as string, "API secret");
+  const apiSecret = ((formData.get("apiSecret") as string) ?? "").trim();
   const environment = sanitizeEnum(
     formData.get("environment") as string,
     ["live", "demo", "paper"] as const,
