@@ -189,9 +189,6 @@ export function TransactionsClient({
   const isDateFilterActive = !!activeStartDate || !!activeEndDate;
   const isFilterActive = isDateFilterActive || isAccountFilterActive;
   const isSearchActive = !!activeSearch;
-  const dateLabel = isDateFilterActive
-    ? `${activeStartDate ?? "start"} to ${activeEndDate ?? "now"}`
-    : "All time";
   const canCreateTransaction = accounts.length > 0 && categories.length > 0;
   const isExportRangeValid = exportStartDate !== ""
     && exportEndDate !== ""
@@ -406,7 +403,6 @@ export function TransactionsClient({
     },
   ]), [accounts, categories, currency, handleTransactionEdited, expandedSplits]);
 
-  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: transactions,
     columns,

@@ -1,7 +1,6 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import { getCurrentUserId } from '@/lib/auth';
 
 export interface MFAStatus {
   enabled: boolean;
@@ -17,7 +16,6 @@ export interface MFAStatus {
 
 export async function checkMfaStatus(): Promise<MFAStatus> {
   const supabase = await createClient();
-  const userId = await getCurrentUserId();
 
   // Get user metadata from Supabase auth
   const { data: { user } } = await supabase.auth.getUser();
@@ -52,7 +50,6 @@ export async function checkMfaStatus(): Promise<MFAStatus> {
 
 export async function dismissMfaReminder(): Promise<void> {
   const supabase = await createClient();
-  const userId = await getCurrentUserId();
 
   const { data: { user } } = await supabase.auth.getUser();
   
@@ -72,7 +69,6 @@ export async function dismissMfaReminder(): Promise<void> {
 
 export async function markMfaSetupRequired(): Promise<void> {
   const supabase = await createClient();
-  const userId = await getCurrentUserId();
 
   const { data: { user } } = await supabase.auth.getUser();
   

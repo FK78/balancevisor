@@ -2,7 +2,6 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentUserId } from '@/lib/auth';
-import { rateLimiters } from '@/lib/rate-limiter';
 import { db } from '@/index';
 import { mfaBackupCodesTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';

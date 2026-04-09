@@ -24,18 +24,6 @@ function assert(condition: boolean, message: string) {
   }
 }
 
-function assertThrows(fn: () => void, message: string) {
-  let threw = false;
-  try {
-    fn();
-  } catch {
-    threw = true;
-  }
-  if (!threw) {
-    throw new Error(`Expected function to throw but it didn't: ${message}`);
-  }
-}
-
 async function runTests() {
   let passed = 0;
   let failed = 0;
@@ -43,18 +31,6 @@ async function runTests() {
   function test(name: string, fn: () => void) {
     try {
       fn();
-      console.log(`  ✓ ${name}`);
-      passed++;
-    } catch (err) {
-      console.error(`  ✗ ${name}`);
-      console.error(`    ${err}`);
-      failed++;
-    }
-  }
-
-  async function testAsync(name: string, fn: () => Promise<void>) {
-    try {
-      await fn();
       console.log(`  ✓ ${name}`);
       passed++;
     } catch (err) {

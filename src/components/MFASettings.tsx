@@ -38,6 +38,7 @@ export function MFASettings() {
 
   useEffect(() => {
     loadMfaStatus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadMfaStatus = async () => {

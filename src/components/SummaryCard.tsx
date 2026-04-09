@@ -1,7 +1,7 @@
 import { LucideIcon } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 
-export function SummaryCard({ title, description, value, change, icon: Icon, color }: {
+export function SummaryCard({ title, value, change, icon: Icon, color }: {
   title: string;
   description: string;
   value: string;

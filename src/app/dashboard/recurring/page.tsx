@@ -24,8 +24,6 @@ export default async function RecurringPage() {
 
   const {
     recurring,
-    incomeCount,
-    expenseCount,
     monthlyExpenses,
     monthlyIncome,
     upcomingCount,

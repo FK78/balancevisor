@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { verifyMfaLogin, useBackupCode } from '@/db/mutations/mfa';
+import { verifyMfaLogin, useBackupCode as consumeBackupCode } from '@/db/mutations/mfa';
 import { Loader2, AlertCircle, Key } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -71,7 +71,7 @@ export function MFAVerificationDialog({
     setError(null);
 
     try {
-      const result = await useBackupCode(backupCode.trim());
+      const result = await consumeBackupCode(backupCode.trim());
       
       if (result.success) {
         toast.success('Backup code accepted!');

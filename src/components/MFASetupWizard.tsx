@@ -57,7 +57,7 @@ export function MFASetupWizard({ open, onOpenChange, onSuccess }: MFASetupWizard
     setIsLoading(true);
     setError(null);
     try {
-      const result = await verifyMfaSetup(setupData.factorId, verificationCode, setupData.secret);
+      const result = await verifyMfaSetup(setupData.factorId, verificationCode);
       
       if (result.success) {
         setCurrentStep('backup-codes');
@@ -162,7 +162,7 @@ export function MFASetupWizard({ open, onOpenChange, onSuccess }: MFASetupWizard
           <div className="space-y-4">
             <CardDescription className="text-center">
               Two-factor authentication adds an extra layer of security to your account.
-              After enabling, you'll need to enter a verification code from your
+              After enabling, you&apos;ll need to enter a verification code from your
               authenticator app when signing in.
             </CardDescription>
             <div className="bg-muted rounded-lg p-4 space-y-3">
@@ -184,7 +184,7 @@ export function MFASetupWizard({ open, onOpenChange, onSuccess }: MFASetupWizard
                 <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
                 <div>
                   <p className="font-medium">Backup Codes</p>
-                  <p className="text-sm text-muted-foreground">You'll get recovery codes in case you lose access to your authenticator app</p>
+                  <p className="text-sm text-muted-foreground">You&apos;ll get recovery codes in case you lose access to your authenticator app</p>
                 </div>
               </div>
             </div>
@@ -211,6 +211,7 @@ export function MFASetupWizard({ open, onOpenChange, onSuccess }: MFASetupWizard
             {setupData?.qrCodeDataUrl && (
               <div className="flex flex-col items-center space-y-4">
                 <div className="bg-white p-4 rounded-lg border">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img 
                     src={setupData.qrCodeDataUrl} 
                     alt="QR Code for authenticator app" 
@@ -237,7 +238,7 @@ export function MFASetupWizard({ open, onOpenChange, onSuccess }: MFASetupWizard
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Use this key if you can't scan the QR code
+                    Use this key if you can&apos;t scan the QR code
                   </p>
                 </div>
               </div>

@@ -129,7 +129,7 @@ export function ChatPanel() {
               </div>
               <div className="text-center">
                 <p className="font-semibold text-sm">
-                  Hi! I'm your financial assistant.
+                  Hi! I&apos;m your financial assistant.
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   I can analyse your accounts, budgets, spending, goals, and

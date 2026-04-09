@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   Target,
@@ -85,7 +84,7 @@ export function InterestPicker({ defaultSelected = [], selectedFeatures: control
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Select what you'd like to set up now. You can always add more later.
+        Select what you&apos;d like to set up now. You can always add more later.
       </p>
 
       <div className="space-y-2">

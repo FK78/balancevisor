@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { ProgressBar } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 interface OnboardingLayoutProps {
   children: React.ReactNode;

@@ -12,6 +12,9 @@ import { getAccountsWithDetails } from "@/db/queries/accounts";
 import { getCachedRetirementAdvice, setCachedRetirementAdvice, invalidateCachedRetirementAdvice } from "@/lib/retirement-planner-cache";
 import { rateLimiters } from "@/lib/rate-limiter";
 import { formatCurrency } from "@/lib/formatCurrency";
+import { calculateNetWorth } from "@/lib/net-worth";
+import { getCompletedMonths, buildRetirementInputs } from "@/lib/retirement-inputs";
+import { calculateRetirementProjection } from "@/lib/retirement-calculator";
 
 export async function POST(req: Request) {
   const userId = await getCurrentUserId();
@@ -75,6 +78,7 @@ export async function POST(req: Request) {
     completedMonths,
     totalDebtRemaining: debtsSummary.totalRemaining,
   });
+  const projection = calculateRetirementProjection(inputs);
 
   const fmt = (n: number) => formatCurrency(n, baseCurrency);
 

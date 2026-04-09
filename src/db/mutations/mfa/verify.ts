@@ -13,7 +13,6 @@ export interface VerifyMfaSetupResult {
 export async function verifyMfaSetup(
   factorId: string,
   token: string,
-  _secret: string
 ): Promise<VerifyMfaSetupResult> {
   const supabase = await createClient();
   const userId = await getCurrentUserId();

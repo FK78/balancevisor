@@ -94,7 +94,7 @@ export function SellHoldingDialog({
             <DialogHeader>
               <DialogTitle>Sale Recorded</DialogTitle>
               <DialogDescription>
-                The sale has been successfully recorded. The holding's quantity has been updated.
+                The sale has been successfully recorded. The holding&apos;s quantity has been updated.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="flex gap-2 sm:justify-center">
@@ -115,7 +115,7 @@ export function SellHoldingDialog({
             <DialogHeader>
               <DialogTitle>Sell {holding.ticker ?? holding.name}</DialogTitle>
               <DialogDescription>
-                Enter the details of the sale. The holding's quantity will be reduced accordingly.
+                Enter the details of the sale. The holding&apos;s quantity will be reduced accordingly.
               </DialogDescription>
             </DialogHeader>
             <form key={formKey} onSubmit={handleSubmit} className="grid gap-4">

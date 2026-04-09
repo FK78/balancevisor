@@ -188,7 +188,7 @@ export async function deleteAccount(): Promise<{ success?: boolean; error?: stri
       await supabase.auth.signOut();
       return { error: `Data deleted but auth account removal failed: ${authError.message}. Please contact support to complete account deletion.` };
     }
-  } catch (err) {
+  } catch {
     // If admin client creation fails (e.g., missing service role key), sign out and warn
     await supabase.auth.signOut();
     return { error: 'Data deleted but auth account removal could not be completed. Please contact support to finalize account deletion.' };

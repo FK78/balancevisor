@@ -3,7 +3,7 @@ import { buildAuthLink, generateOAuthState } from '@/lib/truelayer';
 import { getCurrentUserId } from '@/lib/auth';
 import { rateLimiters } from '@/lib/rate-limiter';
 
-export async function GET(req: Request) {
+export async function GET() {
   // Rate limit by user ID (authenticated route)
   const userId = await getCurrentUserId();
   const result = rateLimiters.truelayer.consume(`truelayer-connect:${userId}`);
