@@ -17,7 +17,6 @@ import { NextFeatureButtonClient } from "@/components/NextFeatureButtonClient";
 import { isAiEnabled, getDisabledFeatures } from "@/db/queries/preferences";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { FeatureFlagsProvider } from "@/components/FeatureFlagsProvider";
-import { CustomiseDrawer } from "@/components/CustomiseDrawer";
 
 export default async function DashboardLayout({
   children,
@@ -57,7 +56,6 @@ export default async function DashboardLayout({
           </div>
           <div className="flex items-center gap-1.5">
             <ChatPanel />
-            <CustomiseDrawer />
             <ThemeToggle />
             <Suspense>
               <NotificationBellServer />

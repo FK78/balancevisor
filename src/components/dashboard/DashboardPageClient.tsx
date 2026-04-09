@@ -23,6 +23,8 @@ import { SpendCategoryRow } from "@/components/SpendCategoryRow";
 import { WidgetLayoutProvider } from "@/components/WidgetLayoutProvider";
 import { WidgetGrid } from "@/components/WidgetGrid";
 import { DashboardWidget } from "@/components/DashboardWidget";
+import { CustomiseDrawer } from "@/components/CustomiseDrawer";
+import { EditLayoutToggle } from "@/components/EditLayoutToggle";
 import type { WidgetLayoutItem } from "@/lib/widget-registry";
 import dynamic from "next/dynamic";
 
@@ -106,16 +108,20 @@ export function DashboardPageClient(props: DashboardPageClientProps) {
             </h1>
             <p className="text-muted-foreground mt-0.5 text-sm">{monthName}</p>
           </div>
-          {transactionsEnabled && (
-            <div className="flex flex-wrap gap-2">
-              <QuickAddTransaction />
-              <Button asChild size="sm" variant="outline">
-                <Link href="/dashboard/transactions">
-                  Transactions <ArrowRight className="ml-1 h-3.5 w-3.5" />
-                </Link>
-              </Button>
-            </div>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {transactionsEnabled && (
+              <>
+                <QuickAddTransaction />
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/dashboard/transactions">
+                    Transactions <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+              </>
+            )}
+            <EditLayoutToggle />
+            <CustomiseDrawer />
+          </div>
         </div>
 
         <WidgetGrid>

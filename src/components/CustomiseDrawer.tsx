@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { usePathname } from "next/navigation";
 import {
   Sheet,
   SheetContent,
@@ -15,8 +14,8 @@ import { Switch } from "@/components/ui/switch";
 import { Settings2, GripVertical, RotateCcw, Loader2 } from "lucide-react";
 import { DragDropProvider } from "@dnd-kit/react";
 import { useSortable, isSortable } from "@dnd-kit/react/sortable";
-import { PAGE_WIDGETS, pathToPageId } from "@/lib/widget-registry";
-import { useWidgetLayoutContext, useOptionalWidgetLayoutContext } from "@/components/WidgetLayoutProvider";
+import { PAGE_WIDGETS } from "@/lib/widget-registry";
+import { useWidgetLayoutContext } from "@/components/WidgetLayoutProvider";
 
 function SortableItem({
   widgetId,
@@ -54,17 +53,6 @@ function SortableItem({
 }
 
 export function CustomiseDrawer() {
-  const pathname = usePathname();
-  const pageId = pathToPageId(pathname);
-  const ctx = useOptionalWidgetLayoutContext();
-
-  // Don't render on non-dashboard pages or when no provider
-  if (!pageId || !ctx) return null;
-
-  return <CustomiseDrawerInner />;
-}
-
-function CustomiseDrawerInner() {
   const {
     pageId,
     layout,
