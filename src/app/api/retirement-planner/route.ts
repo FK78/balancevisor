@@ -10,11 +10,11 @@ import { getInvestmentValue } from "@/lib/investment-value";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { getAccountsWithDetails } from "@/db/queries/accounts";
 import { calculateRetirementProjection } from "@/lib/retirement-calculator";
-import { calculateNetWorth } from "@/lib/net-worth";
-import { buildRetirementInputs, getCompletedMonths } from "@/lib/retirement-inputs";
 import { getCachedRetirementAdvice, setCachedRetirementAdvice, invalidateCachedRetirementAdvice } from "@/lib/retirement-planner-cache";
 import { rateLimiters } from "@/lib/rate-limiter";
 import { formatCurrency } from "@/lib/formatCurrency";
+import { calculateNetWorth } from "@/lib/net-worth";
+import { getCompletedMonths, buildRetirementInputs } from "@/lib/retirement-inputs";
 
 export async function POST(req: Request) {
   const userId = await getCurrentUserId();
@@ -71,13 +71,12 @@ export async function POST(req: Request) {
   }
 
   const { netWorth } = calculateNetWorth(accounts, investmentValue);
-
   const inputs = buildRetirementInputs({
     profile,
     currentNetWorth: netWorth,
     investmentValue,
+    completedMonths,
     totalDebtRemaining: debtsSummary.totalRemaining,
-    trend,
   });
 
   const projection = calculateRetirementProjection(inputs);

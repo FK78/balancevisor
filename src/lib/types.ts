@@ -31,6 +31,8 @@ import type {
   defaultCategoryTemplatesTable,
   zakatSettingsTable,
   zakatCalculationsTable,
+  retirementProfilesTable,
+  dashboardLayoutsTable,
 } from "@/db/schema";
 
 // ---------------------------------------------------------------------------
@@ -107,6 +109,8 @@ export type ZakatSettings = InferSelectModel<typeof zakatSettingsTable>;
 export type NewZakatSettings = InferInsertModel<typeof zakatSettingsTable>;
 export type ZakatCalculation = InferSelectModel<typeof zakatCalculationsTable>;
 export type NewZakatCalculation = InferInsertModel<typeof zakatCalculationsTable>;
+export type RetirementProfileRow = InferSelectModel<typeof retirementProfilesTable>;
+export type DashboardLayoutRow = InferSelectModel<typeof dashboardLayoutsTable>;
 
 // ---------------------------------------------------------------------------
 // UI-specific types (with decrypted fields and computed values)
@@ -249,6 +253,6 @@ export type ExportData = {
   categorisationRules: CategorisationRule[];
   zakatSettings: ZakatSettings[];
   zakatCalculations: ZakatCalculation[];
-  retirementProfile: Record<string, unknown> | null;
-  dashboardLayouts: Record<string, unknown>[];
+  retirementProfile: RetirementProfileRow | null;
+  dashboardLayouts: DashboardLayoutRow[];
 };

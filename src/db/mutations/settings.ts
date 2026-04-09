@@ -151,6 +151,9 @@ export async function deleteAccount(): Promise<{ success?: boolean; error?: stri
     await tx.delete(zakatCalculationsTable).where(eq(zakatCalculationsTable.user_id, userId));
     await tx.delete(zakatSettingsTable).where(eq(zakatSettingsTable.user_id, userId));
     await tx.delete(debtsTable).where(eq(debtsTable.user_id, userId));
+    await tx.delete(retirementProfilesTable).where(eq(retirementProfilesTable.user_id, userId));
+    await tx.delete(dashboardLayoutsTable).where(eq(dashboardLayoutsTable.user_id, userId));
+    await tx.delete(userKeysTable).where(eq(userKeysTable.user_id, userId));
 
     // --- Transactions (linked to accounts) ---
     if (accountIds.length > 0) {

@@ -3,15 +3,9 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
-import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { logger } from "@/lib/logger";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function InvestmentsError({
   error,
@@ -21,7 +15,7 @@ export default function InvestmentsError({
   reset: () => void;
 }) {
   useEffect(() => {
-    logger.error("investments", "Page error", error);
+    logger.error("investments", "Investments page error", error);
   }, [error]);
 
   return (
@@ -33,7 +27,7 @@ export default function InvestmentsError({
           </div>
           <CardTitle>Couldn&apos;t load investments</CardTitle>
           <CardDescription>
-            Something went wrong while fetching your investment data. Please try again or contact support if the issue persists.
+            Something went wrong while fetching your investment data.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">

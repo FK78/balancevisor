@@ -31,9 +31,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    logger.error("ErrorBoundary", error.message, error, {
-      componentStack: info.componentStack ?? undefined,
-    });
+    logger.error("ErrorBoundary", error.message, error, { componentStack: info.componentStack ?? undefined });
   }
 
   render() {

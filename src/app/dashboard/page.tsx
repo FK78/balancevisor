@@ -15,6 +15,7 @@ import { getCashflowForecast } from "@/lib/cashflow-forecast";
 import { getSpendingAnomalies } from "@/lib/spending-anomalies";
 import { snapshotNetWorthIfNeeded } from "@/lib/snapshot-net-worth";
 import { getMonthRange } from "@/lib/date";
+import { getMonthRange } from "@/lib/date";
 import { getCurrentUserId } from "@/lib/auth";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { getDisabledFeatures } from "@/db/queries/preferences";
@@ -25,6 +26,8 @@ import { getZakatSettings, getLatestZakatCalculation } from "@/db/queries/zakat"
 import { getRetirementProfile } from "@/db/queries/retirement";
 import { calculateRetirementProjection } from "@/lib/retirement-calculator";
 import { getDebtsSummary } from "@/db/queries/debts";
+import { calculateNetWorth } from "@/lib/net-worth";
+import { getCompletedMonths, buildRetirementInputs } from "@/lib/retirement-inputs";
 import { calculateNetWorth } from "@/lib/net-worth";
 import { buildRetirementInputs } from "@/lib/retirement-inputs";
 import { DashboardPageClient } from "@/components/dashboard/DashboardPageClient";
@@ -75,6 +78,7 @@ export default async function Home() {
     snapshotNetWorthIfNeeded(userId, investmentValue).catch(() => {});
   }
 
+  const { netWorth, totalAssets, totalLiabilities } = calculateNetWorth(accounts, investmentValue);
   const { totalAssets, totalLiabilities, netWorth } = calculateNetWorth(accounts, investmentValue);
 
   const user = claimsResult.data?.claims;

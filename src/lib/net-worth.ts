@@ -1,31 +1,18 @@
 /**
- * Shared net-worth calculation helper.
- *
- * Eliminates duplication across dashboard/page.tsx, retirement/page.tsx,
- * and retirement-planner/route.ts.
+ * Shared net-worth calculation used by dashboard, retirement page, and retirement API.
  */
-
-const LIABILITY_TYPES = new Set(["creditCard"]);
 
 interface AccountLike {
   readonly type: string | null;
   readonly balance: number;
 }
 
-export interface NetWorthBreakdown {
-  readonly totalAssets: number;
-  readonly totalLiabilities: number;
-  readonly netWorth: number;
-}
+const LIABILITY_TYPES = new Set(["creditCard"]);
 
-/**
- * Calculate net worth from a list of accounts and an investment value.
- * Credit-card accounts are treated as liabilities; everything else is an asset.
- */
 export function calculateNetWorth(
   accounts: readonly AccountLike[],
   investmentValue: number,
-): NetWorthBreakdown {
+): { netWorth: number; totalAssets: number; totalLiabilities: number } {
   const totalAssets = accounts
     .filter((a) => !LIABILITY_TYPES.has(a.type ?? ""))
     .reduce((sum, a) => sum + a.balance, 0);
@@ -35,8 +22,8 @@ export function calculateNetWorth(
     .reduce((sum, a) => sum + Math.abs(a.balance), 0);
 
   return {
+    netWorth: totalAssets - totalLiabilities + investmentValue,
     totalAssets,
     totalLiabilities,
-    netWorth: totalAssets - totalLiabilities + investmentValue,
   };
 }
