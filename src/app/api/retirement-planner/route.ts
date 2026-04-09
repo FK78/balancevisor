@@ -1,0 +1,194 @@
+import { groq } from "@ai-sdk/groq";
+import { streamText } from "ai";
+import { getCurrentUserId } from "@/lib/auth";
+import { guardAiEnabled } from "@/lib/ai-guard";
+import { getRetirementProfile } from "@/db/queries/retirement";
+import { getMonthlyIncomeExpenseTrend } from "@/db/queries/transactions";
+import { getNetWorthHistory } from "@/db/queries/net-worth";
+import { getDebtsSummary } from "@/db/queries/debts";
+import { getInvestmentValue } from "@/lib/investment-value";
+import { getUserBaseCurrency } from "@/db/queries/onboarding";
+import { getAccountsWithDetails } from "@/db/queries/accounts";
+import { calculateRetirementProjection } from "@/lib/retirement-calculator";
+import { getCachedRetirementAdvice, setCachedRetirementAdvice, invalidateCachedRetirementAdvice } from "@/lib/retirement-planner-cache";
+import { rateLimiters } from "@/lib/rate-limiter";
+import { formatCurrency } from "@/lib/formatCurrency";
+import { getMonthKey } from "@/lib/date";
+
+export async function POST(req: Request) {
+  const userId = await getCurrentUserId();
+
+  const aiBlocked = await guardAiEnabled();
+  if (aiBlocked) return aiBlocked;
+
+  const rateLimitResult = rateLimiters.retirementPlanner.consume(`retirement-planner:${userId}`);
+  if (!rateLimitResult.allowed) {
+    return new Response(
+      JSON.stringify({ error: "Too many requests. Please wait before refreshing." }),
+      { status: 429, headers: { "Content-Type": "application/json", "Retry-After": String(rateLimitResult.retryAfter) } },
+    );
+  }
+
+  const body = await req.json().catch(() => ({}));
+  const forceRefresh = body?.refresh === true;
+
+  if (!forceRefresh) {
+    const cached = getCachedRetirementAdvice(userId);
+    if (cached) {
+      return new Response(JSON.stringify({ advice: cached, cached: true }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  } else {
+    invalidateCachedRetirementAdvice(userId);
+  }
+
+  const profile = await getRetirementProfile(userId);
+  if (!profile) {
+    return new Response(
+      JSON.stringify({ advice: "Set up your retirement profile to get personalised AI advice.", cached: false }),
+      { headers: { "Content-Type": "application/json" } },
+    );
+  }
+
+  const [trend, accounts, investmentValue, debtsSummary, netWorthHistory, baseCurrency] = await Promise.all([
+    getMonthlyIncomeExpenseTrend(userId, 6),
+    getAccountsWithDetails(userId),
+    getInvestmentValue(userId),
+    getDebtsSummary(userId),
+    getNetWorthHistory(userId, 90),
+    getUserBaseCurrency(userId),
+  ]);
+
+  const currentMonthKey = getMonthKey(new Date());
+  const completedMonths = trend.filter((m) => m.month !== currentMonthKey);
+
+  if (completedMonths.length === 0) {
+    return new Response(
+      JSON.stringify({ advice: "Not enough transaction history yet. Keep tracking for at least one month to get retirement insights.", cached: false }),
+      { headers: { "Content-Type": "application/json" } },
+    );
+  }
+
+  const monthCount = Math.max(completedMonths.length, 1);
+  const avgMonthlyIncome = completedMonths.reduce((s, m) => s + m.income, 0) / monthCount;
+  const avgMonthlyExpenses = completedMonths.reduce((s, m) => s + m.expenses, 0) / monthCount;
+  const annualSavings = (avgMonthlyIncome - avgMonthlyExpenses) * 12;
+
+  const liabilityTypes = new Set(["creditCard"]);
+  const totalAssets = accounts
+    .filter((a) => !liabilityTypes.has(a.type ?? ""))
+    .reduce((sum, a) => sum + a.balance, 0);
+  const totalLiabilities = accounts
+    .filter((a) => liabilityTypes.has(a.type ?? ""))
+    .reduce((sum, a) => sum + Math.abs(a.balance), 0);
+  const netWorth = totalAssets - totalLiabilities + investmentValue;
+
+  const projection = calculateRetirementProjection({
+    profile,
+    currentNetWorth: netWorth,
+    investmentValue,
+    annualSavings,
+    totalDebtRemaining: debtsSummary.totalRemaining,
+    avgMonthlyIncome,
+    avgMonthlyExpenses,
+  });
+
+  const fmt = (n: number) => formatCurrency(n, baseCurrency);
+
+  const trendLines = completedMonths.map((m) => {
+    const rate = m.income > 0 ? Math.round(((m.income - m.expenses) / m.income) * 100) : 0;
+    return `- ${m.month}: Income ${fmt(m.income)}, Expenses ${fmt(m.expenses)}, Savings rate ${rate}%`;
+  });
+
+  const netWorthTrendLine = netWorthHistory.length >= 2
+    ? `Net worth trend: ${fmt(netWorthHistory[0].net_worth)} → ${fmt(netWorthHistory[netWorthHistory.length - 1].net_worth)} over ${netWorthHistory.length} days`
+    : "";
+
+  const debtLines = debtsSummary.active.length > 0
+    ? debtsSummary.active.map((d) => `- ${d.name}: ${fmt(d.remaining_amount)} remaining at ${d.interest_rate}% APR`)
+    : ["- No active debts"];
+
+  const context = [
+    `# Retirement Profile`,
+    `- Current age: ${profile.current_age}`,
+    `- Target retirement age: ${profile.target_retirement_age}`,
+    `- Desired annual spending: ${fmt(profile.desired_annual_spending)}`,
+    `- Expected pension: ${fmt(profile.expected_pension_annual)}/year`,
+    `- Assumed real return: ${profile.expected_investment_return}%`,
+    `- Assumed inflation: ${profile.inflation_rate}%`,
+    `- Life expectancy: ${profile.life_expectancy}`,
+    ``,
+    `# Financial Snapshot`,
+    `- Current net worth: ${fmt(projection.currentNetWorth)}`,
+    `- Investment portfolio: ${fmt(investmentValue)}`,
+    `- Annual savings: ${fmt(projection.annualSavings)} (${projection.savingsRate}% savings rate)`,
+    `- Monthly savings: ${fmt(projection.monthlySavings)}`,
+    netWorthTrendLine,
+    ``,
+    `# Projection Results`,
+    `- Estimated retirement age: ${projection.estimatedRetirementAge}`,
+    `- Can retire on target (${profile.target_retirement_age}): ${projection.canRetireOnTarget ? "YES" : "NO"}`,
+    `- Required fund at ${profile.target_retirement_age}: ${fmt(projection.requiredFundAtTarget)}`,
+    `- Projected fund at ${profile.target_retirement_age}: ${fmt(projection.projectedFundAtTarget)}`,
+    `- Fund gap: ${projection.fundGap > 0 ? fmt(projection.fundGap) + " shortfall" : "On track"}`,
+    `- Progress: ${projection.fundProgress}%`,
+    ``,
+    `# Monthly Trends`,
+    ...trendLines,
+    ``,
+    `# Active Debts`,
+    ...debtLines,
+    ``,
+    `# What-If Scenarios`,
+    ...projection.scenarios.map((s) => `- ${s.label}: Retire at ${s.estimatedRetirementAge} (${s.description})`),
+  ].join("\n");
+
+  const result = streamText({
+    model: groq("llama-3.3-70b-versatile"),
+    system: `You are BalanceVisor AI, a retirement planning specialist. Analyse the user's complete financial picture and retirement goals.
+
+Structure your response with these exact markdown sections:
+
+## Retirement Readiness Score
+A single-sentence qualitative assessment (e.g. "Strong / On Track / Needs Work / At Risk") with a brief justification.
+
+## Timeline Analysis
+When they can realistically retire based on current trajectory. Compare estimated vs target age. Be specific with numbers.
+
+## Key Risks
+Flag the biggest threats to their retirement plan:
+- Debt burden (if any)
+- Low savings rate
+- Investment concentration or low returns
+- Inflation exposure
+- Spending trajectory
+
+## Action Plan
+3-5 specific, data-driven recommendations to improve their retirement outlook. Each should include:
+- What to do
+- Expected impact (quantified where possible)
+- Priority (high/medium/low)
+
+## Quick Wins
+2-3 things they can do this month to get started.
+
+Rules:
+- Use the user's currency (${baseCurrency}) when referencing amounts
+- Reference specific numbers from their data
+- Be encouraging but honest about gaps
+- Keep the total response under 600 words
+- Do NOT use generic advice — tailor everything to this specific user's data
+
+${context}`,
+    prompt: "Analyse my retirement readiness and give me a personalised plan.",
+    maxOutputTokens: 1200,
+    onFinish: ({ text }) => {
+      if (text) {
+        setCachedRetirementAdvice(userId, text);
+      }
+    },
+  });
+
+  return result.toTextStreamResponse();
+}

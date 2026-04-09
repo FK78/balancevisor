@@ -14,13 +14,16 @@ import { getDashboardInsights } from "@/db/queries/insights";
 import { getCashflowForecast } from "@/lib/cashflow-forecast";
 import { getSpendingAnomalies } from "@/lib/spending-anomalies";
 import { snapshotNetWorthIfNeeded } from "@/lib/snapshot-net-worth";
-import { getMonthRange } from "@/lib/date";
+import { getMonthRange, getMonthKey } from "@/lib/date";
 import { getCurrentUserId } from "@/lib/auth";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { getDisabledFeatures } from "@/db/queries/preferences";
 import { isFeatureEnabled as checkFeature, type FeatureId } from "@/lib/features";
 import { createClient } from "@/lib/supabase/server";
 import { getPageLayout } from "@/db/queries/dashboard-layouts";
+import { getRetirementProfile } from "@/db/queries/retirement";
+import { calculateRetirementProjection } from "@/lib/retirement-calculator";
+import { getDebtsSummary } from "@/db/queries/debts";
 import { DashboardPageClient } from "@/components/dashboard/DashboardPageClient";
 
 export default async function Home() {
@@ -92,11 +95,33 @@ export default async function Home() {
     return pct >= 80;
   });
 
-  const [insights, forecast, anomalies] = await Promise.all([
+  const [insights, forecast, anomalies, retirementProfile, debtsSummary] = await Promise.all([
     getDashboardInsights(userId, budgets, goals),
     on("reports") ? getCashflowForecast(userId) : Promise.resolve(null),
     on("reports") ? getSpendingAnomalies(userId) : Promise.resolve([]),
+    getRetirementProfile(userId),
+    getDebtsSummary(userId),
   ]);
+
+  let retirementProjection = null;
+  if (retirementProfile && monthlyTrend.length > 0) {
+    const currentMonthKey = getMonthKey(new Date());
+    const completedMonths = monthlyTrend.filter((m: { month: string }) => m.month !== currentMonthKey);
+    const monthCount = Math.max(completedMonths.length, 1);
+    const avgMonthlyIncome = completedMonths.reduce((s: number, m: { income: number }) => s + m.income, 0) / monthCount;
+    const avgMonthlyExpenses = completedMonths.reduce((s: number, m: { expenses: number }) => s + m.expenses, 0) / monthCount;
+    const annualSavings = (avgMonthlyIncome - avgMonthlyExpenses) * 12;
+
+    retirementProjection = calculateRetirementProjection({
+      profile: retirementProfile,
+      currentNetWorth: netWorth,
+      investmentValue,
+      annualSavings,
+      totalDebtRemaining: debtsSummary.totalRemaining,
+      avgMonthlyIncome,
+      avgMonthlyExpenses,
+    });
+  }
 
   return (
     <DashboardPageClient
@@ -126,6 +151,8 @@ export default async function Home() {
       spendByCategory={spendByCategory}
       expenses={expenses}
       lastFiveTransactions={lastFiveTransactions}
+      retirementProjection={retirementProjection}
+      hasRetirementProfile={!!retirementProfile}
     />
   );
 }

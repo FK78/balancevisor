@@ -20,6 +20,7 @@ import { DashboardBudgetProgress } from "@/components/dashboard/DashboardBudgetP
 import { DashboardRecentTransactions } from "@/components/dashboard/DashboardRecentTransactions";
 import { DashboardUpcomingBills } from "@/components/dashboard/DashboardUpcomingBills";
 import { SpendCategoryRow } from "@/components/SpendCategoryRow";
+import { DashboardRetirement } from "@/components/dashboard/DashboardRetirement";
 import { WidgetLayoutProvider } from "@/components/WidgetLayoutProvider";
 import { WidgetGrid } from "@/components/WidgetGrid";
 import { DashboardWidget } from "@/components/DashboardWidget";
@@ -65,6 +66,8 @@ interface DashboardPageClientProps {
   readonly spendByCategory: any[];
   readonly expenses: number;
   readonly lastFiveTransactions: any[];
+  readonly retirementProjection: any;
+  readonly hasRetirementProfile: boolean;
 }
 
 export function DashboardPageClient(props: DashboardPageClientProps) {
@@ -95,6 +98,8 @@ export function DashboardPageClient(props: DashboardPageClientProps) {
     spendByCategory,
     expenses,
     lastFiveTransactions,
+    retirementProjection,
+    hasRetirementProfile,
   } = props;
 
   return (
@@ -209,6 +214,14 @@ export function DashboardPageClient(props: DashboardPageClientProps) {
                 </CardContent>
               </Card>
             )}
+          </DashboardWidget>
+
+          <DashboardWidget id="retirement">
+            <DashboardRetirement
+              projection={retirementProjection}
+              hasProfile={hasRetirementProfile}
+              baseCurrency={baseCurrency}
+            />
           </DashboardWidget>
 
           <DashboardWidget id="recent-transactions">

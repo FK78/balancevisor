@@ -21,6 +21,7 @@ export type DashboardPageId =
   | "investments"
   | "recurring"
   | "reports"
+  | "retirement"
   | "subscriptions"
   | "transactions";
 
@@ -37,6 +38,7 @@ const DASHBOARD_WIDGETS: readonly WidgetDefinition[] = [
   { id: "budget-progress", label: "Budget Progress", defaultVisible: true, colSpan: 1 },
   { id: "category-spend", label: "Spending by Category", defaultVisible: true, colSpan: 1 },
   { id: "recent-transactions", label: "Recent Transactions", defaultVisible: true, colSpan: 2 },
+  { id: "retirement", label: "Retirement Planner", defaultVisible: true, colSpan: 1 },
 ] as const;
 
 const ACCOUNTS_WIDGETS: readonly WidgetDefinition[] = [
@@ -104,6 +106,15 @@ const SUBSCRIPTIONS_WIDGETS: readonly WidgetDefinition[] = [
   { id: "ai-advisor", label: "AI Savings Advisor", defaultVisible: true, colSpan: 2 },
 ] as const;
 
+const RETIREMENT_WIDGETS: readonly WidgetDefinition[] = [
+  { id: "countdown", label: "Retirement Countdown", defaultVisible: true, colSpan: 2 },
+  { id: "progress", label: "Fund Progress", defaultVisible: true, colSpan: 2 },
+  { id: "snapshot", label: "Financial Snapshot", defaultVisible: true, colSpan: 2 },
+  { id: "projection-chart", label: "Projection Chart", defaultVisible: true, colSpan: 2 },
+  { id: "scenarios", label: "What-If Scenarios", defaultVisible: true, colSpan: 2 },
+  { id: "ai-advisor", label: "AI Retirement Advisor", defaultVisible: true, colSpan: 2 },
+] as const;
+
 const TRANSACTIONS_WIDGETS: readonly WidgetDefinition[] = [
   { id: "review-banners", label: "Review Banners", defaultVisible: true, colSpan: 2 },
   { id: "transactions-client", label: "Transactions Table", defaultVisible: true, colSpan: 2 },
@@ -119,6 +130,7 @@ export const PAGE_WIDGETS: Readonly<Record<DashboardPageId, readonly WidgetDefin
   investments: INVESTMENTS_WIDGETS,
   recurring: RECURRING_WIDGETS,
   reports: REPORTS_WIDGETS,
+  retirement: RETIREMENT_WIDGETS,
   subscriptions: SUBSCRIPTIONS_WIDGETS,
   transactions: TRANSACTIONS_WIDGETS,
 } as const;
