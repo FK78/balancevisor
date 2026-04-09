@@ -1,9 +1,9 @@
-import { getTrading212Connection, getManualHoldings } from "@/db/queries/investments";
-import { getT212AccountSummary } from "@/lib/trading212";
+import { getBrokerConnections, getManualHoldings, decryptBrokerCredentials } from "@/db/queries/investments";
 import { getQuotes } from "@/lib/yahoo-finance";
-import { decryptForUser, getUserKey } from "@/lib/encryption";
 import { logger } from "@/lib/logger";
 import { getCached, setCached, cacheKey } from "@/lib/cache";
+import { getAdapter } from "@/lib/brokers";
+import type { BrokerSource } from "@/lib/brokers/types";
 
 const userTag = (userId: string) => `user:${userId}`;
 
@@ -12,24 +12,28 @@ export async function getInvestmentValue(userId: string): Promise<number> {
   const cached = getCached<number>(key);
   if (cached !== undefined) return cached;
 
-  const [t212Connection, manualHoldings] = await Promise.all([
-    getTrading212Connection(userId),
+  const [brokerConnections, manualHoldings] = await Promise.all([
+    getBrokerConnections(userId),
     getManualHoldings(userId),
   ]);
 
   let value = 0;
 
-  if (t212Connection) {
+  // Sum values from all connected brokers
+  const brokerPromises = brokerConnections.map(async (conn) => {
     try {
-      const userKey = await getUserKey(userId);
-      const apiKey = decryptForUser(t212Connection.api_key_encrypted, userKey);
-      const apiSecret = decryptForUser(t212Connection.api_secret_encrypted, userKey);
-      const summary = await getT212AccountSummary(apiKey, apiSecret, t212Connection.environment);
-      value += summary.totalValue;
+      const creds = await decryptBrokerCredentials(userId, conn.credentials_encrypted);
+      const adapter = getAdapter(conn.broker as BrokerSource);
+      const summary = await adapter.getSummary(creds);
+      return summary.totalValue;
     } catch (err) {
-      logger.error("investment-value", "T212 fetch failed", err);
+      logger.error("investment-value", `${conn.broker} fetch failed`, err);
+      return 0;
     }
-  }
+  });
+
+  const brokerValues = await Promise.all(brokerPromises);
+  value += brokerValues.reduce((sum, v) => sum + v, 0);
 
   if (manualHoldings.length > 0) {
     // Only fetch quotes for stock holdings with a ticker

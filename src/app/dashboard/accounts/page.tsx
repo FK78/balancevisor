@@ -31,7 +31,9 @@ const AccountCharts = dynamic(
 );
 import { AccountHealthCheck } from "@/components/AccountHealthCheck";
 import { getTrueLayerConnections } from "@/db/mutations/truelayer";
-import { getManualHoldings, getTrading212Connection } from "@/db/queries/investments";
+import { getManualHoldings, getBrokerConnections } from "@/db/queries/investments";
+import { BROKER_META } from "@/lib/brokers";
+import type { BrokerSource } from "@/lib/brokers/types";
 import Link from "next/link";
 
 const typeConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -53,13 +55,13 @@ export default async function Accounts() {
 
   const email = await getCurrentUserEmail();
 
-  const [ownedAccounts, sharedAccounts, baseCurrency, truelayerConnections, manualHoldings, t212Connection, pendingInvitations] = await Promise.all([
+  const [ownedAccounts, sharedAccounts, baseCurrency, truelayerConnections, manualHoldings, brokerConnections, pendingInvitations] = await Promise.all([
     getAccountsWithDetails(userId),
     getSharedAccounts(userId, email),
     getUserBaseCurrency(userId),
     getTrueLayerConnections(),
     getManualHoldings(userId),
-    getTrading212Connection(userId),
+    getBrokerConnections(userId),
     getPendingInvitations(userId, email),
   ]);
 
@@ -78,18 +80,21 @@ export default async function Accounts() {
   }
 
   // Build a map of account_id -> count of linked investments
-  const investmentCountByAccount = new Map<string, { manual: number; t212: boolean }>();
+  const investmentCountByAccount = new Map<string, { manual: number; brokers: string[] }>();
   for (const h of manualHoldings) {
     if (h.account_id) {
-      const existing = investmentCountByAccount.get(h.account_id) ?? { manual: 0, t212: false };
+      const existing = investmentCountByAccount.get(h.account_id) ?? { manual: 0, brokers: [] };
       existing.manual++;
       investmentCountByAccount.set(h.account_id, existing);
     }
   }
-  if (t212Connection?.account_id) {
-    const existing = investmentCountByAccount.get(t212Connection.account_id) ?? { manual: 0, t212: false };
-    existing.t212 = true;
-    investmentCountByAccount.set(t212Connection.account_id, existing);
+  for (const conn of brokerConnections) {
+    if (conn.account_id) {
+      const existing = investmentCountByAccount.get(conn.account_id) ?? { manual: 0, brokers: [] };
+      const label = BROKER_META[conn.broker as BrokerSource]?.label ?? conn.broker;
+      existing.brokers.push(label);
+      investmentCountByAccount.set(conn.account_id, existing);
+    }
   }
 
   const liabilityTypes = new Set(["creditCard"]);
@@ -225,7 +230,7 @@ export default async function Accounts() {
                   {account.type === "investment" && investmentCountByAccount.has(account.id) && (() => {
                     const info = investmentCountByAccount.get(account.id)!;
                     const parts: string[] = [];
-                    if (info.t212) parts.push("Trading 212");
+                    for (const b of info.brokers) parts.push(b);
                     if (info.manual > 0) parts.push(`${info.manual} manual holding${info.manual !== 1 ? "s" : ""}`);
                     return (
                       <Link

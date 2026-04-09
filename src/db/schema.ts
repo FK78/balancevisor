@@ -4,7 +4,7 @@ export const accountTypeEnum = pgEnum("account_type", ["currentAccount", "saving
 export const periodEnum = pgEnum("period", ["monthly", "weekly"]);
 export const transactionTypeEnum = pgEnum("transaction_type", ["income", "expense", "transfer", "sale"]);
 export const recurringPatternEnum = pgEnum("recurring_pattern", ["daily", "weekly", "biweekly", "monthly", "yearly"]);
-export const investmentTypeEnum = pgEnum("investment_type", ["stock", "real_estate", "private_equity", "other"]);
+export const investmentTypeEnum = pgEnum("investment_type", ["stock", "crypto", "etf", "real_estate", "private_equity", "other"]);
 
 export const defaultCategoryTemplatesTable = pgTable("default_category_templates", {
   id: uuid().primaryKey().defaultRandom(),
@@ -158,6 +158,7 @@ export const budgetAlertPreferencesTable = pgTable("budget_alert_preferences", {
     email_alerts: boolean("email_alerts").notNull().default(false),
 })
 
+/** @deprecated Use brokerConnectionsTable instead. Kept for migration compatibility. */
 export const trading212ConnectionsTable = pgTable("trading212_connections", {
   id: uuid().primaryKey().defaultRandom(),
   user_id: uuid("user_id").notNull().unique(),
@@ -167,6 +168,19 @@ export const trading212ConnectionsTable = pgTable("trading212_connections", {
   account_id: uuid("account_id").references(() => accountsTable.id, { onDelete: "set null" }),
   connected_at: timestamp("connected_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const brokerConnectionsTable = pgTable("broker_connections", {
+  id: uuid().primaryKey().defaultRandom(),
+  user_id: uuid("user_id").notNull(),
+  broker: varchar("broker", { length: 20 }).notNull(),
+  credentials_encrypted: text("credentials_encrypted").notNull(),
+  environment: varchar({ length: 10 }).notNull().default("live"),
+  account_id: uuid("account_id").references(() => accountsTable.id, { onDelete: "set null" }),
+  connected_at: timestamp("connected_at", { withTimezone: true }).notNull().defaultNow(),
+  last_synced_at: timestamp("last_synced_at", { withTimezone: true }),
+}, (table) => [{
+  uniqueBroker: uniqueIndex("broker_connections_user_broker_idx").on(table.user_id, table.broker),
+}]);
 
 export const investmentGroupsTable = pgTable("investment_groups", {
   id: uuid().primaryKey().defaultRandom(),

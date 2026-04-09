@@ -1,11 +1,11 @@
-import { getTrading212Connection, getManualHoldings, getHoldingSales } from "@/db/queries/investments";
+import { getBrokerConnections, getManualHoldings, getHoldingSales, decryptBrokerCredentials } from "@/db/queries/investments";
 import { getGroupsByUser } from "@/db/queries/investment-groups";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
-import { getT212AccountSummary, getT212Positions, type T212Position } from "@/lib/trading212";
 import { getQuotes } from "@/lib/yahoo-finance";
-import { decryptForUser, getUserKey } from "@/lib/encryption";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { logger } from "@/lib/logger";
+import { getAdapter } from "@/lib/brokers";
+import type { BrokerSource } from "@/lib/brokers/types";
 
 export type PortfolioHolding = {
   ticker: string | null;
@@ -17,8 +17,8 @@ export type PortfolioHolding = {
   value: number;
   gainLoss: number;
   gainLossPercent: number;
-  investmentType: "stock" | "real_estate" | "private_equity" | "other";
-  source: "trading212" | "manual";
+  investmentType: "stock" | "crypto" | "etf" | "real_estate" | "private_equity" | "other";
+  source: BrokerSource | "manual";
   groupName?: string | null;
 };
 
@@ -30,13 +30,13 @@ export type PortfolioSnapshot = {
   totalGainLossPercent: number;
   totalRealizedGain: number;
   salesCount: number;
-  t212Cash: number;
+  brokerCash: number;
   baseCurrency: string;
 };
 
 export async function getPortfolioSnapshot(userId: string): Promise<PortfolioSnapshot> {
-  const [t212Connection, manualHoldings, baseCurrency, allGroups, sales] = await Promise.all([
-    getTrading212Connection(userId),
+  const [brokerConnections, manualHoldings, baseCurrency, allGroups, sales] = await Promise.all([
+    getBrokerConnections(userId),
     getManualHoldings(userId),
     getUserBaseCurrency(userId),
     getGroupsByUser(userId),
@@ -45,22 +45,41 @@ export async function getPortfolioSnapshot(userId: string): Promise<PortfolioSna
 
   const groupMap = new Map(allGroups.map((g) => [g.id, g]));
 
-  let t212Positions: T212Position[] = [];
-  let t212Cash = 0;
+  const holdings: PortfolioHolding[] = [];
+  let brokerCash = 0;
 
-  if (t212Connection) {
-    try {
-      const userKey = await getUserKey(userId);
-      const apiKey = decryptForUser(t212Connection.api_key_encrypted, userKey);
-      const apiSecret = decryptForUser(t212Connection.api_secret_encrypted, userKey);
-      const [summary, positions] = await Promise.all([
-        getT212AccountSummary(apiKey, apiSecret, t212Connection.environment),
-        getT212Positions(apiKey, apiSecret, t212Connection.environment),
-      ]);
-      t212Positions = positions;
-      t212Cash = summary.cash.availableToTrade;
-    } catch (err) {
-      logger.error("portfolio-data", "T212 fetch failed", err);
+  // Fetch positions from all connected brokers in parallel
+  const brokerResults = await Promise.allSettled(
+    brokerConnections.map(async (conn) => {
+      const creds = await decryptBrokerCredentials(userId, conn.credentials_encrypted);
+      const adapter = getAdapter(conn.broker as BrokerSource);
+      const summary = await adapter.getSummary(creds);
+      return { broker: conn.broker as BrokerSource, summary };
+    }),
+  );
+
+  for (const result of brokerResults) {
+    if (result.status === "rejected") {
+      logger.error("portfolio-data", "Broker fetch failed", result.reason);
+      continue;
+    }
+    const { broker, summary } = result.value;
+    brokerCash += summary.cash;
+
+    for (const pos of summary.positions) {
+      holdings.push({
+        ticker: pos.ticker,
+        name: pos.name,
+        quantity: pos.quantity,
+        averagePrice: pos.averagePrice,
+        currentPrice: pos.currentPrice,
+        currency: pos.currency,
+        value: pos.value,
+        gainLoss: pos.gainLoss,
+        gainLossPercent: pos.gainLossPercent,
+        investmentType: pos.investmentType,
+        source: broker,
+      });
     }
   }
 
@@ -76,30 +95,6 @@ export async function getPortfolioSnapshot(userId: string): Promise<PortfolioSna
     .filter((ticker): ticker is string => ticker !== null);
 
   const freshQuotes = staleTickers.length > 0 ? await getQuotes(staleTickers) : new Map();
-
-  const holdings: PortfolioHolding[] = [];
-
-  for (const pos of t212Positions) {
-    const avgPrice = parseFloat(String(pos.averagePricePaid));
-    const cost = avgPrice * pos.quantity;
-    const value = pos.walletImpact?.currentValue ?? pos.currentPrice * pos.quantity;
-    const gainLoss = pos.walletImpact?.profitLoss ?? value - cost;
-    const gainLossPercent = pos.walletImpact?.profitLossPercent ?? (cost > 0 ? (gainLoss / cost) * 100 : 0);
-
-    holdings.push({
-      ticker: pos.instrument.ticker,
-      name: pos.instrument.name ?? pos.instrument.shortName ?? pos.instrument.ticker,
-      quantity: pos.quantity,
-      averagePrice: avgPrice,
-      currentPrice: pos.currentPrice,
-      currency: pos.instrument.currencyCode ?? baseCurrency,
-      value,
-      gainLoss,
-      gainLossPercent,
-      investmentType: "stock",
-      source: "trading212",
-    });
-  }
 
   for (const h of manualHoldings) {
     const quote = freshQuotes.get(h.ticker);
@@ -125,7 +120,7 @@ export async function getPortfolioSnapshot(userId: string): Promise<PortfolioSna
     });
   }
 
-  const totalValue = holdings.reduce((s, h) => s + h.value, 0) + t212Cash;
+  const totalValue = holdings.reduce((s, h) => s + h.value, 0) + brokerCash;
   const totalCost = holdings.reduce((s, h) => s + h.averagePrice * h.quantity, 0);
   const totalGainLoss = holdings.reduce((s, h) => s + h.gainLoss, 0);
   const totalGainLossPercent = totalCost > 0 ? (totalGainLoss / totalCost) * 100 : 0;
@@ -139,13 +134,13 @@ export async function getPortfolioSnapshot(userId: string): Promise<PortfolioSna
     totalGainLossPercent,
     totalRealizedGain,
     salesCount: sales.length,
-    t212Cash,
+    brokerCash,
     baseCurrency,
   };
 }
 
 export function formatPortfolioContext(snapshot: PortfolioSnapshot): string {
-  const { holdings, totalValue, totalCost, totalGainLoss, totalGainLossPercent, totalRealizedGain, salesCount, t212Cash, baseCurrency } = snapshot;
+  const { holdings, totalValue, totalCost, totalGainLoss, totalGainLossPercent, totalRealizedGain, salesCount, brokerCash, baseCurrency } = snapshot;
 
   const holdingLines = holdings.map((h) => {
     const weight = totalValue > 0 ? ((h.value / totalValue) * 100).toFixed(1) : "0.0";
@@ -165,7 +160,7 @@ export function formatPortfolioContext(snapshot: PortfolioSnapshot): string {
 
   return `
 ### Investment Portfolio (${holdings.length} holdings)
-- Total value: ${formatCurrency(totalValue, baseCurrency)}${t212Cash > 0 ? ` (incl. ${formatCurrency(t212Cash, baseCurrency)} cash)` : ""}
+- Total value: ${formatCurrency(totalValue, baseCurrency)}${brokerCash > 0 ? ` (incl. ${formatCurrency(brokerCash, baseCurrency)} cash)` : ""}
 - Total cost basis: ${formatCurrency(totalCost, baseCurrency)}
 - Total gain/loss: ${totalGainLoss >= 0 ? "+" : ""}${formatCurrency(Math.abs(totalGainLoss), baseCurrency)} (${totalGainLossPercent >= 0 ? "+" : ""}${totalGainLossPercent.toFixed(2)}%)
 - Realized gains: ${formatCurrency(Math.abs(totalRealizedGain), baseCurrency)} from ${salesCount} sale${salesCount !== 1 ? "s" : ""}

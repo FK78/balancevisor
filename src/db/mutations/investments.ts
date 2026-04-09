@@ -2,7 +2,7 @@
 
 import { db } from "@/index";
 import { createTransaction } from "@/db/mutations/transactions";
-import { trading212ConnectionsTable, manualHoldingsTable, holdingSalesTable, accountsTable } from "@/db/schema";
+import { trading212ConnectionsTable, brokerConnectionsTable, manualHoldingsTable, holdingSalesTable, accountsTable } from "@/db/schema";
 import { eq, and, isNotNull, sql } from "drizzle-orm";
 import { revalidateDomains } from "@/lib/revalidate";
 import { getCurrentUserId } from "@/lib/auth";
@@ -10,6 +10,8 @@ import { toDateString } from "@/lib/date";
 import { encryptForUser, getUserKey } from "@/lib/encryption";
 import { getQuote } from "@/lib/yahoo-finance";
 import { requireString, sanitizeNumber, sanitizeEnum, sanitizeUUID } from "@/lib/sanitize";
+import type { BrokerSource, BrokerCredentials } from "@/lib/brokers/types";
+import { BROKER_SOURCES } from "@/lib/brokers/types";
 
 function revalidateInvestments() {
   revalidateDomains('investments');
@@ -55,6 +57,121 @@ export async function disconnectTrading212() {
     .delete(trading212ConnectionsTable)
     .where(eq(trading212ConnectionsTable.user_id, userId));
   revalidateInvestments();
+}
+
+// ---------------------------------------------------------------------------
+// Generic broker connection mutations
+// ---------------------------------------------------------------------------
+
+export async function connectBroker(formData: FormData) {
+  const userId = await getCurrentUserId();
+  const broker = sanitizeEnum(
+    formData.get("broker") as string,
+    BROKER_SOURCES,
+    "trading212",
+  ) as BrokerSource;
+  const apiKey = requireString(formData.get("apiKey") as string, "API key");
+  const apiSecret = requireString(formData.get("apiSecret") as string, "API secret");
+  const environment = sanitizeEnum(
+    formData.get("environment") as string,
+    ["live", "demo", "paper"] as const,
+    "live",
+  );
+  const accountId = sanitizeUUID(formData.get("account_id") as string);
+
+  const credentials: BrokerCredentials = {
+    apiKey,
+    apiSecret,
+    environment,
+  };
+
+  const userKey = await getUserKey(userId);
+  const credentialsEncrypted = encryptForUser(JSON.stringify(credentials), userKey);
+
+  await db
+    .insert(brokerConnectionsTable)
+    .values({
+      user_id: userId,
+      broker,
+      credentials_encrypted: credentialsEncrypted,
+      environment,
+      account_id: accountId,
+    })
+    .onConflictDoUpdate({
+      target: [brokerConnectionsTable.user_id, brokerConnectionsTable.broker],
+      set: {
+        credentials_encrypted: credentialsEncrypted,
+        environment,
+        account_id: accountId,
+        connected_at: new Date(),
+      },
+    });
+
+  revalidateInvestments();
+}
+
+export async function disconnectBroker(formData: FormData) {
+  const userId = await getCurrentUserId();
+  const broker = requireString(formData.get("broker") as string, "Broker") as BrokerSource;
+
+  await db
+    .delete(brokerConnectionsTable)
+    .where(
+      and(
+        eq(brokerConnectionsTable.user_id, userId),
+        eq(brokerConnectionsTable.broker, broker),
+      ),
+    );
+
+  revalidateInvestments();
+}
+
+export async function updateBrokerTokens(
+  userId: string,
+  broker: BrokerSource,
+  tokens: { accessToken: string; refreshToken: string; tokenExpiresAt: string },
+) {
+  const userKey = await getUserKey(userId);
+
+  // Fetch existing credentials to merge
+  const [existing] = await db
+    .select({ credentials_encrypted: brokerConnectionsTable.credentials_encrypted })
+    .from(brokerConnectionsTable)
+    .where(
+      and(
+        eq(brokerConnectionsTable.user_id, userId),
+        eq(brokerConnectionsTable.broker, broker),
+      ),
+    );
+
+  if (!existing) {
+    throw new Error(`No ${broker} connection found for user ${userId}`);
+  }
+
+  const { decryptForUser } = await import("@/lib/encryption");
+  const currentCreds: BrokerCredentials = JSON.parse(
+    decryptForUser(existing.credentials_encrypted, userKey),
+  );
+
+  const updatedCreds: BrokerCredentials = {
+    ...currentCreds,
+    ...tokens,
+  };
+
+  const credentialsEncrypted = encryptForUser(JSON.stringify(updatedCreds), userKey);
+
+  await db
+    .update(brokerConnectionsTable)
+    .set({
+      credentials_encrypted: credentialsEncrypted,
+      last_synced_at: new Date(),
+    })
+    .where(
+      and(
+        eq(brokerConnectionsTable.user_id, userId),
+        eq(brokerConnectionsTable.broker, broker),
+      ),
+    );
 }
 
 export async function addManualHolding(formData: FormData) {
