@@ -7,7 +7,7 @@ export const trading212Adapter: BrokerAdapter = {
   authType: "api_key",
 
   async getPositions(creds: BrokerCredentials): Promise<BrokerPosition[]> {
-    const positions = await getT212Positions(creds.apiKey, creds.apiSecret, creds.environment);
+    const positions = await getT212Positions(creds.apiKey, creds.environment);
 
     return positions.map((pos) => {
       const avgPrice = parseFloat(String(pos.averagePricePaid));
@@ -34,7 +34,7 @@ export const trading212Adapter: BrokerAdapter = {
 
   async getSummary(creds: BrokerCredentials): Promise<BrokerSummary> {
     const [summary, positions] = await Promise.all([
-      getT212AccountSummary(creds.apiKey, creds.apiSecret, creds.environment),
+      getT212AccountSummary(creds.apiKey, creds.environment),
       this.getPositions(creds),
     ]);
 
