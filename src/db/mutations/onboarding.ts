@@ -78,7 +78,9 @@ export async function setBaseCurrency(formData: FormData) {
   });
 
   revalidateDomains('onboarding', 'accounts', 'budgets', 'transactions');
-  redirect('/onboarding?step=accounts');
+  const ai = formData.get('ai_enabled');
+  const aiParam = ai === '0' ? '&ai=0' : '';
+  redirect(`/onboarding?step=accounts${aiParam}`);
 }
 
 export async function continueFromCategories(formData: FormData) {
@@ -97,11 +99,13 @@ export async function continueFromCategories(formData: FormData) {
   }
 
   revalidateDomains('onboarding');
+  const ai = formData.get('ai_enabled');
+  const aiParam = ai === '0' ? '&ai=0' : '';
   if (intent === 'apply') {
-    redirect('/onboarding?step=categories');
+    redirect(`/onboarding?step=categories${aiParam}`);
   }
 
-  redirect('/onboarding?step=features');
+  redirect(`/onboarding?step=features${aiParam}`);
 }
 
 const FEATURE_ROUTES: Record<string, string> = {
@@ -122,30 +126,66 @@ async function finishOnboarding(userId: string, features?: string[]) {
   revalidateDomains('onboarding');
 }
 
-export async function completeOnboarding() {
+export async function completeOnboarding(aiEnabled?: boolean) {
   const userId = await getCurrentUserId();
   await finishOnboarding(userId);
-  redirect('/dashboard');
-}
-
-export async function skipOnboarding() {
-  const userId = await getCurrentUserId();
-  await finishOnboarding(userId);
-  redirect('/dashboard');
-}
-
-export async function completeOnboardingAndRedirectWithFeatures(features: string[], firstFeature?: string, disabledFeatures?: string[]) {
-  const userId = await getCurrentUserId();
-  await finishOnboarding(userId, features);
-
-  if (disabledFeatures && disabledFeatures.length > 0) {
+  if (typeof aiEnabled === 'boolean') {
     await db.insert(userPreferencesTable).values({
       user_id: userId,
-      disabled_features: JSON.stringify(disabledFeatures),
+      ai_enabled: aiEnabled,
       updated_at: new Date(),
     }).onConflictDoUpdate({
       target: userPreferencesTable.user_id,
-      set: { disabled_features: JSON.stringify(disabledFeatures), updated_at: new Date() },
+      set: { ai_enabled: aiEnabled, updated_at: new Date() },
+    });
+  }
+  redirect('/dashboard');
+}
+
+export async function skipOnboarding(aiEnabled?: boolean) {
+  const userId = await getCurrentUserId();
+  await finishOnboarding(userId);
+  if (typeof aiEnabled === 'boolean') {
+    await db.insert(userPreferencesTable).values({
+      user_id: userId,
+      ai_enabled: aiEnabled,
+      updated_at: new Date(),
+    }).onConflictDoUpdate({
+      target: userPreferencesTable.user_id,
+      set: { ai_enabled: aiEnabled, updated_at: new Date() },
+    });
+  }
+  redirect('/dashboard');
+}
+
+export async function completeOnboardingAndRedirectWithFeatures(
+  features: string[],
+  firstFeature?: string,
+  disabledFeatures?: string[],
+  aiEnabled?: boolean,
+) {
+  const userId = await getCurrentUserId();
+  await finishOnboarding(userId, features);
+
+  const hasDisabled = disabledFeatures && disabledFeatures.length > 0;
+  const hasAiPref = typeof aiEnabled === 'boolean';
+
+  if (hasDisabled || hasAiPref) {
+    const now = new Date();
+    const disabledJson = hasDisabled ? JSON.stringify(disabledFeatures) : undefined;
+
+    await db.insert(userPreferencesTable).values({
+      user_id: userId,
+      ...(hasDisabled && { disabled_features: disabledJson }),
+      ...(hasAiPref && { ai_enabled: aiEnabled }),
+      updated_at: now,
+    }).onConflictDoUpdate({
+      target: userPreferencesTable.user_id,
+      set: {
+        ...(hasDisabled && { disabled_features: disabledJson }),
+        ...(hasAiPref && { ai_enabled: aiEnabled }),
+        updated_at: now,
+      },
     });
   }
 

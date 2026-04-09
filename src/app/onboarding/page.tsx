@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { OnboardingCategoryForm } from "@/components/OnboardingCategoryForm";
 import { getCurrentUserId } from "@/lib/auth";
 import { getAccountsWithDetails } from "@/db/queries/accounts";
@@ -17,18 +16,16 @@ import { getDefaultCategoryTemplates, getOnboardingState } from "@/db/queries/on
 import { addAccount } from "@/db/mutations/accounts";
 import { addCategory } from "@/db/mutations/categories";
 import {
-  completeOnboarding,
   continueFromCategories,
-  setBaseCurrency,
-  skipOnboarding,
 } from "@/db/mutations/onboarding";
 import { normalizeBaseCurrency, SUPPORTED_BASE_CURRENCIES } from "@/lib/currency";
 import { OnboardingLayout } from "@/components/OnboardingLayout";
 import { AccountQuickAdd } from "@/components/AccountQuickAdd";
 import { CategorySelector } from "@/components/CategorySelector";
 import { FeaturesStep } from "@/components/FeaturesStep";
-import { ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
-import { currencyLabels } from "@/lib/labels";
+import { WelcomeStep } from "@/components/WelcomeStep";
+import { ReviewStep } from "@/components/ReviewStep";
+import { ArrowRight } from "lucide-react";
 
 type Step = "welcome" | "accounts" | "categories" | "features" | "review";
 
@@ -60,11 +57,13 @@ async function addOnboardingCategory(formData: FormData) {
 export default async function OnboardingPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ step?: string }>;
+  searchParams?: Promise<{ step?: string; ai?: string; features?: string }>;
 }) {
   const userId = await getCurrentUserId();
   const resolvedSearchParams = await searchParams;
   const step = normalizeStep(resolvedSearchParams?.step);
+  const aiEnabled = resolvedSearchParams?.ai !== "0";
+  const aiParam = !aiEnabled ? "&ai=0" : "";
 
   const [onboardingState, accounts, categories, budgets, goals, debts, subscriptions, defaultTemplates] =
     await Promise.all([
@@ -90,8 +89,12 @@ export default async function OnboardingPage({
 
   const currentStepIndex = ALL_STEPS.indexOf(step);
 
+  const selectedFeatures = resolvedSearchParams?.features
+    ? resolvedSearchParams.features.split(",").filter(Boolean)
+    : [];
+
   const navigateToStep = (targetStep: Step) => {
-    return `/onboarding?step=${targetStep}`;
+    return `/onboarding?step=${targetStep}${aiParam}`;
   };
 
   return (
@@ -104,53 +107,11 @@ export default async function OnboardingPage({
     >
       {/* Welcome Step */}
       {step === "welcome" && (
-        <Card>
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-              <CheckCircle2 className="h-8 w-8 text-primary" />
-            </div>
-            <CardTitle className="text-2xl">Welcome to BalanceVisor</CardTitle>
-            <CardDescription className="text-base">
-              {"Let's get your finances set up in just a few quick steps."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                First, choose your base currency. All amounts in the app will use this currency.
-              </p>
-              <form action={setBaseCurrency} className="space-y-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="base_currency">Base Currency</Label>
-                  <select
-                    id="base_currency"
-                    name="base_currency"
-                    className="border-input bg-background rounded-md border px-3 py-2 text-sm"
-                    defaultValue={baseCurrency}
-                  >
-                    {SUPPORTED_BASE_CURRENCIES.map((currencyCode) => (
-                      <option key={currencyCode} value={currencyCode}>
-                        {currencyLabels[currencyCode]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <Button type="submit" className="w-full">
-                  Save {"&"} Continue
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </form>
-            </div>
-
-            <div className="text-center">
-              <form action={skipOnboarding}>
-                <Button type="submit" variant="link" className="text-muted-foreground">
-                  Skip setup and go to dashboard
-                </Button>
-              </form>
-            </div>
-          </CardContent>
-        </Card>
+        <WelcomeStep
+          baseCurrency={baseCurrency}
+          supportedCurrencies={SUPPORTED_BASE_CURRENCIES}
+          defaultAiEnabled={aiEnabled}
+        />
       )}
 
       {/* Accounts Step */}
@@ -220,6 +181,7 @@ export default async function OnboardingPage({
                   const formData = new FormData();
                   formData.set("use_default_categories", "on");
                   formData.set("intent", "apply");
+                  if (!aiEnabled) formData.set("ai_enabled", "0");
                   await continueFromCategories(formData);
                 }}
                 canAddDefaults={categories.length < defaultTemplates.length}
@@ -227,6 +189,7 @@ export default async function OnboardingPage({
 
               <form action={continueFromCategories} className="flex flex-wrap gap-2">
                 <input type="hidden" name="use_default_categories" value={defaultCategoryPreference ? "on" : ""} />
+                {!aiEnabled && <input type="hidden" name="ai_enabled" value="0" />}
                 <Button type="submit" name="intent" value="continue">
                   Continue
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -256,66 +219,21 @@ export default async function OnboardingPage({
 
       {/* Features Step */}
       {step === "features" && (
-        <FeaturesStep />
+        <FeaturesStep aiEnabled={aiEnabled} />
       )}
 
       {/* Review Step */}
       {step === "review" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{"You're all set!"}</CardTitle>
-            <CardDescription>
-              {"Here's a summary of what you've set up."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border p-3 text-center">
-                <p className="text-2xl font-semibold">{accounts.length}</p>
-                <p className="text-muted-foreground text-xs">Accounts</p>
-              </div>
-              <div className="rounded-lg border p-3 text-center">
-                <p className="text-2xl font-semibold">{categories.length}</p>
-                <p className="text-muted-foreground text-xs">Categories</p>
-              </div>
-              <div className="rounded-lg border p-3 text-center">
-                <p className="text-2xl font-semibold">{budgets.length}</p>
-                <p className="text-muted-foreground text-xs">Budgets</p>
-              </div>
-              <div className="rounded-lg border p-3 text-center">
-                <p className="text-2xl font-semibold">{goals.length}</p>
-                <p className="text-muted-foreground text-xs">Goals</p>
-              </div>
-              <div className="rounded-lg border p-3 text-center">
-                <p className="text-2xl font-semibold">{debts.length}</p>
-                <p className="text-muted-foreground text-xs">Debts</p>
-              </div>
-              <div className="rounded-lg border p-3 text-center">
-                <p className="text-2xl font-semibold">{subscriptions.length}</p>
-                <p className="text-muted-foreground text-xs">Subscriptions</p>
-              </div>
-            </div>
-
-            <p className="text-muted-foreground text-sm text-center">
-              You can always add more from the dashboard.
-            </p>
-
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <form action={completeOnboarding} className="flex-1">
-                <Button type="submit" className="w-full">
-                  Go to Dashboard
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </form>
-              <Button asChild variant="outline" className="sm:w-auto">
-                <Link href={navigateToStep("accounts")}>
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to start
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <ReviewStep
+          accountsCount={accounts.length}
+          categoriesCount={categories.length}
+          budgetsCount={budgets.length}
+          goalsCount={goals.length}
+          debtsCount={debts.length}
+          subscriptionsCount={subscriptions.length}
+          selectedFeatures={selectedFeatures}
+          aiEnabled={aiEnabled}
+        />
       )}
     </OnboardingLayout>
   );
