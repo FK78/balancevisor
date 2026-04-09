@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { randomBytes } from "crypto";
 
 // Mock the database module so encryption.ts doesn't try to connect
@@ -13,12 +13,7 @@ import {
   encryptForUser,
   decryptForUser,
   needsReencryption,
-  clearUserKeyCache,
 } from "@/lib/encryption";
-
-beforeAll(() => {
-  clearUserKeyCache();
-});
 
 describe("Master key encryption", () => {
   it("encrypts and decrypts with master key", () => {
@@ -133,8 +128,3 @@ describe("needsReencryption", () => {
   });
 });
 
-describe("clearUserKeyCache", () => {
-  it("clears the cache without error", () => {
-    expect(() => clearUserKeyCache()).not.toThrow();
-  });
-});

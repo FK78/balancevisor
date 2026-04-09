@@ -34,10 +34,6 @@ vi.mock("@/lib/auto-categorise", () => ({
   matchCategorisationRule: vi.fn().mockResolvedValue(null),
 }));
 
-vi.mock("@/lib/cache", () => ({
-  invalidateByUser: vi.fn(),
-}));
-
 vi.mock("@/lib/transaction-intelligence", () => ({
   matchTransactionsToSubscriptions: vi.fn().mockResolvedValue(undefined),
   matchTransactionsToDebts: vi.fn().mockResolvedValue(undefined),

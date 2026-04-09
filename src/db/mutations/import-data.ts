@@ -21,7 +21,6 @@ import {
 import { getCurrentUserId } from '@/lib/auth';
 import { encryptForUser, getUserKey } from '@/lib/encryption';
 import { revalidateDomains } from '@/lib/revalidate';
-import { invalidateByUser } from '@/lib/cache';
 import { EXPORT_VERSION } from '@/lib/types';
 import type { ExportData } from '@/lib/types';
 
@@ -244,7 +243,6 @@ export async function importUserData(
     'accounts', 'transactions', 'budgets', 'goals',
     'debts', 'subscriptions', 'investments', 'categories',
   );
-  invalidateByUser(userId);
 
   return { imported, skipped, errors };
 }

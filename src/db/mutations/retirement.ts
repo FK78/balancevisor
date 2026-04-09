@@ -5,7 +5,6 @@ import { retirementProfilesTable } from '@/db/schema';
 import { getCurrentUserId } from '@/lib/auth';
 import { sanitizeNumber } from '@/lib/sanitize';
 import { revalidateDomains } from '@/lib/revalidate';
-import { invalidateByUser } from '@/lib/cache';
 
 export async function upsertRetirementProfile(formData: FormData) {
   const userId = await getCurrentUserId();
@@ -70,6 +69,5 @@ export async function upsertRetirementProfile(formData: FormData) {
     },
   });
 
-  invalidateByUser(userId);
   revalidateDomains('retirement');
 }

@@ -3,11 +3,10 @@ import { streamText } from "ai";
 import { getCurrentUserId } from "@/lib/auth";
 import { guardAiEnabled } from "@/lib/ai-guard";
 import { getDebtAdvisorData } from "@/lib/debt-advisor-data";
-import { getCachedAdvice, setCachedAdvice, invalidateCachedAdvice } from "@/lib/debt-advisor-cache";
 import { rateLimiters } from "@/lib/rate-limiter";
 import { getPostHogClient } from "@/lib/posthog-server";
 
-export async function POST(req: Request) {
+export async function POST() {
   const userId = await getCurrentUserId();
 
   const aiBlocked = await guardAiEnabled();
@@ -19,20 +18,6 @@ export async function POST(req: Request) {
       JSON.stringify({ error: "Too many requests. Please wait before generating new advice." }),
       { status: 429, headers: { "Content-Type": "application/json", "Retry-After": String(rateLimitResult.retryAfter) } },
     );
-  }
-
-  const body = await req.json().catch(() => ({}));
-  const forceRefresh = body?.refresh === true;
-
-  if (!forceRefresh) {
-    const cached = getCachedAdvice(userId);
-    if (cached) {
-      return new Response(JSON.stringify({ advice: cached, cached: true }), {
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-  } else {
-    invalidateCachedAdvice(userId);
   }
 
   const posthog = getPostHogClient();
@@ -80,11 +65,6 @@ Rules:
 ${data.context}`,
     prompt: "Analyse my debts and provide a personalised payoff strategy.",
     maxOutputTokens: 1024,
-    onFinish: ({ text }) => {
-      if (text) {
-        setCachedAdvice(userId, text);
-      }
-    },
   });
 
   return result.toTextStreamResponse();

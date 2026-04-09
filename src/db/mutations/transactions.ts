@@ -10,7 +10,6 @@ import { hasEditAccess } from '@/db/queries/sharing';
 import { checkBudgetAlerts } from '@/lib/budget-alerts';
 import { encryptForUser, getUserKey } from '@/lib/encryption';
 import { matchCategorisationRule } from '@/lib/auto-categorise';
-import { invalidateByUser } from '@/lib/cache';
 import { matchTransactionsToSubscriptions, matchTransactionsToDebts } from '@/lib/transaction-intelligence';
 import { requireString, sanitizeNumber, sanitizeEnum, requireDate, sanitizeUUID, sanitizeString } from '@/lib/sanitize';
 import { findMatchingExpense } from '@/lib/refund-matcher';
@@ -114,7 +113,6 @@ export async function addTransaction(formData: FormData) {
   revalidateDomains('transactions', 'accounts');
 
   await checkBudgetAlerts(userId);
-  invalidateByUser(userId);
 
   // Run subscription + debt matching inline (fast, no AI)
   matchTransactionsToSubscriptions(userId, [result.id]).catch(() => {});
@@ -188,7 +186,6 @@ export async function editTransaction(formData: FormData) {
   revalidateDomains('transactions', 'accounts');
 
   await checkBudgetAlerts(userId);
-  invalidateByUser(userId);
 
   return result;
 }
@@ -242,7 +239,6 @@ export async function addTransfer(formData: FormData) {
   });
 
   revalidateDomains('transactions', 'accounts');
-  invalidateByUser(userId);
 
   return result;
 }
@@ -297,7 +293,6 @@ export async function deleteTransaction(id: string) {
   });
 
   revalidateDomains('transactions', 'accounts');
-  invalidateByUser(userId);
 }
 
 export type SplitInput = {

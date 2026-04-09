@@ -3,10 +3,6 @@ import { transactionsTable, categoriesTable, accountsTable } from '@/db/schema';
 import { and, desc, eq, ne, sql, sum, gte, lte, lt } from 'drizzle-orm';
 import { getMonthRange, getRecentMonthKeys, getRecentDayKeys, getTomorrowString, getNextMonthFirstString } from '@/lib/date';
 import { decryptForUser, getUserKey } from '@/lib/encryption';
-import { getCached, setCached, cacheKey } from '@/lib/cache';
-
-// User tag for cache invalidation
-const userTag = (userId: string) => `user:${userId}`;
 
 async function decryptTransactionRows<T extends { description?: string | null; accountName?: string | null }>(rows: T[], userId: string): Promise<T[]> {
   const userKey = await getUserKey(userId);
@@ -132,12 +128,6 @@ export async function getTotalsByType(
   endDate?: string,
   accountId?: string,
 ): Promise<number> {
-  const key = cacheKey('totals-by-type', userId, type, startDate, endDate, accountId);
-  const cached = getCached<number>(key);
-  if (cached !== undefined) {
-    return cached;
-  }
-
   const conditions = [
     eq(transactionsTable.user_id, userId),
     eq(transactionsTable.type, type),
@@ -151,9 +141,7 @@ export async function getTotalsByType(
     .from(transactionsTable)
     .where(and(...conditions));
 
-  const result = Number(row?.total ?? 0);
-  setCached(key, result, { tags: [userTag(userId)] });
-  return result;
+  return Number(row?.total ?? 0);
 }
 
 export type SearchTransactionsResult = {
@@ -249,12 +237,6 @@ export async function getSavingsDepositTotal(userId: string, startDate: string, 
 }
 
 export async function getTotalSpendByCategoryThisMonth(userId: string): Promise<Array<{ category: string; total: string | null; color: string }>> {
-  const key = cacheKey('total-spend-by-category-this-month', userId);
-  const cached = getCached<Array<{ category: string; total: string | null; color: string }>>(key);
-  if (cached) {
-    return cached;
-  }
-
   const { start, end } = getMonthRange();
 
   const result = await db.select({
@@ -272,7 +254,6 @@ export async function getTotalSpendByCategoryThisMonth(userId: string): Promise<
     ))
     .groupBy(categoriesTable.name, categoriesTable.color);
 
-  setCached(key, result, { tags: [userTag(userId)] });
   return result;
 }
 
@@ -307,12 +288,6 @@ export type MonthlyCategorySpendPoint = {
 };
 
 export async function getMonthlyIncomeExpenseTrend(userId: string, monthCount = 6): Promise<MonthlyCashflowPoint[]> {
-  const key = cacheKey('monthly-income-expense-trend', userId, monthCount);
-  const cached = getCached<MonthlyCashflowPoint[]>(key);
-  if (cached) {
-    return cached;
-  }
-
   const monthKeys = getRecentMonthKeys(monthCount);
   const [startMonth] = monthKeys;
   const endMonth = getNextMonthFirstString();
@@ -366,17 +341,10 @@ export async function getMonthlyIncomeExpenseTrend(userId: string, monthCount = 
     };
   });
 
-  setCached(key, result, { tags: [userTag(userId)] });
   return result;
 }
 
 export async function getDailyIncomeExpenseTrend(userId: string, dayCount = 30): Promise<DailyCashflowPoint[]> {
-  const key = cacheKey('daily-income-expense-trend', userId, dayCount);
-  const cached = getCached<DailyCashflowPoint[]>(key);
-  if (cached) {
-    return cached;
-  }
-
   const dayKeys = getRecentDayKeys(dayCount);
   const [startDay] = dayKeys;
   const endDay = getTomorrowString();
@@ -430,17 +398,10 @@ export async function getDailyIncomeExpenseTrend(userId: string, dayCount = 30):
     };
   });
 
-  setCached(key, result, { tags: [userTag(userId)] });
   return result;
 }
 
 export async function getDailyExpenseByCategory(userId: string, dayCount = 30): Promise<DailyCategoryExpensePoint[]> {
-  const key = cacheKey('daily-expense-by-category', userId, dayCount);
-  const cached = getCached<DailyCategoryExpensePoint[]>(key);
-  if (cached) {
-    return cached;
-  }
-
   const dayKeys = getRecentDayKeys(dayCount);
   const [startDay] = dayKeys;
   const endDay = getTomorrowString();
@@ -467,17 +428,10 @@ export async function getDailyExpenseByCategory(userId: string, dayCount = 30): 
     )
     .orderBy(transactionsTable.date, categoriesTable.name);
 
-  setCached(key, rows, { tags: [userTag(userId)] });
   return rows;
 }
 
 export async function getMonthlyCategorySpendTrend(userId: string, monthCount = 6): Promise<MonthlyCategorySpendPoint[]> {
-  const key = cacheKey('monthly-category-spend-trend', userId, monthCount);
-  const cached = getCached<MonthlyCategorySpendPoint[]>(key);
-  if (cached) {
-    return cached;
-  }
-
   const monthKeys = getRecentMonthKeys(monthCount);
   const [startMonth] = monthKeys;
   const endMonth = getNextMonthFirstString();
@@ -507,6 +461,5 @@ export async function getMonthlyCategorySpendTrend(userId: string, monthCount = 
       categoriesTable.name,
     );
 
-  setCached(key, rows, { tags: [userTag(userId)] });
   return rows;
 }

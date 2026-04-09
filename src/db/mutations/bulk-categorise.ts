@@ -7,7 +7,6 @@ import { getCurrentUserId } from '@/lib/auth';
 import { fetchUserRules, matchAgainstRules } from '@/lib/auto-categorise';
 import { decryptForUser, getUserKey } from '@/lib/encryption';
 import { revalidateDomains } from '@/lib/revalidate';
-import { invalidateByUser } from '@/lib/cache';
 
 export type BulkCategoriseResult = {
   categorised: number;
@@ -58,7 +57,6 @@ export async function bulkAutoCategorise(): Promise<BulkCategoriseResult> {
 
   if (categorised > 0) {
     revalidateDomains('transactions', 'categories');
-    invalidateByUser(userId);
   }
 
   return {

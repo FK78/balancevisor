@@ -1,17 +1,10 @@
 import { getBrokerConnections, getManualHoldings, decryptBrokerCredentials } from "@/db/queries/investments";
 import { getQuotes } from "@/lib/yahoo-finance";
 import { logger } from "@/lib/logger";
-import { getCached, setCached, cacheKey } from "@/lib/cache";
 import { getAdapter } from "@/lib/brokers";
 import type { BrokerSource } from "@/lib/brokers/types";
 
-const userTag = (userId: string) => `user:${userId}`;
-
 export async function getInvestmentValue(userId: string): Promise<number> {
-  const key = cacheKey('investment-value', userId);
-  const cached = getCached<number>(key);
-  if (cached !== undefined) return cached;
-
   const [brokerConnections, manualHoldings] = await Promise.all([
     getBrokerConnections(userId),
     getManualHoldings(userId),
@@ -51,6 +44,5 @@ export async function getInvestmentValue(userId: string): Promise<number> {
     }
   }
 
-  setCached(key, value, { ttlMs: 2 * 60 * 1000, tags: [userTag(userId)] });
   return value;
 }

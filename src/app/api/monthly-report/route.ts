@@ -3,7 +3,6 @@ import { streamText } from "ai";
 import { getCurrentUserId } from "@/lib/auth";
 import { guardAiEnabled } from "@/lib/ai-guard";
 import { getMonthlyReportData, formatMonthlyReportContext } from "@/lib/monthly-report-data";
-import { getCachedReport, setCachedReport, invalidateCachedReport } from "@/lib/monthly-report-cache";
 import { rateLimiters } from "@/lib/rate-limiter";
 import { getPostHogClient } from "@/lib/posthog-server";
 
@@ -23,18 +22,6 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => ({}));
   const monthsAgo = Math.max(0, Math.min(11, Math.floor(Number(body?.monthsAgo ?? 1))));
-  const forceRefresh = body?.refresh === true;
-
-  if (!forceRefresh) {
-    const cached = getCachedReport(userId, monthsAgo);
-    if (cached) {
-      return new Response(JSON.stringify({ report: cached, cached: true }), {
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-  } else {
-    invalidateCachedReport(userId, monthsAgo);
-  }
 
   const posthog = getPostHogClient();
   posthog.capture({ distinctId: userId, event: "monthly_report_generated", properties: { months_ago: monthsAgo } });
@@ -77,11 +64,6 @@ Rules:
 ${context}`,
     prompt: `Generate my ${data.monthLabel} financial report.`,
     maxOutputTokens: 1200,
-    onFinish: ({ text }) => {
-      if (text) {
-        setCachedReport(userId, monthsAgo, text);
-      }
-    },
   });
 
   return result.toTextStreamResponse();
