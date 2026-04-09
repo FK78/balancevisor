@@ -68,38 +68,57 @@ export async function generateDueRecurringTransactions(userId: string): Promise<
   for (const src of dueRecurring) {
     if (!src.recurring_pattern || !src.next_recurring_date) continue;
 
-    let nextDate = src.next_recurring_date;
+    // Wrap in a transaction to prevent duplicate generation when two
+    // concurrent requests (e.g. two tabs) process the same source.
+    // The CAS on next_recurring_date ensures only one wins.
+    await db.transaction(async (tx) => {
+      // Re-read inside the transaction to get the authoritative date
+      const [fresh] = await tx
+        .select({ next_recurring_date: transactionsTable.next_recurring_date })
+        .from(transactionsTable)
+        .where(eq(transactionsTable.id, src.id));
 
-    // Generate all due occurrences (could be multiple if user hasn't visited in a while)
-    while (nextDate <= today) {
-      await db.insert(transactionsTable).values({
-        user_id: userId,
-        account_id: src.account_id,
-        category_id: src.category_id,
-        type: src.type,
-        amount: src.amount,
-        description: src.description,
-        date: nextDate,
-        is_recurring: false,
-        recurring_pattern: null,
-        next_recurring_date: null,
-      });
+      if (!fresh?.next_recurring_date || fresh.next_recurring_date > today) return;
 
-      // Update account balance
-      if (src.account_id) {
-        await db.update(accountsTable)
-          .set({ balance: sql`${accountsTable.balance} + ${balanceDelta(src.type, src.amount)}` })
-          .where(eq(accountsTable.id, src.account_id));
+      let nextDate = fresh.next_recurring_date;
+
+      // Generate all due occurrences (could be multiple if user hasn't visited in a while)
+      while (nextDate <= today) {
+        await tx.insert(transactionsTable).values({
+          user_id: userId,
+          account_id: src.account_id,
+          category_id: src.category_id,
+          type: src.type,
+          amount: src.amount,
+          description: src.description,
+          date: nextDate,
+          is_recurring: false,
+          recurring_pattern: null,
+          next_recurring_date: null,
+        });
+
+        // Update account balance
+        if (src.account_id) {
+          await tx.update(accountsTable)
+            .set({ balance: sql`${accountsTable.balance} + ${balanceDelta(src.type, src.amount)}` })
+            .where(eq(accountsTable.id, src.account_id));
+        }
+
+        generated++;
+        nextDate = advanceDate(nextDate, src.recurring_pattern as RecurringPattern);
       }
 
-      generated++;
-      nextDate = advanceDate(nextDate, src.recurring_pattern as RecurringPattern);
-    }
-
-    // Advance the source transaction's next_recurring_date
-    await db.update(transactionsTable)
-      .set({ next_recurring_date: nextDate })
-      .where(eq(transactionsTable.id, src.id));
+      // Advance the source transaction's next_recurring_date atomically.
+      // CAS: only update if next_recurring_date hasn't changed (prevents double-generation).
+      await tx.update(transactionsTable)
+        .set({ next_recurring_date: nextDate })
+        .where(
+          and(
+            eq(transactionsTable.id, src.id),
+            eq(transactionsTable.next_recurring_date, fresh.next_recurring_date),
+          ),
+        );
+    });
   }
 
   return generated;

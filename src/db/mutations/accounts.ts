@@ -58,8 +58,10 @@ export async function deleteAccount(id: string) {
 
   await requireOwnership(accountsTable, id, userId, 'account');
 
-  await db.delete(transactionsTable).where(eq(transactionsTable.account_id, id));
-  await db.delete(accountsTable).where(eq(accountsTable.id, id));
+  await db.transaction(async (tx) => {
+    await tx.delete(transactionsTable).where(eq(transactionsTable.account_id, id));
+    await tx.delete(accountsTable).where(eq(accountsTable.id, id));
+  });
 
   revalidateDomains('accounts');
   invalidateByUser(userId);

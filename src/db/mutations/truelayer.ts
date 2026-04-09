@@ -225,7 +225,12 @@ export async function importFromTrueLayer() {
         const [existingTxn] = await db
           .select({ id: transactionsTable.id })
           .from(transactionsTable)
-          .where(eq(transactionsTable.truelayer_id, tlTxn.transaction_id));
+          .where(
+            and(
+              eq(transactionsTable.user_id, userId),
+              eq(transactionsTable.truelayer_id, tlTxn.transaction_id),
+            ),
+          );
 
         if (existingTxn) continue;
 

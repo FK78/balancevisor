@@ -100,14 +100,8 @@ export async function deleteSubscription(id: string) {
 export async function toggleSubscription(id: string) {
   const userId = await getCurrentUserId();
 
-  const [sub] = await db.select({ is_active: subscriptionsTable.is_active })
-    .from(subscriptionsTable)
-    .where(and(eq(subscriptionsTable.id, id), eq(subscriptionsTable.user_id, userId)));
-
-  if (!sub) return;
-
   await db.update(subscriptionsTable).set({
-    is_active: !sub.is_active,
+    is_active: sql`NOT ${subscriptionsTable.is_active}`,
   }).where(and(eq(subscriptionsTable.id, id), eq(subscriptionsTable.user_id, userId)));
 
   revalidateDomains('subscriptions');

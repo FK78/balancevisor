@@ -2,7 +2,7 @@
 
 import { db } from '@/index';
 import { goalsTable } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { revalidateDomains } from '@/lib/revalidate';
 import { getCurrentUserId } from '@/lib/auth';
 import { requireString, sanitizeNumber, sanitizeDate, sanitizeString, sanitizeColor } from '@/lib/sanitize';
@@ -71,16 +71,8 @@ export async function contributeToGoal(id: string, amount: number) {
 
   await requireOwnership(goalsTable, id, userId, 'goal');
 
-  const [goal] = await db.select({ saved_amount: goalsTable.saved_amount })
-    .from(goalsTable)
-    .where(eq(goalsTable.id, id));
-
-  if (!goal) {
-    throw new Error('Goal not found');
-  }
-
   await db.update(goalsTable).set({
-    saved_amount: goal.saved_amount + amount,
+    saved_amount: sql`${goalsTable.saved_amount} + ${amount}`,
   }).where(eq(goalsTable.id, id));
   revalidateDomains('goals');
 }
