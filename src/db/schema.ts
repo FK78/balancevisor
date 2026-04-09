@@ -2,7 +2,7 @@ import { boolean, date, integer, numeric, pgEnum, pgTable, timestamp, varchar, u
 
 export const accountTypeEnum = pgEnum("account_type", ["currentAccount", "savings", "creditCard", "investment"]);
 export const periodEnum = pgEnum("period", ["monthly", "weekly"]);
-export const transactionTypeEnum = pgEnum("transaction_type", ["income", "expense", "transfer", "sale"]);
+export const transactionTypeEnum = pgEnum("transaction_type", ["income", "expense", "transfer", "sale", "refund"]);
 export const recurringPatternEnum = pgEnum("recurring_pattern", ["daily", "weekly", "biweekly", "monthly", "yearly"]);
 export const investmentTypeEnum = pgEnum("investment_type", ["stock", "crypto", "etf", "real_estate", "private_equity", "other"]);
 
@@ -76,6 +76,7 @@ export const transactionsTable = pgTable("transactions", {
   is_split: boolean("is_split").notNull().default(false),
   subscription_id: uuid("subscription_id").references(() => subscriptionsTable.id, { onDelete: "set null" }),
   linked_debt_id: uuid("linked_debt_id").references(() => debtsTable.id, { onDelete: "set null" }),
+  refund_for_transaction_id: uuid("refund_for_transaction_id"),
 }, (table) => [{
   userIdx: index("transactions_user_id_idx").on(table.user_id),
   accountIdx: index("transactions_account_id_idx").on(table.account_id),

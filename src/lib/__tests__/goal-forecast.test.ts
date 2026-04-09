@@ -17,7 +17,7 @@ describe("getGoalForecasts", () => {
 
   it("returns 'completed' for goals already met", async () => {
     mockGetTrend.mockResolvedValue([
-      { month: "2025-01", income: 3000, expenses: 2000, net: 1000 },
+      { month: "2025-01", income: 3000, expenses: 2000, refunds: 0, net: 1000 },
     ]);
 
     const result = await getGoalForecasts("user-1", [
@@ -32,9 +32,9 @@ describe("getGoalForecasts", () => {
 
   it("estimates months to completion with positive savings", async () => {
     mockGetTrend.mockResolvedValue([
-      { month: "2025-01", income: 3000, expenses: 2000, net: 1000 },
-      { month: "2025-02", income: 3000, expenses: 2000, net: 1000 },
-      { month: "2025-03", income: 3000, expenses: 2000, net: 1000 },
+      { month: "2025-01", income: 3000, expenses: 2000, refunds: 0, net: 1000 },
+      { month: "2025-02", income: 3000, expenses: 2000, refunds: 0, net: 1000 },
+      { month: "2025-03", income: 3000, expenses: 2000, refunds: 0, net: 1000 },
     ]);
 
     const result = await getGoalForecasts("user-1", [
@@ -49,7 +49,7 @@ describe("getGoalForecasts", () => {
 
   it("returns 'at_risk' when no savings (no deadline)", async () => {
     mockGetTrend.mockResolvedValue([
-      { month: "2025-01", income: 2000, expenses: 2000, net: 0 },
+      { month: "2025-01", income: 2000, expenses: 2000, refunds: 0, net: 0 },
     ]);
 
     const result = await getGoalForecasts("user-1", [
@@ -62,7 +62,7 @@ describe("getGoalForecasts", () => {
 
   it("returns 'behind' when deadline has passed with remaining amount", async () => {
     mockGetTrend.mockResolvedValue([
-      { month: "2025-01", income: 3000, expenses: 2500, net: 500 },
+      { month: "2025-01", income: 3000, expenses: 2500, refunds: 0, net: 500 },
     ]);
 
     const result = await getGoalForecasts("user-1", [
@@ -75,7 +75,7 @@ describe("getGoalForecasts", () => {
 
   it("handles multiple goals", async () => {
     mockGetTrend.mockResolvedValue([
-      { month: "2025-01", income: 5000, expenses: 3000, net: 2000 },
+      { month: "2025-01", income: 5000, expenses: 3000, refunds: 0, net: 2000 },
     ]);
 
     const result = await getGoalForecasts("user-1", [

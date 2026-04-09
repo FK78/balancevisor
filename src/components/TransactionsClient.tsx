@@ -137,6 +137,7 @@ export function TransactionsClient({
   totalTransactions,
   totalIncome,
   totalExpenses,
+  totalRefunds = 0,
   startDate: activeStartDate,
   endDate: activeEndDate,
   search: activeSearch,
@@ -155,6 +156,7 @@ export function TransactionsClient({
   totalTransactions: number;
   totalIncome: number;
   totalExpenses: number;
+  totalRefunds?: number;
   startDate?: string;
   endDate?: string;
   search?: string;
@@ -314,11 +316,13 @@ export function TransactionsClient({
         const colorClass =
           t.type === "income"
             ? "text-emerald-600"
-            : t.type === "transfer"
-              ? "text-blue-600"
-              : "text-red-600";
+            : t.type === "refund"
+              ? "text-amber-600"
+              : t.type === "transfer"
+                ? "text-blue-600"
+                : "text-red-600";
         const prefix =
-          t.type === "income" ? "+" : t.type === "transfer" ? "⇄ " : "−";
+          t.type === "income" ? "+" : t.type === "refund" ? "↩ " : t.type === "transfer" ? "⇄ " : "−";
         return (
           <span className={`font-semibold tabular-nums ${colorClass}`}>
             {prefix}
@@ -598,7 +602,7 @@ export function TransactionsClient({
 
       {/* Compact stats */}
       <Card>
-        <CardContent className="grid grid-cols-3 divide-x py-4">
+        <CardContent className="grid grid-cols-5 divide-x py-4">
           <div className="px-4 text-center">
             <p className="text-xs text-muted-foreground">Transactions</p>
             <p className="text-lg font-semibold tabular-nums">{totalTransactions}</p>
@@ -608,8 +612,16 @@ export function TransactionsClient({
             <p className="text-lg font-semibold tabular-nums text-emerald-600">{formatCurrency(totalIncome, currency)}</p>
           </div>
           <div className="px-4 text-center">
-            <p className="text-xs text-muted-foreground">Expenses</p>
+            <p className="text-xs text-muted-foreground">Spend</p>
             <p className="text-lg font-semibold tabular-nums text-red-600">{formatCurrency(totalExpenses, currency)}</p>
+          </div>
+          <div className="px-4 text-center">
+            <p className="text-xs text-muted-foreground">Refunds</p>
+            <p className="text-lg font-semibold tabular-nums text-amber-600">{formatCurrency(totalRefunds, currency)}</p>
+          </div>
+          <div className="px-4 text-center">
+            <p className="text-xs text-muted-foreground">Net Spend</p>
+            <p className="text-lg font-semibold tabular-nums text-red-600">{formatCurrency(totalExpenses - totalRefunds, currency)}</p>
           </div>
         </CardContent>
       </Card>

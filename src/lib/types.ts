@@ -118,6 +118,7 @@ export type TransactionWithDetails = {
   is_recurring: boolean;
   transfer_account_id: string | null;
   is_split: boolean;
+  refund_for_transaction_id: string | null;
 };
 
 export type AccountWithDetails = {
@@ -206,7 +207,7 @@ export type SplitDetail = {
 // ---------------------------------------------------------------------------
 
 export type AccountType = "currentAccount" | "savings" | "creditCard" | "investment";
-export type TransactionType = "income" | "expense" | "transfer" | "sale";
+export type TransactionType = "income" | "expense" | "transfer" | "sale" | "refund";
 export type Period = "monthly" | "weekly";
 export type RecurringPattern = "daily" | "weekly" | "biweekly" | "monthly" | "yearly";
 export type InvestmentType = "stock" | "crypto" | "etf" | "real_estate" | "private_equity" | "other";

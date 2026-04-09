@@ -10,7 +10,7 @@ export async function checkForDuplicate(
   accountId: string,
   amount: number,
   date: string,
-  type: 'income' | 'expense' | 'transfer' | 'sale',
+  type: 'income' | 'expense' | 'transfer' | 'sale' | 'refund',
 ): Promise<PotentialDuplicate[]> {
   const userId = await getCurrentUserId();
   return findPotentialDuplicates(userId, accountId, amount, date, type);

@@ -10,6 +10,7 @@ import { checkBudgetAlerts } from '@/lib/budget-alerts';
 import { encryptForUser, getUserKey } from '@/lib/encryption';
 import { fetchUserRules, matchAgainstRules } from '@/lib/auto-categorise';
 import { sanitizeString } from '@/lib/sanitize';
+import { isLikelyRefund } from '@/lib/refund-matcher';
 
 type CsvColumnMapping = {
   date: number;
@@ -22,7 +23,7 @@ type ImportRow = {
   date: string;
   description: string;
   amount: number;
-  type: 'income' | 'expense';
+  type: 'income' | 'expense' | 'refund';
 };
 
 function parseCSVLine(line: string): string[] {
@@ -147,10 +148,12 @@ export async function importTransactionsFromCSV(
       continue;
     }
 
-    let type: 'income' | 'expense';
+    let type: 'income' | 'expense' | 'refund';
     if (mapping.type !== null) {
       const rawType = (row[mapping.type] ?? '').toLowerCase().trim();
-      if (rawType === 'income' || rawType === 'credit' || rawType === 'cr') {
+      if (rawType === 'refund') {
+        type = 'refund';
+      } else if (rawType === 'income' || rawType === 'credit' || rawType === 'cr') {
         type = 'income';
       } else {
         type = 'expense';
@@ -159,6 +162,11 @@ export async function importTransactionsFromCSV(
       type = amount > 0 ? 'income' : 'expense';
     } else {
       type = defaultType;
+    }
+
+    // Auto-detect refund from description keywords when type is income or auto
+    if (type === 'income' && isLikelyRefund(rawDesc)) {
+      type = 'refund';
     }
 
     validRows.push({
@@ -188,7 +196,7 @@ export async function importTransactionsFromCSV(
   let totalBalanceDelta = 0;
   const insertValues = validRows.map((row) => {
     const categoryId = matchAgainstRules(rules, row.description);
-    const delta = row.type === 'income' ? row.amount : -row.amount;
+    const delta = row.type === 'income' || row.type === 'refund' ? row.amount : -row.amount;
     totalBalanceDelta += delta;
 
     return {

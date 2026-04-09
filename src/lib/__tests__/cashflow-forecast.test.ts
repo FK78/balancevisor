@@ -47,10 +47,10 @@ describe("getCashflowForecast", () => {
   it("returns forecast with correct shape", async () => {
     const cm = getMonthKey(new Date());
     mockTrend.mockResolvedValue([
-      { month: cm, income: 1000, expenses: 800, net: 200 },
-      { month: "2025-01", income: 3000, expenses: 2000, net: 1000 },
-      { month: "2025-02", income: 3200, expenses: 2200, net: 1000 },
-      { month: "2025-03", income: 2800, expenses: 1800, net: 1000 },
+      { month: cm, income: 1000, expenses: 800, refunds: 0, net: 200 },
+      { month: "2025-01", income: 3000, expenses: 2000, refunds: 0, net: 1000 },
+      { month: "2025-02", income: 3200, expenses: 2200, refunds: 0, net: 1000 },
+      { month: "2025-03", income: 2800, expenses: 1800, refunds: 0, net: 1000 },
     ]);
 
     const result = await getCashflowForecast("user-1");
@@ -70,7 +70,7 @@ describe("getCashflowForecast", () => {
   it("returns 'low' confidence with no completed months", async () => {
     const cm = getMonthKey(new Date());
     mockTrend.mockResolvedValue([
-      { month: cm, income: 500, expenses: 300, net: 200 },
+      { month: cm, income: 500, expenses: 300, refunds: 0, net: 200 },
     ]);
 
     const result = await getCashflowForecast("user-1");
@@ -80,8 +80,8 @@ describe("getCashflowForecast", () => {
   it("returns 'medium' confidence with 1-2 completed months", async () => {
     const cm = getMonthKey(new Date());
     mockTrend.mockResolvedValue([
-      { month: cm, income: 500, expenses: 300, net: 200 },
-      { month: "2025-01", income: 3000, expenses: 2000, net: 1000 },
+      { month: cm, income: 500, expenses: 300, refunds: 0, net: 200 },
+      { month: "2025-01", income: 3000, expenses: 2000, refunds: 0, net: 1000 },
     ]);
 
     const result = await getCashflowForecast("user-1");
@@ -91,10 +91,10 @@ describe("getCashflowForecast", () => {
   it("returns 'high' confidence with 3+ completed months", async () => {
     const cm = getMonthKey(new Date());
     mockTrend.mockResolvedValue([
-      { month: cm, income: 500, expenses: 300, net: 200 },
-      { month: "2025-01", income: 3000, expenses: 2000, net: 1000 },
-      { month: "2025-02", income: 3000, expenses: 2000, net: 1000 },
-      { month: "2025-03", income: 3000, expenses: 2000, net: 1000 },
+      { month: cm, income: 500, expenses: 300, refunds: 0, net: 200 },
+      { month: "2025-01", income: 3000, expenses: 2000, refunds: 0, net: 1000 },
+      { month: "2025-02", income: 3000, expenses: 2000, refunds: 0, net: 1000 },
+      { month: "2025-03", income: 3000, expenses: 2000, refunds: 0, net: 1000 },
     ]);
 
     const result = await getCashflowForecast("user-1");
@@ -104,8 +104,8 @@ describe("getCashflowForecast", () => {
   it("includes subscription cost in breakdown", async () => {
     const cm = getMonthKey(new Date());
     mockTrend.mockResolvedValue([
-      { month: cm, income: 1000, expenses: 800, net: 200 },
-      { month: "2025-01", income: 3000, expenses: 2000, net: 1000 },
+      { month: cm, income: 1000, expenses: 800, refunds: 0, net: 200 },
+      { month: "2025-01", income: 3000, expenses: 2000, refunds: 0, net: 1000 },
     ]);
     mockSubs.mockResolvedValue({ monthly: 120, yearly: 1440, count: 5 });
 
@@ -118,8 +118,8 @@ describe("getCashflowForecast", () => {
   it("includes recurring transactions in breakdown", async () => {
     const cm = getMonthKey(new Date());
     mockTrend.mockResolvedValue([
-      { month: cm, income: 1000, expenses: 800, net: 200 },
-      { month: "2025-01", income: 3000, expenses: 2000, net: 1000 },
+      { month: cm, income: 1000, expenses: 800, refunds: 0, net: 200 },
+      { month: "2025-01", income: 3000, expenses: 2000, refunds: 0, net: 1000 },
     ]);
     mockRecurring.mockResolvedValue([
       { description: "Salary", type: "income", amount: 3000, recurring_pattern: "monthly" },
@@ -133,7 +133,7 @@ describe("getCashflowForecast", () => {
 
   it("handles no current month data gracefully", async () => {
     mockTrend.mockResolvedValue([
-      { month: "2025-01", income: 3000, expenses: 2000, net: 1000 },
+      { month: "2025-01", income: 3000, expenses: 2000, refunds: 0, net: 1000 },
     ]);
 
     const result = await getCashflowForecast("user-1");

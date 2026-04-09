@@ -19,7 +19,7 @@ type RawTransaction = {
   id: string;
   description: string;
   amount: number;
-  type: "income" | "expense" | "transfer" | "sale" | null;
+  type: "income" | "expense" | "transfer" | "sale" | "refund" | null;
   date: string | null;
   account_id: string | null;
   category_id: string | null;

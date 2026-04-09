@@ -18,7 +18,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TYPE account_type AS ENUM ('currentAccount', 'savings', 'creditCard', 'investment');
 CREATE TYPE period AS ENUM ('monthly', 'weekly');
-CREATE TYPE transaction_type AS ENUM ('income', 'expense', 'transfer', 'sale');
+CREATE TYPE transaction_type AS ENUM ('income', 'expense', 'transfer', 'sale', 'refund');
 CREATE TYPE recurring_pattern AS ENUM ('daily', 'weekly', 'biweekly', 'monthly', 'yearly');
 CREATE TYPE investment_type AS ENUM ('stock', 'crypto', 'etf', 'real_estate', 'private_equity', 'other');
 CREATE TYPE billing_cycle AS ENUM ('weekly', 'monthly', 'quarterly', 'yearly');
@@ -147,7 +147,8 @@ CREATE TABLE transactions (
   truelayer_id        VARCHAR(255),
   is_split            BOOLEAN NOT NULL DEFAULT FALSE,
   subscription_id      UUID REFERENCES subscriptions(id) ON DELETE SET NULL,
-  linked_debt_id       UUID REFERENCES debts(id) ON DELETE SET NULL
+  linked_debt_id       UUID REFERENCES debts(id) ON DELETE SET NULL,
+  refund_for_transaction_id UUID
 );
 
 CREATE INDEX transactions_user_id_idx         ON transactions (user_id);

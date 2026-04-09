@@ -16,6 +16,7 @@ export type MonthlyReportData = {
   baseCurrency: string;
   income: number;
   expenses: number;
+  refunds: number;
   net: number;
   savingsRate: number;
   prevIncome: number;
@@ -55,6 +56,7 @@ export async function getMonthlyReportData(
   const [
     income,
     expenses,
+    refunds,
     prevIncome,
     prevExpenses,
     categoryTrend,
@@ -68,6 +70,7 @@ export async function getMonthlyReportData(
   ] = await Promise.all([
     getTotalsByType(userId, "income", targetMonth.start, targetMonth.end),
     getTotalsByType(userId, "expense", targetMonth.start, targetMonth.end),
+    getTotalsByType(userId, "refund", targetMonth.start, targetMonth.end),
     getTotalsByType(userId, "income", prevMonth.start, prevMonth.end),
     getTotalsByType(userId, "expense", prevMonth.start, prevMonth.end),
     getMonthlyCategorySpendTrend(userId, 12),
@@ -80,7 +83,8 @@ export async function getMonthlyReportData(
     getPortfolioSnapshot(userId),
   ]);
 
-  const net = income - expenses;
+  const netSpend = expenses - refunds;
+  const net = income - netSpend;
   const savingsRate = income > 0 ? (net / income) * 100 : 0;
   const incomeChange = prevIncome > 0 ? ((income - prevIncome) / prevIncome) * 100 : 0;
   const expenseChange = prevExpenses > 0 ? ((expenses - prevExpenses) / prevExpenses) * 100 : 0;
@@ -120,6 +124,7 @@ export async function getMonthlyReportData(
     baseCurrency,
     income,
     expenses,
+    refunds,
     net,
     savingsRate,
     prevIncome,
@@ -170,7 +175,9 @@ Currency: ${c}
 
 ### Income & Expenses
 - Income: ${fmt(data.income)} (${pct(data.incomeChange)} vs prev month)
-- Expenses: ${fmt(data.expenses)} (${pct(data.expenseChange)} vs prev month)
+- Gross Spend: ${fmt(data.expenses)} (${pct(data.expenseChange)} vs prev month)
+- Refunds: ${fmt(data.refunds)}
+- Net Spend: ${fmt(data.expenses - data.refunds)}
 - Net: ${data.net >= 0 ? "+" : ""}${fmt(Math.abs(data.net))}
 - Savings rate: ${data.savingsRate.toFixed(1)}%
 

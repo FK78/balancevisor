@@ -7,7 +7,7 @@ export type RecurringTransaction = {
   id: string;
   description: string;
   amount: number;
-  type: 'income' | 'expense' | 'transfer' | 'sale' | null;
+  type: 'income' | 'expense' | 'transfer' | 'sale' | 'refund' | null;
   recurring_pattern: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly' | null;
   next_recurring_date: string | null;
   date: string | null;

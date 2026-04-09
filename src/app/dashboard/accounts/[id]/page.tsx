@@ -117,6 +117,7 @@ export default async function AccountDetailPage({
   let totalTransactions: number;
   let totalIncome: number;
   let totalExpenses: number;
+  let totalRefunds: number;
   let allAccounts;
   let categories;
   let dailyTrend;
@@ -134,19 +135,22 @@ export default async function AccountDetailPage({
     totalTransactions = result.totalCount;
     totalIncome = result.totalIncome;
     totalExpenses = result.totalExpenses;
+    totalRefunds = result.totalRefunds;
     [allAccounts, categories, dailyTrend, dailyCategoryExpenses, baseCurrency, uncategorisedCount, shares] = shared;
   } else {
-    const [txns, count, inc, exp, ...shared] = await Promise.all([
+    const [txns, count, inc, exp, ref, ...shared] = await Promise.all([
       getTransactionsWithDetailsPaginated(userId, requestedPage, PAGE_SIZE, startDate, endDate, accountId),
       getTransactionsCount(userId, startDate, endDate, accountId),
       getTotalsByType(userId, "income", startDate, endDate, accountId),
       getTotalsByType(userId, "expense", startDate, endDate, accountId),
+      getTotalsByType(userId, "refund", startDate, endDate, accountId),
       ...sharedFetches,
     ]);
     transactions = txns;
     totalTransactions = count;
     totalIncome = inc;
     totalExpenses = exp;
+    totalRefunds = ref;
     [allAccounts, categories, dailyTrend, dailyCategoryExpenses, baseCurrency, uncategorisedCount, shares] = shared;
   }
 
@@ -232,7 +236,7 @@ export default async function AccountDetailPage({
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 divide-x">
+          <div className="grid grid-cols-5 divide-x">
             <div className="px-4 text-center">
               <p className="text-xs text-muted-foreground">Balance</p>
               <p
@@ -251,9 +255,21 @@ export default async function AccountDetailPage({
               </p>
             </div>
             <div className="px-4 text-center">
-              <p className="text-xs text-muted-foreground">Expenses</p>
+              <p className="text-xs text-muted-foreground">Spend</p>
               <p className="text-lg font-semibold tabular-nums text-red-600">
                 {formatCurrency(totalExpenses, baseCurrency)}
+              </p>
+            </div>
+            <div className="px-4 text-center">
+              <p className="text-xs text-muted-foreground">Refunds</p>
+              <p className="text-lg font-semibold tabular-nums text-amber-600">
+                {formatCurrency(totalRefunds, baseCurrency)}
+              </p>
+            </div>
+            <div className="px-4 text-center">
+              <p className="text-xs text-muted-foreground">Net Spend</p>
+              <p className="text-lg font-semibold tabular-nums text-red-600">
+                {formatCurrency(totalExpenses - totalRefunds, baseCurrency)}
               </p>
             </div>
           </div>
@@ -270,6 +286,7 @@ export default async function AccountDetailPage({
         totalTransactions={totalTransactions}
         totalIncome={totalIncome}
         totalExpenses={totalExpenses}
+        totalRefunds={totalRefunds}
         startDate={startDate}
         endDate={endDate}
         search={search}

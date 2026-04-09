@@ -29,7 +29,7 @@ import { addTransaction } from "@/db/mutations/transactions";
 import { toast } from "sonner";
 
 type ParsedTransaction = {
-  type: "income" | "expense";
+  type: "income" | "expense" | "refund";
   amount: number;
   description: string;
   date: string;
@@ -186,6 +186,10 @@ export function QuickAddTransaction({
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
                       <ArrowDownLeft className="h-4 w-4 text-emerald-500" />
                     </div>
+                  ) : parsed.type === "refund" ? (
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10">
+                      <ArrowDownLeft className="h-4 w-4 text-amber-500" />
+                    </div>
                   ) : (
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500/10">
                       <ArrowUpRight className="h-4 w-4 text-red-500" />
@@ -198,8 +202,8 @@ export function QuickAddTransaction({
                     </Badge>
                   </div>
                 </div>
-                <p className={`text-lg font-bold tabular-nums ${parsed.type === "income" ? "text-emerald-600" : "text-red-600"}`}>
-                  {parsed.type === "income" ? "+" : "-"}£{parsed.amount.toFixed(2)}
+                <p className={`text-lg font-bold tabular-nums ${parsed.type === "income" ? "text-emerald-600" : parsed.type === "refund" ? "text-amber-600" : "text-red-600"}`}>
+                  {parsed.type === "income" ? "+" : parsed.type === "refund" ? "↩ " : "-"}£{parsed.amount.toFixed(2)}
                 </p>
               </div>
 
@@ -289,7 +293,7 @@ export function QuickAddTransaction({
                     "Paid £120 for electricity from Monzo",
                     "Got paid £3200 salary today",
                     "£42 Nando's dinner on Amex yesterday",
-                    "Spotify £10.99 subscription",
+                    "Got £25 refund from Amazon",
                   ].map((example) => (
                     <button
                       key={example}

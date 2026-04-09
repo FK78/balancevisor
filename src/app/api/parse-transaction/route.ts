@@ -8,7 +8,7 @@ import { getCategoriesByUser } from "@/db/queries/categories";
 import { rateLimiters } from "@/lib/rate-limiter";
 
 const parseSchema = z.object({
-  type: z.enum(["income", "expense"]),
+  type: z.enum(["income", "expense", "refund"]),
   amount: z.number().positive(),
   description: z.string(),
   date: z.string(),
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
     model: groq("openai/gpt-oss-20b"),
     prompt: `You are a financial transaction parser. Parse the user's natural language into a structured transaction.
 Return ONLY a JSON object with these exact fields:
-- type: "income" or "expense"
+- type: "income", "expense", or "refund"
 - amount: number (positive)
 - description: string (short, clean description)
 - date: string (YYYY-MM-DD format)
@@ -75,7 +75,7 @@ ${categoryList}
 User input: "${text}"
 
 Rules:
-- Infer type: if the user says "earned", "received", "got paid" etc. it's income; otherwise expense
+- Infer type: if the user says "earned", "received", "got paid" etc. it's income; if "refund", "refunded", "got money back", "returned" etc. it's refund; otherwise expense
 - Parse the amount from the text (handle £, $, etc.)
 - Create a concise description (e.g. "Tesco groceries", not the raw user input)
 - Resolve relative dates: "today" = ${today}, "yesterday" = one day before today, etc.
