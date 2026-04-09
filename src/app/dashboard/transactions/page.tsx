@@ -19,6 +19,9 @@ import { RecurringDetectionBanner } from "@/components/RecurringDetectionBanner"
 import { TransactionReviewBanner } from "@/components/TransactionReviewBanner";
 import { getPendingReviewFlags } from "@/db/queries/review-flags";
 import { requireFeature } from "@/components/FeatureGate";
+import { getPageLayout } from "@/db/queries/dashboard-layouts";
+import { PageWidgetWrapper } from "@/components/PageWidgetWrapper";
+import { DashboardWidget } from "@/components/DashboardWidget";
 
 const PAGE_SIZE = 10;
 
@@ -123,47 +126,52 @@ export default async function Transactions({
   }
 
   // Detect recurring patterns (only on unfiltered first page)
-  const [recurringCandidates, reviewFlags] = await Promise.all([
+  const [recurringCandidates, reviewFlags, serverLayout] = await Promise.all([
     (!search && !startDate && !endDate && requestedPage === 1)
       ? detectRecurringCandidates(userId)
       : Promise.resolve([]),
     (!search && !startDate && !endDate && requestedPage === 1)
       ? getPendingReviewFlags(userId)
       : Promise.resolve([]),
+    getPageLayout(userId, "transactions"),
   ]);
 
   return (
-    <>
-    {(recurringCandidates.length > 0 || reviewFlags.length > 0) && (
-      <div className="mx-auto max-w-7xl px-4 pt-6 md:px-10 md:pt-10 space-y-4">
-        {reviewFlags.length > 0 && (
-          <TransactionReviewBanner flags={reviewFlags} currency={baseCurrency} />
-        )}
-        {recurringCandidates.length > 0 && (
-          <RecurringDetectionBanner candidates={recurringCandidates} currency={baseCurrency} />
-        )}
-      </div>
-    )}
-    <TransactionsClient
-      transactions={transactions}
-      accounts={accounts}
-      categories={categories}
-      currentPage={requestedPage}
-      pageSize={PAGE_SIZE}
-      totalTransactions={totalTransactions}
-      totalIncome={totalIncome}
-      totalExpenses={totalExpenses}
-      totalRefunds={totalRefunds}
-      startDate={startDate}
-      endDate={endDate}
-      search={search}
-      accountId={accountId}
-      dailyTrend={dailyTrend}
-      dailyCategoryExpenses={dailyCategoryExpenses}
-      currency={baseCurrency}
-      splits={serializedSplits}
-      uncategorisedCount={uncategorisedCount}
-    />
-    </>
+    <PageWidgetWrapper pageId="transactions" serverLayout={serverLayout}>
+      <DashboardWidget id="review-banners">
+      {(recurringCandidates.length > 0 || reviewFlags.length > 0) && (
+        <div className="space-y-4">
+          {reviewFlags.length > 0 && (
+            <TransactionReviewBanner flags={reviewFlags} currency={baseCurrency} />
+          )}
+          {recurringCandidates.length > 0 && (
+            <RecurringDetectionBanner candidates={recurringCandidates} currency={baseCurrency} />
+          )}
+        </div>
+      )}
+      </DashboardWidget>
+      <DashboardWidget id="transactions-client">
+      <TransactionsClient
+        transactions={transactions}
+        accounts={accounts}
+        categories={categories}
+        currentPage={requestedPage}
+        pageSize={PAGE_SIZE}
+        totalTransactions={totalTransactions}
+        totalIncome={totalIncome}
+        totalExpenses={totalExpenses}
+        totalRefunds={totalRefunds}
+        startDate={startDate}
+        endDate={endDate}
+        search={search}
+        accountId={accountId}
+        dailyTrend={dailyTrend}
+        dailyCategoryExpenses={dailyCategoryExpenses}
+        currency={baseCurrency}
+        splits={serializedSplits}
+        uncategorisedCount={uncategorisedCount}
+      />
+      </DashboardWidget>
+    </PageWidgetWrapper>
   );
 }

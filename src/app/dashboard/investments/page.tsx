@@ -75,18 +75,22 @@ type NormalisedHolding = {
 };
 
 import { requireFeature } from "@/components/FeatureGate";
+import { getPageLayout } from "@/db/queries/dashboard-layouts";
+import { PageWidgetWrapper } from "@/components/PageWidgetWrapper";
+import { DashboardWidget } from "@/components/DashboardWidget";
 
 export default async function InvestmentsPage() {
   await requireFeature("investments");
   const userId = await getCurrentUserId();
 
-  const [brokerConnections, manualHoldings, baseCurrency, allAccounts, allGroups, sales] = await Promise.all([
+  const [brokerConnections, manualHoldings, baseCurrency, allAccounts, allGroups, sales, serverLayout] = await Promise.all([
     getBrokerConnections(userId),
     getManualHoldings(userId),
     getUserBaseCurrency(userId),
     getAccountsWithDetails(userId),
     getGroupsByUser(userId),
     getHoldingSales(userId),
+    getPageLayout(userId, "investments"),
   ]);
 
   const groupMap = new Map(allGroups.map((g) => [g.id, g]));
@@ -203,25 +207,27 @@ export default async function InvestmentsPage() {
 
   const sortedHoldings = [...holdings].sort((a, b) => b.value - a.value);
 
-  return (
-    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Investments</h1>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <ConnectBrokerDialog
-            connectedBrokers={connectedBrokers}
-            investmentAccounts={investmentAccounts}
-          />
-          <InvestmentGroupDialog investmentAccounts={investmentAccounts} />
-          <AddHoldingDialog investmentAccounts={investmentAccounts} groups={groupOptions} />
-          <AddPrivateInvestmentDialog investmentAccounts={investmentAccounts} groups={groupOptions} />
-          {manualHoldings.length > 0 && <RefreshPricesButton />}
-        </div>
+  const headerEl = (
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Investments</h1>
       </div>
+      <div className="flex flex-wrap gap-2">
+        <ConnectBrokerDialog
+          connectedBrokers={connectedBrokers}
+          investmentAccounts={investmentAccounts}
+        />
+        <InvestmentGroupDialog investmentAccounts={investmentAccounts} />
+        <AddHoldingDialog investmentAccounts={investmentAccounts} groups={groupOptions} />
+        <AddPrivateInvestmentDialog investmentAccounts={investmentAccounts} groups={groupOptions} />
+        {manualHoldings.length > 0 && <RefreshPricesButton />}
+      </div>
+    </div>
+  );
 
-      {/* Error banner */}
+  return (
+    <PageWidgetWrapper pageId="investments" serverLayout={serverLayout} header={headerEl}>
+      <DashboardWidget id="broker-errors">
       {brokerErrors.length > 0 && (
         <Card className="border-destructive/50 bg-destructive/5">
           <CardContent className="flex items-center gap-3 py-4">
@@ -235,8 +241,9 @@ export default async function InvestmentsPage() {
           </CardContent>
         </Card>
       )}
+      </DashboardWidget>
 
-      {/* Summary cards */}
+      <DashboardWidget id="summary-cards">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -323,16 +330,19 @@ export default async function InvestmentsPage() {
           </CardContent>
         </Card>
       </div>
+      </DashboardWidget>
 
-      {/* Charts */}
+      <DashboardWidget id="charts">
       {holdings.length > 0 && (
         <InvestmentCharts holdings={sortedHoldings} currency={baseCurrency} />
       )}
+      </DashboardWidget>
 
-      {/* AI Portfolio Analysis */}
+      <DashboardWidget id="ai-analysis">
       {holdings.length > 0 && <PortfolioAIAnalysis />}
+      </DashboardWidget>
 
-      {/* Holdings table */}
+      <DashboardWidget id="holdings-table">
       {holdings.length === 0 ? (
         <Card>
           <CardContent className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-12 text-center">
@@ -614,6 +624,7 @@ export default async function InvestmentsPage() {
           )}
         </div>
       )}
-    </div>
+      </DashboardWidget>
+    </PageWidgetWrapper>
   );
 }

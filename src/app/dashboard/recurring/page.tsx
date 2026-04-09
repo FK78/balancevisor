@@ -8,14 +8,18 @@ import { getRecurringTransactionsSummary } from "@/db/queries/recurring";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { RecurringClient } from "@/components/RecurringClient";
 import { requireFeature } from "@/components/FeatureGate";
+import { getPageLayout } from "@/db/queries/dashboard-layouts";
+import { PageWidgetWrapper } from "@/components/PageWidgetWrapper";
+import { DashboardWidget } from "@/components/DashboardWidget";
 
 export default async function RecurringPage() {
   await requireFeature("recurring");
   const userId = await getCurrentUserId();
 
-  const [summary, baseCurrency] = await Promise.all([
+  const [summary, baseCurrency, serverLayout] = await Promise.all([
     getRecurringTransactionsSummary(userId),
     getUserBaseCurrency(userId),
+    getPageLayout(userId, "recurring"),
   ]);
 
   const {
@@ -27,17 +31,19 @@ export default async function RecurringPage() {
     upcomingCount,
   } = summary;
 
-  return (
-    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Recurring Transactions
-          </h1>
-        </div>
+  const headerEl = (
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+          Recurring Transactions
+        </h1>
       </div>
+    </div>
+  );
 
-      {/* Compact stats */}
+  return (
+    <PageWidgetWrapper pageId="recurring" serverLayout={serverLayout} header={headerEl}>
+      <DashboardWidget id="stats">
       <Card>
         <CardContent className="grid grid-cols-2 gap-4 py-4 sm:grid-cols-4 sm:divide-x sm:gap-0">
           <div className="px-4 text-center">
@@ -60,12 +66,14 @@ export default async function RecurringPage() {
           </div>
         </CardContent>
       </Card>
+      </DashboardWidget>
 
-      {/* Recurring transactions list */}
+      <DashboardWidget id="recurring-list">
       <RecurringClient
         recurring={recurring}
         currency={baseCurrency}
       />
-    </div>
+      </DashboardWidget>
+    </PageWidgetWrapper>
   );
 }

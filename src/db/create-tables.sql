@@ -399,3 +399,17 @@ CREATE TABLE transaction_review_flags (
 CREATE INDEX review_flags_user_id_idx      ON transaction_review_flags (user_id);
 CREATE INDEX review_flags_transaction_id_idx ON transaction_review_flags (transaction_id);
 CREATE INDEX review_flags_unresolved_idx   ON transaction_review_flags (user_id, is_resolved);
+
+-- ---------------------------------------------------------------------------
+-- Dashboard Layouts (widget customization)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE dashboard_layouts (
+  id          UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID          NOT NULL,
+  page        VARCHAR(50)   NOT NULL,
+  layout_json TEXT          NOT NULL,
+  updated_at  TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX dashboard_layouts_user_page_idx ON dashboard_layouts (user_id, page);

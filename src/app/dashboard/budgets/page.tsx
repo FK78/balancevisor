@@ -31,13 +31,16 @@ import { BudgetAlertSettings } from "@/components/BudgetAlertSettings";
 import { getAlertPreferencesByUser } from "@/db/queries/budget-alerts";
 import { getSharesByOwner, getPendingInvitations } from "@/db/queries/sharing";
 import { requireFeature } from "@/components/FeatureGate";
+import { getPageLayout } from "@/db/queries/dashboard-layouts";
+import { PageWidgetWrapper } from "@/components/PageWidgetWrapper";
+import { DashboardWidget } from "@/components/DashboardWidget";
 
 export default async function Budgets() {
   await requireFeature("budgets");
   const userId = await getCurrentUserId();
   const email = await getCurrentUserEmail();
   
-  const [ownedBudgets, sharedBudgetRows, categories, baseCurrency, alertPrefs, allShares, pendingInvitations, avgSpend] = await Promise.all([
+  const [ownedBudgets, sharedBudgetRows, categories, baseCurrency, alertPrefs, allShares, pendingInvitations, avgSpend, serverLayout] = await Promise.all([
     getBudgets(userId),
     getSharedBudgets(userId, email),
     getCategoriesByUser(userId),
@@ -46,6 +49,7 @@ export default async function Budgets() {
     getSharesByOwner(userId),
     getPendingInvitations(userId, email),
     getAvgMonthlySpendByCategory(userId),
+    getPageLayout(userId, "budgets"),
   ]);
 
   const budgets = [...ownedBudgets, ...sharedBudgetRows];
@@ -68,26 +72,30 @@ export default async function Budgets() {
   const totalRemaining = totalBudget - totalSpent;
   const overBudgetCount = budgets.filter((b) => b.budgetSpent > b.budgetAmount).length;
   const spentPercent = totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(0) : "0";
-  return (
-    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Budgets</h1>
-        </div>
-        {categories.length === 0 ? (
-          <Button asChild size="sm" variant="outline">
-            <Link href="/dashboard/categories">Add Categories First</Link>
-          </Button>
-        ) : (
-          <BudgetFormDialog categories={categories} avgSpendByCategory={avgSpend} />
-        )}
+  const headerEl = (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Budgets</h1>
       </div>
-
-      {budgetPendingInvitations.length > 0 && (
-        <PendingInvitations invitations={budgetPendingInvitations} />
+      {categories.length === 0 ? (
+        <Button asChild size="sm" variant="outline">
+          <Link href="/dashboard/categories">Add Categories First</Link>
+        </Button>
+      ) : (
+        <BudgetFormDialog categories={categories} avgSpendByCategory={avgSpend} />
       )}
+    </div>
+  );
 
-      {/* Compact stats */}
+  return (
+    <PageWidgetWrapper pageId="budgets" serverLayout={serverLayout} header={headerEl}>
+      <DashboardWidget id="pending-invitations">
+        {budgetPendingInvitations.length > 0 && (
+          <PendingInvitations invitations={budgetPendingInvitations} />
+        )}
+      </DashboardWidget>
+
+      <DashboardWidget id="stats">
       <Card>
         <CardContent className="grid grid-cols-2 gap-4 py-4 sm:grid-cols-4 sm:divide-x sm:gap-0">
           <div className="px-4 text-center">
@@ -108,16 +116,21 @@ export default async function Budgets() {
           </div>
         </CardContent>
       </Card>
+      </DashboardWidget>
 
+      <DashboardWidget id="suggestions">
       {budgetSuggestions.length > 0 && (
         <SmartBudgetSuggestions suggestions={budgetSuggestions} currency={baseCurrency} />
       )}
+      </DashboardWidget>
 
+      <DashboardWidget id="charts">
       {budgets.length > 0 && (
         <BudgetCharts budgets={budgets} currency={baseCurrency} />
       )}
+      </DashboardWidget>
 
-      {/* Budget cards */}
+      <DashboardWidget id="budget-cards">
       {budgets.length === 0 ? (
         <Card>
           <CardContent className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-12 text-center">
@@ -261,6 +274,7 @@ export default async function Budgets() {
           })}
         </div>
       )}
-    </div>
+      </DashboardWidget>
+    </PageWidgetWrapper>
   );
 }

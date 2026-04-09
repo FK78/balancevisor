@@ -16,13 +16,17 @@ import { ContributeGoalDialog } from "@/components/ContributeGoalDialog";
 import { DeleteGoalButton } from "@/components/DeleteGoalButton";
 import { Trophy } from "lucide-react";
 import { requireFeature } from "@/components/FeatureGate";
+import { getPageLayout } from "@/db/queries/dashboard-layouts";
+import { PageWidgetWrapper } from "@/components/PageWidgetWrapper";
+import { DashboardWidget } from "@/components/DashboardWidget";
 
 export default async function GoalsPage() {
   await requireFeature("goals");
   const userId = await getCurrentUserId();
-  const [goals, baseCurrency] = await Promise.all([
+  const [goals, baseCurrency, serverLayout] = await Promise.all([
     getGoals(userId),
     getUserBaseCurrency(userId),
+    getPageLayout(userId, "goals"),
   ]);
 
   const forecasts = goals.length > 0 ? await getGoalForecasts(userId, goals) : [];
@@ -43,16 +47,18 @@ export default async function GoalsPage() {
     }
   }
 
-  return (
-    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Goals</h1>
-        </div>
-        <GoalFormDialog />
+  const headerEl = (
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Goals</h1>
       </div>
+      <GoalFormDialog />
+    </div>
+  );
 
-      {/* Overview card */}
+  return (
+    <PageWidgetWrapper pageId="goals" serverLayout={serverLayout} header={headerEl}>
+      <DashboardWidget id="overview">
       {goals.length > 0 && (
         <Card>
           <CardContent className="flex flex-col gap-4 py-6 sm:flex-row sm:items-center sm:justify-between">
@@ -87,13 +93,15 @@ export default async function GoalsPage() {
           </CardContent>
         </Card>
       )}
+      </DashboardWidget>
 
-      {/* Goal Forecasting */}
+      <DashboardWidget id="forecasts">
       {forecasts.length > 0 && (
         <GoalForecastCard forecasts={forecasts} currency={baseCurrency} />
       )}
+      </DashboardWidget>
 
-      {/* Goals grid */}
+      <DashboardWidget id="goals-grid">
       {goals.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
@@ -197,6 +205,7 @@ export default async function GoalsPage() {
           })}
         </div>
       )}
-    </div>
+      </DashboardWidget>
+    </PageWidgetWrapper>
   );
 }

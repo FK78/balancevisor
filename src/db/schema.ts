@@ -364,3 +364,13 @@ export const transactionReviewFlagsTable = pgTable("transaction_review_flags", {
   transactionIdx: index("review_flags_transaction_id_idx").on(table.transaction_id),
   unresolvedIdx: index("review_flags_unresolved_idx").on(table.user_id, table.is_resolved),
 }]);
+
+export const dashboardLayoutsTable = pgTable("dashboard_layouts", {
+  id: uuid().primaryKey().defaultRandom(),
+  user_id: uuid("user_id").notNull(),
+  page: varchar({ length: 50 }).notNull(),
+  layout_json: text("layout_json").notNull(),
+  updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [{
+  uniqueUserPage: uniqueIndex("dashboard_layouts_user_page_idx").on(table.user_id, table.page),
+}]);
