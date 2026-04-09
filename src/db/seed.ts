@@ -23,6 +23,7 @@ import {
   budgetNotificationsTable,
   zakatSettingsTable,
   zakatCalculationsTable,
+  retirementProfilesTable,
 } from "./schema";
 
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -66,6 +67,7 @@ async function seed() {
   console.log("  🗑  Clearing existing data for user...");
   await db.delete(zakatCalculationsTable).where(eq(zakatCalculationsTable.user_id, USER_ID));
   await db.delete(zakatSettingsTable).where(eq(zakatSettingsTable.user_id, USER_ID));
+  await db.delete(retirementProfilesTable).where(eq(retirementProfilesTable.user_id, USER_ID));
   await db.delete(budgetNotificationsTable).where(eq(budgetNotificationsTable.user_id, USER_ID));
   await db.delete(budgetAlertPreferencesTable).where(eq(budgetAlertPreferencesTable.user_id, USER_ID));
   await db.delete(holdingSalesTable).where(eq(holdingSalesTable.user_id, USER_ID));
@@ -442,6 +444,19 @@ async function seed() {
     },
   });
   console.log("  \u2713 zakat sample calculation");
+
+  // ── Retirement profile ──────────────────────────────────────────────
+  await db.insert(retirementProfilesTable).values({
+    user_id: USER_ID,
+    current_age: 30,
+    target_retirement_age: 60,
+    desired_annual_spending: 35000,
+    expected_pension_annual: 9500,
+    expected_investment_return: 6.0,
+    inflation_rate: 2.5,
+    life_expectancy: 90,
+  });
+  console.log("  ✓ retirement profile");
 
   console.log("\n\u2705 Seed complete!");
 }
