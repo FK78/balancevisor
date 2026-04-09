@@ -19,7 +19,7 @@ type RawTransaction = {
   id: string;
   description: string;
   amount: number;
-  type: "income" | "expense" | "transfer" | "sale" | null;
+  type: "income" | "expense" | "transfer" | "sale" | "refund" | null;
   date: string | null;
   account_id: string | null;
   category_id: string | null;
@@ -28,51 +28,11 @@ type RawTransaction = {
 };
 
 // ---------------------------------------------------------------------------
-// String normalisation for fuzzy matching
+// Pure matching utilities (extracted for testability)
 // ---------------------------------------------------------------------------
 
-const NOISE_WORDS = [
-  "ltd", "limited", "inc", "plc", "corp", "co", "com", "www",
-  "http", "https", "uk", "payment", "direct debit", "card",
-  "subscription", "recurring", "autopay", "auto pay",
-];
-
-function normalise(text: string): string {
-  let s = text.toLowerCase().trim();
-  // Strip common suffixes, domains, punctuation
-  s = s.replace(/[._\-*/\\@#]+/g, " ");
-  for (const word of NOISE_WORDS) {
-    s = s.replace(new RegExp(`\\b${word}\\b`, "gi"), "");
-  }
-  return s.replace(/\s+/g, " ").trim();
-}
-
-function fuzzyMatch(txnDesc: string, targetName: string): boolean {
-  const normTxn = normalise(txnDesc);
-  const normTarget = normalise(targetName);
-
-  if (!normTxn || !normTarget) return false;
-
-  // Direct inclusion either way
-  if (normTxn.includes(normTarget) || normTarget.includes(normTxn)) {
-    return true;
-  }
-
-  // Token overlap: if >50% of target tokens are in txn
-  const targetTokens = normTarget.split(" ").filter(Boolean);
-  const txnTokens = new Set(normTxn.split(" ").filter(Boolean));
-  if (targetTokens.length === 0) return false;
-
-  const hits = targetTokens.filter((t) => txnTokens.has(t)).length;
-  return hits / targetTokens.length >= 0.5;
-}
-
-const AMOUNT_TOLERANCE = 0.05; // 5%
-
-function amountsMatch(actual: number, expected: number): boolean {
-  if (expected === 0) return actual === 0;
-  return Math.abs(actual - expected) / expected <= AMOUNT_TOLERANCE;
-}
+export { normalise, fuzzyMatch, amountsMatch } from "@/lib/matching-utils";
+import { normalise, fuzzyMatch, amountsMatch } from "@/lib/matching-utils";
 
 // ---------------------------------------------------------------------------
 // Fetch unlinked transactions for a user (recently imported)

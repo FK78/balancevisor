@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useInView } from "@/hooks/useInView";
+import { useAiEnabled } from "@/components/AiSettingsProvider";
 import Link from "next/link";
 import {
   Card,
@@ -14,7 +14,7 @@ import { Sparkles, ArrowRight, Loader2 } from "lucide-react";
 import { formatMarkdown } from "@/lib/formatMarkdown";
 
 export function DashboardMonthlyReport() {
-  const { ref: viewRef, inView } = useInView<HTMLDivElement>();
+  const aiEnabled = useAiEnabled();
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,10 +73,10 @@ export function DashboardMonthlyReport() {
   }, []);
 
   useEffect(() => {
-    if (!inView || hasFetched.current) return;
+    if (hasFetched.current) return;
     hasFetched.current = true;
     fetchSummary();
-  }, [inView, fetchSummary]);
+  }, [fetchSummary]);
 
   useEffect(() => {
     return () => abortRef.current?.abort();
@@ -87,12 +87,14 @@ export function DashboardMonthlyReport() {
     ? text.split("\n").slice(0, 8).join("\n")
     : "";
 
+  if (!aiEnabled) return null;
+
   return (
-    <Card ref={viewRef}>
+    <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/8">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
             </div>
             <div>

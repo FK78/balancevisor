@@ -25,7 +25,7 @@ type Sale = {
   holding: {
     ticker: string | null;
     name: string;
-    investment_type: "stock" | "real_estate" | "private_equity" | "other" | null;
+    investment_type: "stock" | "crypto" | "etf" | "real_estate" | "private_equity" | "other" | null;
     currency: string;
   } | null;
   cashAccountName: string | null;

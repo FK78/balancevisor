@@ -31,7 +31,10 @@ const cycleLabels: Record<string, string> = {
   yearly: "Yearly",
 };
 
+import { requireFeature } from "@/components/FeatureGate";
+
 export default async function SubscriptionsPage() {
+  await requireFeature("subscriptions");
   const userId = await getCurrentUserId();
 
   const [subscriptions, totals, categories, accounts, baseCurrency] = await Promise.all([
@@ -110,7 +113,7 @@ export default async function SubscriptionsPage() {
             return (
               <Card
                 key={sub.id}
-                className={`relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 ${
+                className={`relative overflow-hidden transition-colors ${
                   !sub.is_active ? "opacity-60" : ""
                 }`}
               >

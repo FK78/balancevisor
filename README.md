@@ -5,42 +5,85 @@
 <h1 align="center">Wealth</h1>
 
 <p align="center">
-  Personal finance dashboard for accounts, budgets, transactions, investments, goals, debt tracking, and an AI assistant.<br/>
-  Next.js 16 · Drizzle ORM · Supabase · Groq AI
+  Open-source personal finance dashboard with 30+ features, 6 AI-powered tools, and bank-grade encryption.<br/>
+  Next.js 16 · Drizzle ORM · Supabase · Groq AI · TrueLayer · Trading 212 · Yahoo Finance
 </p>
 
 ---
 
 I built this because I wanted one place to see everything: bank balances, investments, budgets, and debt, without paying for an app that does half of what I need.
 
-You can connect your bank via TrueLayer Open Banking, or just add accounts manually. There's an AI assistant (Groq) that understands plain English, type "£45 groceries yesterday" and it figures out the rest.
+You can connect your bank via TrueLayer Open Banking, or just add accounts manually. There's an AI assistant (Groq) that understands plain English — type "£45 groceries yesterday" and it figures out the rest.
 
 ## Features
 
-**Dashboard** - Net worth, month-over-month trends, cashflow chart, spending breakdown, budget progress, and savings goals. Everything on one page.
+### Core
 
-**Accounts** - Current accounts, savings, credit cards, and investments. Balances update automatically when you add, edit, or delete transactions.
+**Dashboard** — Net worth, month-over-month trends, cashflow chart, spending breakdown, budget progress, savings goals, upcoming bills, smart insights, spending anomaly alerts, and cashflow forecast with confidence scoring. Everything on one page.
 
-**Transactions** - Income and expense tracking with categories, recurring transaction support (daily through yearly), CSV import with flexible column mapping, and export. Split transactions work too.
+**Accounts** — Current accounts, savings, credit cards, and investment accounts. Balances update automatically when you add, edit, or delete transactions. Share accounts with family or a partner (view-only or edit permissions).
 
-**Budgets** - Weekly or monthly limits per category. Alerts fire via browser notification and email when you're close to the edge.
+**Transactions** — Income and expense tracking with categories, recurring transaction support (daily through yearly), CSV import with flexible column mapping, drag-and-drop upload, and export. Split transactions across multiple categories. Full-text search, date and account filtering, pagination, and sorting.
 
-**Goals** - Savings targets with deadlines and contribution history.
+**Budgets** — Weekly or monthly limits per category with real-time progress bars. Alerts fire via browser push notification and email when you approach or exceed your threshold.
 
-**Debt Tracker** - Interest rates, minimum payments, payoff progress.
+**Goals** — Savings targets with deadlines and contribution tracking.
 
-**Investments** - Connect Trading 212 with your API key, or add holdings manually. Prices pull from Yahoo Finance and refresh when they're stale. You can group holdings however you want.
+**Debt Tracker** — Loans, credit cards, and finance agreements with interest rates, minimum payments, remaining balance, and payoff progress. Debt payments are recorded automatically when review flags are accepted.
 
-**Open Banking** - TrueLayer OAuth flow for UK bank accounts. Transactions sync on connect and on each login (throttled to hourly). There's a manual sync button if you don't want to wait.
+**Investments** — Connect Trading 212 with your API key and secret, or add holdings manually. Live prices from Yahoo Finance refresh when stale. Group holdings however you want.
 
-**AI** - Three things:
-- Auto-categorisation: when no rule matches, Groq picks the best category from your list
-- Natural language input: describe a transaction in plain English and it parses into a structured record
-- Chat assistant: slide-out panel for financial questions, available on every dashboard page
+**Subscriptions** — Track Netflix, Spotify, gym memberships, and more. See monthly and yearly cost totals, upcoming renewals, overdue alerts, and pause/resume individual subscriptions.
 
-**PWA** - Installable on mobile and desktop. Offline fallback, font caching, stale-while-revalidate for static assets.
+**Recurring Transactions** — Set up daily, weekly, monthly, or yearly recurring income and expenses. They auto-generate when due on each dashboard load.
 
-**Security** - Account names, transaction descriptions, and all OAuth tokens are encrypted at rest with AES-256-GCM. The key lives in your environment, not the codebase.
+**Reports** — 12-month income vs expense trends, monthly category spend analysis, and daily cashflow charts with rolling averages. Dedicated reports page with interactive Recharts visualisations.
+
+**Categories** — Custom categories with colours and icons, or start with sensible built-in defaults. Auto-categorisation rules with pattern matching.
+
+### AI-Powered (Groq)
+
+**AI Chat Assistant** — Slide-out panel available on every dashboard page. Ask financial questions, get insights, and explore your data in plain English.
+
+**Natural Language Transactions** — Type "£45 groceries yesterday" and the AI parses it into a structured record with the right category, account, and date. Quick-add dialog with real-time preview.
+
+**Auto-Categorisation** — Pattern-matching rules first, then AI fallback when no rule matches. Groq picks the best category from your list.
+
+**AI Monthly Report** — Streaming AI-generated summary of your month — spending patterns, budget performance, and personalised recommendations. Displayed on the dashboard.
+
+**Weekly Digest** — AI-powered weekly financial digest with highlights, warnings, and actionable advice based on recent activity.
+
+**Subscription Savings Advisor** — AI analyses your active subscriptions and suggests where you could save money or consolidate services.
+
+### Smart Automation
+
+**Spending Anomaly Detection** — Automatically flags categories where you spent significantly more than your historical average.
+
+**Cashflow Forecast** — Projected income and expenses for the month ahead with high/medium/low confidence scoring based on your transaction history.
+
+**Recurring Pattern Detection** — Scans your transactions and surfaces recurring patterns (weekly, bi-weekly, monthly, yearly) so you can convert them to tracked recurring transactions.
+
+**Transaction Review Flags** — Flags transactions that look like subscription payments or debt repayments. Accept to link them automatically, or dismiss.
+
+**AI-Enriched CSV Imports** — After CSV import, a background job sends new transactions to the AI for auto-categorisation.
+
+### Platform
+
+**Open Banking** — TrueLayer OAuth flow for UK bank accounts. Transactions sync on connect and on each login (throttled to hourly). Manual sync button available.
+
+**PWA** — Installable on mobile and desktop. Offline fallback page, font caching, stale-while-revalidate for static assets. Service worker with custom install prompt.
+
+**Dark Mode** — System-aware or manual dark/light theme toggle with full support across all pages and charts.
+
+**Multi-Currency** — Choose your base currency during onboarding (GBP, USD, EUR, and more). All amounts format accordingly throughout the app.
+
+**Guided Onboarding** — Step-by-step wizard: currency selection, account creation, category setup (defaults or custom), feature discovery, and review summary.
+
+**Mobile-First Navigation** — iOS-style bottom tab bar on mobile with a "More" drawer for secondary pages. Full desktop nav with dropdown menu.
+
+**Account Sharing** — Share accounts and budgets with other users via email invitation. View-only or edit permissions with revocation.
+
+**Security** — Account names, transaction descriptions, and all OAuth tokens encrypted at rest with AES-256-GCM. Supabase row-level security isolates user data. Encryption key lives in your environment, not the codebase.
 
 ## Tech Stack
 
@@ -65,49 +108,73 @@ You can connect your bank via TrueLayer Open Banking, or just add accounts manua
 src/
 ├── app/
 │   ├── api/
-│   │   ├── chat/               # AI chat assistant route (streaming)
-│   │   ├── parse-transaction/  # NL → structured transaction route
-│   │   └── truelayer/          # OAuth connect + callback
-│   ├── auth/                   # Login, sign-up, password reset
+│   │   ├── chat/                  # AI chat assistant (streaming)
+│   │   ├── parse-transaction/     # NL → structured transaction
+│   │   ├── parse-csv-columns/     # AI CSV column auto-detect
+│   │   ├── ai-enrich-transactions/# Post-import AI categorisation
+│   │   ├── monthly-report/        # AI monthly summary (streaming)
+│   │   ├── weekly-digest/         # AI weekly digest (streaming)
+│   │   ├── subscription-advisor/  # AI subscription savings advice
+│   │   └── truelayer/             # OAuth connect + callback
+│   ├── auth/                      # Login, sign-up, password reset
 │   ├── dashboard/
 │   │   ├── accounts/
 │   │   ├── budgets/
-│   │   ├── categories/         # Categories + auto-categorisation rules
-│   │   ├── goals/
-│   │   ├── investments/        # T212 + manual holdings
-│   │   ├── transactions/       # Table, CSV import/export
-│   │   ├── layout.tsx          # Shell, navbar, bank sync trigger
-│   │   └── page.tsx            # Overview
-│   ├── onboarding/             # First-run setup wizard
-│   └── page.tsx                # Landing page
+│   │   ├── categories/            # Categories + auto-categorisation rules
+│   │   ├── debts/                 # Debt tracker with payments
+│   │   ├── goals/                 # Savings goals + contributions
+│   │   ├── investments/           # T212 + manual holdings + groups
+│   │   ├── recurring/             # Recurring transaction management
+│   │   ├── reports/               # 12-month analytics page
+│   │   ├── settings/              # User settings
+│   │   ├── subscriptions/         # Subscription tracker + AI advisor
+│   │   ├── transactions/          # Table, CSV import/export
+│   │   │   └── export/            # CSV export route
+│   │   ├── layout.tsx             # Shell, navbar, chat, bank sync
+│   │   └── page.tsx               # Overview dashboard
+│   ├── onboarding/                # Multi-step setup wizard
+│   └── page.tsx                   # Landing page
 ├── components/
-│   ├── ui/                     # shadcn/ui primitives
-│   ├── BankSyncTrigger.tsx     # Background auto-sync on login
-│   ├── ChatPanel.tsx           # AI assistant slide-out
-│   ├── ConnectBankButton.tsx   # TrueLayer open banking dialog
+│   ├── dashboard/                 # Dashboard widgets (charts, insights, forecasts)
+│   ├── ui/                        # shadcn/ui primitives
+│   ├── BankSyncTrigger.tsx        # Background auto-sync on login
+│   ├── ChatPanel.tsx              # AI assistant slide-out
+│   ├── ConnectBankButton.tsx      # TrueLayer open banking dialog
 │   ├── ConnectTrading212Dialog.tsx
-│   ├── InstallPrompt.tsx       # PWA install banner
-│   ├── ServiceWorkerRegistrar.tsx
+│   ├── ImportCSVDialog.tsx        # CSV import with column mapping
+│   ├── InstallPrompt.tsx          # PWA install banner
+│   ├── MobileBottomNav.tsx        # iOS-style bottom tab bar
+│   ├── MobileNavDrawer.tsx        # Secondary pages drawer
+│   ├── QuickAddTransaction.tsx    # NL quick-add dialog
+│   ├── RecurringDetectionBanner.tsx
+│   ├── ShareDialog.tsx            # Account/budget sharing
+│   ├── SplitTransactionDialog.tsx
+│   ├── SubscriptionAIAdvisor.tsx  # AI subscription savings
+│   ├── ThemeToggle.tsx            # Dark/light mode toggle
+│   ├── TransactionReviewBanner.tsx
 │   └── ...
 ├── db/
-│   ├── schema.ts               # Drizzle table definitions
-│   ├── queries/                # Read-only data access
-│   ├── mutations/              # Server actions (writes)
-│   └── migrations/             # One-off migration scripts
+│   ├── schema.ts                  # Drizzle table definitions
+│   ├── queries/                   # Read-only data access
+│   ├── mutations/                 # Server actions (writes)
+│   └── migrations/                # One-off migration scripts
 ├── lib/
-│   ├── auto-categorise.ts      # Rule matching + AI fallback
-│   ├── encryption.ts           # AES-256-GCM
-│   ├── trading212.ts           # T212 API client (Basic Auth)
-│   ├── truelayer.ts            # TrueLayer API client
-│   ├── yahoo-finance.ts        # Quote + ticker search
-│   ├── budget-alerts.ts        # Threshold checks + email
-│   ├── recurring-transactions.ts
-│   └── supabase/               # Server, browser, middleware clients
+│   ├── auto-categorise.ts         # Rule matching + AI fallback
+│   ├── cashflow-forecast.ts       # Projected income/expenses
+│   ├── encryption.ts              # AES-256-GCM
+│   ├── recurring-detection.ts     # Pattern detection engine
+│   ├── recurring-transactions.ts  # Due transaction generator
+│   ├── spending-anomalies.ts      # Anomaly detection
+│   ├── trading212.ts              # T212 API client (Basic Auth)
+│   ├── truelayer.ts               # TrueLayer API client
+│   ├── yahoo-finance.ts           # Quote + ticker search
+│   ├── budget-alerts.ts           # Threshold checks + email
+│   └── supabase/                  # Server, browser, middleware clients
 ├── public/
-│   ├── manifest.json           # PWA manifest
-│   ├── sw.js                   # Service worker
-│   └── icons/                  # App icons (192, 512, maskable)
-└── index.ts                    # Shared DB instance
+│   ├── manifest.json              # PWA manifest
+│   ├── sw.js                      # Service worker
+│   └── icons/                     # App icons (192, 512, maskable)
+└── index.ts                       # Shared DB instance
 ```
 
 ## Getting Started
@@ -187,8 +254,19 @@ Schema lives in `src/db/schema.ts`, managed by Drizzle.
 | `manual_holdings` | Investment positions with cached prices |
 | `investment_groups` | Portfolio grouping |
 | `shared_access` | Account sharing between users |
+| `transaction_review_flags` | Flags for subscription/debt transaction linking |
 | `user_onboarding` | Onboarding state and base currency |
 | `default_category_templates` | Built-in category templates |
+
+## Mock Mode (No Supabase)
+
+Set `MOCK_AUTH=true` and `NEXT_PUBLIC_MOCK_AUTH=true` in `.env` to skip Supabase auth entirely. Middleware bypasses all checks, and a hardcoded mock user is used. Useful for local development without a Supabase project.
+
+```bash
+npx drizzle-kit push   # Push schema
+npx tsx src/db/seed.ts  # Populate with fake data for the mock user
+npm run dev
+```
 
 ## License
 

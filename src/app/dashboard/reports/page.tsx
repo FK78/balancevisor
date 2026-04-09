@@ -4,14 +4,11 @@ import {
   getMonthlyIncomeExpenseTrend,
   getMonthlyCategorySpendTrend,
 } from "@/db/queries/transactions";
-import dynamic from "next/dynamic";
-
-const ReportsClient = dynamic(
-  () => import("@/components/ReportsClient").then((mod) => mod.ReportsClient),
-  { loading: () => <div className="min-h-[400px]" /> }
-);
+import { ReportsClient } from "@/components/ReportsClient";
+import { requireFeature } from "@/components/FeatureGate";
 
 export default async function ReportsPage() {
+  await requireFeature("reports");
   const userId = await getCurrentUserId();
 
   const [monthlyTrend, monthlyCategorySpend, baseCurrency] = await Promise.all([

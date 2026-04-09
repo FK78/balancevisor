@@ -64,6 +64,8 @@ export function TransactionFormDialog({
     : lastAccount.get() ?? undefined;
   const defaultType = transaction?.type ?? lastType.get() ?? "expense";
 
+  const [selectedType, setSelectedType] = useState(defaultType);
+
   const today = toDateString(new Date());
 
   function handleOpenChange(nextOpen: boolean) {
@@ -98,7 +100,7 @@ export function TransactionFormDialog({
           try {
             const dupes = await checkForDuplicate(
               accountId, amount, date,
-              type as 'income' | 'expense' | 'transfer' | 'sale',
+              type as 'income' | 'expense' | 'transfer' | 'sale' | 'refund',
             );
             if (dupes.length > 0) {
               setDuplicateWarning(dupes);
@@ -264,16 +266,36 @@ export function TransactionFormDialog({
               {/* Type */}
               <div className="grid gap-2">
                 <Label htmlFor="type">Type</Label>
-                <Select name="type" defaultValue={defaultType}>
+                <Select
+                  name="type"
+                  defaultValue={defaultType}
+                  onValueChange={(v) => setSelectedType(v)}
+                >
                   <SelectTrigger id="type">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="expense">Expense</SelectItem>
                     <SelectItem value="income">Income</SelectItem>
+                    <SelectItem value="refund">Refund</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Refund auto-match note */}
+              {selectedType === "refund" && (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-1">
+                  <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                    ↩ Refund
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    We&apos;ll automatically try to match this refund to the original expense based on description and amount. Refunds are tracked separately from income and reduce your net spend.
+                  </p>
+                  {isEdit && transaction?.refund_for_transaction_id && (
+                    <input type="hidden" name="refund_for_transaction_id" value={transaction.refund_for_transaction_id} />
+                  )}
+                </div>
+              )}
 
               {/* Description */}
               <div className="grid gap-2">

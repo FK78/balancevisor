@@ -49,7 +49,7 @@ export function DashboardUpcomingBills({
             return (
               <div
                 key={r.id}
-                className="flex items-center justify-between rounded-lg border border-border/50 px-3 py-2"
+                className="flex items-center justify-between rounded-lg bg-secondary/40 px-3 py-2.5"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   {r.color && (

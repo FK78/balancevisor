@@ -26,7 +26,10 @@ const CategoryCharts = dynamic(
   { loading: () => <div className="min-h-[300px]" /> }
 );
 
+import { requireFeature } from "@/components/FeatureGate";
+
 export default async function Categories() {
+  await requireFeature("categories");
   const userId = await getCurrentUserId();
 
   const [categories, topSpendRows, monthlySpendRows, baseCurrency, rules] = await Promise.all([
@@ -86,7 +89,7 @@ export default async function Categories() {
                 return (
                 <div
                   key={cat.id}
-                  className="flex items-center gap-3 rounded-xl border border-border/50 p-3 transition-all duration-200 hover:shadow-md hover:shadow-primary/5 hover:-translate-y-0.5 hover:border-primary/15"
+                  className="flex items-center gap-3 rounded-xl bg-card p-3 transition-colors"
                 >
                   {Icon ? (
                     <div

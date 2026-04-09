@@ -368,7 +368,7 @@ export function DebtPayoffStrategies({
 
       {/* Savings vs minimum-only */}
       {extraPayment > 0 && (monthsSavedVsMinimum > 0 || interestSavedVsMinimum > 0) && (
-        <Card className="bg-gradient-to-br from-emerald-500/5 to-emerald-400/5 border-emerald-500/15">
+        <Card>
           <CardContent className="flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10">

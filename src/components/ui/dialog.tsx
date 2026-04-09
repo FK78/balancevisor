@@ -62,13 +62,13 @@ function DialogContent({
         data-slot="dialog-content"
         className={cn(
           // ── Mobile: iOS-style bottom sheet ──
-          "bg-background fixed z-50 grid w-full gap-4 p-6 shadow-lg outline-none duration-200",
-          "inset-x-0 bottom-0 max-h-[90vh] overflow-y-auto rounded-t-[14px] border-t",
+          "bg-card fixed z-50 grid w-full gap-4 p-5 shadow-none outline-none duration-200",
+          "inset-x-0 bottom-0 max-h-[90vh] overflow-y-auto rounded-t-[14px]",
           "data-[state=open]:animate-in data-[state=closed]:animate-out",
           "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
           "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
-          // ── Desktop: centered modal (override mobile positioning) ──
-          "sm:inset-auto sm:top-[50%] sm:left-[50%] sm:bottom-auto sm:max-h-none sm:overflow-visible sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:border sm:max-w-lg",
+          // ── Desktop: centered modal (Apple style — 14px radius, clean) ──
+          "sm:inset-auto sm:top-[50%] sm:left-[50%] sm:bottom-auto sm:max-h-none sm:overflow-visible sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-xl sm:border-0 sm:max-w-lg sm:shadow-[0_8px_32px_rgba(0,0,0,0.12)]",
           "sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0",
           "sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95",
           className

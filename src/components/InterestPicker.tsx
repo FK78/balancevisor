@@ -19,6 +19,8 @@ interface FeatureOption {
   icon: React.ElementType;
 }
 
+export const ONBOARDING_FEATURE_IDS = ["budgets", "goals", "debts", "subscriptions", "investments"] as const;
+
 const FEATURE_OPTIONS: FeatureOption[] = [
   {
     id: "budgets",

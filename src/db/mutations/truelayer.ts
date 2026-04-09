@@ -12,6 +12,7 @@ import { revalidateDomains } from "@/lib/revalidate";
 import { getCurrentUserId } from "@/lib/auth";
 import { toDateString } from "@/lib/date";
 import { encryptForUser, decryptForUser, getUserKey } from "@/lib/encryption";
+import { isLikelyRefund, findMatchingExpense } from "@/lib/refund-matcher";
 import {
   TrueLayerTokens,
   refreshAccessToken,
@@ -231,8 +232,20 @@ export async function importFromTrueLayer() {
         const isExpense =
           tlTxn.transaction_type === "DEBIT" || tlTxn.amount < 0;
         const amount = Math.abs(tlTxn.amount);
-        const type = isExpense ? "expense" : "income";
         const description = tlTxn.description || "Bank transaction";
+
+        // Detect refunds: keyword match or expense match for CREDIT transactions
+        let type: "income" | "expense" | "refund" = isExpense ? "expense" : "income";
+        let refundForTransactionId: string | null = null;
+
+        if (!isExpense) {
+          const keywordMatch = isLikelyRefund(description);
+          const expenseMatch = await findMatchingExpense(userId, localAccountId, amount, description);
+          if (keywordMatch || expenseMatch) {
+            type = "refund";
+            refundForTransactionId = expenseMatch?.transactionId ?? null;
+          }
+        }
 
         // Pure rule match — no DB call, rules already fetched above
         const matchedCategoryId = matchAgainstRules(rules, description);
@@ -248,6 +261,7 @@ export async function importFromTrueLayer() {
           date: tlTxn.timestamp ? tlTxn.timestamp.split("T")[0] : to,
           is_recurring: false,
           truelayer_id: tlTxn.transaction_id,
+          refund_for_transaction_id: refundForTransactionId,
         }).returning({ id: transactionsTable.id });
 
         importedTransactionIds.push(inserted.id);

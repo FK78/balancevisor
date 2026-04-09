@@ -7,8 +7,10 @@ import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { getRecurringTransactionsSummary } from "@/db/queries/recurring";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { RecurringClient } from "@/components/RecurringClient";
+import { requireFeature } from "@/components/FeatureGate";
 
 export default async function RecurringPage() {
+  await requireFeature("recurring");
   const userId = await getCurrentUserId();
 
   const [summary, baseCurrency] = await Promise.all([

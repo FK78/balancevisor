@@ -2,6 +2,7 @@ import { groq } from "@ai-sdk/groq";
 import { generateText } from "ai";
 import { z } from "zod";
 import { getCurrentUserId } from "@/lib/auth";
+import { guardAiEnabled } from "@/lib/ai-guard";
 import { rateLimiters } from "@/lib/rate-limiter";
 
 const mappingSchema = z.object({
@@ -13,6 +14,9 @@ const mappingSchema = z.object({
 
 export async function POST(req: Request) {
   const userId = await getCurrentUserId();
+
+  const aiBlocked = await guardAiEnabled();
+  if (aiBlocked) return aiBlocked;
 
   const rateLimitResult = rateLimiters.serverAction.consume(`parse-csv-columns:${userId}`);
   if (!rateLimitResult.allowed) {

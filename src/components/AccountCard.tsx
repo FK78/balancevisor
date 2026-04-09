@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { typeIcons } from "@/app/dashboard/accounts/page";
 import { Badge } from "./ui/badge";
@@ -7,15 +8,16 @@ export function AccountCard({
   account,
   currency,
 }: {
-  account: { accountName: string; type: string | null; balance: number };
+  account: { id: string; accountName: string; type: string | null; balance: number };
   currency: string;
 }) {
   const Icon = typeIcons[account.type ?? ""] ?? Wallet;
   return (
-    <div
-      className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card p-4 transition-all duration-200 hover:shadow-md"
+    <Link
+      href={`/dashboard/accounts/${account.id}`}
+      className="flex items-center gap-3 rounded-xl bg-card p-4 transition-colors hover:bg-accent"
     >
-      <div className="bg-primary/8 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl">
+      <div className="bg-primary/10 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
         <Icon className="text-primary h-5 w-5" />
       </div>
       <div className="min-w-0">
@@ -32,6 +34,6 @@ export function AccountCard({
           {account.type?.replace(/([a-z])([A-Z])/g, "$1 $2")}
         </Badge>
       </div>
-    </div>
+    </Link>
   );
 }

@@ -2,9 +2,9 @@ import { boolean, date, integer, jsonb, numeric, pgEnum, pgTable, timestamp, var
 
 export const accountTypeEnum = pgEnum("account_type", ["currentAccount", "savings", "creditCard", "investment"]);
 export const periodEnum = pgEnum("period", ["monthly", "weekly"]);
-export const transactionTypeEnum = pgEnum("transaction_type", ["income", "expense", "transfer", "sale"]);
+export const transactionTypeEnum = pgEnum("transaction_type", ["income", "expense", "transfer", "sale", "refund"]);
 export const recurringPatternEnum = pgEnum("recurring_pattern", ["daily", "weekly", "biweekly", "monthly", "yearly"]);
-export const investmentTypeEnum = pgEnum("investment_type", ["stock", "real_estate", "private_equity", "other"]);
+export const investmentTypeEnum = pgEnum("investment_type", ["stock", "crypto", "etf", "real_estate", "private_equity", "other"]);
 
 export const defaultCategoryTemplatesTable = pgTable("default_category_templates", {
   id: uuid().primaryKey().defaultRandom(),
@@ -76,6 +76,7 @@ export const transactionsTable = pgTable("transactions", {
   is_split: boolean("is_split").notNull().default(false),
   subscription_id: uuid("subscription_id").references(() => subscriptionsTable.id, { onDelete: "set null" }),
   linked_debt_id: uuid("linked_debt_id").references(() => debtsTable.id, { onDelete: "set null" }),
+  refund_for_transaction_id: uuid("refund_for_transaction_id"),
 }, (table) => [{
   userIdx: index("transactions_user_id_idx").on(table.user_id),
   accountIdx: index("transactions_account_id_idx").on(table.account_id),
@@ -162,6 +163,7 @@ export const budgetAlertPreferencesTable = pgTable("budget_alert_preferences", {
     userBudgetIdx: index("budget_alert_prefs_user_budget_idx").on(table.user_id, table.budget_id),
 }])
 
+/** @deprecated Use brokerConnectionsTable instead. Kept for migration compatibility. */
 export const trading212ConnectionsTable = pgTable("trading212_connections", {
   id: uuid().primaryKey().defaultRandom(),
   user_id: uuid("user_id").notNull().unique(),
@@ -171,6 +173,19 @@ export const trading212ConnectionsTable = pgTable("trading212_connections", {
   account_id: uuid("account_id").references(() => accountsTable.id, { onDelete: "set null" }),
   connected_at: timestamp("connected_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const brokerConnectionsTable = pgTable("broker_connections", {
+  id: uuid().primaryKey().defaultRandom(),
+  user_id: uuid("user_id").notNull(),
+  broker: varchar("broker", { length: 20 }).notNull(),
+  credentials_encrypted: text("credentials_encrypted").notNull(),
+  environment: varchar({ length: 10 }).notNull().default("live"),
+  account_id: uuid("account_id").references(() => accountsTable.id, { onDelete: "set null" }),
+  connected_at: timestamp("connected_at", { withTimezone: true }).notNull().defaultNow(),
+  last_synced_at: timestamp("last_synced_at", { withTimezone: true }),
+}, (table) => [{
+  uniqueBroker: uniqueIndex("broker_connections_user_broker_idx").on(table.user_id, table.broker),
+}]);
 
 export const investmentGroupsTable = pgTable("investment_groups", {
   id: uuid().primaryKey().defaultRandom(),
@@ -352,6 +367,13 @@ export const zakatCalculationsTable = pgTable("zakat_calculations", {
 }, (table) => [{
   userIdx: index("zakat_calculations_user_id_idx").on(table.user_id),
 }]);
+
+export const userPreferencesTable = pgTable("user_preferences", {
+  user_id: uuid("user_id").primaryKey(),
+  ai_enabled: boolean("ai_enabled").notNull().default(true),
+  disabled_features: text("disabled_features"),
+  updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 export const reviewFlagTypeEnum = pgEnum("review_flag_type", [
   "subscription_amount_mismatch",

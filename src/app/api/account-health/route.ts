@@ -1,12 +1,16 @@
 import { groq } from "@ai-sdk/groq";
 import { streamText } from "ai";
 import { getCurrentUserId } from "@/lib/auth";
+import { guardAiEnabled } from "@/lib/ai-guard";
 import { getAccountHealthData } from "@/lib/account-health-data";
 import { getCachedAccountHealth, setCachedAccountHealth, invalidateCachedAccountHealth } from "@/lib/account-health-cache";
 import { rateLimiters } from "@/lib/rate-limiter";
 
 export async function POST(req: Request) {
   const userId = await getCurrentUserId();
+
+  const aiBlocked = await guardAiEnabled();
+  if (aiBlocked) return aiBlocked;
 
   const rateLimitResult = rateLimiters.accountHealth.consume(`account-health:${userId}`);
   if (!rateLimitResult.allowed) {

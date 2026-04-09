@@ -21,6 +21,7 @@ import type {
   holdingSalesTable,
   truelayerConnectionsTable,
   trading212ConnectionsTable,
+  brokerConnectionsTable,
   userOnboardingTable,
   budgetAlertPreferencesTable,
   budgetNotificationsTable,
@@ -78,6 +79,9 @@ export type NewTrueLayerConnection = InferInsertModel<typeof truelayerConnection
 export type Trading212Connection = InferSelectModel<typeof trading212ConnectionsTable>;
 export type NewTrading212Connection = InferInsertModel<typeof trading212ConnectionsTable>;
 
+export type BrokerConnection = InferSelectModel<typeof brokerConnectionsTable>;
+export type NewBrokerConnection = InferInsertModel<typeof brokerConnectionsTable>;
+
 export type UserOnboarding = InferSelectModel<typeof userOnboardingTable>;
 export type NewUserOnboarding = InferInsertModel<typeof userOnboardingTable>;
 
@@ -121,6 +125,7 @@ export type TransactionWithDetails = {
   is_recurring: boolean;
   transfer_account_id: string | null;
   is_split: boolean;
+  refund_for_transaction_id: string | null;
 };
 
 export type AccountWithDetails = {
@@ -209,10 +214,10 @@ export type SplitDetail = {
 // ---------------------------------------------------------------------------
 
 export type AccountType = "currentAccount" | "savings" | "creditCard" | "investment";
-export type TransactionType = "income" | "expense" | "transfer" | "sale";
+export type TransactionType = "income" | "expense" | "transfer" | "sale" | "refund";
 export type Period = "monthly" | "weekly";
 export type RecurringPattern = "daily" | "weekly" | "biweekly" | "monthly" | "yearly";
-export type InvestmentType = "stock" | "real_estate" | "private_equity" | "other";
+export type InvestmentType = "stock" | "crypto" | "etf" | "real_estate" | "private_equity" | "other";
 export type BillingCycle = "weekly" | "monthly" | "quarterly" | "yearly";
 export type SharedPermission = "view" | "edit";
 export type SharedStatus = "pending" | "accepted" | "declined";

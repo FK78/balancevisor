@@ -31,8 +31,11 @@ const AccountCharts = dynamic(
 );
 import { AccountHealthCheck } from "@/components/AccountHealthCheck";
 import { getTrueLayerConnections } from "@/db/mutations/truelayer";
-import { getManualHoldings, getTrading212Connection } from "@/db/queries/investments";
+import { getManualHoldings, getBrokerConnections } from "@/db/queries/investments";
+import { BROKER_META } from "@/lib/brokers";
+import type { BrokerSource } from "@/lib/brokers/types";
 import Link from "next/link";
+import { requireFeature } from "@/components/FeatureGate";
 
 const typeConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   currentAccount: { label: "Current Account", variant: "secondary" },
@@ -49,17 +52,18 @@ export const typeIcons: Record<string, typeof Wallet> = {
 };
 
 export default async function Accounts() {
+  await requireFeature("accounts");
   const userId = await getCurrentUserId();
 
   const email = await getCurrentUserEmail();
 
-  const [ownedAccounts, sharedAccounts, baseCurrency, truelayerConnections, manualHoldings, t212Connection, pendingInvitations] = await Promise.all([
+  const [ownedAccounts, sharedAccounts, baseCurrency, truelayerConnections, manualHoldings, brokerConnections, pendingInvitations] = await Promise.all([
     getAccountsWithDetails(userId),
     getSharedAccounts(userId, email),
     getUserBaseCurrency(userId),
     getTrueLayerConnections(),
     getManualHoldings(userId),
-    getTrading212Connection(userId),
+    getBrokerConnections(userId),
     getPendingInvitations(userId, email),
   ]);
 
@@ -78,18 +82,21 @@ export default async function Accounts() {
   }
 
   // Build a map of account_id -> count of linked investments
-  const investmentCountByAccount = new Map<string, { manual: number; t212: boolean }>();
+  const investmentCountByAccount = new Map<string, { manual: number; brokers: string[] }>();
   for (const h of manualHoldings) {
     if (h.account_id) {
-      const existing = investmentCountByAccount.get(h.account_id) ?? { manual: 0, t212: false };
+      const existing = investmentCountByAccount.get(h.account_id) ?? { manual: 0, brokers: [] };
       existing.manual++;
       investmentCountByAccount.set(h.account_id, existing);
     }
   }
-  if (t212Connection?.account_id) {
-    const existing = investmentCountByAccount.get(t212Connection.account_id) ?? { manual: 0, t212: false };
-    existing.t212 = true;
-    investmentCountByAccount.set(t212Connection.account_id, existing);
+  for (const conn of brokerConnections) {
+    if (conn.account_id) {
+      const existing = investmentCountByAccount.get(conn.account_id) ?? { manual: 0, brokers: [] };
+      const label = BROKER_META[conn.broker as BrokerSource]?.label ?? conn.broker;
+      existing.brokers.push(label);
+      investmentCountByAccount.set(conn.account_id, existing);
+    }
   }
 
   const liabilityTypes = new Set(["creditCard"]);
@@ -162,16 +169,16 @@ export default async function Accounts() {
               variant: "secondary" as const,
             };
             return (
-              <Card key={account.id} className="transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5">
+              <Card key={account.id} className="transition-colors">
                 <CardHeader className="flex flex-row items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="bg-primary/8 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl">
+                    <div className="bg-primary/10 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl">
                       {(() => { const Icon = typeIcons[account.type ?? ""] ?? Wallet; return <Icon className="text-primary h-5 w-5" />; })()}
                     </div>
                     <div>
                       <CardTitle className="text-base">
                         <Link
-                          href={`/dashboard/transactions?account=${account.id}`}
+                          href={`/dashboard/accounts/${account.id}`}
                           className="hover:underline"
                         >
                           {account.accountName}
@@ -179,7 +186,7 @@ export default async function Accounts() {
                       </CardTitle>
                       <CardDescription className="text-xs">
                         <Link
-                          href={`/dashboard/transactions?account=${account.id}`}
+                          href={`/dashboard/accounts/${account.id}`}
                           className="hover:underline"
                         >
                           {account.transactions} transactions
@@ -214,7 +221,7 @@ export default async function Accounts() {
                 </CardHeader>
                 <CardContent>
                   <Link
-                    href={`/dashboard/transactions?account=${account.id}`}
+                    href={`/dashboard/accounts/${account.id}`}
                     className={`text-2xl font-bold tabular-nums hover:underline ${account.balance >= 0 ? "text-foreground" : "text-red-600"
                       }`}
                   >
@@ -225,7 +232,7 @@ export default async function Accounts() {
                   {account.type === "investment" && investmentCountByAccount.has(account.id) && (() => {
                     const info = investmentCountByAccount.get(account.id)!;
                     const parts: string[] = [];
-                    if (info.t212) parts.push("Trading 212");
+                    for (const b of info.brokers) parts.push(b);
                     if (info.manual > 0) parts.push(`${info.manual} manual holding${info.manual !== 1 ? "s" : ""}`);
                     return (
                       <Link

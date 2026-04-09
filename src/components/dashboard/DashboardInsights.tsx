@@ -55,7 +55,7 @@ export function DashboardInsights({ insights }: { insights: Insight[] }) {
             return (
               <div
                 key={insight.id}
-                className="flex items-start gap-3 rounded-lg border border-border/50 px-3 py-2.5"
+                className="flex items-start gap-3 rounded-lg bg-secondary/40 px-3 py-2.5"
               >
                 <div
                   className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${style}`}

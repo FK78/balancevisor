@@ -1,12 +1,16 @@
 import { groq } from "@ai-sdk/groq";
 import { streamText } from "ai";
 import { getCurrentUserId } from "@/lib/auth";
+import { guardAiEnabled } from "@/lib/ai-guard";
 import { getWeeklyDigestData } from "@/lib/weekly-digest-data";
 import { getCachedDigest, setCachedDigest, invalidateCachedDigest } from "@/lib/weekly-digest-cache";
 import { rateLimiters } from "@/lib/rate-limiter";
 
 export async function POST(req: Request) {
   const userId = await getCurrentUserId();
+
+  const aiBlocked = await guardAiEnabled();
+  if (aiBlocked) return aiBlocked;
 
   const rateLimitResult = rateLimiters.weeklyDigest.consume(`weekly-digest:${userId}`);
   if (!rateLimitResult.allowed) {

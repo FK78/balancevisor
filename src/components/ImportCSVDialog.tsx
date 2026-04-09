@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useCallback } from "react";
+import { useAiEnabled } from "@/components/AiSettingsProvider";
 import { Upload, FileText, CheckCircle2, AlertTriangle, Loader2, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -86,6 +87,7 @@ export function ImportCSVDialog({
   accounts: Account[];
   onImported?: () => void;
 }) {
+  const aiEnabled = useAiEnabled();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"upload" | "map" | "importing" | "result">("upload");
   const [csvText, setCsvText] = useState("");
@@ -229,7 +231,7 @@ export function ImportCSVDialog({
           toast.success(`Imported ${res.imported} transaction${res.imported !== 1 ? "s" : ""}`);
 
           // Fire-and-forget AI enrichment for imported transactions
-          if (res.transactionIds && res.transactionIds.length > 0) {
+          if (aiEnabled && res.transactionIds && res.transactionIds.length > 0) {
             fetch("/api/ai-enrich-transactions", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -344,6 +346,7 @@ export function ImportCSVDialog({
             )}
 
             {/* AI Auto-detect */}
+            {aiEnabled && (
             <div className="flex items-center gap-2">
               <Button
                 size="sm"
@@ -382,6 +385,7 @@ export function ImportCSVDialog({
                 Can&apos;t figure out the columns? Let AI map them for you.
               </span>
             </div>
+            )}
 
             {/* Column mapping */}
             <div className="grid gap-4 sm:grid-cols-2">

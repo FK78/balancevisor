@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useAiEnabled } from "@/components/AiSettingsProvider";
 import {
   Card,
   CardContent,
@@ -20,6 +21,7 @@ type HealthState = {
 };
 
 export function AccountHealthCheck() {
+  const aiEnabled = useAiEnabled();
   const [state, setState] = useState<HealthState>({
     text: "",
     loading: true,
@@ -90,6 +92,8 @@ export function AccountHealthCheck() {
   useEffect(() => {
     return () => abortRef.current?.abort();
   }, []);
+
+  if (!aiEnabled) return null;
 
   return (
     <Card>

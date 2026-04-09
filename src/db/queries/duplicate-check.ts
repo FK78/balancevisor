@@ -20,7 +20,7 @@ export async function findPotentialDuplicates(
   accountId: string,
   amount: number,
   date: string,
-  type: 'income' | 'expense' | 'transfer' | 'sale',
+  type: 'income' | 'expense' | 'transfer' | 'sale' | 'refund',
 ): Promise<PotentialDuplicate[]> {
   const d = new Date(date + 'T00:00:00');
   const from = new Date(d);

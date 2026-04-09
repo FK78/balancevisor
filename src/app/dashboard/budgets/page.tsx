@@ -30,8 +30,10 @@ const BudgetCharts = dynamic(
 import { BudgetAlertSettings } from "@/components/BudgetAlertSettings";
 import { getAlertPreferencesByUser } from "@/db/queries/budget-alerts";
 import { getSharesByOwner, getPendingInvitations } from "@/db/queries/sharing";
+import { requireFeature } from "@/components/FeatureGate";
 
 export default async function Budgets() {
+  await requireFeature("budgets");
   const userId = await getCurrentUserId();
   const email = await getCurrentUserEmail();
   
@@ -146,7 +148,7 @@ export default async function Budgets() {
             const Icon = getCategoryIcon(budget.budgetIcon);
 
             return (
-              <Card key={budget.id} className="relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5">
+              <Card key={budget.id} className="relative overflow-hidden transition-colors">
                 <div className="p-5 space-y-4">
                   {/* Header: icon + name + actions */}
                   <div className="flex items-center justify-between">

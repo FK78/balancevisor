@@ -17,14 +17,10 @@ import { deleteDebt } from "@/db/mutations/debts";
 import { Badge } from "@/components/ui/badge";
 import { CreditCard, CheckCircle2, TrendingDown, Percent } from "lucide-react";
 import { DebtAIAdvisor } from "@/components/DebtAIAdvisor";
-import dynamic from "next/dynamic";
-
-const DebtPayoffStrategies = dynamic(
-  () => import("@/components/DebtPayoffStrategies").then((mod) => mod.DebtPayoffStrategies),
-  { loading: () => <div className="min-h-[300px]" /> }
-);
+import { requireFeature } from "@/components/FeatureGate";
 
 export default async function DebtsPage() {
+  await requireFeature("debts");
   const userId = await getCurrentUserId();
   const [summary, accounts, baseCurrency] = await Promise.all([
     getDebtsSummary(userId),
@@ -64,7 +60,7 @@ export default async function DebtsPage() {
 
       {/* Overview banner */}
       {active.length > 0 && (
-        <Card className="bg-gradient-to-br from-red-500/6 via-orange-400/4 to-amber-400/6 border-red-500/15">
+        <Card>
           <CardContent className="flex flex-col gap-4 py-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10">
@@ -101,7 +97,7 @@ export default async function DebtsPage() {
                   </div>
                   <div className="bg-muted h-2.5 rounded-full overflow-hidden">
                     <div
-                      className="bg-gradient-to-r from-emerald-400 to-emerald-600 h-full rounded-full transition-all"
+                      className="bg-[#34C759] h-full rounded-full transition-all"
                       style={{ width: `${Math.min(overallPct, 100)}%` }}
                     />
                   </div>

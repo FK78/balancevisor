@@ -11,7 +11,9 @@ import { checkBudgetAlerts } from '@/lib/budget-alerts';
 import { encryptForUser, getUserKey } from '@/lib/encryption';
 import { matchCategorisationRule } from '@/lib/auto-categorise';
 import { invalidateByUser } from '@/lib/cache';
+import { matchTransactionsToSubscriptions, matchTransactionsToDebts } from '@/lib/transaction-intelligence';
 import { requireString, sanitizeNumber, sanitizeEnum, requireDate, sanitizeUUID, sanitizeString } from '@/lib/sanitize';
+import { findMatchingExpense } from '@/lib/refund-matcher';
 
 type Transaction = Omit<typeof transactionsTable.$inferInsert, 'user_id'>;
 type RecurringPattern = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
@@ -46,14 +48,14 @@ export async function createTransaction(
   }).returning({ id: transactionsTable.id });
 }
 
-function balanceDelta(type: 'income' | 'expense' | 'transfer' | 'sale', amount: number) {
+function balanceDelta(type: 'income' | 'expense' | 'transfer' | 'sale' | 'refund', amount: number) {
   if (type === 'transfer') return 0;
-  if (type === 'income' || type === 'sale') return amount;
+  if (type === 'income' || type === 'sale' || type === 'refund') return amount;
   return -amount;
 }
 
 export async function addTransaction(formData: FormData) {
-  const type = sanitizeEnum(formData.get('type') as string, ['income', 'expense', 'sale'] as const, 'expense');
+  const type = sanitizeEnum(formData.get('type') as string, ['income', 'expense', 'sale', 'refund'] as const, 'expense');
   const amount = sanitizeNumber(formData.get('amount') as string, 'Amount', { required: true, min: 0.01 });
   const accountId = requireString(formData.get('account_id') as string, 'Account');
 
@@ -81,6 +83,13 @@ export async function addTransaction(formData: FormData) {
     if (matched) categoryId = matched;
   }
 
+  // For refunds, attempt to auto-match to an original expense
+  let refundForTransactionId = sanitizeUUID(formData.get('refund_for_transaction_id') as string);
+  if (type === 'refund' && !refundForTransactionId && description && accountId) {
+    const match = await findMatchingExpense(userId, accountId, amount, description);
+    if (match) refundForTransactionId = match.transactionId;
+  }
+
   const result = await db.transaction(async (tx) => {
     const [inserted] = await createTransaction({
       type,
@@ -92,6 +101,7 @@ export async function addTransaction(formData: FormData) {
       category_id: categoryId || (formData.get('category_id') as string) || null,
       recurring_pattern: recurringPattern as typeof transactionsTable.$inferInsert['recurring_pattern'],
       next_recurring_date: nextRecurringDate,
+      refund_for_transaction_id: refundForTransactionId || null,
     }, userId, tx);
 
     await tx.update(accountsTable)
@@ -106,12 +116,16 @@ export async function addTransaction(formData: FormData) {
   await checkBudgetAlerts(userId);
   invalidateByUser(userId);
 
+  // Run subscription + debt matching inline (fast, no AI)
+  matchTransactionsToSubscriptions(userId, [result.id]).catch(() => {});
+  matchTransactionsToDebts(userId, [result.id]).catch(() => {});
+
   return result;
 }
 
 export async function editTransaction(formData: FormData) {
   const id = requireString(formData.get('id') as string, 'Transaction ID');
-  const newType = sanitizeEnum(formData.get('type') as string, ['income', 'expense', 'sale'] as const, 'expense');
+  const newType = sanitizeEnum(formData.get('type') as string, ['income', 'expense', 'sale', 'refund'] as const, 'expense');
   const newAmount = sanitizeNumber(formData.get('amount') as string, 'Amount', { required: true, min: 0.01 });
   const newAccountId = requireString(formData.get('account_id') as string, 'Account');
 
@@ -141,6 +155,7 @@ export async function editTransaction(formData: FormData) {
   const userKey = await getUserKey(userId);
 
   const result = await db.transaction(async (tx) => {
+    const editRefundId = sanitizeUUID(formData.get('refund_for_transaction_id') as string);
     const [updated] = await tx.update(transactionsTable).set({
       type: newType,
       amount: newAmount,
@@ -151,6 +166,7 @@ export async function editTransaction(formData: FormData) {
       category_id: sanitizeUUID(formData.get('category_id') as string),
       recurring_pattern: recurringPattern as typeof transactionsTable.$inferInsert['recurring_pattern'],
       next_recurring_date: nextRecurringDate,
+      refund_for_transaction_id: newType === 'refund' ? (editRefundId || null) : null,
     }).where(eq(transactionsTable.id, id)).returning({ id: transactionsTable.id });
 
     if (old) {

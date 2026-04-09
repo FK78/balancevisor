@@ -11,12 +11,21 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { MobileNavDrawer } from "@/components/MobileNavDrawer";
+import { useFeatureFlags } from "@/components/FeatureFlagsProvider";
+import type { FeatureId } from "@/lib/features";
 
-const bottomNavItems = [
+interface BottomNavItem {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  featureId?: FeatureId;
+}
+
+const bottomNavItems: BottomNavItem[] = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
-  { href: "/dashboard/transactions", label: "Transactions", icon: ArrowLeftRight },
-  { href: "/dashboard/accounts", label: "Accounts", icon: Wallet },
-  { href: "/dashboard/investments", label: "Investments", icon: TrendingUp },
+  { href: "/dashboard/transactions", label: "Transactions", icon: ArrowLeftRight, featureId: "transactions" },
+  { href: "/dashboard/accounts", label: "Accounts", icon: Wallet, featureId: "accounts" },
+  { href: "/dashboard/investments", label: "Investments", icon: TrendingUp, featureId: "investments" },
 ];
 
 const drawerRoutes = [
@@ -40,6 +49,10 @@ function isActive(href: string, pathname: string | null) {
 export function MobileBottomNav() {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { isFeatureEnabled } = useFeatureFlags();
+
+  const visibleBottomItems = bottomNavItems.filter((item) => !item.featureId || isFeatureEnabled(item.featureId));
+  const colCount = visibleBottomItems.length + 1;
 
   const moreIsActive = drawerRoutes.some(
     (route) => pathname?.startsWith(route)
@@ -48,12 +61,12 @@ export function MobileBottomNav() {
   return (
     <>
       {/* iOS-style tab bar */}
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/70 backdrop-blur-2xl backdrop-saturate-150 md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-50 bg-card/80 backdrop-blur-xl md:hidden" style={{ borderTop: '0.5px solid var(--border)' }}>
         <div
-          className="mx-auto grid max-w-lg grid-cols-5"
-          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+          className="mx-auto grid max-w-lg"
+          style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)`, paddingBottom: "env(safe-area-inset-bottom)" }}
         >
-          {bottomNavItems.map((item) => {
+          {visibleBottomItems.map((item) => {
             const active = isActive(item.href, pathname);
             return (
               <Link

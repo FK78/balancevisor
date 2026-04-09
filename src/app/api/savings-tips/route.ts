@@ -1,6 +1,7 @@
 import { groq } from "@ai-sdk/groq";
 import { streamText } from "ai";
 import { getCurrentUserId } from "@/lib/auth";
+import { guardAiEnabled } from "@/lib/ai-guard";
 import { getMonthlyIncomeExpenseTrend, getTotalSpendByCategoryThisMonth } from "@/db/queries/transactions";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { getCachedSavingsTips, setCachedSavingsTips, invalidateCachedSavingsTips } from "@/lib/savings-tips-cache";
@@ -10,6 +11,9 @@ import { getMonthKey } from "@/lib/date";
 
 export async function POST(req: Request) {
   const userId = await getCurrentUserId();
+
+  const aiBlocked = await guardAiEnabled();
+  if (aiBlocked) return aiBlocked;
 
   const rateLimitResult = rateLimiters.savingsTips.consume(`savings-tips:${userId}`);
   if (!rateLimitResult.allowed) {
