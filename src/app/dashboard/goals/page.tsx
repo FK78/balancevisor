@@ -6,6 +6,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getGoals } from "@/db/queries/goals";
+import { getGoalForecasts } from "@/lib/goal-forecast";
+import { GoalForecastCard } from "@/components/GoalForecastCard";
 import { getCurrentUserId } from "@/lib/auth";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { formatCurrency } from "@/lib/formatCurrency";
@@ -13,13 +15,21 @@ import { GoalFormDialog } from "@/components/GoalFormDialog";
 import { ContributeGoalDialog } from "@/components/ContributeGoalDialog";
 import { DeleteGoalButton } from "@/components/DeleteGoalButton";
 import { Trophy } from "lucide-react";
+import { requireFeature } from "@/components/FeatureGate";
+import { getPageLayout } from "@/db/queries/dashboard-layouts";
+import { PageWidgetWrapper } from "@/components/PageWidgetWrapper";
+import { DashboardWidget } from "@/components/DashboardWidget";
 
 export default async function GoalsPage() {
+  await requireFeature("goals");
   const userId = await getCurrentUserId();
-  const [goals, baseCurrency] = await Promise.all([
+  const [goals, baseCurrency, serverLayout] = await Promise.all([
     getGoals(userId),
     getUserBaseCurrency(userId),
+    getPageLayout(userId, "goals"),
   ]);
+
+  const forecasts = goals.length > 0 ? await getGoalForecasts(userId, goals) : [];
 
   const totalTarget = goals.reduce((s, g) => s + g.target_amount, 0);
   const totalSaved = goals.reduce((s, g) => s + g.saved_amount, 0);
@@ -37,21 +47,20 @@ export default async function GoalsPage() {
     }
   }
 
-  return (
-    <div className="mx-auto max-w-7xl space-y-8 p-6 md:p-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between page-header-gradient">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Goals</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Set targets and track your progress towards financial goals.
-          </p>
-        </div>
-        <GoalFormDialog />
+  const headerEl = (
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Goals</h1>
       </div>
+      <GoalFormDialog />
+    </div>
+  );
 
-      {/* Overview card */}
+  return (
+    <PageWidgetWrapper pageId="goals" serverLayout={serverLayout} header={headerEl}>
+      <DashboardWidget id="overview">
       {goals.length > 0 && (
-        <Card className="bg-gradient-to-br from-indigo-500/6 via-violet-500/4 to-cyan-400/6 border-primary/15">
+        <Card>
           <CardContent className="flex flex-col gap-4 py-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
@@ -75,7 +84,7 @@ export default async function GoalsPage() {
                 </div>
                 <div className="bg-muted h-2.5 rounded-full overflow-hidden">
                   <div
-                    className="bg-gradient-to-r from-indigo-500 to-cyan-400 h-full rounded-full transition-all"
+                    className="bg-primary h-full rounded-full transition-all"
                     style={{ width: `${Math.min(overallPct, 100)}%` }}
                   />
                 </div>
@@ -84,8 +93,15 @@ export default async function GoalsPage() {
           </CardContent>
         </Card>
       )}
+      </DashboardWidget>
 
-      {/* Goals grid */}
+      <DashboardWidget id="forecasts">
+      {forecasts.length > 0 && (
+        <GoalForecastCard forecasts={forecasts} currency={baseCurrency} />
+      )}
+      </DashboardWidget>
+
+      <DashboardWidget id="goals-grid">
       {goals.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
@@ -189,6 +205,7 @@ export default async function GoalsPage() {
           })}
         </div>
       )}
-    </div>
+      </DashboardWidget>
+    </PageWidgetWrapper>
   );
 }

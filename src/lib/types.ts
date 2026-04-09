@@ -21,6 +21,7 @@ import type {
   holdingSalesTable,
   truelayerConnectionsTable,
   trading212ConnectionsTable,
+  brokerConnectionsTable,
   userOnboardingTable,
   budgetAlertPreferencesTable,
   budgetNotificationsTable,
@@ -28,6 +29,8 @@ import type {
   netWorthSnapshotsTable,
   sharedAccessTable,
   defaultCategoryTemplatesTable,
+  retirementProfilesTable,
+  dashboardLayoutsTable,
 } from "@/db/schema";
 
 // ---------------------------------------------------------------------------
@@ -76,6 +79,9 @@ export type NewTrueLayerConnection = InferInsertModel<typeof truelayerConnection
 export type Trading212Connection = InferSelectModel<typeof trading212ConnectionsTable>;
 export type NewTrading212Connection = InferInsertModel<typeof trading212ConnectionsTable>;
 
+export type BrokerConnection = InferSelectModel<typeof brokerConnectionsTable>;
+export type NewBrokerConnection = InferInsertModel<typeof brokerConnectionsTable>;
+
 export type UserOnboarding = InferSelectModel<typeof userOnboardingTable>;
 export type NewUserOnboarding = InferInsertModel<typeof userOnboardingTable>;
 
@@ -97,6 +103,9 @@ export type NewSharedAccess = InferInsertModel<typeof sharedAccessTable>;
 export type DefaultCategoryTemplate = InferSelectModel<typeof defaultCategoryTemplatesTable>;
 export type NewDefaultCategoryTemplate = InferInsertModel<typeof defaultCategoryTemplatesTable>;
 
+export type RetirementProfileRow = InferSelectModel<typeof retirementProfilesTable>;
+export type DashboardLayoutRow = InferSelectModel<typeof dashboardLayoutsTable>;
+
 // ---------------------------------------------------------------------------
 // UI-specific types (with decrypted fields and computed values)
 // ---------------------------------------------------------------------------
@@ -114,6 +123,7 @@ export type TransactionWithDetails = {
   is_recurring: boolean;
   transfer_account_id: string | null;
   is_split: boolean;
+  refund_for_transaction_id: string | null;
 };
 
 export type AccountWithDetails = {
@@ -160,7 +170,6 @@ export type DebtWithProgress = {
   due_date: string | null;
   lender: string | null;
   color: string;
-  is_paid_off: boolean;
   created_at: Date;
 };
 
@@ -203,11 +212,39 @@ export type SplitDetail = {
 // ---------------------------------------------------------------------------
 
 export type AccountType = "currentAccount" | "savings" | "creditCard" | "investment";
-export type TransactionType = "income" | "expense" | "transfer" | "sale";
+export type TransactionType = "income" | "expense" | "transfer" | "sale" | "refund";
 export type Period = "monthly" | "weekly";
 export type RecurringPattern = "daily" | "weekly" | "biweekly" | "monthly" | "yearly";
-export type InvestmentType = "stock" | "real_estate" | "private_equity" | "other";
+export type InvestmentType = "stock" | "crypto" | "etf" | "real_estate" | "private_equity" | "other";
 export type BillingCycle = "weekly" | "monthly" | "quarterly" | "yearly";
 export type SharedPermission = "view" | "edit";
 export type SharedStatus = "pending" | "accepted" | "declined";
 export type SharedResourceType = "account" | "budget";
+
+// ---------------------------------------------------------------------------
+// Data export / import
+// ---------------------------------------------------------------------------
+
+export const EXPORT_VERSION = 1;
+
+export type ExportData = {
+  version: number;
+  exported_at: string;
+  accounts: Account[];
+  categories: Category[];
+  transactions: Transaction[];
+  transactionSplits: TransactionSplit[];
+  budgets: Budget[];
+  budgetAlertPreferences: BudgetAlertPreference[];
+  goals: Goal[];
+  debts: Debt[];
+  debtPayments: DebtPayment[];
+  investmentGroups: InvestmentGroup[];
+  manualHoldings: ManualHolding[];
+  holdingSales: HoldingSale[];
+  subscriptions: Subscription[];
+  netWorthSnapshots: NetWorthSnapshot[];
+  categorisationRules: CategorisationRule[];
+  retirementProfile: RetirementProfileRow | null;
+  dashboardLayouts: DashboardLayoutRow[];
+};

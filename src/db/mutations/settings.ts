@@ -12,6 +12,7 @@ import {
   manualHoldingsTable,
   subscriptionsTable,
   trading212ConnectionsTable,
+  brokerConnectionsTable,
   transactionsTable,
   truelayerConnectionsTable,
   debtsTable,
@@ -22,7 +23,13 @@ import {
   investmentGroupsTable,
   holdingSalesTable,
   transactionSplitsTable,
+  userPreferencesTable,
+  retirementProfilesTable,
+  dashboardLayoutsTable,
+  userKeysTable,
 } from '@/db/schema';
+import { EXPORT_VERSION } from '@/lib/types';
+import type { ExportData } from '@/lib/types';
 import { eq, or, inArray } from 'drizzle-orm';
 import { revalidateDomains } from '@/lib/revalidate';
 import { getCurrentUserId, getCurrentUserEmail } from '@/lib/auth';
@@ -140,7 +147,11 @@ export async function deleteAccount(): Promise<{ success?: boolean; error?: stri
     await tx.delete(investmentGroupsTable).where(eq(investmentGroupsTable.user_id, userId));
     await tx.delete(manualHoldingsTable).where(eq(manualHoldingsTable.user_id, userId));
     await tx.delete(trading212ConnectionsTable).where(eq(trading212ConnectionsTable.user_id, userId));
+    await tx.delete(brokerConnectionsTable).where(eq(brokerConnectionsTable.user_id, userId));
     await tx.delete(debtsTable).where(eq(debtsTable.user_id, userId));
+    await tx.delete(retirementProfilesTable).where(eq(retirementProfilesTable.user_id, userId));
+    await tx.delete(dashboardLayoutsTable).where(eq(dashboardLayoutsTable.user_id, userId));
+    await tx.delete(userKeysTable).where(eq(userKeysTable.user_id, userId));
 
     // --- Transactions (linked to accounts) ---
     if (accountIds.length > 0) {
@@ -155,7 +166,8 @@ export async function deleteAccount(): Promise<{ success?: boolean; error?: stri
     await tx.delete(accountsTable).where(eq(accountsTable.user_id, userId));
     await tx.delete(truelayerConnectionsTable).where(eq(truelayerConnectionsTable.user_id, userId));
 
-    // --- Onboarding (last app-level record) ---
+    // --- Onboarding & preferences (last app-level records) ---
+    await tx.delete(userPreferencesTable).where(eq(userPreferencesTable.user_id, userId));
     await tx.delete(userOnboardingTable).where(eq(userOnboardingTable.user_id, userId));
   });
 
@@ -180,7 +192,7 @@ export async function deleteAccount(): Promise<{ success?: boolean; error?: stri
   return { success: true };
 }
 
-export async function exportUserData() {
+export async function exportUserData(): Promise<ExportData> {
   const userId = await getCurrentUserId();
   const userKey = await getUserKey(userId);
 
@@ -188,14 +200,54 @@ export async function exportUserData() {
   const accounts = await userDb.select().from(accountsTable).where(eq(accountsTable.user_id, userId));
   const accountIds = accounts.map(a => a.id);
 
-  const [categories, transactions, budgets, goals, subscriptions] = await Promise.all([
+  const transactionsRaw = accountIds.length > 0
+    ? await userDb.select().from(transactionsTable).where(inArray(transactionsTable.account_id, accountIds))
+    : [];
+  const transactionIds = transactionsRaw.map(t => t.id);
+
+  const debtRows = await userDb.select().from(debtsTable).where(eq(debtsTable.user_id, userId));
+  const debtIds = debtRows.map(d => d.id);
+
+  const holdingRows = await userDb.select().from(manualHoldingsTable).where(eq(manualHoldingsTable.user_id, userId));
+  const holdingIds = holdingRows.map(h => h.id);
+
+  const budgetRows = await userDb.select().from(budgetsTable).where(eq(budgetsTable.user_id, userId));
+  const budgetIds = budgetRows.map(b => b.id);
+
+  const [
+    categories,
+    goals,
+    subscriptions,
+    categorisationRules,
+    investmentGroups,
+    netWorthSnapshots,
+    transactionSplits,
+    debtPayments,
+    holdingSales,
+    budgetAlertPreferences,
+    retirementProfileRows,
+    dashboardLayoutRows,
+  ] = await Promise.all([
     userDb.select().from(categoriesTable).where(eq(categoriesTable.user_id, userId)),
-    accountIds.length > 0
-      ? userDb.select().from(transactionsTable).where(inArray(transactionsTable.account_id, accountIds))
-      : Promise.resolve([]),
-    userDb.select().from(budgetsTable).where(eq(budgetsTable.user_id, userId)),
     userDb.select().from(goalsTable).where(eq(goalsTable.user_id, userId)),
     userDb.select().from(subscriptionsTable).where(eq(subscriptionsTable.user_id, userId)),
+    userDb.select().from(categorisationRulesTable).where(eq(categorisationRulesTable.user_id, userId)),
+    userDb.select().from(investmentGroupsTable).where(eq(investmentGroupsTable.user_id, userId)),
+    userDb.select().from(netWorthSnapshotsTable).where(eq(netWorthSnapshotsTable.user_id, userId)),
+    transactionIds.length > 0
+      ? userDb.select().from(transactionSplitsTable).where(inArray(transactionSplitsTable.transaction_id, transactionIds))
+      : Promise.resolve([]),
+    debtIds.length > 0
+      ? userDb.select().from(debtPaymentsTable).where(inArray(debtPaymentsTable.debt_id, debtIds))
+      : Promise.resolve([]),
+    holdingIds.length > 0
+      ? userDb.select().from(holdingSalesTable).where(inArray(holdingSalesTable.holding_id, holdingIds))
+      : Promise.resolve([]),
+    budgetIds.length > 0
+      ? userDb.select().from(budgetAlertPreferencesTable).where(inArray(budgetAlertPreferencesTable.budget_id, budgetIds))
+      : Promise.resolve([]),
+    userDb.select().from(retirementProfilesTable).where(eq(retirementProfilesTable.user_id, userId)),
+    userDb.select().from(dashboardLayoutsTable).where(eq(dashboardLayoutsTable.user_id, userId)),
   ]);
 
   // Decrypt encrypted fields so user receives readable data
@@ -203,18 +255,34 @@ export async function exportUserData() {
     ...a,
     name: a.name ? decryptForUser(a.name, userKey) : a.name,
   }));
-  const decryptedTransactions = transactions.map(t => ({
+  const decryptedTransactions = transactionsRaw.map(t => ({
     ...t,
     description: t.description ? decryptForUser(t.description, userKey) : t.description,
   }));
+  const decryptedSplits = transactionSplits.map(s => ({
+    ...s,
+    description: s.description ? decryptForUser(s.description, userKey) : s.description,
+  }));
 
   return {
+    version: EXPORT_VERSION,
     exported_at: new Date().toISOString(),
     accounts: decryptedAccounts,
     categories,
     transactions: decryptedTransactions,
-    budgets,
+    transactionSplits: decryptedSplits,
+    budgets: budgetRows,
+    budgetAlertPreferences,
     goals,
+    debts: debtRows,
+    debtPayments,
+    investmentGroups,
+    manualHoldings: holdingRows,
+    holdingSales,
     subscriptions,
+    netWorthSnapshots,
+    categorisationRules,
+    retirementProfile: retirementProfileRows[0] ?? null,
+    dashboardLayouts: dashboardLayoutRows,
   };
 }

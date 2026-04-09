@@ -1,24 +1,19 @@
 import Link from "next/link";
-import { BlurFade } from "@/components/ui/blur-fade";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Target,
-  AlertTriangle,
-  CheckCircle,
-  TrendingUp,
   Users,
 } from "lucide-react";
-import { getBudgets, getSharedBudgets } from "@/db/queries/budgets";
+import { getBudgets, getSharedBudgets, getAvgMonthlySpendByCategory } from "@/db/queries/budgets";
+import { getSmartBudgetSuggestions } from "@/lib/budget-suggestions";
 import { getCategoriesByUser } from "@/db/queries/categories";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { BudgetFormDialog } from "@/components/AddBudgetForm";
+import { SmartBudgetSuggestions } from "@/components/SmartBudgetSuggestions";
 import { DeleteBudgetButton } from "@/components/DeleteBudgetButton";
 import { ShareDialog } from "@/components/ShareDialog";
 import { PendingInvitations } from "@/components/PendingInvitations";
@@ -35,12 +30,17 @@ const BudgetCharts = dynamic(
 import { BudgetAlertSettings } from "@/components/BudgetAlertSettings";
 import { getAlertPreferencesByUser } from "@/db/queries/budget-alerts";
 import { getSharesByOwner, getPendingInvitations } from "@/db/queries/sharing";
+import { requireFeature } from "@/components/FeatureGate";
+import { getPageLayout } from "@/db/queries/dashboard-layouts";
+import { PageWidgetWrapper } from "@/components/PageWidgetWrapper";
+import { DashboardWidget } from "@/components/DashboardWidget";
 
 export default async function Budgets() {
+  await requireFeature("budgets");
   const userId = await getCurrentUserId();
   const email = await getCurrentUserEmail();
   
-  const [ownedBudgets, sharedBudgetRows, categories, baseCurrency, alertPrefs, allShares, pendingInvitations] = await Promise.all([
+  const [ownedBudgets, sharedBudgetRows, categories, baseCurrency, alertPrefs, allShares, pendingInvitations, avgSpend, serverLayout] = await Promise.all([
     getBudgets(userId),
     getSharedBudgets(userId, email),
     getCategoriesByUser(userId),
@@ -48,6 +48,8 @@ export default async function Budgets() {
     getAlertPreferencesByUser(userId),
     getSharesByOwner(userId),
     getPendingInvitations(userId, email),
+    getAvgMonthlySpendByCategory(userId),
+    getPageLayout(userId, "budgets"),
   ]);
 
   const budgets = [...ownedBudgets, ...sharedBudgetRows];
@@ -63,112 +65,72 @@ export default async function Budgets() {
 
   const alertPrefsMap = new Map(alertPrefs.map(p => [p.budget_id, p]));
 
+  const budgetSuggestions = await getSmartBudgetSuggestions(userId, ownedBudgets);
+
   const totalBudget = budgets.reduce((sum, b) => sum + b.budgetAmount, 0);
   const totalSpent = budgets.reduce((sum, b) => sum + b.budgetSpent, 0);
   const totalRemaining = totalBudget - totalSpent;
   const overBudgetCount = budgets.filter((b) => b.budgetSpent > b.budgetAmount).length;
   const spentPercent = totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(0) : "0";
-  return (
-    <div className="mx-auto max-w-7xl space-y-8 p-6 md:p-10">
-      <div className="flex items-start justify-between page-header-gradient">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Budgets</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Track your spending against monthly budgets.
-          </p>
-        </div>
-        {categories.length === 0 ? (
-          <Button asChild size="sm" variant="outline">
-            <Link href="/dashboard/categories">Add Categories First</Link>
-          </Button>
-        ) : (
-          <BudgetFormDialog categories={categories} />
-        )}
+  const headerEl = (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Budgets</h1>
       </div>
-
-      {budgetPendingInvitations.length > 0 && (
-        <PendingInvitations invitations={budgetPendingInvitations} />
+      {categories.length === 0 ? (
+        <Button asChild size="sm" variant="outline">
+          <Link href="/dashboard/categories">Add Categories First</Link>
+        </Button>
+      ) : (
+        <BudgetFormDialog categories={categories} avgSpendByCategory={avgSpend} />
       )}
+    </div>
+  );
 
-      {/* Summary */}
-      <BlurFade delay={0.05} inView>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-        <Card className="summary-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription className="text-sm font-semibold">
-              Total Budget
-            </CardDescription>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/8">
-              <Target className="text-primary h-4 w-4" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <CardTitle className="text-2xl">
-              {formatCurrency(totalBudget, baseCurrency)}
-            </CardTitle>
-          </CardContent>
-        </Card>
-        <Card className="summary-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription className="text-sm font-semibold">
-              Spent
-            </CardDescription>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-100 dark:bg-violet-900/30">
-              <TrendingUp className="h-4 w-4 text-violet-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <CardTitle className="text-2xl text-violet-600">
-              {formatCurrency(totalSpent, baseCurrency)}
-            </CardTitle>
-            <p className="text-muted-foreground mt-1 text-xs">
-              {spentPercent}% of total budget
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="summary-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription className="text-sm font-semibold">
-              Remaining
-            </CardDescription>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/30">
-              <CheckCircle className="h-4 w-4 text-emerald-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <CardTitle className="text-2xl text-emerald-600">
-              {formatCurrency(totalRemaining, baseCurrency)}
-            </CardTitle>
-          </CardContent>
-        </Card>
-        <Card className="summary-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardDescription className="text-sm font-semibold">
-              Over Budget
-            </CardDescription>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-100 dark:bg-red-900/30">
-              <AlertTriangle className="h-4 w-4 text-red-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <CardTitle className="text-2xl">
-              {overBudgetCount}
-            </CardTitle>
-            <p className="text-muted-foreground mt-1 text-xs">
-              {overBudgetCount === 0
-                ? "You're on track!"
-                : `${overBudgetCount} categor${overBudgetCount === 1 ? "y" : "ies"} exceeded`}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-      </BlurFade>
+  return (
+    <PageWidgetWrapper pageId="budgets" serverLayout={serverLayout} header={headerEl}>
+      <DashboardWidget id="pending-invitations">
+        {budgetPendingInvitations.length > 0 && (
+          <PendingInvitations invitations={budgetPendingInvitations} />
+        )}
+      </DashboardWidget>
 
+      <DashboardWidget id="stats">
+      <Card>
+        <CardContent className="grid grid-cols-2 gap-4 py-4 sm:grid-cols-4 sm:divide-x sm:gap-0">
+          <div className="px-4 text-center">
+            <p className="text-xs text-muted-foreground">Budget</p>
+            <p className="text-lg font-semibold tabular-nums">{formatCurrency(totalBudget, baseCurrency)}</p>
+          </div>
+          <div className="px-4 text-center">
+            <p className="text-xs text-muted-foreground">Spent ({spentPercent}%)</p>
+            <p className="text-lg font-semibold tabular-nums text-violet-600">{formatCurrency(totalSpent, baseCurrency)}</p>
+          </div>
+          <div className="px-4 text-center">
+            <p className="text-xs text-muted-foreground">Remaining</p>
+            <p className="text-lg font-semibold tabular-nums text-emerald-600">{formatCurrency(totalRemaining, baseCurrency)}</p>
+          </div>
+          <div className="px-4 text-center">
+            <p className="text-xs text-muted-foreground">Over Budget</p>
+            <p className="text-lg font-semibold tabular-nums">{overBudgetCount}</p>
+          </div>
+        </CardContent>
+      </Card>
+      </DashboardWidget>
+
+      <DashboardWidget id="suggestions">
+      {budgetSuggestions.length > 0 && (
+        <SmartBudgetSuggestions suggestions={budgetSuggestions} currency={baseCurrency} />
+      )}
+      </DashboardWidget>
+
+      <DashboardWidget id="charts">
       {budgets.length > 0 && (
         <BudgetCharts budgets={budgets} currency={baseCurrency} />
       )}
+      </DashboardWidget>
 
-      {/* Budget cards */}
+      <DashboardWidget id="budget-cards">
       {budgets.length === 0 ? (
         <Card>
           <CardContent className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-12 text-center">
@@ -182,12 +144,11 @@ export default async function Budgets() {
                 <Link href="/dashboard/categories">Add a category first</Link>
               </Button>
             ) : (
-              <BudgetFormDialog categories={categories} />
+              <BudgetFormDialog categories={categories} avgSpendByCategory={avgSpend} />
             )}
           </CardContent>
         </Card>
       ) : (
-        <BlurFade delay={0.1} inView>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {budgets.map((budget) => {
             const percent = Math.min(
@@ -200,7 +161,7 @@ export default async function Budgets() {
             const Icon = getCategoryIcon(budget.budgetIcon);
 
             return (
-              <Card key={budget.id} className="relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5">
+              <Card key={budget.id} className="relative overflow-hidden transition-colors">
                 <div className="p-5 space-y-4">
                   {/* Header: icon + name + actions */}
                   <div className="flex items-center justify-between">
@@ -312,8 +273,8 @@ export default async function Budgets() {
             );
           })}
         </div>
-        </BlurFade>
       )}
-    </div>
+      </DashboardWidget>
+    </PageWidgetWrapper>
   );
 }

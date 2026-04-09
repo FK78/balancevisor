@@ -1,11 +1,12 @@
 "use server";
 
 import { getUserDb } from "@/db/rls-context";
-import { trading212ConnectionsTable, manualHoldingsTable, accountsTable, holdingSalesTable } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { trading212ConnectionsTable, brokerConnectionsTable, manualHoldingsTable, accountsTable, holdingSalesTable } from "@/db/schema";
+import { eq, desc, sql, gt, and } from "drizzle-orm";
 import { getCurrentUserId } from "@/lib/auth";
 import { searchTicker } from "@/lib/yahoo-finance";
 import { decryptForUser, getUserKey } from "@/lib/encryption";
+import type { BrokerSource, BrokerCredentials } from "@/lib/brokers/types";
 
 export async function searchTickers(query: string) {
   await getCurrentUserId();
@@ -51,7 +52,7 @@ export async function getHoldingSales(userId: string) {
       date: holdingSalesTable.date,
       quantity: holdingSalesTable.quantity,
       price_per_unit: holdingSalesTable.price_per_unit,
-      total_amount: holdingSalesTable.total_amount,
+      total_amount: sql<number>`${holdingSalesTable.quantity} * ${holdingSalesTable.price_per_unit}`.mapWith(Number),
       realized_gain: holdingSalesTable.realized_gain,
       cash_account_id: holdingSalesTable.cash_account_id,
       notes: holdingSalesTable.notes,
@@ -87,6 +88,55 @@ export async function getT212ConnectionByAccountId(accountId: string, userId: st
   return rows[0] ?? null;
 }
 
+// ---------------------------------------------------------------------------
+// Generic broker connection queries
+// ---------------------------------------------------------------------------
+
+export async function getBrokerConnections(userId: string) {
+  const userDb = await getUserDb(userId);
+  return userDb
+    .select()
+    .from(brokerConnectionsTable)
+    .where(eq(brokerConnectionsTable.user_id, userId));
+}
+
+export async function getBrokerConnection(userId: string, broker: BrokerSource) {
+  const userDb = await getUserDb(userId);
+  const rows = await userDb
+    .select()
+    .from(brokerConnectionsTable)
+    .where(
+      and(
+        eq(brokerConnectionsTable.user_id, userId),
+        eq(brokerConnectionsTable.broker, broker),
+      ),
+    )
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function getBrokerConnectionByAccountId(accountId: string, userId: string) {
+  const userDb = await getUserDb(userId);
+  const rows = await userDb
+    .select()
+    .from(brokerConnectionsTable)
+    .where(eq(brokerConnectionsTable.account_id, accountId))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+/**
+ * Decrypt broker credentials from a broker connection row.
+ */
+export async function decryptBrokerCredentials(
+  userId: string,
+  credentialsEncrypted: string,
+): Promise<BrokerCredentials> {
+  const userKey = await getUserKey(userId);
+  const json = decryptForUser(credentialsEncrypted, userKey);
+  return JSON.parse(json) as BrokerCredentials;
+}
+
 export async function getManualHoldings(userId: string) {
   const userDb = await getUserDb(userId);
   const rows = await userDb
@@ -110,7 +160,7 @@ export async function getManualHoldings(userId: string) {
     })
     .from(manualHoldingsTable)
     .leftJoin(accountsTable, eq(manualHoldingsTable.account_id, accountsTable.id))
-    .where(eq(manualHoldingsTable.user_id, userId));
+    .where(and(eq(manualHoldingsTable.user_id, userId), gt(manualHoldingsTable.quantity, 0)));
 
   const userKey = await getUserKey(userId);
   return rows.map((row) => ({

@@ -26,15 +26,22 @@ const CategoryCharts = dynamic(
   { loading: () => <div className="min-h-[300px]" /> }
 );
 
+import { requireFeature } from "@/components/FeatureGate";
+import { getPageLayout } from "@/db/queries/dashboard-layouts";
+import { PageWidgetWrapper } from "@/components/PageWidgetWrapper";
+import { DashboardWidget } from "@/components/DashboardWidget";
+
 export default async function Categories() {
+  await requireFeature("categories");
   const userId = await getCurrentUserId();
 
-  const [categories, topSpendRows, monthlySpendRows, baseCurrency, rules] = await Promise.all([
+  const [categories, topSpendRows, monthlySpendRows, baseCurrency, rules, serverLayout] = await Promise.all([
     getCategoriesByUser(userId),
     getTotalSpendByCategoryThisMonth(userId),
     getMonthlyCategorySpendTrend(userId, 6),
     getUserBaseCurrency(userId),
     getCategorisationRules(userId),
+    getPageLayout(userId, "categories"),
   ]);
 
   const topSpendByCategory = topSpendRows
@@ -45,18 +52,18 @@ export default async function Categories() {
     }))
     .sort((a, b) => b.total - a.total);
 
-  return (
-    <div className="mx-auto max-w-7xl space-y-8 p-6 md:p-10">
-      <div className="flex items-start justify-between page-header-gradient">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Categories</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Manage your spending categories.
-          </p>
-        </div>
-        <CategoryFormDialog />
+  const headerEl = (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Categories</h1>
       </div>
+      <CategoryFormDialog />
+    </div>
+  );
 
+  return (
+    <PageWidgetWrapper pageId="categories" serverLayout={serverLayout} header={headerEl}>
+      <DashboardWidget id="charts">
       {(topSpendByCategory.length > 0 || monthlySpendRows.length > 0) && (
         <CategoryCharts
           topThisMonth={topSpendByCategory}
@@ -64,7 +71,9 @@ export default async function Categories() {
           currency={baseCurrency}
         />
       )}
+      </DashboardWidget>
 
+      <DashboardWidget id="all-categories">
       <Card>
         <CardHeader>
           <CardTitle>All Categories</CardTitle>
@@ -89,7 +98,7 @@ export default async function Categories() {
                 return (
                 <div
                   key={cat.id}
-                  className="flex items-center gap-3 rounded-xl border border-border/50 p-3 transition-all duration-200 hover:shadow-md hover:shadow-primary/5 hover:-translate-y-0.5 hover:border-primary/15"
+                  className="flex items-center gap-3 rounded-xl bg-card p-3 transition-colors"
                 >
                   {Icon ? (
                     <div
@@ -116,7 +125,9 @@ export default async function Categories() {
           )}
         </CardContent>
       </Card>
-      {/* Categorisation Rules */}
+      </DashboardWidget>
+
+      <DashboardWidget id="auto-rules">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -183,6 +194,7 @@ export default async function Categories() {
           )}
         </CardContent>
       </Card>
-    </div>
+      </DashboardWidget>
+    </PageWidgetWrapper>
   );
 }

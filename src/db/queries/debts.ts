@@ -13,8 +13,8 @@ export async function getDebts(userId: string) {
 
 export async function getDebtsSummary(userId: string) {
   const debts = await getDebts(userId);
-  const active = debts.filter((d) => !d.is_paid_off);
-  const paidOff = debts.filter((d) => d.is_paid_off);
+  const active = debts.filter((d) => d.remaining_amount > 0);
+  const paidOff = debts.filter((d) => d.remaining_amount <= 0);
 
   const totalOriginal = active.reduce((s, d) => s + d.original_amount, 0);
   const totalRemaining = active.reduce((s, d) => s + d.remaining_amount, 0);

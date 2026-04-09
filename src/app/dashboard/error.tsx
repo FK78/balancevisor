@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
 import {
   Card,
   CardContent,
@@ -20,7 +21,7 @@ export default function DashboardError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("[dashboard]", error);
+    logger.error("dashboard", "Dashboard error", error);
   }, [error]);
 
   return (

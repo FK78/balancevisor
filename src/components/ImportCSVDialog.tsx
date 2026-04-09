@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition, useCallback } from "react";
-import { Upload, FileText, CheckCircle2, AlertTriangle, Loader2, X } from "lucide-react";
+import { useAiEnabled } from "@/components/AiSettingsProvider";
+import { Upload, FileText, CheckCircle2, AlertTriangle, Loader2, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -36,6 +37,7 @@ type ImportResult = {
   imported: number;
   skipped: number;
   errors: string[];
+  transactionIds?: string[];
 };
 
 function parseCSVLineForPreview(line: string): string[] {
@@ -85,6 +87,7 @@ export function ImportCSVDialog({
   accounts: Account[];
   onImported?: () => void;
 }) {
+  const aiEnabled = useAiEnabled();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"upload" | "map" | "importing" | "result">("upload");
   const [csvText, setCsvText] = useState("");
@@ -102,6 +105,7 @@ export function ImportCSVDialog({
 
   const [result, setResult] = useState<ImportResult | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [aiDetecting, setAiDetecting] = useState(false);
 
   function resetState() {
     setStep("upload");
@@ -116,6 +120,7 @@ export function ImportCSVDialog({
     setAccountId("");
     setDefaultType("auto");
     setResult(null);
+    setAiDetecting(false);
   }
 
   function handleOpenChange(nextOpen: boolean) {
@@ -224,6 +229,15 @@ export function ImportCSVDialog({
         setStep("result");
         if (res.imported > 0) {
           toast.success(`Imported ${res.imported} transaction${res.imported !== 1 ? "s" : ""}`);
+
+          // Fire-and-forget AI enrichment for imported transactions
+          if (aiEnabled && res.transactionIds && res.transactionIds.length > 0) {
+            fetch("/api/ai-enrich-transactions", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ transactionIds: res.transactionIds }),
+            }).catch(() => {});
+          }
         }
         if (res.errors.length > 0) {
           toast.error(`${res.errors.length} error${res.errors.length !== 1 ? "s" : ""} during import`);
@@ -329,6 +343,48 @@ export function ImportCSVDialog({
                   </TableBody>
                 </Table>
               </div>
+            )}
+
+            {/* AI Auto-detect */}
+            {aiEnabled && (
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={aiDetecting || headers.length === 0}
+                onClick={async () => {
+                  setAiDetecting(true);
+                  try {
+                    const res = await fetch("/api/parse-csv-columns", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ headers, sampleRows: previewRows }),
+                    });
+                    if (!res.ok) throw new Error();
+                    const mapping = await res.json();
+                    if (mapping.dateCol !== null) setDateCol(String(mapping.dateCol));
+                    if (mapping.descCol !== null) setDescCol(String(mapping.descCol));
+                    if (mapping.amountCol !== null) setAmountCol(String(mapping.amountCol));
+                    if (mapping.typeCol !== null) setTypeCol(String(mapping.typeCol));
+                  } catch {
+                    const { toast } = await import("sonner");
+                    toast.error("AI could not detect columns. Please map them manually.");
+                  } finally {
+                    setAiDetecting(false);
+                  }
+                }}
+              >
+                {aiDetecting ? (
+                  <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-1 h-3.5 w-3.5" />
+                )}
+                {aiDetecting ? "Detecting..." : "AI Auto-detect"}
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                Can&apos;t figure out the columns? Let AI map them for you.
+              </span>
+            </div>
             )}
 
             {/* Column mapping */}

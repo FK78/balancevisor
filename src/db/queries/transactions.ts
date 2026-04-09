@@ -30,6 +30,7 @@ const transactionSelect = {
   is_recurring: transactionsTable.is_recurring,
   transfer_account_id: transactionsTable.transfer_account_id,
   is_split: transactionsTable.is_split,
+  refund_for_transaction_id: transactionsTable.refund_for_transaction_id,
 };
 
 type UserDb = Awaited<ReturnType<typeof getUserDb>>;
@@ -39,14 +40,14 @@ function baseTransactionsQuery(userDb: UserDb, userId: string) {
     .from(transactionsTable)
     .leftJoin(categoriesTable, eq(transactionsTable.category_id, categoriesTable.id))
     .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
-    .where(eq(accountsTable.user_id, userId))
+    .where(eq(transactionsTable.user_id, userId))
     .$dynamic();
 }
 
 export type ExportTransaction = {
   id: string;
   date: string | null;
-  type: 'income' | 'expense' | 'transfer' | 'sale' | null;
+  type: 'income' | 'expense' | 'transfer' | 'sale' | 'refund' | null;
   amount: number;
   description: string;
   accountName: string;
@@ -78,7 +79,7 @@ export async function getTransactionsForExport(
     .leftJoin(categoriesTable, eq(transactionsTable.category_id, categoriesTable.id))
     .where(
       and(
-        eq(accountsTable.user_id, userId),
+        eq(transactionsTable.user_id, userId),
         gte(transactionsTable.date, startDate),
         lte(transactionsTable.date, endDate),
       ),
@@ -88,7 +89,7 @@ export async function getTransactionsForExport(
 }
 
 export async function getTransactionsCount(userId: string, startDate?: string, endDate?: string, accountId?: string) {
-  const conditions = [eq(accountsTable.user_id, userId)];
+  const conditions = [eq(transactionsTable.user_id, userId)];
   if (startDate) conditions.push(gte(transactionsTable.date, startDate));
   if (endDate) conditions.push(lte(transactionsTable.date, endDate));
   if (accountId) conditions.push(eq(transactionsTable.account_id, accountId));
@@ -97,7 +98,6 @@ export async function getTransactionsCount(userId: string, startDate?: string, e
   const [row] = await userDb
     .select({ total: sql<number>`count(*)`.mapWith(Number) })
     .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(and(...conditions));
 
   return row?.total ?? 0;
@@ -132,7 +132,7 @@ export async function getTransactionsWithDetailsPaginated(
 
 export async function getTotalsByType(
   userId: string,
-  type: 'income' | 'expense',
+  type: 'income' | 'expense' | 'refund',
   startDate?: string,
   endDate?: string,
   accountId?: string,
@@ -144,7 +144,7 @@ export async function getTotalsByType(
   }
 
   const conditions = [
-    eq(accountsTable.user_id, userId),
+    eq(transactionsTable.user_id, userId),
     eq(transactionsTable.type, type),
   ];
   if (startDate) conditions.push(gte(transactionsTable.date, startDate));
@@ -155,7 +155,6 @@ export async function getTotalsByType(
   const [row] = await userDb
     .select({ total: sum(transactionsTable.amount) })
     .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(and(...conditions));
 
   const result = Number(row?.total ?? 0);
@@ -168,6 +167,7 @@ export type SearchTransactionsResult = {
   totalCount: number;
   totalIncome: number;
   totalExpenses: number;
+  totalRefunds: number;
 };
 
 /**
@@ -221,11 +221,14 @@ export async function searchTransactions(
   const totalExpenses = filtered
     .filter((r) => r.type === 'expense')
     .reduce((s, r) => s + r.amount, 0);
+  const totalRefunds = filtered
+    .filter((r) => r.type === 'refund')
+    .reduce((s, r) => s + r.amount, 0);
 
   const offset = (safePage - 1) * safePageSize;
   const transactions = filtered.slice(offset, offset + safePageSize);
 
-  return { transactions, totalCount, totalIncome, totalExpenses };
+  return { transactions, totalCount, totalIncome, totalExpenses, totalRefunds };
 }
 
 export async function getLatestFiveTransactionsWithDetails(userId: string) {
@@ -244,7 +247,7 @@ export async function getSavingsDepositTotal(userId: string, startDate: string, 
     .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(
       and(
-        eq(accountsTable.user_id, userId),
+        eq(transactionsTable.user_id, userId),
         eq(accountsTable.type, 'savings'),
         gte(transactionsTable.date, startDate),
         lt(transactionsTable.date, endDate),
@@ -270,9 +273,8 @@ export async function getTotalSpendByCategoryThisMonth(userId: string): Promise<
     color: categoriesTable.color
   }).from(transactionsTable)
     .innerJoin(categoriesTable, eq(transactionsTable.category_id, categoriesTable.id))
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(and(
-      eq(accountsTable.user_id, userId),
+      eq(transactionsTable.user_id, userId),
       eq(transactionsTable.type, 'expense'),
       ne(categoriesTable.name, 'Salary'),
       gte(transactionsTable.date, start),
@@ -288,6 +290,7 @@ export type MonthlyCashflowPoint = {
   month: string;
   income: number;
   expenses: number;
+  refunds: number;
   net: number;
 };
 
@@ -295,6 +298,7 @@ export type DailyCashflowPoint = {
   day: string;
   income: number;
   expenses: number;
+  refunds: number;
   net: number;
 };
 
@@ -331,9 +335,8 @@ export async function getMonthlyIncomeExpenseTrend(userId: string, monthCount = 
       total: sql<number>`coalesce(sum(${transactionsTable.amount}), 0)`.mapWith(Number),
     })
     .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(and(
-      eq(accountsTable.user_id, userId),
+      eq(transactionsTable.user_id, userId),
       gte(transactionsTable.date, `${startMonth}-01`),
       lt(transactionsTable.date, endMonth),
     ))
@@ -343,9 +346,9 @@ export async function getMonthlyIncomeExpenseTrend(userId: string, monthCount = 
     )
     .orderBy(sql`date_trunc('month', ${transactionsTable.date})`);
 
-  const monthMap = new Map<string, { income: number; expenses: number }>();
+  const monthMap = new Map<string, { income: number; expenses: number; refunds: number }>();
   for (const monthKey of monthKeys) {
-    monthMap.set(monthKey, { income: 0, expenses: 0 });
+    monthMap.set(monthKey, { income: 0, expenses: 0, refunds: 0 });
   }
 
   for (const row of rows) {
@@ -358,16 +361,19 @@ export async function getMonthlyIncomeExpenseTrend(userId: string, monthCount = 
       existing.income = row.total;
     } else if (row.type === 'expense') {
       existing.expenses = row.total;
+    } else if (row.type === 'refund') {
+      existing.refunds = row.total;
     }
   }
 
   const result = monthKeys.map((month) => {
-    const totals = monthMap.get(month) ?? { income: 0, expenses: 0 };
+    const totals = monthMap.get(month) ?? { income: 0, expenses: 0, refunds: 0 };
     return {
       month,
       income: totals.income,
       expenses: totals.expenses,
-      net: totals.income - totals.expenses,
+      refunds: totals.refunds,
+      net: totals.income - totals.expenses + totals.refunds,
     };
   });
 
@@ -394,9 +400,8 @@ export async function getDailyIncomeExpenseTrend(userId: string, dayCount = 30):
       total: sql<number>`coalesce(sum(${transactionsTable.amount}), 0)`.mapWith(Number),
     })
     .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(and(
-      eq(accountsTable.user_id, userId),
+      eq(transactionsTable.user_id, userId),
       gte(transactionsTable.date, startDay),
       lt(transactionsTable.date, endDay),
     ))
@@ -406,9 +411,9 @@ export async function getDailyIncomeExpenseTrend(userId: string, dayCount = 30):
     )
     .orderBy(transactionsTable.date);
 
-  const dayMap = new Map<string, { income: number; expenses: number }>();
+  const dayMap = new Map<string, { income: number; expenses: number; refunds: number }>();
   for (const dayKey of dayKeys) {
-    dayMap.set(dayKey, { income: 0, expenses: 0 });
+    dayMap.set(dayKey, { income: 0, expenses: 0, refunds: 0 });
   }
 
   for (const row of rows) {
@@ -421,16 +426,19 @@ export async function getDailyIncomeExpenseTrend(userId: string, dayCount = 30):
       existing.income = row.total;
     } else if (row.type === 'expense') {
       existing.expenses = row.total;
+    } else if (row.type === 'refund') {
+      existing.refunds = row.total;
     }
   }
 
   const result = dayKeys.map((day) => {
-    const totals = dayMap.get(day) ?? { income: 0, expenses: 0 };
+    const totals = dayMap.get(day) ?? { income: 0, expenses: 0, refunds: 0 };
     return {
       day,
       income: totals.income,
       expenses: totals.expenses,
-      net: totals.income - totals.expenses,
+      refunds: totals.refunds,
+      net: totals.income - totals.expenses + totals.refunds,
     };
   });
 
@@ -459,9 +467,8 @@ export async function getDailyExpenseByCategory(userId: string, dayCount = 30): 
     })
     .from(transactionsTable)
     .innerJoin(categoriesTable, eq(transactionsTable.category_id, categoriesTable.id))
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(and(
-      eq(accountsTable.user_id, userId),
+      eq(transactionsTable.user_id, userId),
       eq(transactionsTable.type, 'expense'),
       gte(transactionsTable.date, startDay),
       lt(transactionsTable.date, endDay),
@@ -498,9 +505,8 @@ export async function getMonthlyCategorySpendTrend(userId: string, monthCount = 
     })
     .from(transactionsTable)
     .innerJoin(categoriesTable, eq(transactionsTable.category_id, categoriesTable.id))
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(and(
-      eq(accountsTable.user_id, userId),
+      eq(transactionsTable.user_id, userId),
       eq(transactionsTable.type, 'expense'),
       gte(transactionsTable.date, `${startMonth}-01`),
       lt(transactionsTable.date, endMonth),

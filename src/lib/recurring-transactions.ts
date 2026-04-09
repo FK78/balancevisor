@@ -26,9 +26,9 @@ function advanceDate(dateStr: string, pattern: RecurringPattern): string {
   return d.toISOString().split('T')[0];
 }
 
-function balanceDelta(type: 'income' | 'expense' | 'transfer' | 'sale', amount: number) {
+function balanceDelta(type: 'income' | 'expense' | 'transfer' | 'sale' | 'refund', amount: number) {
   if (type === 'transfer') return 0;
-  return type === 'income' || type === 'sale' ? amount : -amount;
+  return type === 'income' || type === 'sale' || type === 'refund' ? amount : -amount;
 }
 
 /**
@@ -54,10 +54,9 @@ export async function generateDueRecurringTransactions(userId: string): Promise<
       next_recurring_date: transactionsTable.next_recurring_date,
     })
     .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(
       and(
-        eq(accountsTable.user_id, userId),
+        eq(transactionsTable.user_id, userId),
         eq(transactionsTable.is_recurring, true),
         isNotNull(transactionsTable.recurring_pattern),
         isNotNull(transactionsTable.next_recurring_date),

@@ -2,7 +2,7 @@
 
 import { getUserDb } from "@/db/rls-context";
 import { createTransaction } from "@/db/mutations/transactions";
-import { trading212ConnectionsTable, manualHoldingsTable, holdingSalesTable, accountsTable } from "@/db/schema";
+import { trading212ConnectionsTable, brokerConnectionsTable, manualHoldingsTable, holdingSalesTable, accountsTable } from "@/db/schema";
 import { eq, and, isNotNull, sql } from "drizzle-orm";
 import { revalidateDomains } from "@/lib/revalidate";
 import { getCurrentUserId } from "@/lib/auth";
@@ -10,6 +10,8 @@ import { toDateString } from "@/lib/date";
 import { encryptForUser, getUserKey } from "@/lib/encryption";
 import { getQuote } from "@/lib/yahoo-finance";
 import { requireString, sanitizeNumber, sanitizeEnum, sanitizeUUID } from "@/lib/sanitize";
+import type { BrokerSource, BrokerCredentials } from "@/lib/brokers/types";
+import { BROKER_SOURCES } from "@/lib/brokers/types";
 
 function revalidateInvestments() {
   revalidateDomains('investments');
@@ -57,6 +59,124 @@ export async function disconnectTrading212() {
     .delete(trading212ConnectionsTable)
     .where(eq(trading212ConnectionsTable.user_id, userId));
   revalidateInvestments();
+}
+
+// ---------------------------------------------------------------------------
+// Generic broker connection mutations
+// ---------------------------------------------------------------------------
+
+export async function connectBroker(formData: FormData) {
+  const userId = await getCurrentUserId();
+  const broker = sanitizeEnum(
+    formData.get("broker") as string,
+    BROKER_SOURCES,
+    "trading212",
+  ) as BrokerSource;
+  const apiKey = requireString(formData.get("apiKey") as string, "API key");
+  const apiSecret = requireString(formData.get("apiSecret") as string, "API secret");
+  const environment = sanitizeEnum(
+    formData.get("environment") as string,
+    ["live", "demo", "paper"] as const,
+    "live",
+  );
+  const accountId = sanitizeUUID(formData.get("account_id") as string);
+
+  const credentials: BrokerCredentials = {
+    apiKey,
+    apiSecret,
+    environment,
+  };
+
+  const userKey = await getUserKey(userId);
+  const credentialsEncrypted = encryptForUser(JSON.stringify(credentials), userKey);
+
+  const userDb = await getUserDb(userId);
+  await userDb
+    .insert(brokerConnectionsTable)
+    .values({
+      user_id: userId,
+      broker,
+      credentials_encrypted: credentialsEncrypted,
+      environment,
+      account_id: accountId,
+    })
+    .onConflictDoUpdate({
+      target: [brokerConnectionsTable.user_id, brokerConnectionsTable.broker],
+      set: {
+        credentials_encrypted: credentialsEncrypted,
+        environment,
+        account_id: accountId,
+        connected_at: new Date(),
+      },
+    });
+
+  revalidateInvestments();
+}
+
+export async function disconnectBroker(formData: FormData) {
+  const userId = await getCurrentUserId();
+  const broker = requireString(formData.get("broker") as string, "Broker") as BrokerSource;
+
+  const userDb = await getUserDb(userId);
+  await userDb
+    .delete(brokerConnectionsTable)
+    .where(
+      and(
+        eq(brokerConnectionsTable.user_id, userId),
+        eq(brokerConnectionsTable.broker, broker),
+      ),
+    );
+
+  revalidateInvestments();
+}
+
+export async function updateBrokerTokens(
+  userId: string,
+  broker: BrokerSource,
+  tokens: { accessToken: string; refreshToken: string; tokenExpiresAt: string },
+) {
+  const userKey = await getUserKey(userId);
+
+  // Fetch existing credentials to merge
+  const userDb = await getUserDb(userId);
+  const [existing] = await userDb
+    .select({ credentials_encrypted: brokerConnectionsTable.credentials_encrypted })
+    .from(brokerConnectionsTable)
+    .where(
+      and(
+        eq(brokerConnectionsTable.user_id, userId),
+        eq(brokerConnectionsTable.broker, broker),
+      ),
+    );
+
+  if (!existing) {
+    throw new Error(`No ${broker} connection found for user ${userId}`);
+  }
+
+  const { decryptForUser } = await import("@/lib/encryption");
+  const currentCreds: BrokerCredentials = JSON.parse(
+    decryptForUser(existing.credentials_encrypted, userKey),
+  );
+
+  const updatedCreds: BrokerCredentials = {
+    ...currentCreds,
+    ...tokens,
+  };
+
+  const credentialsEncrypted = encryptForUser(JSON.stringify(updatedCreds), userKey);
+
+  await userDb
+    .update(brokerConnectionsTable)
+    .set({
+      credentials_encrypted: credentialsEncrypted,
+      last_synced_at: new Date(),
+    })
+    .where(
+      and(
+        eq(brokerConnectionsTable.user_id, userId),
+        eq(brokerConnectionsTable.broker, broker),
+      ),
+    );
 }
 
 export async function addManualHolding(formData: FormData) {
@@ -213,53 +333,54 @@ export async function recordHoldingSale(formData: FormData) {
   const totalAmount = quantity * pricePerUnit;
   const realizedGain = (pricePerUnit - holding.average_price) * quantity;
 
-  // Update holding quantity (reduce)
-  await userDb
-    .update(manualHoldingsTable)
-    .set({
-      quantity: holding.quantity - quantity,
-    })
-    .where(eq(manualHoldingsTable.id, holdingId));
+  await userDb.transaction(async (tx) => {
+    // Update holding quantity (reduce)
+    await tx
+      .update(manualHoldingsTable)
+      .set({
+        quantity: holding.quantity - quantity,
+      })
+      .where(eq(manualHoldingsTable.id, holdingId));
 
-  // Insert sale record
-  await userDb.insert(holdingSalesTable).values({
-    holding_id: holdingId,
-    user_id: userId,
-    date: toDateString(date),
-    quantity,
-    price_per_unit: pricePerUnit,
-    total_amount: totalAmount,
-    realized_gain: realizedGain,
-    cash_account_id: cashAccountId,
-    notes,
+    // Insert sale record
+    await tx.insert(holdingSalesTable).values({
+      holding_id: holdingId,
+      user_id: userId,
+      date: toDateString(date),
+      quantity,
+      price_per_unit: pricePerUnit,
+      realized_gain: realizedGain,
+      cash_account_id: cashAccountId,
+      notes,
+    });
+
+    // If cashAccountId, create a transaction
+    if (cashAccountId) {
+      const description = `Sold ${quantity} ${holding.ticker ? holding.ticker : holding.name}`;
+      await createTransaction({
+        type: 'sale',
+        amount: totalAmount,
+        description,
+        date: toDateString(date),
+        account_id: cashAccountId,
+        category_id: null,
+        is_recurring: false,
+        recurring_pattern: null,
+        next_recurring_date: null,
+        transfer_account_id: null,
+        is_split: false,
+      }, userId, tx);
+
+      // Update account balance
+      await tx.update(accountsTable)
+        .set({ balance: sql`${accountsTable.balance} + ${totalAmount}` })
+        .where(eq(accountsTable.id, cashAccountId));
+    }
   });
 
-  // If cashAccountId, create a transaction
   if (cashAccountId) {
-    const description = `Sold ${quantity} ${holding.ticker ? holding.ticker : holding.name}`;
-    await createTransaction({
-      type: 'sale',
-      amount: totalAmount,
-      description,
-      date: toDateString(date),
-      account_id: cashAccountId,
-      category_id: null,
-      is_recurring: false,
-      recurring_pattern: null,
-      next_recurring_date: null,
-      transfer_account_id: null,
-      is_split: false,
-      user_id: userId,
-    }, userId);
-
-    // Update account balance
-    await userDb.update(accountsTable)
-      .set({ balance: sql`${accountsTable.balance} + ${totalAmount}` })
-      .where(eq(accountsTable.id, cashAccountId));
-
     revalidateDomains('transactions', 'accounts');
   }
-
   revalidateInvestments();
 }
 

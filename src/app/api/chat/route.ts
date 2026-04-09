@@ -2,6 +2,7 @@ import { groq } from "@ai-sdk/groq";
 import { streamText, convertToModelMessages } from "ai";
 import type { UIMessage } from "ai";
 import { getCurrentUserId } from "@/lib/auth";
+import { guardAiEnabled } from "@/lib/ai-guard";
 import { getAccountsWithDetails } from "@/db/queries/accounts";
 import { getBudgets } from "@/db/queries/budgets";
 import { getGoals } from "@/db/queries/goals";
@@ -9,7 +10,7 @@ import { getDebtsSummary } from "@/db/queries/debts";
 import { getActiveSubscriptionsTotals, getUpcomingRenewals } from "@/db/queries/subscriptions";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { getMonthlyIncomeExpenseTrend, getTotalsByType, getTotalSpendByCategoryThisMonth } from "@/db/queries/transactions";
-import { getInvestmentValue } from "@/lib/investment-value";
+import { getPortfolioSnapshot, formatPortfolioContext } from "@/lib/portfolio-data";
 import { getMonthRange } from "@/lib/date";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { rateLimiters } from "@/lib/rate-limiter";
@@ -17,6 +18,10 @@ import { rateLimiters } from "@/lib/rate-limiter";
 export async function POST(req: Request) {
   // Rate limit by user ID (already authenticated)
   const userId = await getCurrentUserId();
+
+  const aiBlocked = await guardAiEnabled();
+  if (aiBlocked) return aiBlocked;
+
   const rateLimitResult = rateLimiters.chat.consume(`chat:${userId}`);
 
   if (!rateLimitResult.allowed) {
@@ -40,11 +45,12 @@ export async function POST(req: Request) {
     baseCurrency,
     income,
     expenses,
+    refunds,
     lastMonthIncome,
     lastMonthExpenses,
     spendByCategory,
     monthlyTrend,
-    investmentValue,
+    portfolioSnapshot,
   ] = await Promise.all([
     getAccountsWithDetails(userId),
     getBudgets(userId),
@@ -55,12 +61,16 @@ export async function POST(req: Request) {
     getUserBaseCurrency(userId),
     getTotalsByType(userId, "income", thisMonth.start, thisMonth.end),
     getTotalsByType(userId, "expense", thisMonth.start, thisMonth.end),
+    getTotalsByType(userId, "refund", thisMonth.start, thisMonth.end),
     getTotalsByType(userId, "income", lastMonth.start, lastMonth.end),
     getTotalsByType(userId, "expense", lastMonth.start, lastMonth.end),
     getTotalSpendByCategoryThisMonth(userId),
     getMonthlyIncomeExpenseTrend(userId, 6),
-    getInvestmentValue(userId),
+    getPortfolioSnapshot(userId),
   ]);
+
+  const investmentValue = portfolioSnapshot.totalValue;
+  const portfolioContext = formatPortfolioContext(portfolioSnapshot);
 
   const liabilityTypes = new Set(["creditCard"]);
   const totalAssets = accounts
@@ -83,11 +93,15 @@ Currency: ${baseCurrency}
 - Total liabilities: ${formatCurrency(totalLiabilities, baseCurrency)}
 - Investment value: ${formatCurrency(investmentValue, baseCurrency)}
 
+${portfolioContext}
+
 ### Income & Expenses (This Month)
 - Income: ${formatCurrency(income, baseCurrency)}
-- Expenses: ${formatCurrency(expenses, baseCurrency)}
-- Net: ${formatCurrency(income - expenses, baseCurrency)}
-- Savings rate: ${income > 0 ? Math.round(((income - expenses) / income) * 100) : 0}%
+- Gross Spend: ${formatCurrency(expenses, baseCurrency)}
+- Refunds: ${formatCurrency(refunds, baseCurrency)}
+- Net Spend: ${formatCurrency(expenses - refunds, baseCurrency)}
+- Net: ${formatCurrency(income - (expenses - refunds), baseCurrency)}
+- Savings rate: ${income > 0 ? Math.round(((income - (expenses - refunds)) / income) * 100) : 0}%
 
 ### Last Month Comparison
 - Last month income: ${formatCurrency(lastMonthIncome, baseCurrency)}
@@ -108,7 +122,7 @@ ${budgets.map((b) => {
 ${spendByCategory.map((c) => `- ${c.category}: ${formatCurrency(Number(c.total ?? 0), baseCurrency)}`).join("\n")}
 
 ### 6-Month Cashflow Trend
-${monthlyTrend.map((m) => `- ${m.month}: Income ${formatCurrency(m.income, baseCurrency)}, Expenses ${formatCurrency(m.expenses, baseCurrency)}, Net ${formatCurrency(m.net, baseCurrency)}`).join("\n")}
+${monthlyTrend.map((m) => `- ${m.month}: Income ${formatCurrency(m.income, baseCurrency)}, Spend ${formatCurrency(m.expenses, baseCurrency)}, Refunds ${formatCurrency(m.refunds, baseCurrency)}, Net ${formatCurrency(m.net, baseCurrency)}`).join("\n")}
 
 ### Savings Goals (${goals.length})
 ${goals.map((g) => {

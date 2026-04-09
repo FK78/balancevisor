@@ -4,13 +4,77 @@ import { eq, sql, or, and, inArray } from 'drizzle-orm';
 import { decryptForUser, getUserKey } from '@/lib/encryption';
 import type { AccountWithDetails } from '@/lib/types';
 
+export async function getAccountById(
+  userId: string,
+  email: string,
+  accountId: string,
+): Promise<AccountWithDetails | null> {
+  const userDb = await getUserDb(userId);
+  // Try owned account first
+  const [ownedRow] = await userDb
+    .select({
+      id: accountsTable.id,
+      accountName: accountsTable.name,
+      type: accountsTable.type,
+      balance: accountsTable.balance,
+      currency: accountsTable.currency,
+      user_id: accountsTable.user_id,
+      truelayer_id: accountsTable.truelayer_id,
+      truelayer_connection_id: accountsTable.truelayer_connection_id,
+      transactions: sql<number>`(SELECT count(*) FROM ${transactionsTable} WHERE ${transactionsTable.account_id} = ${accountsTable.id})`.mapWith(Number),
+    })
+    .from(accountsTable)
+    .where(and(eq(accountsTable.id, accountId), eq(accountsTable.user_id, userId)));
+
+  if (ownedRow) {
+    const userKey = await getUserKey(userId);
+    const decrypted = decryptForUser(ownedRow.accountName, userKey);
+    return { ...ownedRow, accountName: decrypted, name: decrypted, isShared: false, sharedBy: null };
+  }
+
+  // Check shared access
+  const [sharedRow] = await userDb
+    .select({ owner_id: sharedAccessTable.owner_id })
+    .from(sharedAccessTable)
+    .where(
+      and(
+        eq(sharedAccessTable.resource_type, 'account'),
+        eq(sharedAccessTable.resource_id, accountId),
+        eq(sharedAccessTable.status, 'accepted'),
+        or(eq(sharedAccessTable.shared_with_id, userId), eq(sharedAccessTable.shared_with_email, email)),
+      ),
+    );
+
+  if (!sharedRow) return null;
+
+  const [row] = await userDb
+    .select({
+      id: accountsTable.id,
+      accountName: accountsTable.name,
+      type: accountsTable.type,
+      balance: accountsTable.balance,
+      currency: accountsTable.currency,
+      user_id: accountsTable.user_id,
+      truelayer_id: accountsTable.truelayer_id,
+      truelayer_connection_id: accountsTable.truelayer_connection_id,
+      transactions: sql<number>`(SELECT count(*) FROM ${transactionsTable} WHERE ${transactionsTable.account_id} = ${accountsTable.id})`.mapWith(Number),
+    })
+    .from(accountsTable)
+    .where(eq(accountsTable.id, accountId));
+
+  if (!row) return null;
+
+  const ownerKey = await getUserKey(row.user_id);
+  const decrypted = decryptForUser(row.accountName, ownerKey);
+  return { ...row, accountName: decrypted, name: decrypted, isShared: true, sharedBy: sharedRow.owner_id };
+}
+
 export async function getAccountsWithDetails(userId: string): Promise<AccountWithDetails[]> {
   const userKey = await getUserKey(userId);
   const userDb = await getUserDb(userId);
   const rows = await userDb.select({
     id: accountsTable.id,
     accountName: accountsTable.name,
-    name: accountsTable.name,
     type: accountsTable.type,
     balance: accountsTable.balance,
     currency: accountsTable.currency,
@@ -21,13 +85,16 @@ export async function getAccountsWithDetails(userId: string): Promise<AccountWit
   })
     .from(accountsTable)
     .where(eq(accountsTable.user_id, userId));
-  return rows.map(row => ({
-    ...row,
-    accountName: decryptForUser(row.accountName, userKey),
-    name: decryptForUser(row.name, userKey),
-    isShared: false,
-    sharedBy: null,
-  }));
+  return rows.map(row => {
+    const decrypted = decryptForUser(row.accountName, userKey);
+    return {
+      ...row,
+      accountName: decrypted,
+      name: decrypted,
+      isShared: false,
+      sharedBy: null,
+    };
+  });
 }
 
 export async function getSharedAccounts(userId: string, email: string): Promise<AccountWithDetails[]> {
@@ -60,7 +127,6 @@ export async function getSharedAccounts(userId: string, email: string): Promise<
     .select({
       id: accountsTable.id,
       accountName: accountsTable.name,
-      name: accountsTable.name,
       type: accountsTable.type,
       balance: accountsTable.balance,
       currency: accountsTable.currency,
@@ -76,10 +142,11 @@ export async function getSharedAccounts(userId: string, email: string): Promise<
   const result = await Promise.all(rows.map(async (row) => {
     const ownerId = row.user_id;
     const ownerKey = await getUserKey(ownerId);
+    const decrypted = decryptForUser(row.accountName, ownerKey);
     return {
       ...row,
-      accountName: decryptForUser(row.accountName, ownerKey),
-      name: decryptForUser(row.name, ownerKey),
+      accountName: decrypted,
+      name: decrypted,
       isShared: true,
       sharedBy: ownerMap.get(row.id) ?? null,
     };

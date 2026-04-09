@@ -14,37 +14,44 @@ import {
   Repeat,
   Repeat2,
   BarChart3,
+  Timer,
   Settings,
   ChevronDown,
-  Menu,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useFeatureFlags } from "@/components/FeatureFlagsProvider";
+import type { FeatureId } from "@/lib/features";
 
-const primaryItems = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  featureId?: FeatureId;
+}
+
+const primaryItems: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/transactions", label: "Transactions", icon: ArrowLeftRight },
-  { href: "/dashboard/accounts", label: "Accounts", icon: Wallet },
-  { href: "/dashboard/investments", label: "Investments", icon: TrendingUp },
-  { href: "/dashboard/reports", label: "Reports", icon: BarChart3 },
+  { href: "/dashboard/transactions", label: "Transactions", icon: ArrowLeftRight, featureId: "transactions" },
+  { href: "/dashboard/accounts", label: "Accounts", icon: Wallet, featureId: "accounts" },
+  { href: "/dashboard/investments", label: "Investments", icon: TrendingUp, featureId: "investments" },
+  { href: "/dashboard/reports", label: "Reports", icon: BarChart3, featureId: "reports" },
 ];
 
-const moreItems = [
-  { href: "/dashboard/categories", label: "Categories", icon: Tags },
-  { href: "/dashboard/budgets", label: "Budgets", icon: Target },
-  { href: "/dashboard/goals", label: "Goals", icon: Trophy },
-  { href: "/dashboard/debts", label: "Debts", icon: CreditCard },
-  { href: "/dashboard/subscriptions", label: "Subscriptions", icon: Repeat },
-  { href: "/dashboard/recurring", label: "Recurring", icon: Repeat2 },
+const moreItems: NavItem[] = [
+  { href: "/dashboard/categories", label: "Categories", icon: Tags, featureId: "categories" },
+  { href: "/dashboard/budgets", label: "Budgets", icon: Target, featureId: "budgets" },
+  { href: "/dashboard/goals", label: "Goals", icon: Trophy, featureId: "goals" },
+  { href: "/dashboard/debts", label: "Debts", icon: CreditCard, featureId: "debts" },
+  { href: "/dashboard/subscriptions", label: "Subscriptions", icon: Repeat, featureId: "subscriptions" },
+  { href: "/dashboard/recurring", label: "Recurring", icon: Repeat2, featureId: "recurring" },
+  { href: "/dashboard/retirement", label: "Retirement", icon: Timer, featureId: "retirement" },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
-
-const allItems = [...primaryItems, ...moreItems];
 
 function isActive(href: string, pathname: string | null) {
   if (!pathname) return false;
@@ -54,22 +61,26 @@ function isActive(href: string, pathname: string | null) {
 }
 
 const linkClass = (active: boolean) =>
-  `flex items-center gap-2 rounded-xl px-3 py-1.5 text-sm font-semibold transition-all duration-200 ${
+  `flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors ${
     active
-      ? "bg-primary/10 text-primary"
-      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+      ? "bg-primary text-primary-foreground"
+      : "text-muted-foreground hover:text-foreground"
   }`;
 
 export function DashboardNav() {
   const pathname = usePathname();
+  const { isFeatureEnabled } = useFeatureFlags();
 
-  const moreIsActive = moreItems.some((item) => isActive(item.href, pathname));
+  const visiblePrimary = primaryItems.filter((item) => !item.featureId || isFeatureEnabled(item.featureId));
+  const visibleMore = moreItems.filter((item) => !item.featureId || isFeatureEnabled(item.featureId));
+
+  const moreIsActive = visibleMore.some((item) => isActive(item.href, pathname));
 
   return (
     <>
       {/* Desktop: primary links + "More" dropdown */}
       <div className="hidden items-center gap-1 md:flex">
-        {primaryItems.map((item) => {
+        {visiblePrimary.map((item) => {
           const active = isActive(item.href, pathname);
           return (
             <Link key={item.href} href={item.href} className={linkClass(active)}>
@@ -89,7 +100,7 @@ export function DashboardNav() {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
-            {moreItems.map((item) => {
+            {visibleMore.map((item) => {
               const active = isActive(item.href, pathname);
               return (
                 <DropdownMenuItem key={item.href} asChild>
@@ -107,32 +118,6 @@ export function DashboardNav() {
         </DropdownMenu>
       </div>
 
-      {/* Mobile: single hamburger dropdown */}
-      <div className="md:hidden">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm" aria-label="Open navigation menu">
-              <Menu className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-52">
-            {allItems.map((item) => {
-              const active = isActive(item.href, pathname);
-              return (
-                <DropdownMenuItem key={item.href} asChild>
-                  <Link
-                    href={item.href}
-                    className={`flex w-full items-center gap-2 ${active ? "font-semibold text-foreground" : ""}`}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    {item.label}
-                  </Link>
-                </DropdownMenuItem>
-              );
-            })}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
     </>
   );
 }

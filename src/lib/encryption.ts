@@ -1,5 +1,5 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
-import { LRUCache } from "lru-cache";
+import { TtlMap } from "@/lib/ttl-map";
 import { eq } from "drizzle-orm";
 import { userKeysTable } from "@/db/schema";
 import { getUserDb, adminDb } from "@/db/rls-context";
@@ -12,13 +12,13 @@ const AUTH_TAG_LENGTH = 16;
 const CURRENT_KEY_VERSION = "v1";
 
 // In-memory cache for decrypted user keys (TTL: 5 minutes)
-const userKeyCache = new LRUCache<string, Buffer>({
+const userKeyCache = new TtlMap<string, Buffer>({
   max: 10000,
   ttl: 5 * 60 * 1000,
 });
 
 // Cache for master keys by version (supports key rotation)
-const masterKeyCache = new LRUCache<string, Buffer>({
+const masterKeyCache = new TtlMap<string, Buffer>({
   max: 10,
   ttl: 60 * 60 * 1000,
 });
@@ -119,12 +119,17 @@ export function decrypt(encrypted: string): string {
     return '';
   }
 
-  const { version, iv, authTag, ciphertext } = parseEncrypted(encrypted);
-  const key = getMasterKey(version);
-  const decipher = createDecipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
-  decipher.setAuthTag(authTag);
-  const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-  return decrypted.toString("utf8");
+  try {
+    const { version, iv, authTag, ciphertext } = parseEncrypted(encrypted);
+    const key = getMasterKey(version);
+    const decipher = createDecipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
+    decipher.setAuthTag(authTag);
+    const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+    return decrypted.toString("utf8");
+  } catch (err) {
+    console.warn("[encryption] decrypt (master key) failed — data may be corrupt or key mismatch:", err instanceof Error ? err.message : String(err));
+    throw err;
+  }
 }
 
 /**
@@ -283,11 +288,21 @@ export function decryptForUser(encrypted: string, userKey: Buffer): string {
     return encrypted;
   }
 
-  const { iv, authTag, ciphertext } = parseEncrypted(encrypted);
-  const decipher = createDecipheriv(ALGORITHM, userKey, iv, { authTagLength: AUTH_TAG_LENGTH });
-  decipher.setAuthTag(authTag);
-  const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-  return decrypted.toString("utf8");
+  try {
+    const { iv, authTag, ciphertext } = parseEncrypted(encrypted);
+    const decipher = createDecipheriv(ALGORITHM, userKey, iv, { authTagLength: AUTH_TAG_LENGTH });
+    decipher.setAuthTag(authTag);
+    const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+    return decrypted.toString("utf8");
+  } catch {
+    // User key failed — try master key as fallback (handles data encrypted with encrypt() instead of encryptForUser())
+    try {
+      return decrypt(encrypted);
+    } catch {
+      console.warn("[encryption] decryptForUser failed with both user key and master key — returning placeholder for value:", encrypted.slice(0, 20) + "...");
+      return "[Encrypted]";
+    }
+  }
 }
 
 /**

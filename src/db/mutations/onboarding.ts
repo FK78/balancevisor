@@ -1,7 +1,7 @@
 'use server';
 
 import { getUserDb } from '@/db/rls-context';
-import { accountsTable, categoriesTable, defaultCategoryTemplatesTable, userOnboardingTable } from '@/db/schema';
+import { accountsTable, categoriesTable, defaultCategoryTemplatesTable, userOnboardingTable, userPreferencesTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { revalidateDomains } from '@/lib/revalidate';
 import { redirect } from 'next/navigation';
@@ -137,9 +137,22 @@ export async function skipOnboarding() {
   redirect('/dashboard');
 }
 
-export async function completeOnboardingAndRedirectWithFeatures(features: string[], firstFeature?: string) {
+export async function completeOnboardingAndRedirectWithFeatures(features: string[], firstFeature?: string, disabledFeatures?: string[]) {
   const userId = await getCurrentUserId();
   await finishOnboarding(userId, features);
+
+  const userDb = await getUserDb(userId);
+  if (disabledFeatures && disabledFeatures.length > 0) {
+    await userDb.insert(userPreferencesTable).values({
+      user_id: userId,
+      disabled_features: JSON.stringify(disabledFeatures),
+      updated_at: new Date(),
+    }).onConflictDoUpdate({
+      target: userPreferencesTable.user_id,
+      set: { disabled_features: JSON.stringify(disabledFeatures), updated_at: new Date() },
+    });
+  }
+
   const route = firstFeature ? FEATURE_ROUTES[firstFeature] : '/dashboard';
   redirect(route || '/dashboard');
 }

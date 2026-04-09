@@ -11,7 +11,7 @@ import { getBudgets } from "@/db/queries/budgets";
 import { getGoals } from "@/db/queries/goals";
 import { getDebts } from "@/db/queries/debts";
 import { getSubscriptions } from "@/db/queries/subscriptions";
-import { getTrading212Connection, getManualHoldings } from "@/db/queries/investments";
+import { getBrokerConnections, getManualHoldings } from "@/db/queries/investments";
 import { getGroupsByUser } from "@/db/queries/investment-groups";
 import { getDefaultCategoryTemplates, getOnboardingState } from "@/db/queries/onboarding";
 import { addAccount } from "@/db/mutations/accounts";
@@ -76,7 +76,7 @@ export default async function OnboardingPage({
       getDebts(userId),
       getSubscriptions(userId),
       getDefaultCategoryTemplates(),
-      getTrading212Connection(userId),
+      getBrokerConnections(userId),
       getManualHoldings(userId),
       getGroupsByUser(userId),
     ]);

@@ -17,13 +17,20 @@ import { deleteDebt } from "@/db/mutations/debts";
 import { Badge } from "@/components/ui/badge";
 import { CreditCard, CheckCircle2, TrendingDown, Percent } from "lucide-react";
 import { DebtPayoffStrategies } from "@/components/DebtPayoffStrategies";
+import { DebtAIAdvisor } from "@/components/DebtAIAdvisor";
+import { requireFeature } from "@/components/FeatureGate";
+import { getPageLayout } from "@/db/queries/dashboard-layouts";
+import { PageWidgetWrapper } from "@/components/PageWidgetWrapper";
+import { DashboardWidget } from "@/components/DashboardWidget";
 
 export default async function DebtsPage() {
+  await requireFeature("debts");
   const userId = await getCurrentUserId();
-  const [summary, accounts, baseCurrency] = await Promise.all([
+  const [summary, accounts, baseCurrency, serverLayout] = await Promise.all([
     getDebtsSummary(userId),
     getAccountsWithDetails(userId),
     getUserBaseCurrency(userId),
+    getPageLayout(userId, "debts"),
   ]);
 
   const {
@@ -47,21 +54,20 @@ export default async function DebtsPage() {
     }
   }
 
-  return (
-    <div className="mx-auto max-w-7xl space-y-8 p-6 md:p-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between page-header-gradient">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Debt Payoff Tracker</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Track your debts and monitor your progress towards becoming debt-free.
-          </p>
-        </div>
-        <DebtFormDialog />
+  const headerEl = (
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Debt Payoff Tracker</h1>
       </div>
+      <DebtFormDialog />
+    </div>
+  );
 
-      {/* Overview banner */}
+  return (
+    <PageWidgetWrapper pageId="debts" serverLayout={serverLayout} header={headerEl}>
+      <DashboardWidget id="overview">
       {active.length > 0 && (
-        <Card className="bg-gradient-to-br from-red-500/6 via-orange-400/4 to-amber-400/6 border-red-500/15">
+        <Card>
           <CardContent className="flex flex-col gap-4 py-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10">
@@ -98,7 +104,7 @@ export default async function DebtsPage() {
                   </div>
                   <div className="bg-muted h-2.5 rounded-full overflow-hidden">
                     <div
-                      className="bg-gradient-to-r from-emerald-400 to-emerald-600 h-full rounded-full transition-all"
+                      className="bg-[#34C759] h-full rounded-full transition-all"
                       style={{ width: `${Math.min(overallPct, 100)}%` }}
                     />
                   </div>
@@ -108,8 +114,9 @@ export default async function DebtsPage() {
           </CardContent>
         </Card>
       )}
+      </DashboardWidget>
 
-      {/* Debts grid */}
+      <DashboardWidget id="debt-cards">
       {debts.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
@@ -129,7 +136,7 @@ export default async function DebtsPage() {
             const pct = debt.original_amount > 0
               ? Math.min(Math.round((paid / debt.original_amount) * 100), 100)
               : 0;
-            const isPaidOff = debt.is_paid_off;
+            const isPaidOff = debt.remaining_amount <= 0;
             const daysLeft = daysLeftMap.get(debt.id) ?? null;
 
             return (
@@ -248,7 +255,9 @@ export default async function DebtsPage() {
           })}
         </div>
       )}
-      {/* Payoff strategies */}
+      </DashboardWidget>
+
+      <DashboardWidget id="payoff-strategies">
       {active.length >= 2 && (
         <DebtPayoffStrategies
           debts={active.map((d) => ({
@@ -263,6 +272,11 @@ export default async function DebtsPage() {
           currency={baseCurrency}
         />
       )}
-    </div>
+      </DashboardWidget>
+
+      <DashboardWidget id="ai-advisor">
+      {active.length > 0 && <DebtAIAdvisor />}
+      </DashboardWidget>
+    </PageWidgetWrapper>
   );
 }

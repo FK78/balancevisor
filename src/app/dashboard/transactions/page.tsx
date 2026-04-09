@@ -10,9 +10,18 @@ import {
 import { getAccountsWithDetails } from "@/db/queries/accounts";
 import { getCategoriesByUser } from "@/db/queries/categories";
 import { getSplitsForTransactions } from "@/db/queries/transaction-splits";
+import { getUncategorisedCount } from "@/db/queries/insights";
 import { TransactionsClient } from "@/components/TransactionsClient";
 import { getCurrentUserId } from "@/lib/auth";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
+import { detectRecurringCandidates } from "@/lib/recurring-detection";
+import { RecurringDetectionBanner } from "@/components/RecurringDetectionBanner";
+import { TransactionReviewBanner } from "@/components/TransactionReviewBanner";
+import { getPendingReviewFlags } from "@/db/queries/review-flags";
+import { requireFeature } from "@/components/FeatureGate";
+import { getPageLayout } from "@/db/queries/dashboard-layouts";
+import { PageWidgetWrapper } from "@/components/PageWidgetWrapper";
+import { DashboardWidget } from "@/components/DashboardWidget";
 
 const PAGE_SIZE = 10;
 
@@ -36,6 +45,7 @@ export default async function Transactions({
 }: {
   searchParams?: Promise<{ page?: string; startDate?: string; endDate?: string; search?: string; account?: string }>;
 }) {
+  await requireFeature("transactions");
   const resolvedSearchParams = await searchParams;
   const requestedPage = normalizePage(resolvedSearchParams?.page);
   const startDate = normalizeDate(resolvedSearchParams?.startDate);
@@ -48,11 +58,13 @@ export default async function Transactions({
   let totalTransactions: number;
   let totalIncome: number;
   let totalExpenses: number;
+  let totalRefunds: number;
   let accounts;
   let categories;
   let dailyTrend;
   let dailyCategoryExpenses;
   let baseCurrency;
+  let uncategorisedCount: number = 0;
 
   // Shared fetches that are always needed regardless of search
   const sharedFetches = [
@@ -61,6 +73,7 @@ export default async function Transactions({
     getDailyIncomeExpenseTrend(userId, 90),
     getDailyExpenseByCategory(userId, 90),
     getUserBaseCurrency(userId),
+    getUncategorisedCount(userId),
   ] as const;
 
   if (search) {
@@ -72,19 +85,22 @@ export default async function Transactions({
     totalTransactions = result.totalCount;
     totalIncome = result.totalIncome;
     totalExpenses = result.totalExpenses;
-    [accounts, categories, dailyTrend, dailyCategoryExpenses, baseCurrency] = shared;
+    totalRefunds = result.totalRefunds;
+    [accounts, categories, dailyTrend, dailyCategoryExpenses, baseCurrency, uncategorisedCount] = shared;
   } else {
-    const [txns, count, inc, exp, ...shared] = await Promise.all([
+    const [txns, count, inc, exp, ref, ...shared] = await Promise.all([
       getTransactionsWithDetailsPaginated(userId, requestedPage, PAGE_SIZE, startDate, endDate, accountId),
       getTransactionsCount(userId, startDate, endDate, accountId),
       getTotalsByType(userId, 'income', startDate, endDate, accountId),
       getTotalsByType(userId, 'expense', startDate, endDate, accountId),
+      getTotalsByType(userId, 'refund', startDate, endDate, accountId),
       ...sharedFetches,
     ]);
     transactions = txns;
     totalTransactions = count;
     totalIncome = inc;
     totalExpenses = exp;
+    totalRefunds = ref;
     [accounts, categories, dailyTrend, dailyCategoryExpenses, baseCurrency] = shared;
   }
 
@@ -103,30 +119,59 @@ export default async function Transactions({
 
   // Fetch splits for any split transactions on this page
   const splitTxnIds = transactions.filter((t) => t.is_split).map((t) => t.id);
-  const splitsMap = await getSplitsForTransactions(splitTxnIds);
+  const splitsMap = await getSplitsForTransactions(splitTxnIds, userId);
   const serializedSplits: Record<string, { id: string; category_id: string | null; categoryName: string | null; categoryColor: string | null; amount: number; description: string | null }[]> = {};
   for (const [txnId, rows] of splitsMap) {
     serializedSplits[txnId] = rows;
   }
 
+  // Detect recurring patterns (only on unfiltered first page)
+  const [recurringCandidates, reviewFlags, serverLayout] = await Promise.all([
+    (!search && !startDate && !endDate && requestedPage === 1)
+      ? detectRecurringCandidates(userId)
+      : Promise.resolve([]),
+    (!search && !startDate && !endDate && requestedPage === 1)
+      ? getPendingReviewFlags(userId)
+      : Promise.resolve([]),
+    getPageLayout(userId, "transactions"),
+  ]);
+
   return (
-    <TransactionsClient
-      transactions={transactions}
-      accounts={accounts}
-      categories={categories}
-      currentPage={requestedPage}
-      pageSize={PAGE_SIZE}
-      totalTransactions={totalTransactions}
-      totalIncome={totalIncome}
-      totalExpenses={totalExpenses}
-      startDate={startDate}
-      endDate={endDate}
-      search={search}
-      accountId={accountId}
-      dailyTrend={dailyTrend}
-      dailyCategoryExpenses={dailyCategoryExpenses}
-      currency={baseCurrency}
-      splits={serializedSplits}
-    />
+    <PageWidgetWrapper pageId="transactions" serverLayout={serverLayout}>
+      <DashboardWidget id="review-banners">
+      {(recurringCandidates.length > 0 || reviewFlags.length > 0) && (
+        <div className="space-y-4">
+          {reviewFlags.length > 0 && (
+            <TransactionReviewBanner flags={reviewFlags} currency={baseCurrency} />
+          )}
+          {recurringCandidates.length > 0 && (
+            <RecurringDetectionBanner candidates={recurringCandidates} currency={baseCurrency} />
+          )}
+        </div>
+      )}
+      </DashboardWidget>
+      <DashboardWidget id="transactions-client">
+      <TransactionsClient
+        transactions={transactions}
+        accounts={accounts}
+        categories={categories}
+        currentPage={requestedPage}
+        pageSize={PAGE_SIZE}
+        totalTransactions={totalTransactions}
+        totalIncome={totalIncome}
+        totalExpenses={totalExpenses}
+        totalRefunds={totalRefunds}
+        startDate={startDate}
+        endDate={endDate}
+        search={search}
+        accountId={accountId}
+        dailyTrend={dailyTrend}
+        dailyCategoryExpenses={dailyCategoryExpenses}
+        currency={baseCurrency}
+        splits={serializedSplits}
+        uncategorisedCount={uncategorisedCount}
+      />
+      </DashboardWidget>
+    </PageWidgetWrapper>
   );
 }

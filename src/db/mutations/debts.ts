@@ -60,7 +60,6 @@ export async function editDebt(id: string, formData: FormData) {
     due_date,
     lender,
     color,
-    is_paid_off: remaining_amount <= 0,
   }).where(eq(debtsTable.id, id));
 
   revalidateDomains('debts');
@@ -79,47 +78,48 @@ export async function recordDebtPayment(debtId: string, amount: number, date: st
   await requireOwnership(debtsTable, debtId, userId, 'debt');
   await requireOwnership(accountsTable, accountId, userId, 'account');
 
-  // Insert payment record
   const userDb = await getUserDb(userId);
-  await userDb.insert(debtPaymentsTable).values({
-    debt_id: debtId,
-    account_id: accountId,
-    amount,
-    date,
-    note: note || null,
-    user_id: userId,
+  await userDb.transaction(async (tx) => {
+    // Insert payment record
+    await tx.insert(debtPaymentsTable).values({
+      debt_id: debtId,
+      account_id: accountId,
+      amount,
+      date,
+      note: note || null,
+      user_id: userId,
+    });
+
+    // Reduce remaining amount
+    const [debt] = await tx.select({
+      remaining_amount: debtsTable.remaining_amount,
+      name: debtsTable.name,
+    })
+      .from(debtsTable)
+      .where(eq(debtsTable.id, debtId));
+
+    if (debt) {
+      const newRemaining = Math.max(debt.remaining_amount - amount, 0);
+      await tx.update(debtsTable).set({
+        remaining_amount: newRemaining,
+        is_paid_off: newRemaining <= 0,
+      }).where(eq(debtsTable.id, debtId));
+    }
+
+    await createTransaction({
+      type: 'expense',
+      amount,
+      description: `Debt payment: ${debt?.name ?? 'Unknown'}`,
+      is_recurring: false,
+      date,
+      account_id: accountId,
+      category_id: null,
+    }, userId, tx);
+
+    await tx.update(accountsTable)
+      .set({ balance: sql`${accountsTable.balance} - ${amount}` })
+      .where(eq(accountsTable.id, accountId));
   });
-
-  // Reduce remaining amount
-  const [debt] = await userDb.select({
-    remaining_amount: debtsTable.remaining_amount,
-    name: debtsTable.name,
-  })
-    .from(debtsTable)
-    .where(eq(debtsTable.id, debtId));
-
-  if (debt) {
-    const newRemaining = Math.max(debt.remaining_amount - amount, 0);
-    await userDb.update(debtsTable).set({
-      remaining_amount: newRemaining,
-      is_paid_off: newRemaining <= 0,
-    }).where(eq(debtsTable.id, debtId));
-  }
-
-  await createTransaction({
-    type: 'expense',
-    amount,
-    description: `Debt payment: ${debt?.name ?? 'Unknown'}`,
-    is_recurring: false,
-    date,
-    account_id: accountId,
-    category_id: null,
-    user_id: userId,
-  }, userId);
-
-  await userDb.update(accountsTable)
-    .set({ balance: sql`${accountsTable.balance} - ${amount}` })
-    .where(eq(accountsTable.id, accountId));
 
   await checkBudgetAlerts(userId);
 

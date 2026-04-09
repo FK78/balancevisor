@@ -26,14 +26,14 @@ import {
 import dynamic from "next/dynamic";
 import { getCurrentUserId } from "@/lib/auth";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
-import { getTrading212Connection, getManualHoldings, getHoldingSales } from "@/db/queries/investments";
+import { getBrokerConnections, getManualHoldings, getHoldingSales, decryptBrokerCredentials } from "@/db/queries/investments";
 import { getAccountsWithDetails } from "@/db/queries/accounts";
 import { getGroupsByUser } from "@/db/queries/investment-groups";
-import { getT212AccountSummary, getT212Positions, type T212Position } from "@/lib/trading212";
 import { getQuotes } from "@/lib/yahoo-finance";
-import { decryptForUser, getUserKey } from "@/lib/encryption";
 import { formatCurrency } from "@/lib/formatCurrency";
-import { ConnectTrading212Dialog } from "@/components/ConnectTrading212Dialog";
+import { getAdapter, BROKER_META } from "@/lib/brokers";
+import type { BrokerSource } from "@/lib/brokers/types";
+import { ConnectBrokerDialog } from "@/components/ConnectBrokerDialog";
 import { AddHoldingDialog } from "@/components/AddHoldingDialog";
 import { AddPrivateInvestmentDialog } from "@/components/AddPrivateInvestmentDialog";
 import { DeleteHoldingButton } from "@/components/DeleteHoldingButton";
@@ -42,6 +42,7 @@ import { RefreshPricesButton } from "@/components/RefreshPricesButton";
 import { InvestmentGroupDialog } from "@/components/InvestmentGroupDialog";
 import { DeleteGroupButton } from "@/components/DeleteGroupButton";
 import { RealizedGainsTable } from "@/components/RealizedGainsTable";
+import { PortfolioAIAnalysis } from "@/components/PortfolioAIAnalysis";
 const InvestmentCharts = dynamic<{ holdings: NormalisedHolding[]; currency: string }>(
   () => import("@/components/InvestmentCharts").then(mod => mod.InvestmentCharts),
   {
@@ -51,7 +52,7 @@ const InvestmentCharts = dynamic<{ holdings: NormalisedHolding[]; currency: stri
 
 type NormalisedHolding = {
   id: string;
-  source: "trading212" | "manual";
+  source: BrokerSource | "manual";
   ticker: string | null;
   name: string;
   quantity: number;
@@ -61,7 +62,7 @@ type NormalisedHolding = {
   value: number;
   gainLoss: number;
   gainLossPercent: number;
-  investmentType: "stock" | "real_estate" | "private_equity" | "other";
+  investmentType: "stock" | "crypto" | "etf" | "real_estate" | "private_equity" | "other";
   estimatedReturnPercent?: number | null;
   notes?: string | null;
   manualId?: string;
@@ -70,18 +71,26 @@ type NormalisedHolding = {
   groupId?: string | null;
   groupName?: string | null;
   groupColor?: string | null;
+  pricePending?: boolean;
 };
 
+import { requireFeature } from "@/components/FeatureGate";
+import { getPageLayout } from "@/db/queries/dashboard-layouts";
+import { PageWidgetWrapper } from "@/components/PageWidgetWrapper";
+import { DashboardWidget } from "@/components/DashboardWidget";
+
 export default async function InvestmentsPage() {
+  await requireFeature("investments");
   const userId = await getCurrentUserId();
 
-  const [t212Connection, manualHoldings, baseCurrency, allAccounts, allGroups, sales] = await Promise.all([
-    getTrading212Connection(userId),
+  const [brokerConnections, manualHoldings, baseCurrency, allAccounts, allGroups, sales, serverLayout] = await Promise.all([
+    getBrokerConnections(userId),
     getManualHoldings(userId),
     getUserBaseCurrency(userId),
     getAccountsWithDetails(userId),
     getGroupsByUser(userId),
     getHoldingSales(userId),
+    getPageLayout(userId, "investments"),
   ]);
 
   const groupMap = new Map(allGroups.map((g) => [g.id, g]));
@@ -91,30 +100,52 @@ export default async function InvestmentsPage() {
     .filter((a) => a.type === "investment")
     .map((a) => ({ id: a.id, accountName: a.accountName }));
 
-  const t212AccountName = t212Connection?.account_id
-    ? investmentAccounts.find((a) => a.id === t212Connection.account_id)?.accountName ?? null
-    : null;
+  const connectedBrokers = brokerConnections.map((c) => c.broker as BrokerSource);
 
-  const isT212Connected = !!t212Connection;
+  // Fetch data from all connected brokers in parallel
+  const holdings: NormalisedHolding[] = [];
+  let brokerCash = 0;
+  const brokerErrors: string[] = [];
 
-  // Fetch Trading 212 data
-  let t212Positions: T212Position[] = [];
-  let t212Cash = 0;
-  let t212Error: string | null = null;
+  const brokerResults = await Promise.allSettled(
+    brokerConnections.map(async (conn) => {
+      const creds = await decryptBrokerCredentials(userId, conn.credentials_encrypted);
+      const adapter = getAdapter(conn.broker as BrokerSource);
+      const summary = await adapter.getSummary(creds);
+      return { conn, summary };
+    }),
+  );
 
-  if (isT212Connected) {
-    try {
-      const userKey = await getUserKey(userId);
-      const apiKey = decryptForUser(t212Connection.api_key_encrypted, userKey);
-      const apiSecret = decryptForUser(t212Connection.api_secret_encrypted, userKey);
-      const [summary, positions] = await Promise.all([
-        getT212AccountSummary(apiKey, apiSecret, t212Connection.environment),
-        getT212Positions(apiKey, apiSecret, t212Connection.environment),
-      ]);
-      t212Positions = positions;
-      t212Cash = summary.cash.availableToTrade;
-    } catch {
-      t212Error = "Unable to sync your Trading 212 data right now. Try again later or reconnect your account.";
+  for (const result of brokerResults) {
+    if (result.status === "rejected") {
+      brokerErrors.push(`Unable to sync broker data. Try again later or reconnect your account.`);
+      continue;
+    }
+    const { conn, summary } = result.value;
+    brokerCash += summary.cash;
+    const accountName = conn.account_id
+      ? investmentAccounts.find((a) => a.id === conn.account_id)?.accountName ?? null
+      : null;
+
+    for (const pos of summary.positions) {
+      holdings.push({
+        id: `${conn.broker}-${pos.ticker}`,
+        source: conn.broker as BrokerSource,
+        ticker: pos.ticker,
+        name: pos.name,
+        quantity: pos.quantity,
+        averagePrice: pos.averagePrice,
+        currentPrice: pos.currentPrice,
+        currency: pos.currency,
+        value: pos.value,
+        gainLoss: pos.gainLoss,
+        gainLossPercent: pos.gainLossPercent,
+        investmentType: pos.investmentType,
+        estimatedReturnPercent: null,
+        notes: null,
+        accountId: conn.account_id,
+        accountName,
+      });
     }
   }
 
@@ -131,38 +162,6 @@ export default async function InvestmentsPage() {
     .filter((ticker): ticker is string => ticker !== null);
 
   const freshQuotes = staleTickers.length > 0 ? await getQuotes(staleTickers) : new Map();
-
-  // Normalise all holdings into a unified list
-  const holdings: NormalisedHolding[] = [];
-
-  // T212 positions
-  for (const pos of t212Positions) {
-    const avgPrice = parseFloat(String(pos.averagePricePaid));
-    const cost = avgPrice * pos.quantity;
-    const value = pos.walletImpact?.currentValue ?? pos.currentPrice * pos.quantity;
-    const gainLoss = pos.walletImpact?.profitLoss ?? value - cost;
-    const gainLossPercent =
-      pos.walletImpact?.profitLossPercent ?? (cost > 0 ? (gainLoss / cost) * 100 : 0);
-
-    holdings.push({
-      id: `t212-${pos.instrument.ticker}`,
-      source: "trading212",
-      ticker: pos.instrument.ticker,
-      name: pos.instrument.name ?? pos.instrument.shortName ?? pos.instrument.ticker,
-      quantity: pos.quantity,
-      averagePrice: avgPrice,
-      currentPrice: pos.currentPrice,
-      currency: pos.instrument.currencyCode ?? baseCurrency,
-      value,
-      gainLoss,
-      gainLossPercent,
-      investmentType: "stock",
-      estimatedReturnPercent: null,
-      notes: null,
-      accountId: t212Connection?.account_id,
-      accountName: t212AccountName,
-    });
-  }
 
   // Manual holdings
   for (const h of manualHoldings) {
@@ -194,11 +193,12 @@ export default async function InvestmentsPage() {
       groupId: h.group_id,
       groupName: h.group_id ? groupMap.get(h.group_id)?.name ?? null : null,
       groupColor: h.group_id ? groupMap.get(h.group_id)?.color ?? null : null,
+      pricePending: (h.investment_type ?? 'stock') === 'stock' && h.ticker != null && !h.last_price_update && !quote,
     });
   }
 
   // Totals
-  const totalInvestmentValue = holdings.reduce((s, h) => s + h.value, 0) + t212Cash;
+  const totalInvestmentValue = holdings.reduce((s, h) => s + h.value, 0) + brokerCash;
   const totalCost =
     holdings.reduce((s, h) => s + h.averagePrice * h.quantity, 0);
   const totalGainLoss = holdings.reduce((s, h) => s + h.gainLoss, 0);
@@ -207,49 +207,50 @@ export default async function InvestmentsPage() {
 
   const sortedHoldings = [...holdings].sort((a, b) => b.value - a.value);
 
-  return (
-    <div className="mx-auto max-w-7xl space-y-8 p-6 md:p-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between page-header-gradient">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Investments</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Track your portfolio across Trading 212 and manual holdings.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <ConnectTrading212Dialog
-            isConnected={isT212Connected}
-            investmentAccounts={investmentAccounts}
-            currentAccountId={t212Connection?.account_id}
-          />
-          <InvestmentGroupDialog investmentAccounts={investmentAccounts} />
-          <AddHoldingDialog investmentAccounts={investmentAccounts} groups={groupOptions} />
-          <AddPrivateInvestmentDialog investmentAccounts={investmentAccounts} groups={groupOptions} />
-          {manualHoldings.length > 0 && <RefreshPricesButton />}
-        </div>
+  const headerEl = (
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Investments</h1>
       </div>
+      <div className="flex flex-wrap gap-2">
+        <ConnectBrokerDialog
+          connectedBrokers={connectedBrokers}
+          investmentAccounts={investmentAccounts}
+        />
+        <InvestmentGroupDialog investmentAccounts={investmentAccounts} />
+        <AddHoldingDialog investmentAccounts={investmentAccounts} groups={groupOptions} />
+        <AddPrivateInvestmentDialog investmentAccounts={investmentAccounts} groups={groupOptions} />
+        {manualHoldings.length > 0 && <RefreshPricesButton />}
+      </div>
+    </div>
+  );
 
-      {/* Error banner */}
-      {t212Error && (
+  return (
+    <PageWidgetWrapper pageId="investments" serverLayout={serverLayout} header={headerEl}>
+      <DashboardWidget id="broker-errors">
+      {brokerErrors.length > 0 && (
         <Card className="border-destructive/50 bg-destructive/5">
           <CardContent className="flex items-center gap-3 py-4">
             <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
             <div>
-              <p className="text-sm font-medium text-destructive">Trading 212 sync failed</p>
-              <p className="text-xs text-muted-foreground">{t212Error}</p>
+              <p className="text-sm font-medium text-destructive">Broker sync failed</p>
+              {brokerErrors.map((err, i) => (
+                <p key={i} className="text-xs text-muted-foreground">{err}</p>
+              ))}
             </div>
           </CardContent>
         </Card>
       )}
+      </DashboardWidget>
 
-      {/* Summary cards */}
+      <DashboardWidget id="summary-cards">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="summary-card">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardDescription className="text-sm font-semibold">
               Total Value
             </CardDescription>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/8">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
               <DollarSign className="text-primary h-4 w-4" />
             </div>
           </CardHeader>
@@ -259,11 +260,11 @@ export default async function InvestmentsPage() {
             </CardTitle>
             <p className="text-muted-foreground mt-1 text-xs">
               {holdings.length} holding{holdings.length !== 1 ? "s" : ""}
-              {t212Cash > 0 && ` + ${formatCurrency(t212Cash, baseCurrency)} cash`}
+              {brokerCash > 0 && ` + ${formatCurrency(brokerCash, baseCurrency)} cash`}
             </p>
           </CardContent>
         </Card>
-        <Card className="summary-card">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardDescription className="text-sm font-semibold">
               Total Gain / Loss
@@ -289,7 +290,7 @@ export default async function InvestmentsPage() {
             </p>
           </CardContent>
         </Card>
-        <Card className="summary-card">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardDescription className="text-sm font-semibold">
               Total Invested
@@ -307,7 +308,7 @@ export default async function InvestmentsPage() {
             </p>
           </CardContent>
         </Card>
-        <Card className="summary-card">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardDescription className="text-sm font-semibold">
               Realized Gains
@@ -329,13 +330,19 @@ export default async function InvestmentsPage() {
           </CardContent>
         </Card>
       </div>
+      </DashboardWidget>
 
-      {/* Charts */}
+      <DashboardWidget id="charts">
       {holdings.length > 0 && (
         <InvestmentCharts holdings={sortedHoldings} currency={baseCurrency} />
       )}
+      </DashboardWidget>
 
-      {/* Holdings table */}
+      <DashboardWidget id="ai-analysis">
+      {holdings.length > 0 && <PortfolioAIAnalysis />}
+      </DashboardWidget>
+
+      <DashboardWidget id="holdings-table">
       {holdings.length === 0 ? (
         <Card>
           <CardContent className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-12 text-center">
@@ -343,11 +350,11 @@ export default async function InvestmentsPage() {
             <div>
               <p className="text-sm font-medium text-foreground">No investments yet</p>
               <p className="text-xs">
-                Connect Trading 212 or add holdings manually to start tracking.
+                Connect a broker or add holdings manually to start tracking.
               </p>
             </div>
             <div className="flex gap-2">
-              <ConnectTrading212Dialog isConnected={false} investmentAccounts={investmentAccounts} />
+              <ConnectBrokerDialog connectedBrokers={connectedBrokers} investmentAccounts={investmentAccounts} />
               <AddHoldingDialog investmentAccounts={investmentAccounts} groups={groupOptions} />
             </div>
           </CardContent>
@@ -482,16 +489,16 @@ export default async function InvestmentsPage() {
                                       </p>
                                     </div>
                                     <Badge
-                                      variant={h.source === "trading212" ? "default" : "secondary"}
+                                      variant={h.source === "manual" ? "secondary" : "default"}
                                       className="text-[10px] shrink-0"
                                     >
-                                      {h.source === "trading212" ? "T212" : "Manual"}
+                                      {h.source === "manual" ? "Manual" : BROKER_META[h.source]?.label ?? h.source}
                                     </Badge>
                                   </div>
                                 </TableCell>
                                 <TableCell>
-                                  <Badge variant={h.investmentType === 'stock' ? 'secondary' : 'outline'} className="text-[10px] shrink-0">
-                                    {h.investmentType === 'stock' ? 'Stock' : h.investmentType === 'real_estate' ? 'Real Estate' : h.investmentType === 'private_equity' ? 'Private Equity' : 'Other'}
+                                  <Badge variant={h.investmentType === 'stock' || h.investmentType === 'crypto' || h.investmentType === 'etf' ? 'secondary' : 'outline'} className="text-[10px] shrink-0">
+                                    {h.investmentType === 'stock' ? 'Stock' : h.investmentType === 'crypto' ? 'Crypto' : h.investmentType === 'etf' ? 'ETF' : h.investmentType === 'real_estate' ? 'Real Estate' : h.investmentType === 'private_equity' ? 'Private Equity' : 'Other'}
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="text-right tabular-nums">
@@ -502,6 +509,9 @@ export default async function InvestmentsPage() {
                                 </TableCell>
                                 <TableCell className="text-right tabular-nums">
                                   {formatCurrency(h.currentPrice, h.currency)}
+                                  {h.pricePending && (
+                                    <p className="text-[10px] text-amber-500">Price pending</p>
+                                  )}
                                 </TableCell>
                                 <TableCell className="text-right tabular-nums font-medium">
                                   {formatCurrency(h.value, baseCurrency)}
@@ -614,6 +624,7 @@ export default async function InvestmentsPage() {
           )}
         </div>
       )}
-    </div>
+      </DashboardWidget>
+    </PageWidgetWrapper>
   );
 }

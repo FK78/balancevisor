@@ -10,9 +10,13 @@ import { getCurrentUserId } from "@/lib/auth";
 import { hasCompletedOnboarding, getPendingFeatures } from "@/db/queries/onboarding";
 import { generateDueRecurringTransactions } from "@/lib/recurring-transactions";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { AiSettingsProvider } from "@/components/AiSettingsProvider";
 import { ChatPanelWrapper as ChatPanel } from "@/components/ChatPanelWrapper";
 import { BankSyncTrigger } from "@/components/BankSyncTrigger";
 import { NextFeatureButtonClient } from "@/components/NextFeatureButtonClient";
+import { isAiEnabled, getDisabledFeatures } from "@/db/queries/preferences";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { FeatureFlagsProvider } from "@/components/FeatureFlagsProvider";
 
 export default async function DashboardLayout({
   children,
@@ -20,10 +24,12 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const userId = await getCurrentUserId();
-  const [onboardingComplete, pendingFeatures] = await Promise.all([
+  const [onboardingComplete, pendingFeatures, , aiEnabled, disabledFeatures] = await Promise.all([
     hasCompletedOnboarding(userId),
     getPendingFeatures(userId),
     generateDueRecurringTransactions(userId),
+    isAiEnabled(userId),
+    getDisabledFeatures(userId),
   ]);
 
   if (!onboardingComplete) {
@@ -33,16 +39,18 @@ export default async function DashboardLayout({
   const pendingFeaturesList: string[] = pendingFeatures ? JSON.parse(pendingFeatures) : [];
 
   return (
+    <AiSettingsProvider aiEnabled={aiEnabled}>
+    <FeatureFlagsProvider disabledFeatures={disabledFeatures}>
     <div className="min-h-screen bg-background">
-      <nav className="sticky top-0 z-50 border-b border-border/40 bg-background/70 backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-6 px-6 md:px-10">
+      <nav className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl" style={{ borderBottom: '0.5px solid var(--border)' }}>
+        <div className="mx-auto flex h-11 max-w-7xl items-center justify-between gap-4 px-4 md:h-12 md:gap-6 md:px-10">
           <div className="flex items-center gap-6">
             <Link
               href="/dashboard"
               className="flex items-center gap-2.5 text-lg font-bold tracking-tight"
             >
               <Image src="/logo.svg" alt="BalanceVisor logo" width={30} height={30} />
-              BalanceVisor
+              <span className="hidden sm:inline">BalanceVisor</span>
             </Link>
             <DashboardNav />
           </div>
@@ -52,18 +60,25 @@ export default async function DashboardLayout({
             <Suspense>
               <NotificationBellServer />
             </Suspense>
-            <Suspense>
-              <AuthButton />
-            </Suspense>
+            <div className="hidden md:block">
+              <Suspense>
+                <AuthButton />
+              </Suspense>
+            </div>
           </div>
         </div>
       </nav>
-      {children}
+      <div className="pb-20 md:pb-0">
+        {children}
+      </div>
+      <MobileBottomNav />
       <InstallPrompt />
       <BankSyncTrigger />
       {pendingFeaturesList.length > 0 && (
         <NextFeatureButtonClient pendingFeatures={pendingFeaturesList} />
       )}
     </div>
+    </FeatureFlagsProvider>
+    </AiSettingsProvider>
   );
 }

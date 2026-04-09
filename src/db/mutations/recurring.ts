@@ -1,7 +1,7 @@
 'use server';
 
 import { getUserDb } from '@/db/rls-context';
-import { transactionsTable, accountsTable } from '@/db/schema';
+import { transactionsTable } from '@/db/schema';
 import { revalidateDomains } from '@/lib/revalidate';
 import { eq, and } from 'drizzle-orm';
 import { getCurrentUserId } from '@/lib/auth';
@@ -20,11 +20,10 @@ export async function cancelRecurring(transactionId: string) {
   const [txn] = await userDb
     .select({ account_id: transactionsTable.account_id })
     .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(
       and(
         eq(transactionsTable.id, transactionId),
-        eq(accountsTable.user_id, userId),
+        eq(transactionsTable.user_id, userId),
       )
     );
 
@@ -56,11 +55,10 @@ export async function updateRecurringPattern(formData: FormData) {
   const [txn] = await userDb
     .select({ account_id: transactionsTable.account_id })
     .from(transactionsTable)
-    .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
     .where(
       and(
         eq(transactionsTable.id, transactionId),
-        eq(accountsTable.user_id, userId),
+        eq(transactionsTable.user_id, userId),
       )
     );
 

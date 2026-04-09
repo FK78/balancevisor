@@ -7,7 +7,7 @@ export type RecurringTransaction = {
   id: string;
   description: string;
   amount: number;
-  type: 'income' | 'expense' | 'transfer' | 'sale' | null;
+  type: 'income' | 'expense' | 'transfer' | 'sale' | 'refund' | null;
   recurring_pattern: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly' | null;
   next_recurring_date: string | null;
   date: string | null;
@@ -40,7 +40,7 @@ export async function getRecurringTransactions(userId: string): Promise<Recurrin
     .leftJoin(categoriesTable, eq(transactionsTable.category_id, categoriesTable.id))
     .where(
       and(
-        eq(accountsTable.user_id, userId),
+        eq(transactionsTable.user_id, userId),
         eq(transactionsTable.is_recurring, true),
         isNotNull(transactionsTable.recurring_pattern),
       )

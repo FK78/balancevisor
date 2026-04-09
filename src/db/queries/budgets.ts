@@ -1,6 +1,7 @@
 import { getUserDb } from '@/db/rls-context';
 import { transactionsTable, budgetsTable, categoriesTable, sharedAccessTable } from '@/db/schema';
 import { eq, sum, sql, and, or, inArray, gte, lt } from 'drizzle-orm';
+import { getMonthRange } from '@/lib/date';
 
 function getCurrentPeriodRange(): { start: string; end: string } {
   const now = new Date();
@@ -31,6 +32,7 @@ export async function getBudgets(userId: string) {
     .innerJoin(categoriesTable, eq(categoriesTable.id, budgetsTable.category_id))
     .leftJoin(transactionsTable, and(
       eq(transactionsTable.category_id, budgetsTable.category_id),
+      eq(transactionsTable.user_id, userId),
       gte(transactionsTable.date, start),
       lt(transactionsTable.date, end),
     ))
@@ -77,6 +79,7 @@ export async function getSharedBudgets(userId: string, email: string) {
     .innerJoin(categoriesTable, eq(categoriesTable.id, budgetsTable.category_id))
     .leftJoin(transactionsTable, and(
       eq(transactionsTable.category_id, budgetsTable.category_id),
+      eq(transactionsTable.user_id, budgetsTable.user_id),
       gte(transactionsTable.date, start),
       lt(transactionsTable.date, end),
     ))
@@ -84,4 +87,38 @@ export async function getSharedBudgets(userId: string, email: string) {
     .groupBy(budgetsTable.id, budgetsTable.category_id, categoriesTable.name, categoriesTable.color, categoriesTable.icon, budgetsTable.amount, budgetsTable.period, budgetsTable.start_date);
 
   return rows.map((row) => ({ ...row, isShared: true as boolean }));
+}
+
+/**
+ * Returns average monthly spend per category over the last 3 months.
+ * Used to suggest budget amounts when creating a new budget.
+ */
+export async function getAvgMonthlySpendByCategory(userId: string): Promise<Record<string, number>> {
+  const threeMonthsAgo = getMonthRange(3);
+  const thisMonth = getMonthRange(0);
+
+  const userDb = await getUserDb(userId);
+  const rows = await userDb
+    .select({
+      category_id: transactionsTable.category_id,
+      total: sql<number>`coalesce(${sum(transactionsTable.amount)}, 0)`.mapWith(Number),
+    })
+    .from(transactionsTable)
+    .where(
+      and(
+        eq(transactionsTable.user_id, userId),
+        eq(transactionsTable.type, 'expense'),
+        gte(transactionsTable.date, threeMonthsAgo.start),
+        lt(transactionsTable.date, thisMonth.end),
+      ),
+    )
+    .groupBy(transactionsTable.category_id);
+
+  const result: Record<string, number> = {};
+  for (const row of rows) {
+    if (row.category_id) {
+      result[row.category_id] = Math.round((row.total / 3) * 100) / 100;
+    }
+  }
+  return result;
 }
