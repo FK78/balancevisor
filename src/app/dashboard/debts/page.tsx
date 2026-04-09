@@ -18,8 +18,10 @@ import { Badge } from "@/components/ui/badge";
 import { CreditCard, CheckCircle2, TrendingDown, Percent } from "lucide-react";
 import { DebtPayoffStrategies } from "@/components/DebtPayoffStrategies";
 import { DebtAIAdvisor } from "@/components/DebtAIAdvisor";
+import { requireFeature } from "@/components/FeatureGate";
 
 export default async function DebtsPage() {
+  await requireFeature("debts");
   const userId = await getCurrentUserId();
   const [summary, accounts, baseCurrency] = await Promise.all([
     getDebtsSummary(userId),

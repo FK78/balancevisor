@@ -26,7 +26,10 @@ const CategoryCharts = dynamic(
   { loading: () => <div className="min-h-[300px]" /> }
 );
 
+import { requireFeature } from "@/components/FeatureGate";
+
 export default async function Categories() {
+  await requireFeature("categories");
   const userId = await getCurrentUserId();
 
   const [categories, topSpendRows, monthlySpendRows, baseCurrency, rules] = await Promise.all([

@@ -1,6 +1,6 @@
 import { getCurrentUserId } from "@/lib/auth";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
-import { isAiEnabled } from "@/db/queries/preferences";
+import { isAiEnabled, getDisabledFeatures } from "@/db/queries/preferences";
 import { createClient } from "@/lib/supabase/server";
 import { SUPPORTED_BASE_CURRENCIES } from "@/lib/currency";
 import { SettingsClient } from "@/components/SettingsClient";
@@ -9,10 +9,11 @@ export default async function SettingsPage() {
   const userId = await getCurrentUserId();
   const supabase = await createClient();
 
-  const [baseCurrency, { data }, aiEnabled] = await Promise.all([
+  const [baseCurrency, { data }, aiEnabled, disabledFeatures] = await Promise.all([
     getUserBaseCurrency(userId),
     supabase.auth.getUser(),
     isAiEnabled(userId),
+    getDisabledFeatures(userId),
   ]);
 
   const user = data.user;
@@ -34,6 +35,7 @@ export default async function SettingsPage() {
         baseCurrency={baseCurrency}
         supportedCurrencies={SUPPORTED_BASE_CURRENCIES}
         aiEnabled={aiEnabled}
+        disabledFeatures={disabledFeatures}
       />
     </div>
   );

@@ -15,8 +15,10 @@ import { GoalFormDialog } from "@/components/GoalFormDialog";
 import { ContributeGoalDialog } from "@/components/ContributeGoalDialog";
 import { DeleteGoalButton } from "@/components/DeleteGoalButton";
 import { Trophy } from "lucide-react";
+import { requireFeature } from "@/components/FeatureGate";
 
 export default async function GoalsPage() {
+  await requireFeature("goals");
   const userId = await getCurrentUserId();
   const [goals, baseCurrency] = await Promise.all([
     getGoals(userId),

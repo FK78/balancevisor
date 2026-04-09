@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { InterestPicker } from "@/components/InterestPicker";
 import { ArrowRight, Info } from "lucide-react";
 import { completeOnboardingAndRedirectWithFeatures } from "@/db/mutations/onboarding";
+import { ONBOARDING_FEATURE_IDS } from "@/components/InterestPicker";
 
 export function FeaturesStep() {
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
@@ -15,7 +16,8 @@ export function FeaturesStep() {
     setIsSubmitting(true);
     const remainingFeatures = selectedFeatures.slice(1);
     const firstFeature = selectedFeatures.length > 0 ? selectedFeatures[0] : undefined;
-    await completeOnboardingAndRedirectWithFeatures(remainingFeatures, firstFeature);
+    const disabledFeatures = ONBOARDING_FEATURE_IDS.filter((id) => !selectedFeatures.includes(id));
+    await completeOnboardingAndRedirectWithFeatures(remainingFeatures, firstFeature, disabledFeatures);
   };
 
   const handleSkip = async () => {

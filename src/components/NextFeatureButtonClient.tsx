@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { markFeatureVisited } from "@/db/mutations/onboarding";
+import { useFeatureFlags } from "@/components/FeatureFlagsProvider";
+import type { FeatureId } from "@/lib/features";
 
 const FEATURE_ROUTES: Record<string, string> = {
   budgets: "/dashboard/budgets",
@@ -32,9 +34,12 @@ export function NextFeatureButtonClient({ pendingFeatures }: { pendingFeatures: 
   const pathname = usePathname();
   const [isVisible, setIsVisible] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
+  const { isFeatureEnabled } = useFeatureFlags();
 
   const currentFeature = (pathname ? ROUTE_TO_FEATURE[pathname] : "") || "";
-  const remainingFeatures = pendingFeatures.filter((f) => f !== currentFeature);
+  const remainingFeatures = pendingFeatures.filter(
+    (f) => f !== currentFeature && isFeatureEnabled(f as FeatureId)
+  );
   const nextFeature = remainingFeatures[0];
 
   useEffect(() => {

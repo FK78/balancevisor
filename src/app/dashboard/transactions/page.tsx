@@ -18,6 +18,7 @@ import { detectRecurringCandidates } from "@/lib/recurring-detection";
 import { RecurringDetectionBanner } from "@/components/RecurringDetectionBanner";
 import { TransactionReviewBanner } from "@/components/TransactionReviewBanner";
 import { getPendingReviewFlags } from "@/db/queries/review-flags";
+import { requireFeature } from "@/components/FeatureGate";
 
 const PAGE_SIZE = 10;
 
@@ -41,6 +42,7 @@ export default async function Transactions({
 }: {
   searchParams?: Promise<{ page?: string; startDate?: string; endDate?: string; search?: string; account?: string }>;
 }) {
+  await requireFeature("transactions");
   const resolvedSearchParams = await searchParams;
   const requestedPage = normalizePage(resolvedSearchParams?.page);
   const startDate = normalizeDate(resolvedSearchParams?.startDate);

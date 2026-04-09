@@ -74,7 +74,10 @@ type NormalisedHolding = {
   pricePending?: boolean;
 };
 
+import { requireFeature } from "@/components/FeatureGate";
+
 export default async function InvestmentsPage() {
+  await requireFeature("investments");
   const userId = await getCurrentUserId();
 
   const [brokerConnections, manualHoldings, baseCurrency, allAccounts, allGroups, sales] = await Promise.all([

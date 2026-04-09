@@ -49,8 +49,10 @@ import {
   deleteAccount,
   exportUserData,
 } from "@/db/mutations/settings";
-import { toggleAiEnabled } from "@/db/mutations/preferences";
+import { toggleAiEnabled, updateDisabledFeatures } from "@/db/mutations/preferences";
 import { currencyLabels } from "@/lib/labels";
+import { FEATURE_DEFINITIONS } from "@/lib/features";
+import { LayoutGrid } from "lucide-react";
 
 type Props = {
   displayName: string;
@@ -58,6 +60,7 @@ type Props = {
   baseCurrency: string;
   supportedCurrencies: readonly string[];
   aiEnabled: boolean;
+  disabledFeatures: string[];
 };
 
 export function SettingsClient({
@@ -66,6 +69,7 @@ export function SettingsClient({
   baseCurrency,
   supportedCurrencies,
   aiEnabled,
+  disabledFeatures: initialDisabled,
 }: Props) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -80,6 +84,10 @@ export function SettingsClient({
   // AI
   const [aiValue, setAiValue] = useState(aiEnabled);
   const [aiPending, startAiTransition] = useTransition();
+
+  // Features
+  const [disabledSet, setDisabledSet] = useState<Set<string>>(() => new Set(initialDisabled));
+  const [featuresPending, startFeaturesTransition] = useTransition();
 
   // Export
   const [exportPending, startExportTransition] = useTransition();
@@ -296,6 +304,73 @@ export function SettingsClient({
               }}
             />
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Features */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+              <LayoutGrid className="h-4 w-4 text-primary" />
+            </div>
+            Features
+          </CardTitle>
+          <CardDescription>
+            Choose which features are visible in your dashboard and navigation.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {FEATURE_DEFINITIONS.map((feature) => {
+            const enabled = !disabledSet.has(feature.id);
+            const Icon = feature.icon;
+            return (
+              <div key={feature.id} className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
+                    <Icon className="h-4 w-4 text-foreground" strokeWidth={1.6} />
+                  </div>
+                  <div className="space-y-0.5">
+                    <Label htmlFor={`feature_${feature.id}`} className="text-sm font-medium">
+                      {feature.label}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">{feature.description}</p>
+                  </div>
+                </div>
+                <Switch
+                  id={`feature_${feature.id}`}
+                  checked={enabled}
+                  disabled={featuresPending}
+                  onCheckedChange={(checked) => {
+                    const next = new Set(disabledSet);
+                    if (checked) {
+                      next.delete(feature.id);
+                    } else {
+                      next.add(feature.id);
+                    }
+                    setDisabledSet(next);
+                    startFeaturesTransition(async () => {
+                      const result = await updateDisabledFeatures(Array.from(next));
+                      if (result.error) {
+                        toast.error(result.error);
+                        // rollback
+                        const rollback = new Set(next);
+                        if (checked) rollback.add(feature.id);
+                        else rollback.delete(feature.id);
+                        setDisabledSet(rollback);
+                      } else {
+                        toast.success(
+                          checked
+                            ? `${feature.label} enabled`
+                            : `${feature.label} disabled`,
+                        );
+                      }
+                    });
+                  }}
+                />
+              </div>
+            );
+          })}
         </CardContent>
       </Card>
 

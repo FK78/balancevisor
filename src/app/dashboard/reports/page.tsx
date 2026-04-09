@@ -5,8 +5,10 @@ import {
   getMonthlyCategorySpendTrend,
 } from "@/db/queries/transactions";
 import { ReportsClient } from "@/components/ReportsClient";
+import { requireFeature } from "@/components/FeatureGate";
 
 export default async function ReportsPage() {
+  await requireFeature("reports");
   const userId = await getCurrentUserId();
 
   const [monthlyTrend, monthlyCategorySpend, baseCurrency] = await Promise.all([

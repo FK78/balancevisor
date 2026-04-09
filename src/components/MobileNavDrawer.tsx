@@ -20,15 +20,24 @@ import {
   SheetDescription,
   SheetClose,
 } from "@/components/ui/sheet";
+import { useFeatureFlags } from "@/components/FeatureFlagsProvider";
+import type { FeatureId } from "@/lib/features";
 
-const drawerItems = [
-  { href: "/dashboard/reports", label: "Reports", icon: BarChart3 },
-  { href: "/dashboard/categories", label: "Categories", icon: Tags },
-  { href: "/dashboard/budgets", label: "Budgets", icon: Target },
-  { href: "/dashboard/goals", label: "Goals", icon: Trophy },
-  { href: "/dashboard/debts", label: "Debts", icon: CreditCard },
-  { href: "/dashboard/subscriptions", label: "Subscriptions", icon: Repeat },
-  { href: "/dashboard/recurring", label: "Recurring", icon: Repeat2 },
+interface DrawerItem {
+  href: string;
+  label: string;
+  icon: typeof BarChart3;
+  featureId?: FeatureId;
+}
+
+const drawerItems: DrawerItem[] = [
+  { href: "/dashboard/reports", label: "Reports", icon: BarChart3, featureId: "reports" },
+  { href: "/dashboard/categories", label: "Categories", icon: Tags, featureId: "categories" },
+  { href: "/dashboard/budgets", label: "Budgets", icon: Target, featureId: "budgets" },
+  { href: "/dashboard/goals", label: "Goals", icon: Trophy, featureId: "goals" },
+  { href: "/dashboard/debts", label: "Debts", icon: CreditCard, featureId: "debts" },
+  { href: "/dashboard/subscriptions", label: "Subscriptions", icon: Repeat, featureId: "subscriptions" },
+  { href: "/dashboard/recurring", label: "Recurring", icon: Repeat2, featureId: "recurring" },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
@@ -47,6 +56,9 @@ export function MobileNavDrawer({
   onOpenChange: (open: boolean) => void;
 }) {
   const pathname = usePathname();
+  const { isFeatureEnabled } = useFeatureFlags();
+
+  const visibleItems = drawerItems.filter((item) => !item.featureId || isFeatureEnabled(item.featureId));
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -66,9 +78,9 @@ export function MobileNavDrawer({
 
         {/* iOS-style grouped list */}
         <nav className="mx-4 mb-4 overflow-hidden rounded-xl bg-card">
-          {drawerItems.map((item, i) => {
+          {visibleItems.map((item, i) => {
             const active = isActive(item.href, pathname);
-            const isLast = i === drawerItems.length - 1;
+            const isLast = i === visibleItems.length - 1;
             return (
               <SheetClose key={item.href} asChild>
                 <Link

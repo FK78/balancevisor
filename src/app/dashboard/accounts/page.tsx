@@ -35,6 +35,7 @@ import { getManualHoldings, getBrokerConnections } from "@/db/queries/investment
 import { BROKER_META } from "@/lib/brokers";
 import type { BrokerSource } from "@/lib/brokers/types";
 import Link from "next/link";
+import { requireFeature } from "@/components/FeatureGate";
 
 const typeConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   currentAccount: { label: "Current Account", variant: "secondary" },
@@ -51,6 +52,7 @@ export const typeIcons: Record<string, typeof Wallet> = {
 };
 
 export default async function Accounts() {
+  await requireFeature("accounts");
   const userId = await getCurrentUserId();
 
   const email = await getCurrentUserEmail();

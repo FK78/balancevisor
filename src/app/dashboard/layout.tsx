@@ -14,8 +14,9 @@ import { AiSettingsProvider } from "@/components/AiSettingsProvider";
 import { ChatPanelWrapper as ChatPanel } from "@/components/ChatPanelWrapper";
 import { BankSyncTrigger } from "@/components/BankSyncTrigger";
 import { NextFeatureButtonClient } from "@/components/NextFeatureButtonClient";
-import { isAiEnabled } from "@/db/queries/preferences";
+import { isAiEnabled, getDisabledFeatures } from "@/db/queries/preferences";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { FeatureFlagsProvider } from "@/components/FeatureFlagsProvider";
 
 export default async function DashboardLayout({
   children,
@@ -23,11 +24,12 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const userId = await getCurrentUserId();
-  const [onboardingComplete, pendingFeatures, , aiEnabled] = await Promise.all([
+  const [onboardingComplete, pendingFeatures, , aiEnabled, disabledFeatures] = await Promise.all([
     hasCompletedOnboarding(userId),
     getPendingFeatures(userId),
     generateDueRecurringTransactions(userId),
     isAiEnabled(userId),
+    getDisabledFeatures(userId),
   ]);
 
   if (!onboardingComplete) {
@@ -38,6 +40,7 @@ export default async function DashboardLayout({
 
   return (
     <AiSettingsProvider aiEnabled={aiEnabled}>
+    <FeatureFlagsProvider disabledFeatures={disabledFeatures}>
     <div className="min-h-screen bg-background">
       <nav className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl" style={{ borderBottom: '0.5px solid var(--border)' }}>
         <div className="mx-auto flex h-11 max-w-7xl items-center justify-between gap-4 px-4 md:h-12 md:gap-6 md:px-10">
@@ -75,6 +78,7 @@ export default async function DashboardLayout({
         <NextFeatureButtonClient pendingFeatures={pendingFeaturesList} />
       )}
     </div>
+    </FeatureFlagsProvider>
     </AiSettingsProvider>
   );
 }

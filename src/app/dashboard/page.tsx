@@ -35,6 +35,8 @@ import { DashboardUpcomingBills } from "@/components/dashboard/DashboardUpcoming
 import { getCurrentUserId } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
+import { getDisabledFeatures } from "@/db/queries/preferences";
+import { isFeatureEnabled as checkFeature, type FeatureId } from "@/lib/features";
 import dynamic from "next/dynamic";
 
 const CashflowCharts = dynamic(
@@ -55,6 +57,9 @@ export default async function Home() {
 
   const supabase = await createClient();
 
+  const disabledFeatures = await getDisabledFeatures(userId);
+  const on = (id: FeatureId) => checkFeature(id, disabledFeatures);
+
   const [
     lastFiveTransactions,
     accounts,
@@ -70,23 +75,25 @@ export default async function Home() {
     goals,
     upcomingRenewals,
   ] = await Promise.all([
-    getLatestFiveTransactionsWithDetails(userId),
-    getAccountsWithDetails(userId),
-    getBudgets(userId),
-    getTotalsByType(userId, "income", thisMonth.start, thisMonth.end),
-    getTotalsByType(userId, "expense", thisMonth.start, thisMonth.end),
-    getTotalSpendByCategoryThisMonth(userId),
-    getMonthlyIncomeExpenseTrend(userId, 6),
+    on("transactions") ? getLatestFiveTransactionsWithDetails(userId) : Promise.resolve([]),
+    on("accounts") ? getAccountsWithDetails(userId) : Promise.resolve([]),
+    on("budgets") ? getBudgets(userId) : Promise.resolve([]),
+    on("transactions") ? getTotalsByType(userId, "income", thisMonth.start, thisMonth.end) : Promise.resolve(0),
+    on("transactions") ? getTotalsByType(userId, "expense", thisMonth.start, thisMonth.end) : Promise.resolve(0),
+    on("categories") ? getTotalSpendByCategoryThisMonth(userId) : Promise.resolve([]),
+    on("reports") ? getMonthlyIncomeExpenseTrend(userId, 6) : Promise.resolve([]),
     getUserBaseCurrency(userId),
-    getInvestmentValue(userId),
-    getNetWorthHistory(userId, 90),
+    on("investments") ? getInvestmentValue(userId) : Promise.resolve(0),
+    on("accounts") ? getNetWorthHistory(userId, 90) : Promise.resolve([]),
     supabase.auth.getClaims(),
-    getGoals(userId),
-    getUpcomingRenewals(userId, 7),
+    on("goals") ? getGoals(userId) : Promise.resolve([]),
+    on("subscriptions") ? getUpcomingRenewals(userId, 7) : Promise.resolve([]),
   ]);
 
   // Fire-and-forget: snapshot uses the already-fetched investmentValue to avoid duplicate API calls
-  snapshotNetWorthIfNeeded(userId, investmentValue).catch(() => {});
+  if (on("accounts")) {
+    snapshotNetWorthIfNeeded(userId, investmentValue).catch(() => {});
+  }
 
   const liabilityTypes = new Set(["creditCard"]);
   const totalAssets = accounts
@@ -113,8 +120,8 @@ export default async function Home() {
 
   const [insights, forecast, anomalies] = await Promise.all([
     getDashboardInsights(userId, budgets, goals),
-    getCashflowForecast(userId),
-    getSpendingAnomalies(userId),
+    on("reports") ? getCashflowForecast(userId) : Promise.resolve(null),
+    on("reports") ? getSpendingAnomalies(userId) : Promise.resolve([]),
   ]);
 
   return (
@@ -127,90 +134,100 @@ export default async function Home() {
           </h1>
           <p className="text-muted-foreground mt-0.5 text-sm">{monthName}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <QuickAddTransaction />
-          <Button asChild size="sm" variant="outline">
-            <Link href="/dashboard/transactions">
-              Transactions <ArrowRight className="ml-1 h-3.5 w-3.5" />
-            </Link>
-          </Button>
-        </div>
+        {on("transactions") && (
+          <div className="flex flex-wrap gap-2">
+            <QuickAddTransaction />
+            <Button asChild size="sm" variant="outline">
+              <Link href="/dashboard/transactions">
+                Transactions <ArrowRight className="ml-1 h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Insights */}
       {insights.length > 0 && <DashboardInsights insights={insights} />}
 
       {/* AI Monthly Report */}
-      <DashboardMonthlyReport />
+      {on("reports") && <DashboardMonthlyReport />}
 
       {/* Net Worth */}
-      {accounts.length > 0 && (
+      {on("accounts") && accounts.length > 0 && (
         <DashboardNetWorth
           netWorth={netWorth}
           totalAssets={totalAssets}
           totalLiabilities={totalLiabilities}
-          investmentValue={investmentValue}
+          investmentValue={on("investments") ? investmentValue : 0}
           currency={baseCurrency}
         />
       )}
 
       {/* Net Worth History */}
-      {netWorthHistory.length >= 2 && (
+      {on("accounts") && netWorthHistory.length >= 2 && (
         <NetWorthChart data={netWorthHistory} currency={baseCurrency} />
       )}
 
       {/* Cashflow */}
-      <CashflowCharts data={monthlyTrend} currency={baseCurrency} />
+      {on("reports") && <CashflowCharts data={monthlyTrend} currency={baseCurrency} />}
 
       {/* Cash Flow Forecast */}
-      <DashboardCashflowForecast forecast={forecast} />
+      {on("reports") && forecast && <DashboardCashflowForecast forecast={forecast} />}
 
       {/* Spending Anomalies */}
-      {anomalies.length > 0 && (
+      {on("reports") && anomalies.length > 0 && (
         <DashboardAnomalies anomalies={anomalies} currency={baseCurrency} />
       )}
 
       {/* Weekly Digest */}
-      <DashboardWeeklyDigest />
+      {on("reports") && <DashboardWeeklyDigest />}
 
       {/* Upcoming bills */}
-      {upcomingRenewals.length > 0 && (
+      {on("subscriptions") && upcomingRenewals.length > 0 && (
         <DashboardUpcomingBills renewals={upcomingRenewals} currency={baseCurrency} />
       )}
 
       {/* Budget + Category spend */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <DashboardBudgetProgress
-          budgets={budgets}
-          budgetsAtRisk={budgetsAtRisk}
-          currency={baseCurrency}
-        />
+      {(on("budgets") || on("categories")) && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {on("budgets") && (
+            <DashboardBudgetProgress
+              budgets={budgets}
+              budgetsAtRisk={budgetsAtRisk}
+              currency={baseCurrency}
+            />
+          )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Spending by Category</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {spendByCategory.length === 0 ? (
-              <p className="text-muted-foreground py-6 text-center text-sm">No spend data yet.</p>
-            ) : (
-              spendByCategory.map((cat) => (
-                <SpendCategoryRow
-                  key={cat.category}
-                  category={cat.category}
-                  total={cat.total}
-                  color={cat.color}
-                  totalExpenses={expenses}
-                  currency={baseCurrency}
-                />
-              ))
-            )}
-          </CardContent>
-        </Card>
-      </div>
+          {on("categories") && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Spending by Category</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {spendByCategory.length === 0 ? (
+                  <p className="text-muted-foreground py-6 text-center text-sm">No spend data yet.</p>
+                ) : (
+                  spendByCategory.map((cat) => (
+                    <SpendCategoryRow
+                      key={cat.category}
+                      category={cat.category}
+                      total={cat.total}
+                      color={cat.color}
+                      totalExpenses={expenses}
+                      currency={baseCurrency}
+                    />
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
 
       {/* Recent transactions */}
-      <DashboardRecentTransactions transactions={lastFiveTransactions} currency={baseCurrency} />
+      {on("transactions") && (
+        <DashboardRecentTransactions transactions={lastFiveTransactions} currency={baseCurrency} />
+      )}
     </div>
   );
 }

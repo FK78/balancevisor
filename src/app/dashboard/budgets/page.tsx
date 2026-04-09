@@ -30,8 +30,10 @@ const BudgetCharts = dynamic(
 import { BudgetAlertSettings } from "@/components/BudgetAlertSettings";
 import { getAlertPreferencesByUser } from "@/db/queries/budget-alerts";
 import { getSharesByOwner, getPendingInvitations } from "@/db/queries/sharing";
+import { requireFeature } from "@/components/FeatureGate";
 
 export default async function Budgets() {
+  await requireFeature("budgets");
   const userId = await getCurrentUserId();
   const email = await getCurrentUserEmail();
   

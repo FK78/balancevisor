@@ -19,3 +19,17 @@ export async function isAiEnabled(userId: string): Promise<boolean> {
   const prefs = await getUserPreferences(userId);
   return prefs?.ai_enabled ?? true;
 }
+
+/**
+ * Returns the list of feature IDs the user has disabled.
+ * Defaults to [] if no preference row exists (all features enabled).
+ */
+export async function getDisabledFeatures(userId: string): Promise<string[]> {
+  const prefs = await getUserPreferences(userId);
+  if (!prefs?.disabled_features) return [];
+  try {
+    return JSON.parse(prefs.disabled_features) as string[];
+  } catch {
+    return [];
+  }
+}

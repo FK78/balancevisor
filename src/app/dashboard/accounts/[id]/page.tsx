@@ -69,6 +69,8 @@ function normalizeDate(value?: string): string | undefined {
   return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : undefined;
 }
 
+import { requireFeature } from "@/components/FeatureGate";
+
 export default async function AccountDetailPage({
   params,
   searchParams,
@@ -81,6 +83,7 @@ export default async function AccountDetailPage({
     search?: string;
   }>;
 }) {
+  await requireFeature("accounts");
   const { id: accountId } = await params;
   const resolvedSearchParams = await searchParams;
   const requestedPage = normalizePage(resolvedSearchParams?.page);

@@ -31,7 +31,10 @@ const cycleLabels: Record<string, string> = {
   yearly: "Yearly",
 };
 
+import { requireFeature } from "@/components/FeatureGate";
+
 export default async function SubscriptionsPage() {
+  await requireFeature("subscriptions");
   const userId = await getCurrentUserId();
 
   const [subscriptions, totals, categories, accounts, baseCurrency] = await Promise.all([

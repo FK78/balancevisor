@@ -26,3 +26,26 @@ export async function toggleAiEnabled(
     return { error: 'Failed to update AI preference.' };
   }
 }
+
+export async function updateDisabledFeatures(
+  disabledFeatures: string[],
+): Promise<{ success?: boolean; error?: string }> {
+  try {
+    const userId = await getCurrentUserId();
+    const value = disabledFeatures.length > 0 ? JSON.stringify(disabledFeatures) : null;
+
+    await db.insert(userPreferencesTable).values({
+      user_id: userId,
+      disabled_features: value,
+      updated_at: new Date(),
+    }).onConflictDoUpdate({
+      target: userPreferencesTable.user_id,
+      set: { disabled_features: value, updated_at: new Date() },
+    });
+
+    revalidateDomains();
+    return { success: true };
+  } catch {
+    return { error: 'Failed to update feature preferences.' };
+  }
+}

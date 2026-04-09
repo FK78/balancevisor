@@ -376,9 +376,10 @@ CREATE INDEX mfa_backup_codes_user_id_idx ON mfa_backup_codes (user_id);
 
 -- 25. user_preferences (no deps)
 CREATE TABLE user_preferences (
-  user_id    UUID PRIMARY KEY,
-  ai_enabled BOOLEAN     NOT NULL DEFAULT TRUE,
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  user_id            UUID PRIMARY KEY,
+  ai_enabled         BOOLEAN     NOT NULL DEFAULT TRUE,
+  disabled_features  TEXT,
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- 26. transaction_review_flags (FK → transactions, subscriptions, debts)

@@ -338,6 +338,7 @@ export const mfaBackupCodesTable = pgTable("mfa_backup_codes", {
 export const userPreferencesTable = pgTable("user_preferences", {
   user_id: uuid("user_id").primaryKey(),
   ai_enabled: boolean("ai_enabled").notNull().default(true),
+  disabled_features: text("disabled_features"),
   updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
