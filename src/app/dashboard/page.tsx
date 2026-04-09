@@ -21,6 +21,7 @@ import { getDisabledFeatures } from "@/db/queries/preferences";
 import { isFeatureEnabled as checkFeature, type FeatureId } from "@/lib/features";
 import { createClient } from "@/lib/supabase/server";
 import { getPageLayout } from "@/db/queries/dashboard-layouts";
+import { getZakatSettings, getLatestZakatCalculation } from "@/db/queries/zakat";
 import { DashboardPageClient } from "@/components/dashboard/DashboardPageClient";
 
 export default async function Home() {
@@ -92,11 +93,35 @@ export default async function Home() {
     return pct >= 80;
   });
 
-  const [insights, forecast, anomalies] = await Promise.all([
+  const [insights, forecast, anomalies, zakatSettings, latestZakatCalc] = await Promise.all([
     getDashboardInsights(userId, budgets, goals),
     on("reports") ? getCashflowForecast(userId) : Promise.resolve(null),
     on("reports") ? getSpendingAnomalies(userId) : Promise.resolve([]),
+    on("zakat") ? getZakatSettings(userId) : Promise.resolve(null),
+    on("zakat") ? getLatestZakatCalculation(userId) : Promise.resolve(null),
   ]);
+
+  let zakatData: { zakatDue: number; zakatableAmount: number; aboveNisab: boolean; daysUntil: number | null; hasSettings: boolean } | null = null;
+  if (on("zakat")) {
+    let daysUntil: number | null = null;
+    if (zakatSettings) {
+      const now = new Date();
+      const anniv = new Date(zakatSettings.anniversary_date);
+      const thisYear = new Date(now.getFullYear(), anniv.getMonth(), anniv.getDate());
+      const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      if (thisYear.getTime() < todayMidnight.getTime()) {
+        thisYear.setFullYear(thisYear.getFullYear() + 1);
+      }
+      daysUntil = Math.round((thisYear.getTime() - todayMidnight.getTime()) / (1000 * 60 * 60 * 24));
+    }
+    zakatData = {
+      zakatDue: latestZakatCalc ? Number(latestZakatCalc.zakat_due) : 0,
+      zakatableAmount: latestZakatCalc ? Number(latestZakatCalc.zakatable_amount) : 0,
+      aboveNisab: latestZakatCalc?.above_nisab ?? false,
+      daysUntil,
+      hasSettings: !!zakatSettings,
+    };
+  }
 
   return (
     <DashboardPageClient
@@ -110,6 +135,8 @@ export default async function Home() {
       budgetsEnabled={on("budgets")}
       categoriesEnabled={on("categories")}
       subscriptionsEnabled={on("subscriptions")}
+      zakatEnabled={on("zakat")}
+      zakatData={zakatData}
       insights={insights}
       netWorth={netWorth}
       totalAssets={totalAssets}

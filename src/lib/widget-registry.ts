@@ -37,6 +37,7 @@ const DASHBOARD_WIDGETS: readonly WidgetDefinition[] = [
   { id: "budget-progress", label: "Budget Progress", defaultVisible: true, colSpan: 1 },
   { id: "category-spend", label: "Spending by Category", defaultVisible: true, colSpan: 1 },
   { id: "recent-transactions", label: "Recent Transactions", defaultVisible: true, colSpan: 2 },
+  { id: "zakat-summary", label: "Zakat Summary", defaultVisible: true, colSpan: 1 },
 ] as const;
 
 const ACCOUNTS_WIDGETS: readonly WidgetDefinition[] = [

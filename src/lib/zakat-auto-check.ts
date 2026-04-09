@@ -9,21 +9,22 @@ export async function autoCalculateZakatIfDue(userId: string): Promise<void> {
   const settings = await getZakatSettings(userId);
   if (!settings) return;
 
-  const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
 
-  // Build this year's anniversary date
+  // Build this year's anniversary date (normalize to midnight for comparison)
   const anniv = new Date(settings.anniversary_date);
-  const thisYearAnniv = new Date(today.getFullYear(), anniv.getMonth(), anniv.getDate());
+  const thisYearAnniv = new Date(now.getFullYear(), anniv.getMonth(), anniv.getDate());
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  // If this year's anniversary already passed, look at next year
-  if (thisYearAnniv < today) {
+  // If this year's anniversary already passed (strictly before today), look at next year
+  if (thisYearAnniv.getTime() < todayMidnight.getTime()) {
     thisYearAnniv.setFullYear(thisYearAnniv.getFullYear() + 1);
   }
 
-  // Calculate days until anniversary
+  // Calculate days until anniversary using midnight-normalized dates
   const msPerDay = 1000 * 60 * 60 * 24;
-  const daysUntil = Math.ceil((thisYearAnniv.getTime() - today.getTime()) / msPerDay);
+  const daysUntil = Math.round((thisYearAnniv.getTime() - todayMidnight.getTime()) / msPerDay);
 
   // Only auto-calculate if anniversary is tomorrow or today
   if (daysUntil > 1) return;

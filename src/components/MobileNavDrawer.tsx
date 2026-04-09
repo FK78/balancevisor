@@ -10,6 +10,7 @@ import {
   Repeat,
   Repeat2,
   BarChart3,
+  Calculator,
   Settings,
   ChevronRight,
 } from "lucide-react";
@@ -37,6 +38,7 @@ const drawerItems: DrawerItem[] = [
   { href: "/dashboard/goals", label: "Goals", icon: Trophy, featureId: "goals" },
   { href: "/dashboard/debts", label: "Debts", icon: CreditCard, featureId: "debts" },
   { href: "/dashboard/subscriptions", label: "Subscriptions", icon: Repeat, featureId: "subscriptions" },
+  { href: "/dashboard/zakat", label: "Zakat", icon: Calculator, featureId: "zakat" },
   { href: "/dashboard/recurring", label: "Recurring", icon: Repeat2, featureId: "recurring" },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];

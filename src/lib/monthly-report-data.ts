@@ -6,6 +6,9 @@ import { getActiveSubscriptionsTotals } from "@/db/queries/subscriptions";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { getNetWorthHistory } from "@/db/queries/net-worth";
 import { getPortfolioSnapshot, formatPortfolioContext } from "@/lib/portfolio-data";
+import { getZakatSettings, getLatestZakatCalculation } from "@/db/queries/zakat";
+import { getDisabledFeatures } from "@/db/queries/preferences";
+import { isFeatureEnabled } from "@/lib/features";
 import { getMonthRange, getMonthKey } from "@/lib/date";
 import { formatCurrency } from "@/lib/formatCurrency";
 
@@ -38,6 +41,10 @@ export type MonthlyReportData = {
   netWorthEnd: number | null;
   netWorthChange: number | null;
   portfolioContext: string;
+  zakatDue: number | null;
+  zakatableAmount: number | null;
+  zakatAboveNisab: boolean | null;
+  zakatAnniversaryDate: string | null;
 };
 
 export async function getMonthlyReportData(
@@ -67,6 +74,7 @@ export async function getMonthlyReportData(
     baseCurrency,
     netWorthHistory,
     portfolioSnapshot,
+    disabledFeatures,
   ] = await Promise.all([
     getTotalsByType(userId, "income", targetMonth.start, targetMonth.end),
     getTotalsByType(userId, "expense", targetMonth.start, targetMonth.end),
@@ -81,7 +89,13 @@ export async function getMonthlyReportData(
     getUserBaseCurrency(userId),
     getNetWorthHistory(userId, 90),
     getPortfolioSnapshot(userId),
+    getDisabledFeatures(userId),
   ]);
+
+  const zakatEnabled = isFeatureEnabled("zakat", disabledFeatures);
+  const [zakatSettings, latestZakatCalc] = zakatEnabled
+    ? await Promise.all([getZakatSettings(userId), getLatestZakatCalculation(userId)])
+    : [null, null];
 
   const netSpend = expenses - refunds;
   const net = income - netSpend;
@@ -146,6 +160,10 @@ export async function getMonthlyReportData(
     netWorthEnd,
     netWorthChange,
     portfolioContext: formatPortfolioContext(portfolioSnapshot),
+    zakatDue: latestZakatCalc ? Number(latestZakatCalc.zakat_due) : null,
+    zakatableAmount: latestZakatCalc ? Number(latestZakatCalc.zakatable_amount) : null,
+    zakatAboveNisab: latestZakatCalc?.above_nisab ?? null,
+    zakatAnniversaryDate: zakatSettings?.anniversary_date ?? null,
   };
 }
 
@@ -210,5 +228,12 @@ ${data.netWorthChange !== null
     : "- Insufficient snapshot data for this month"}
 
 ${data.portfolioContext}
+${data.zakatDue !== null ? `
+### Zakat
+- Anniversary date: ${data.zakatAnniversaryDate ?? "Not set"}
+- Zakatable wealth: ${fmt(data.zakatableAmount ?? 0)}
+- Above nisab: ${data.zakatAboveNisab ? "Yes" : "No"}
+- Zakat due: ${fmt(data.zakatDue)}
+` : ""}
 `.trim();
 }

@@ -24,6 +24,8 @@ import {
   holdingSalesTable,
   transactionSplitsTable,
   userPreferencesTable,
+  zakatSettingsTable,
+  zakatCalculationsTable,
 } from '@/db/schema';
 import { EXPORT_VERSION } from '@/lib/types';
 import type { ExportData } from '@/lib/types';
@@ -143,6 +145,8 @@ export async function deleteAccount(): Promise<{ success?: boolean; error?: stri
     await tx.delete(manualHoldingsTable).where(eq(manualHoldingsTable.user_id, userId));
     await tx.delete(trading212ConnectionsTable).where(eq(trading212ConnectionsTable.user_id, userId));
     await tx.delete(brokerConnectionsTable).where(eq(brokerConnectionsTable.user_id, userId));
+    await tx.delete(zakatCalculationsTable).where(eq(zakatCalculationsTable.user_id, userId));
+    await tx.delete(zakatSettingsTable).where(eq(zakatSettingsTable.user_id, userId));
     await tx.delete(debtsTable).where(eq(debtsTable.user_id, userId));
 
     // --- Transactions (linked to accounts) ---
@@ -216,6 +220,8 @@ export async function exportUserData(): Promise<ExportData> {
     debtPayments,
     holdingSales,
     budgetAlertPreferences,
+    zakatSettingsRows,
+    zakatCalculationsRows,
   ] = await Promise.all([
     db.select().from(categoriesTable).where(eq(categoriesTable.user_id, userId)),
     db.select().from(goalsTable).where(eq(goalsTable.user_id, userId)),
@@ -235,6 +241,8 @@ export async function exportUserData(): Promise<ExportData> {
     budgetIds.length > 0
       ? db.select().from(budgetAlertPreferencesTable).where(inArray(budgetAlertPreferencesTable.budget_id, budgetIds))
       : Promise.resolve([]),
+    db.select().from(zakatSettingsTable).where(eq(zakatSettingsTable.user_id, userId)),
+    db.select().from(zakatCalculationsTable).where(eq(zakatCalculationsTable.user_id, userId)),
   ]);
 
   // Decrypt encrypted fields so user receives readable data
@@ -269,5 +277,7 @@ export async function exportUserData(): Promise<ExportData> {
     subscriptions,
     netWorthSnapshots,
     categorisationRules,
+    zakatSettings: zakatSettingsRows,
+    zakatCalculations: zakatCalculationsRows,
   };
 }

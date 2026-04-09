@@ -21,6 +21,8 @@ import {
   transactionSplitsTable,
   netWorthSnapshotsTable,
   budgetNotificationsTable,
+  zakatSettingsTable,
+  zakatCalculationsTable,
 } from "./schema";
 
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -62,6 +64,8 @@ async function seed() {
 
   // ── Cleanup existing data (FK-safe order) ─────────────────────
   console.log("  🗑  Clearing existing data for user...");
+  await db.delete(zakatCalculationsTable).where(eq(zakatCalculationsTable.user_id, USER_ID));
+  await db.delete(zakatSettingsTable).where(eq(zakatSettingsTable.user_id, USER_ID));
   await db.delete(budgetNotificationsTable).where(eq(budgetNotificationsTable.user_id, USER_ID));
   await db.delete(budgetAlertPreferencesTable).where(eq(budgetAlertPreferencesTable.user_id, USER_ID));
   await db.delete(holdingSalesTable).where(eq(holdingSalesTable.user_id, USER_ID));
@@ -403,7 +407,43 @@ async function seed() {
   const snapshots = await db.insert(netWorthSnapshotsTable).values(snapshotValues).returning();
   console.log(`  ✓ ${snapshots.length} net worth snapshots`);
 
-  console.log("\n✅ Seed complete!");
+  // ── Zakat settings & sample calculation ────────────────────────────
+  await db.insert(zakatSettingsTable).values({
+    user_id: USER_ID,
+    anniversary_date: daysFromNow(45),
+    nisab_type: "gold",
+    use_lunar_calendar: false,
+  });
+  console.log("  \u2713 zakat settings");
+
+  await db.insert(zakatCalculationsTable).values({
+    user_id: USER_ID,
+    is_auto: false,
+    nisab_value: 5686,
+    total_assets: 16771.38,
+    cash_and_savings: 16771.38,
+    investment_value: 0,
+    total_liabilities: 743.21,
+    debt_deductions: 37900,
+    zakatable_amount: 0,
+    zakat_due: 0,
+    above_nisab: false,
+    breakdown_json: {
+      accounts: [
+        { name: "Monzo Current", type: "currentAccount", balance: 2450.83 },
+        { name: "Chase Saver", type: "savings", balance: 12500 },
+        { name: "Starling Joint", type: "currentAccount", balance: 1820.55 },
+      ],
+      debts: [
+        { name: "Student Loan", remainingAmount: 28500 },
+        { name: "Car Finance", remainingAmount: 8200 },
+        { name: "Personal Loan", remainingAmount: 1200 },
+      ],
+    },
+  });
+  console.log("  \u2713 zakat sample calculation");
+
+  console.log("\n\u2705 Seed complete!");
 }
 
 seed()

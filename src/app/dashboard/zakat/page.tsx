@@ -84,6 +84,7 @@ export default async function ZakatPage() {
                   }
                 : null
             }
+            baseCurrency={baseCurrency}
           />
           {settings && <CalculateZakatButton />}
         </div>
@@ -99,7 +100,7 @@ export default async function ZakatPage() {
               Set your zakat anniversary date to get started. Your zakat will be
               automatically calculated 1 day before it&apos;s due.
             </p>
-            <ZakatSettingsDialog settings={null} />
+            <ZakatSettingsDialog settings={null} baseCurrency={baseCurrency} />
           </CardContent>
         </Card>
       )}

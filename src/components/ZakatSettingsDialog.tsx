@@ -22,6 +22,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { saveZakatSettings } from "@/db/mutations/zakat";
+import { formatCurrency } from "@/lib/formatCurrency";
 
 type ZakatSettings = {
   anniversary_date: string;
@@ -29,7 +30,7 @@ type ZakatSettings = {
   use_lunar_calendar: boolean;
 } | null;
 
-export function ZakatSettingsDialog({ settings }: { settings: ZakatSettings }) {
+export function ZakatSettingsDialog({ settings, baseCurrency = "GBP" }: { settings: ZakatSettings; baseCurrency?: string }) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"form" | "success">("form");
   const [isPending, startTransition] = useTransition();
@@ -117,6 +118,7 @@ export function ZakatSettingsDialog({ settings }: { settings: ZakatSettings }) {
                 />
                 <p className="text-xs text-muted-foreground">
                   The date you first became eligible for zakat, or your chosen annual date.
+                  Hijri (lunar) calendar support is coming soon.
                 </p>
               </div>
 
@@ -128,10 +130,10 @@ export function ZakatSettingsDialog({ settings }: { settings: ZakatSettings }) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="gold">
-                      Gold (87.48g ≈ £{nisabPrices ? Math.round(nisabPrices.gold.nisabValue).toLocaleString() : '5,686'})
+                      Gold (87.48g ≈ {nisabPrices ? formatCurrency(Math.round(nisabPrices.gold.nisabValue), baseCurrency) : formatCurrency(5686, baseCurrency)})
                     </SelectItem>
                     <SelectItem value="silver">
-                      Silver (612.36g ≈ £{nisabPrices ? Math.round(nisabPrices.silver.nisabValue).toLocaleString() : '398'})
+                      Silver (612.36g ≈ {nisabPrices ? formatCurrency(Math.round(nisabPrices.silver.nisabValue), baseCurrency) : formatCurrency(398, baseCurrency)})
                     </SelectItem>
                   </SelectContent>
                 </Select>

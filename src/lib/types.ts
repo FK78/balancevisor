@@ -247,4 +247,6 @@ export type ExportData = {
   subscriptions: Subscription[];
   netWorthSnapshots: NetWorthSnapshot[];
   categorisationRules: CategorisationRule[];
+  zakatSettings: ZakatSettings[];
+  zakatCalculations: ZakatCalculation[];
 };

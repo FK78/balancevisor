@@ -9,6 +9,7 @@ import {
   CreditCard,
   Repeat,
   Repeat2,
+  Calculator,
   type LucideIcon,
 } from "lucide-react";
 
@@ -43,6 +44,7 @@ export const FEATURE_DEFINITIONS: readonly FeatureDefinition[] = [
   { id: "goals", label: "Goals", description: "Set savings targets and track progress", icon: Trophy, route: "/dashboard/goals" },
   { id: "debts", label: "Debts", description: "Monitor loans and payoff progress", icon: CreditCard, route: "/dashboard/debts" },
   { id: "subscriptions", label: "Subscriptions", description: "Track recurring payments", icon: Repeat, route: "/dashboard/subscriptions" },
+  { id: "zakat", label: "Zakat", description: "Calculate annual zakat obligation", icon: Calculator, route: "/dashboard/zakat" },
   { id: "recurring", label: "Recurring", description: "Auto-generate recurring transactions", icon: Repeat2, route: "/dashboard/recurring" },
 ] as const;
 

@@ -19,6 +19,7 @@ import { DashboardNetWorth } from "@/components/dashboard/DashboardNetWorth";
 import { DashboardBudgetProgress } from "@/components/dashboard/DashboardBudgetProgress";
 import { DashboardRecentTransactions } from "@/components/dashboard/DashboardRecentTransactions";
 import { DashboardUpcomingBills } from "@/components/dashboard/DashboardUpcomingBills";
+import { DashboardZakatSummary } from "@/components/dashboard/DashboardZakatSummary";
 import { SpendCategoryRow } from "@/components/SpendCategoryRow";
 import { WidgetLayoutProvider } from "@/components/WidgetLayoutProvider";
 import { WidgetGrid } from "@/components/WidgetGrid";
@@ -49,6 +50,8 @@ interface DashboardPageClientProps {
   readonly budgetsEnabled: boolean;
   readonly categoriesEnabled: boolean;
   readonly subscriptionsEnabled: boolean;
+  readonly zakatEnabled: boolean;
+  readonly zakatData: { zakatDue: number; zakatableAmount: number; aboveNisab: boolean; daysUntil: number | null; hasSettings: boolean } | null;
   readonly insights: any[];
   readonly netWorth: number;
   readonly totalAssets: number;
@@ -79,6 +82,8 @@ export function DashboardPageClient(props: DashboardPageClientProps) {
     budgetsEnabled,
     categoriesEnabled,
     subscriptionsEnabled,
+    zakatEnabled,
+    zakatData,
     insights,
     netWorth,
     totalAssets,
@@ -214,6 +219,19 @@ export function DashboardPageClient(props: DashboardPageClientProps) {
           <DashboardWidget id="recent-transactions">
             {transactionsEnabled && (
               <DashboardRecentTransactions transactions={lastFiveTransactions} currency={baseCurrency} />
+            )}
+          </DashboardWidget>
+
+          <DashboardWidget id="zakat-summary">
+            {zakatEnabled && zakatData && (
+              <DashboardZakatSummary
+                zakatDue={zakatData.zakatDue}
+                zakatableAmount={zakatData.zakatableAmount}
+                aboveNisab={zakatData.aboveNisab}
+                daysUntil={zakatData.daysUntil}
+                hasSettings={zakatData.hasSettings}
+                baseCurrency={baseCurrency}
+              />
             )}
           </DashboardWidget>
         </WidgetGrid>
