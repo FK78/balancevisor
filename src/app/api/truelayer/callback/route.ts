@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { exchangeCode } from '@/lib/truelayer';
-import { saveTrueLayerConnection, importFromTrueLayer } from '@/db/mutations/truelayer';
+import { saveTrueLayerConnection, importFromTrueLayer, getTrueLayerConnections } from '@/db/mutations/truelayer';
 import { getCurrentUserId } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import { getPostHogClient } from '@/lib/posthog-server';
@@ -38,15 +38,39 @@ export async function GET(request: NextRequest) {
 
   try {
     const userId = await getCurrentUserId();
-    const tokens = await exchangeCode(code);
 
-    await saveTrueLayerConnection(userId, tokens);
+    let exchangeSucceeded = false;
+    try {
+      const tokens = await exchangeCode(code);
+      await saveTrueLayerConnection(userId, tokens);
+      exchangeSucceeded = true;
+    } catch (exchangeErr) {
+      // invalid_grant usually means the code was already exchanged by a
+      // concurrent request (browser double-fires the redirect). If the user
+      // already has a connection, treat this as success.
+      const isInvalidGrant =
+        exchangeErr instanceof Error && exchangeErr.message.includes('invalid_grant');
+
+      if (isInvalidGrant) {
+        const existing = await getTrueLayerConnections();
+        if (existing.length > 0) {
+          logger.info('truelayer.callback', 'Duplicate callback — connection already exists, treating as success');
+          exchangeSucceeded = true;
+        }
+      }
+
+      if (!exchangeSucceeded) {
+        throw exchangeErr;
+      }
+    }
 
     // Auto-import accounts & transactions immediately after connecting
     try {
       await importFromTrueLayer();
-    } catch {
-      // Non-critical: user can manually import later
+    } catch (importErr) {
+      logger.warn('truelayer.callback', 'Initial import after connect failed — user can manual sync', {
+        error: importErr instanceof Error ? importErr.message : String(importErr),
+      });
     }
 
     const posthog = getPostHogClient();

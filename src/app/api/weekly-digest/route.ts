@@ -5,6 +5,7 @@ import { guardAiEnabled } from "@/lib/ai-guard";
 import { getWeeklyDigestData } from "@/lib/weekly-digest-data";
 import { getCachedDigest, setCachedDigest, invalidateCachedDigest } from "@/lib/weekly-digest-cache";
 import { rateLimiters } from "@/lib/rate-limiter";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export async function POST(req: Request) {
   const userId = await getCurrentUserId();
@@ -33,6 +34,9 @@ export async function POST(req: Request) {
   } else {
     invalidateCachedDigest(userId);
   }
+
+  const posthog = getPostHogClient();
+  posthog.capture({ distinctId: userId, event: "weekly_digest_requested" });
 
   const data = await getWeeklyDigestData(userId);
 

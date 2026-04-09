@@ -11,6 +11,7 @@ import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { getAccountsWithDetails } from "@/db/queries/accounts";
 import { getCachedRetirementAdvice, setCachedRetirementAdvice, invalidateCachedRetirementAdvice } from "@/lib/retirement-planner-cache";
 import { rateLimiters } from "@/lib/rate-limiter";
+import { getPostHogClient } from "@/lib/posthog-server";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { calculateNetWorth } from "@/lib/net-worth";
 import { getCompletedMonths, buildRetirementInputs } from "@/lib/retirement-inputs";
@@ -43,6 +44,9 @@ export async function POST(req: Request) {
   } else {
     invalidateCachedRetirementAdvice(userId);
   }
+
+  const posthog = getPostHogClient();
+  posthog.capture({ distinctId: userId, event: "retirement_analysis_requested" });
 
   const profile = await getRetirementProfile(userId);
   if (!profile) {

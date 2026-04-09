@@ -5,6 +5,7 @@ import { guardAiEnabled } from "@/lib/ai-guard";
 import { getPortfolioSnapshot, formatPortfolioContext } from "@/lib/portfolio-data";
 import { getCachedAnalysis, setCachedAnalysis, invalidateCachedAnalysis } from "@/lib/portfolio-analysis-cache";
 import { rateLimiters } from "@/lib/rate-limiter";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export async function POST(req: Request) {
   const userId = await getCurrentUserId();
@@ -33,6 +34,9 @@ export async function POST(req: Request) {
   } else {
     invalidateCachedAnalysis(userId);
   }
+
+  const posthog = getPostHogClient();
+  posthog.capture({ distinctId: userId, event: "portfolio_analysis_requested" });
 
   const snapshot = await getPortfolioSnapshot(userId);
 

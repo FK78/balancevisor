@@ -27,6 +27,7 @@ import {
 } from "@/db/mutations/categorisation-rules";
 import type { CategoryWithColor as Category } from "@/lib/types";
 import { toast } from "sonner";
+import posthog from "posthog-js";
 
 type Rule = {
   id: string;
@@ -60,9 +61,11 @@ export function CategorisationRuleFormDialog({
       try {
         if (isEdit) {
           await editCategorisationRule(rule.id, formData);
+          posthog.capture("categorisation_rule_edited");
           toast.success("Rule updated");
         } else {
           await addCategorisationRule(formData);
+          posthog.capture("categorisation_rule_added");
           toast.success("Rule created");
         }
         setView("success");

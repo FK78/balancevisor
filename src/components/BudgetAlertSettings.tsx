@@ -16,6 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { upsertAlertPreferences } from "@/db/mutations/budget-alerts";
+import posthog from "posthog-js";
 
 type AlertPrefs = {
   threshold: number;
@@ -41,6 +42,11 @@ export function BudgetAlertSettings({
   function handleSave() {
     startTransition(async () => {
       await upsertAlertPreferences(budgetId, threshold, browserAlerts, emailAlerts);
+      posthog.capture("budget_alert_settings_saved", {
+        threshold,
+        browser_alerts: browserAlerts,
+        email_alerts: emailAlerts,
+      });
       setOpen(false);
     });
   }

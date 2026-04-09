@@ -8,6 +8,7 @@ export function DeleteAccountButton({ account }: { account: Pick<AccountWithDeta
   return (
     <DeleteConfirmButton
       onDelete={() => deleteAccount(account.id)}
+      entityName="Account"
       dialogTitle="Delete account?"
       dialogDescription={
         <>

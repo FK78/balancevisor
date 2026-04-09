@@ -15,9 +15,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import posthog from "posthog-js";
 
 type DeleteConfirmButtonProps = {
   onDelete: () => Promise<void>;
+  entityName?: string;
   triggerClassName?: string;
   triggerIconClassName?: string;
   dialogTitle: string;
@@ -28,6 +30,7 @@ type DeleteConfirmButtonProps = {
 
 export function DeleteConfirmButton({
   onDelete,
+  entityName,
   triggerClassName = "h-8 w-8 text-muted-foreground hover:text-destructive",
   triggerIconClassName = "h-4 w-4",
   dialogTitle,
@@ -41,6 +44,9 @@ export function DeleteConfirmButton({
     startTransition(async () => {
       try {
         await onDelete();
+        if (entityName) {
+          posthog.capture(`${entityName.toLowerCase()}_deleted`, { entity: entityName });
+        }
         toast.success(successTitle);
       } catch {
         toast.error("Something went wrong. Please try again.");

@@ -5,6 +5,7 @@ import { guardAiEnabled } from "@/lib/ai-guard";
 import { getDebtAdvisorData } from "@/lib/debt-advisor-data";
 import { getCachedAdvice, setCachedAdvice, invalidateCachedAdvice } from "@/lib/debt-advisor-cache";
 import { rateLimiters } from "@/lib/rate-limiter";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export async function POST(req: Request) {
   const userId = await getCurrentUserId();
@@ -33,6 +34,9 @@ export async function POST(req: Request) {
   } else {
     invalidateCachedAdvice(userId);
   }
+
+  const posthog = getPostHogClient();
+  posthog.capture({ distinctId: userId, event: "debt_advisor_requested" });
 
   const data = await getDebtAdvisorData(userId);
 

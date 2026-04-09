@@ -13,6 +13,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import posthog from "posthog-js";
 
 type FormDialogProps = {
   entityName: string;
@@ -75,6 +76,8 @@ export function FormDialog({
     startTransition(async () => {
       try {
         await onSubmit(formData);
+        const event = `${entityName.toLowerCase()}_${isEdit ? "edited" : "added"}`;
+        posthog.capture(event, { entity: entityName });
         toast.success(isEdit ? `${entityName} updated` : `${entityName} added`);
         setView("success");
       } catch {

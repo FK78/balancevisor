@@ -6,6 +6,7 @@ import { getMonthlyIncomeExpenseTrend, getTotalSpendByCategoryThisMonth } from "
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { getCachedSavingsTips, setCachedSavingsTips, invalidateCachedSavingsTips } from "@/lib/savings-tips-cache";
 import { rateLimiters } from "@/lib/rate-limiter";
+import { getPostHogClient } from "@/lib/posthog-server";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { getMonthKey } from "@/lib/date";
 
@@ -36,6 +37,9 @@ export async function POST(req: Request) {
   } else {
     invalidateCachedSavingsTips(userId);
   }
+
+  const posthog = getPostHogClient();
+  posthog.capture({ distinctId: userId, event: "savings_tips_requested" });
 
   const [trend, spendByCategory, baseCurrency] = await Promise.all([
     getMonthlyIncomeExpenseTrend(userId, 6),

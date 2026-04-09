@@ -9,6 +9,7 @@ export function DeleteSubscriptionButton({ id, name }: { id: string; name: strin
       dialogTitle="Delete Subscription"
       dialogDescription={`Are you sure you want to delete "${name}"? This action cannot be undone.`}
       onDelete={() => deleteSubscription(id)}
+      entityName="Subscription"
       successTitle="Subscription deleted"
       successDescription="Your subscription has been removed."
     />

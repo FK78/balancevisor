@@ -41,6 +41,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { upsertRetirementProfile } from "@/db/mutations/retirement";
+import posthog from "posthog-js";
 import { RetirementAIAdvisor } from "@/components/RetirementAIAdvisor";
 import { formatCompactCurrency } from "@/lib/formatCurrency";
 import type { RetirementProfile } from "@/db/queries/retirement";
@@ -71,6 +72,7 @@ function RetirementProfileForm({
       action={(formData) => {
         startTransition(async () => {
           await upsertRetirementProfile(formData);
+          posthog.capture("retirement_profile_saved");
           onClose?.();
         });
       }}

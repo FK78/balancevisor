@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DashboardPageId, WidgetLayoutItem } from "@/lib/widget-registry";
 import { getDefaultLayout, reconcileLayout } from "@/lib/widget-registry";
 import { logger } from "@/lib/logger";
+import posthog from "posthog-js";
 
 const STORAGE_PREFIX = "bv_layout_";
 
@@ -87,6 +88,7 @@ export function useWidgetLayout(pageId: DashboardPageId, serverLayout: readonly 
         const next = [...prev];
         const [moved] = next.splice(fromIndex, 1);
         next.splice(toIndex, 0, moved);
+        posthog.capture("widget_layout_reordered", { page: pageId });
         persistLayout(next);
         return next;
       });
@@ -102,6 +104,12 @@ export function useWidgetLayout(pageId: DashboardPageId, serverLayout: readonly 
             ? { ...item, visible: !item.visible }
             : item,
         );
+        const toggled = next.find((i) => i.widgetId === widgetId);
+        posthog.capture("widget_visibility_toggled", {
+          page: pageId,
+          widget: widgetId,
+          visible: toggled?.visible,
+        });
         persistLayout(next);
         return next;
       });
@@ -113,6 +121,7 @@ export function useWidgetLayout(pageId: DashboardPageId, serverLayout: readonly 
     const defaults = getDefaultLayout(pageId);
     setLayout(defaults);
     clearLocalStorage(pageId);
+    posthog.capture("widget_layout_reset", { page: pageId });
     setSaving(true);
     try {
       await fetch(`/api/dashboard-layout?page=${pageId}`, { method: "DELETE" });

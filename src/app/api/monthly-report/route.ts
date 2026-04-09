@@ -5,6 +5,7 @@ import { guardAiEnabled } from "@/lib/ai-guard";
 import { getMonthlyReportData, formatMonthlyReportContext } from "@/lib/monthly-report-data";
 import { getCachedReport, setCachedReport, invalidateCachedReport } from "@/lib/monthly-report-cache";
 import { rateLimiters } from "@/lib/rate-limiter";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export async function POST(req: Request) {
   const userId = await getCurrentUserId();
@@ -34,6 +35,9 @@ export async function POST(req: Request) {
   } else {
     invalidateCachedReport(userId, monthsAgo);
   }
+
+  const posthog = getPostHogClient();
+  posthog.capture({ distinctId: userId, event: "monthly_report_generated", properties: { months_ago: monthsAgo } });
 
   const data = await getMonthlyReportData(userId, monthsAgo);
   const context = formatMonthlyReportContext(data);

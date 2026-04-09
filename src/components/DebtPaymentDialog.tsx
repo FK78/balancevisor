@@ -25,6 +25,7 @@ import {
 import { recordDebtPayment } from "@/db/mutations/debts";
 import type { Account } from "@/lib/types";
 import { toast } from "sonner";
+import posthog from "posthog-js";
 
 export function DebtPaymentDialog({
   debtId,
@@ -61,6 +62,7 @@ export function DebtPaymentDialog({
     startTransition(async () => {
       try {
         await recordDebtPayment(debtId, amount, date, accountId, note);
+        posthog.capture("debt_payment_recorded", { amount });
         toast.success("Payment recorded");
         setView("success");
       } catch {

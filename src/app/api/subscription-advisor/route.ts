@@ -5,6 +5,7 @@ import { guardAiEnabled } from "@/lib/ai-guard";
 import { getSubscriptionAdvisorData } from "@/lib/subscription-advisor-data";
 import { getCachedSubscriptionAdvice, setCachedSubscriptionAdvice, invalidateCachedSubscriptionAdvice } from "@/lib/subscription-advisor-cache";
 import { rateLimiters } from "@/lib/rate-limiter";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export async function POST(req: Request) {
   const userId = await getCurrentUserId();
@@ -33,6 +34,9 @@ export async function POST(req: Request) {
   } else {
     invalidateCachedSubscriptionAdvice(userId);
   }
+
+  const posthog = getPostHogClient();
+  posthog.capture({ distinctId: userId, event: "subscription_advisor_requested" });
 
   const data = await getSubscriptionAdvisorData(userId);
 

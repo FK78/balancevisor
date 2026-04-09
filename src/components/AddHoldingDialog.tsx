@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { addManualHolding, editManualHolding } from "@/db/mutations/investments";
 import { toast } from "sonner";
+import posthog from "posthog-js";
 
 type InvestmentAccount = { id: string; accountName: string };
 type InvestmentGroupOption = { id: string; name: string; color: string; account_id: string | null };
@@ -118,9 +119,11 @@ export function AddHoldingDialog({
       try {
         if (isEdit) {
           await editManualHolding(holding.id, formData);
+          posthog.capture("holding_edited", { ticker: selectedTicker });
           toast.success("Holding updated");
         } else {
           await addManualHolding(formData);
+          posthog.capture("holding_added", { ticker: selectedTicker });
           toast.success("Holding added");
         }
         setView("success");

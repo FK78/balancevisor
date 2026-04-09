@@ -53,6 +53,7 @@ import { toggleAiEnabled, updateDisabledFeatures } from "@/db/mutations/preferen
 import { currencyLabels } from "@/lib/labels";
 import { FEATURE_DEFINITIONS } from "@/lib/features";
 import { LayoutGrid } from "lucide-react";
+import posthog from "posthog-js";
 
 type Props = {
   displayName: string;
@@ -105,6 +106,7 @@ export function SettingsClient({
       if (result.error) {
         toast.error(result.error);
       } else {
+        posthog.capture("display_name_updated");
         toast.success("Display name updated");
       }
     });
@@ -119,6 +121,7 @@ export function SettingsClient({
       if (result.error) {
         toast.error(result.error);
       } else {
+        posthog.capture("base_currency_updated", { currency: currencyValue });
         toast.success("Base currency updated");
       }
     });
@@ -137,6 +140,7 @@ export function SettingsClient({
         a.download = `wealth-export-${toDateString(new Date())}.json`;
         a.click();
         URL.revokeObjectURL(url);
+        posthog.capture("data_exported");
         toast.success("Data exported");
       } catch {
         toast.error("Failed to export data");
@@ -150,6 +154,8 @@ export function SettingsClient({
       if (result.error) {
         toast.error(result.error);
       } else {
+        posthog.capture("account_deleted_permanently");
+        posthog.reset();
         router.push("/auth/login");
       }
     });
@@ -296,6 +302,7 @@ export function SettingsClient({
                     toast.error(result.error);
                     setAiValue(!checked);
                   } else {
+                    posthog.capture("ai_toggled", { enabled: checked });
                     toast.success(
                       checked ? "AI features enabled" : "AI features disabled",
                     );
@@ -359,6 +366,10 @@ export function SettingsClient({
                         else rollback.delete(feature.id);
                         setDisabledSet(rollback);
                       } else {
+                        posthog.capture("feature_toggled", {
+                          feature: feature.id,
+                          enabled: checked,
+                        });
                         toast.success(
                           checked
                             ? `${feature.label} enabled`
