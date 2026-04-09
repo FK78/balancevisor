@@ -1,8 +1,22 @@
-import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+type ClassValue = string | number | boolean | undefined | null | Record<string, unknown>;
+
+export function cn(...inputs: (ClassValue | ClassValue[])[]) {
+  return twMerge(
+    inputs
+      .flat()
+      .flatMap((v) => {
+        if (v != null && typeof v === "object") {
+          return Object.entries(v)
+            .filter(([, cond]) => Boolean(cond))
+            .map(([cls]) => cls);
+        }
+        return v;
+      })
+      .filter(Boolean)
+      .join(" "),
+  );
 }
 
 export const hasEnvVars =
