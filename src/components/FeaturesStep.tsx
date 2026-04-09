@@ -52,7 +52,7 @@ export function FeaturesStep() {
         <div className="flex gap-2">
           <form action={handleSubmit}>
             <Button type="submit" disabled={isSubmitting}>
-              {selectedFeatures.length > 0 ? "Set up selected" : "Continue to review"}
+              {selectedFeatures.length > 0 ? "Set up selected" : "Finish setup"}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </form>
