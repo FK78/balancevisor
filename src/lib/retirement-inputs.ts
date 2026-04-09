@@ -1,5 +1,8 @@
 /**
  * Shared helpers to build retirement projection inputs from financial data.
+ *
+ * Eliminates duplication across dashboard/page.tsx, retirement/page.tsx,
+ * and retirement-planner/route.ts.
  */
 
 import type { RetirementInputs } from "@/lib/retirement-calculator";
@@ -12,11 +15,17 @@ interface TrendPoint {
   readonly expenses: number;
 }
 
+/**
+ * Returns the completed months from a trend array (excludes current month).
+ */
 export function getCompletedMonths(trend: readonly TrendPoint[]): readonly TrendPoint[] {
   const currentMonthKey = getMonthKey(new Date());
   return trend.filter((m) => m.month !== currentMonthKey);
 }
 
+/**
+ * Build the `RetirementInputs` struct from raw financial data.
+ */
 export function buildRetirementInputs(opts: {
   profile: RetirementProfile;
   currentNetWorth: number;

@@ -3,9 +3,15 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export default function RetirementError({
   error,
@@ -27,7 +33,7 @@ export default function RetirementError({
           </div>
           <CardTitle>Couldn&apos;t load retirement data</CardTitle>
           <CardDescription>
-            Something went wrong while fetching your retirement profile.
+            Something went wrong while fetching your retirement profile. Please try again or contact support if the issue persists.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">

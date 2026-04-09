@@ -15,7 +15,6 @@ import { getCashflowForecast } from "@/lib/cashflow-forecast";
 import { getSpendingAnomalies } from "@/lib/spending-anomalies";
 import { snapshotNetWorthIfNeeded } from "@/lib/snapshot-net-worth";
 import { getMonthRange } from "@/lib/date";
-import { getMonthRange } from "@/lib/date";
 import { getCurrentUserId } from "@/lib/auth";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { getDisabledFeatures } from "@/db/queries/preferences";
@@ -28,8 +27,6 @@ import { calculateRetirementProjection } from "@/lib/retirement-calculator";
 import { getDebtsSummary } from "@/db/queries/debts";
 import { calculateNetWorth } from "@/lib/net-worth";
 import { getCompletedMonths, buildRetirementInputs } from "@/lib/retirement-inputs";
-import { calculateNetWorth } from "@/lib/net-worth";
-import { buildRetirementInputs } from "@/lib/retirement-inputs";
 import { DashboardPageClient } from "@/components/dashboard/DashboardPageClient";
 
 export default async function Home() {
@@ -78,7 +75,6 @@ export default async function Home() {
     snapshotNetWorthIfNeeded(userId, investmentValue).catch(() => {});
   }
 
-  const { netWorth, totalAssets, totalLiabilities } = calculateNetWorth(accounts, investmentValue);
   const { totalAssets, totalLiabilities, netWorth } = calculateNetWorth(accounts, investmentValue);
 
   const user = claimsResult.data?.claims;
@@ -126,15 +122,17 @@ export default async function Home() {
 
   let retirementProjection = null;
   if (on("retirement") && retirementProfile && monthlyTrend.length > 0) {
-    retirementProjection = calculateRetirementProjection(
-      buildRetirementInputs({
+    const completedMonths = getCompletedMonths(monthlyTrend);
+    if (completedMonths.length > 0) {
+      const inputs = buildRetirementInputs({
         profile: retirementProfile,
         currentNetWorth: netWorth,
         investmentValue,
+        completedMonths,
         totalDebtRemaining: debtsSummary.totalRemaining,
-        trend: monthlyTrend,
-      }),
-    );
+      });
+      retirementProjection = calculateRetirementProjection(inputs);
+    }
   }
 
   return (

@@ -6,9 +6,9 @@ import { getInvestmentValue } from "@/lib/investment-value";
 import { getMonthlyIncomeExpenseTrend } from "@/db/queries/transactions";
 import { getDebtsSummary } from "@/db/queries/debts";
 import { calculateRetirementProjection } from "@/lib/retirement-calculator";
-import { RetirementPageClient } from "@/components/RetirementPageClient";
 import { calculateNetWorth } from "@/lib/net-worth";
 import { getCompletedMonths, buildRetirementInputs } from "@/lib/retirement-inputs";
+import { RetirementPageClient } from "@/components/RetirementPageClient";
 
 export default async function RetirementPage() {
   const userId = await getCurrentUserId();

@@ -109,6 +109,7 @@ export type ZakatSettings = InferSelectModel<typeof zakatSettingsTable>;
 export type NewZakatSettings = InferInsertModel<typeof zakatSettingsTable>;
 export type ZakatCalculation = InferSelectModel<typeof zakatCalculationsTable>;
 export type NewZakatCalculation = InferInsertModel<typeof zakatCalculationsTable>;
+
 export type RetirementProfileRow = InferSelectModel<typeof retirementProfilesTable>;
 export type DashboardLayoutRow = InferSelectModel<typeof dashboardLayoutsTable>;
 

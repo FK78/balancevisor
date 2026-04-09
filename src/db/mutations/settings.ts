@@ -11,7 +11,6 @@ import {
   goalsTable,
   manualHoldingsTable,
   subscriptionsTable,
-  trading212ConnectionsTable,
   brokerConnectionsTable,
   transactionsTable,
   truelayerConnectionsTable,
@@ -34,7 +33,7 @@ import { EXPORT_VERSION } from '@/lib/types';
 import type { ExportData } from '@/lib/types';
 import { eq, or, inArray } from 'drizzle-orm';
 import { revalidateDomains } from '@/lib/revalidate';
-import { getCurrentUserId, getCurrentUserEmail } from '@/lib/auth';
+import { getCurrentUserId } from '@/lib/auth';
 import { decryptForUser, getUserKey } from '@/lib/encryption';
 import { createClient } from '@/lib/supabase/server';
 import { normalizeBaseCurrency } from '@/lib/currency';
@@ -146,7 +145,6 @@ export async function deleteAccount(): Promise<{ success?: boolean; error?: stri
     await tx.delete(categorisationRulesTable).where(eq(categorisationRulesTable.user_id, userId));
     await tx.delete(investmentGroupsTable).where(eq(investmentGroupsTable.user_id, userId));
     await tx.delete(manualHoldingsTable).where(eq(manualHoldingsTable.user_id, userId));
-    await tx.delete(trading212ConnectionsTable).where(eq(trading212ConnectionsTable.user_id, userId));
     await tx.delete(brokerConnectionsTable).where(eq(brokerConnectionsTable.user_id, userId));
     await tx.delete(zakatCalculationsTable).where(eq(zakatCalculationsTable.user_id, userId));
     await tx.delete(zakatSettingsTable).where(eq(zakatSettingsTable.user_id, userId));
@@ -233,8 +231,8 @@ export async function exportUserData(): Promise<ExportData> {
     budgetAlertPreferences,
     zakatSettingsRows,
     zakatCalculationsRows,
-    retirementProfiles,
-    dashboardLayouts,
+    retirementProfileRows,
+    dashboardLayoutRows,
   ] = await Promise.all([
     db.select().from(categoriesTable).where(eq(categoriesTable.user_id, userId)),
     db.select().from(goalsTable).where(eq(goalsTable.user_id, userId)),
@@ -294,7 +292,7 @@ export async function exportUserData(): Promise<ExportData> {
     categorisationRules,
     zakatSettings: zakatSettingsRows,
     zakatCalculations: zakatCalculationsRows,
-    retirementProfile: retirementProfiles[0] ?? null,
-    dashboardLayouts,
+    retirementProfile: retirementProfileRows[0] ?? null,
+    dashboardLayouts: dashboardLayoutRows,
   };
 }

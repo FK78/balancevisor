@@ -48,7 +48,7 @@ export const FEATURE_DEFINITIONS: readonly FeatureDefinition[] = [
   { id: "subscriptions", label: "Subscriptions", description: "Track recurring payments", icon: Repeat, route: "/dashboard/subscriptions" },
   { id: "zakat", label: "Zakat", description: "Calculate annual zakat obligation", icon: Calculator, route: "/dashboard/zakat" },
   { id: "recurring", label: "Recurring", description: "Auto-generate recurring transactions", icon: Repeat2, route: "/dashboard/recurring" },
-  { id: "retirement", label: "Retirement", description: "Plan and track retirement goals", icon: Timer, route: "/dashboard/retirement" },
+  { id: "retirement", label: "Retirement", description: "Plan and track retirement readiness", icon: Timer, route: "/dashboard/retirement" },
 ] as const;
 
 export const ALL_FEATURE_IDS: readonly FeatureId[] = FEATURE_DEFINITIONS.map((f) => f.id);
