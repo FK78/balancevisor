@@ -9,7 +9,6 @@ import { getDebtsSummary } from "@/db/queries/debts";
 import { getInvestmentValue } from "@/lib/investment-value";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { getAccountsWithDetails } from "@/db/queries/accounts";
-import { getCachedRetirementAdvice, setCachedRetirementAdvice, invalidateCachedRetirementAdvice } from "@/lib/retirement-planner-cache";
 import { rateLimiters } from "@/lib/rate-limiter";
 import { getPostHogClient } from "@/lib/posthog-server";
 import { formatCurrency } from "@/lib/formatCurrency";
@@ -17,7 +16,7 @@ import { calculateNetWorth } from "@/lib/net-worth";
 import { getCompletedMonths, buildRetirementInputs } from "@/lib/retirement-inputs";
 import { calculateRetirementProjection } from "@/lib/retirement-calculator";
 
-export async function POST(req: Request) {
+export async function POST() {
   const userId = await getCurrentUserId();
 
   const aiBlocked = await guardAiEnabled();
@@ -29,20 +28,6 @@ export async function POST(req: Request) {
       JSON.stringify({ error: "Too many requests. Please wait before refreshing." }),
       { status: 429, headers: { "Content-Type": "application/json", "Retry-After": String(rateLimitResult.retryAfter) } },
     );
-  }
-
-  const body = await req.json().catch(() => ({}));
-  const forceRefresh = body?.refresh === true;
-
-  if (!forceRefresh) {
-    const cached = getCachedRetirementAdvice(userId);
-    if (cached) {
-      return new Response(JSON.stringify({ advice: cached, cached: true }), {
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-  } else {
-    invalidateCachedRetirementAdvice(userId);
   }
 
   const posthog = getPostHogClient();
@@ -173,11 +158,6 @@ Rules:
 ${context}`,
     prompt: "Analyse my retirement readiness and give me a personalised plan.",
     maxOutputTokens: 1200,
-    onFinish: ({ text }) => {
-      if (text) {
-        setCachedRetirementAdvice(userId, text);
-      }
-    },
   });
 
   return result.toTextStreamResponse();

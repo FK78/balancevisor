@@ -7,7 +7,6 @@ import { revalidateDomains } from '@/lib/revalidate';
 import { getCurrentUserId } from '@/lib/auth';
 import { requireUUID, sanitizeNumber, sanitizeEnum, requireDate } from '@/lib/sanitize';
 import { requireOwnership } from '@/lib/ownership';
-import { invalidateByUser } from '@/lib/cache';
 
 export async function addBudget(formData: FormData) {
   const userId = await getCurrentUserId();
@@ -46,7 +45,6 @@ export async function editBudget(id: string, formData: FormData) {
   }).where(eq(budgetsTable.id, id));
 
   revalidateDomains('budgets');
-  invalidateByUser(userId);
 }
 
 export async function deleteBudget(id: string) {
@@ -58,5 +56,4 @@ export async function deleteBudget(id: string) {
   await db.delete(budgetsTable).where(eq(budgetsTable.id, id));
 
   revalidateDomains('budgets');
-  invalidateByUser(userId);
 }

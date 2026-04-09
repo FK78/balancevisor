@@ -4,13 +4,12 @@ import { getCurrentUserId } from "@/lib/auth";
 import { guardAiEnabled } from "@/lib/ai-guard";
 import { getMonthlyIncomeExpenseTrend, getTotalSpendByCategoryThisMonth } from "@/db/queries/transactions";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
-import { getCachedSavingsTips, setCachedSavingsTips, invalidateCachedSavingsTips } from "@/lib/savings-tips-cache";
 import { rateLimiters } from "@/lib/rate-limiter";
 import { getPostHogClient } from "@/lib/posthog-server";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { getMonthKey } from "@/lib/date";
 
-export async function POST(req: Request) {
+export async function POST() {
   const userId = await getCurrentUserId();
 
   const aiBlocked = await guardAiEnabled();
@@ -22,20 +21,6 @@ export async function POST(req: Request) {
       JSON.stringify({ error: "Too many requests. Please wait before refreshing." }),
       { status: 429, headers: { "Content-Type": "application/json", "Retry-After": String(rateLimitResult.retryAfter) } },
     );
-  }
-
-  const body = await req.json().catch(() => ({}));
-  const forceRefresh = body?.refresh === true;
-
-  if (!forceRefresh) {
-    const cached = getCachedSavingsTips(userId);
-    if (cached) {
-      return new Response(JSON.stringify({ tips: cached, cached: true }), {
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-  } else {
-    invalidateCachedSavingsTips(userId);
   }
 
   const posthog = getPostHogClient();
@@ -94,11 +79,6 @@ Rules:
 ${context}`,
     prompt: "Give me personalised tips to improve my savings rate.",
     maxOutputTokens: 384,
-    onFinish: ({ text }) => {
-      if (text) {
-        setCachedSavingsTips(userId, text);
-      }
-    },
   });
 
   return result.toTextStreamResponse();

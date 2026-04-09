@@ -15,7 +15,6 @@ import {
   encryptForUser,
   decryptForUser,
   needsReencryption,
-  clearUserKeyCache,
 } from "./encryption";
 
 function assert(condition: boolean, message: string) {
@@ -39,8 +38,6 @@ async function runTests() {
       failed++;
     }
   }
-
-  clearUserKeyCache();
 
   console.log("\nMaster key encryption:");
 
@@ -154,13 +151,6 @@ async function runTests() {
     const ct = randomBytes(32).toString("hex");
     const legacy = `${iv}:${tag}:${ct}`;
     assert(needsReencryption(legacy) === false, "Legacy is treated as v1 (current)");
-  });
-
-  console.log("\nclearUserKeyCache:");
-
-  test("clears the cache without error", () => {
-    clearUserKeyCache();
-    assert(true, "Should not throw");
   });
 
   console.log(`\n${passed} passed, ${failed} failed\n`);

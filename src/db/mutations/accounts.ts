@@ -9,7 +9,6 @@ import { getUserBaseCurrency } from '@/db/queries/onboarding';
 import { encryptForUser, getUserKey } from '@/lib/encryption';
 import { requireString, sanitizeNumber, sanitizeEnum } from '@/lib/sanitize';
 import { requireOwnership } from '@/lib/ownership';
-import { invalidateByUser } from '@/lib/cache';
 
 export async function addAccount(formData: FormData) {
   const userId = await getCurrentUserId();
@@ -50,7 +49,6 @@ export async function editAccount(id: string, formData: FormData) {
   }).where(eq(accountsTable.id, id));
 
   revalidateDomains('accounts');
-  invalidateByUser(userId);
 }
 
 export async function deleteAccount(id: string) {
@@ -64,5 +62,4 @@ export async function deleteAccount(id: string) {
   });
 
   revalidateDomains('accounts');
-  invalidateByUser(userId);
 }

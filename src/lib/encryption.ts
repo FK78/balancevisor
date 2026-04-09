@@ -1,5 +1,4 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
-import { TtlMap } from "@/lib/ttl-map";
 import { eq } from "drizzle-orm";
 import { userKeysTable } from "@/db/schema";
 import { db } from "@/index";
@@ -11,26 +10,11 @@ const AUTH_TAG_LENGTH = 16;
 // Current key version for new encryptions
 const CURRENT_KEY_VERSION = "v1";
 
-// In-memory cache for decrypted user keys (TTL: 5 minutes)
-const userKeyCache = new TtlMap<string, Buffer>({
-  max: 10000,
-  ttl: 5 * 60 * 1000,
-});
-
-// Cache for master keys by version (supports key rotation)
-const masterKeyCache = new TtlMap<string, Buffer>({
-  max: 10,
-  ttl: 60 * 60 * 1000,
-});
-
 // ---------------------------------------------------------------------------
 // Master key management (version-aware)
 // ---------------------------------------------------------------------------
 
 function getMasterKey(version: string = CURRENT_KEY_VERSION): Buffer {
-  const cached = masterKeyCache.get(version);
-  if (cached) return cached;
-
   const envVar = version === "v1"
     ? "ENCRYPTION_KEY"
     : `ENCRYPTION_KEY_${version.toUpperCase()}`;
@@ -43,7 +27,6 @@ function getMasterKey(version: string = CURRENT_KEY_VERSION): Buffer {
   if (key.length !== 32) {
     throw new Error(`${envVar} must be exactly 32 bytes (64 hex characters).`);
   }
-  masterKeyCache.set(version, key);
   return key;
 }
 
@@ -168,9 +151,6 @@ export function isEncrypted(value: string): boolean {
  * Returns the plaintext key (cached in memory).
  */
 export async function getUserKey(userId: string): Promise<Buffer> {
-  const cached = userKeyCache.get(userId);
-  if (cached) return cached;
-
   const [row] = await db
     .select({
       encrypted_key: userKeysTable.encrypted_key,
@@ -182,28 +162,21 @@ export async function getUserKey(userId: string): Promise<Buffer> {
   if (!row) {
     // Lazily create the key if it doesn't exist yet (e.g. user is mid-onboarding)
     await createUserKey(userId);
-    const cached2 = userKeyCache.get(userId);
-    if (cached2) return cached2;
 
-    // Fallback: re-read from DB in case cache wasn't populated
     const [retryRow] = await db
       .select({ encrypted_key: userKeysTable.encrypted_key })
       .from(userKeysTable)
       .where(eq(userKeysTable.user_id, userId));
     if (retryRow) {
       const retryKeyHex = decrypt(retryRow.encrypted_key);
-      const retryKey = Buffer.from(retryKeyHex, "hex");
-      userKeyCache.set(userId, retryKey);
-      return retryKey;
+      return Buffer.from(retryKeyHex, "hex");
     }
 
     throw new Error(`No encryption key found for user ${userId}. Call createUserKey() first.`);
   }
 
   const userKeyHex = decrypt(row.encrypted_key);
-  const userKey = Buffer.from(userKeyHex, "hex");
-  userKeyCache.set(userId, userKey);
-  return userKey;
+  return Buffer.from(userKeyHex, "hex");
 }
 
 /**
@@ -218,16 +191,6 @@ export async function createUserKey(userId: string): Promise<void> {
     .where(eq(userKeysTable.user_id, userId));
 
   if (existing) {
-    if (!userKeyCache.has(userId)) {
-      const [row] = await db
-        .select({ encrypted_key: userKeysTable.encrypted_key })
-        .from(userKeysTable)
-        .where(eq(userKeysTable.user_id, userId));
-      if (row) {
-        const keyHex = decrypt(row.encrypted_key);
-        userKeyCache.set(userId, Buffer.from(keyHex, "hex"));
-      }
-    }
     return;
   }
 
@@ -239,20 +202,6 @@ export async function createUserKey(userId: string): Promise<void> {
     encrypted_key: encryptedUserKey,
     key_version: 1,
   }).onConflictDoNothing();
-
-  // Always read back the persisted key to handle race conditions.
-  // With onConflictDoNothing(), our insert may have been silently dropped
-  // if another concurrent request inserted first. Caching the locally-generated
-  // key would then poison the cache with a key that doesn't match the DB.
-  const [persisted] = await db
-    .select({ encrypted_key: userKeysTable.encrypted_key })
-    .from(userKeysTable)
-    .where(eq(userKeysTable.user_id, userId));
-
-  if (persisted) {
-    const persistedKeyHex = decrypt(persisted.encrypted_key);
-    userKeyCache.set(userId, Buffer.from(persistedKeyHex, "hex"));
-  }
 }
 
 /**
@@ -337,13 +286,6 @@ export function needsReencryption(encrypted: string): boolean {
   }
 }
 
-/**
- * Clear the in-memory key cache.
- */
-export function clearUserKeyCache(): void {
-  userKeyCache.clear();
-  masterKeyCache.clear();
-}
 
 // ---------------------------------------------------------------------------
 // Master key rotation
@@ -381,7 +323,6 @@ export async function rotateMasterKey(): Promise<number> {
       })
       .where(eq(userKeysTable.user_id, row.user_id));
 
-    userKeyCache.delete(row.user_id);
     rotated++;
   }
 
