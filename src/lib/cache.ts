@@ -8,7 +8,7 @@
  * - O(1) tag lookups via index
  */
 
-import { LRUCache } from 'lru-cache';
+import { TtlMap } from '@/lib/ttl-map';
 
 type CacheKey = string;
 
@@ -19,7 +19,7 @@ type CacheEntry<T> = {
 };
 
 // Main cache store
-const cache = new LRUCache<CacheKey, CacheEntry<unknown>>({
+const cache = new TtlMap<CacheKey, CacheEntry<unknown>>({
   max: 500,
   ttl: 1000 * 60 * 5, // 5 minutes default
   updateAgeOnGet: true,

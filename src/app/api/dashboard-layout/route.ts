@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   try {
     const userId = await getCurrentUserId();
 
-    const rl = rateLimiters.api.consume(`layout-save:${userId}`);
+    const rl = rateLimiters.dashboardLayout.consume(`layout-save:${userId}`);
     if (!rl.allowed) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: { "Retry-After": String(rl.retryAfter) } });
     }
@@ -44,8 +44,8 @@ export async function POST(req: NextRequest) {
 
     await savePageLayout(userId, page, layout);
     return NextResponse.json({ ok: true });
-  } catch (err) {
-    logger.error("dashboard-layout.POST", "Failed to save layout", err);
+  } catch (error) {
+    logger.error("dashboard-layout", "POST failed", error);
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 }
@@ -54,7 +54,7 @@ export async function DELETE(req: NextRequest) {
   try {
     const userId = await getCurrentUserId();
 
-    const rl = rateLimiters.api.consume(`layout-delete:${userId}`);
+    const rl = rateLimiters.dashboardLayout.consume(`layout-delete:${userId}`);
     if (!rl.allowed) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: { "Retry-After": String(rl.retryAfter) } });
     }
@@ -67,8 +67,8 @@ export async function DELETE(req: NextRequest) {
 
     await deletePageLayout(userId, page);
     return NextResponse.json({ ok: true });
-  } catch (err) {
-    logger.error("dashboard-layout.DELETE", "Failed to delete layout", err);
+  } catch (error) {
+    logger.error("dashboard-layout", "DELETE failed", error);
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 }

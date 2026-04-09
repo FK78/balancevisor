@@ -21,7 +21,7 @@ export default function InvestmentsError({
   reset: () => void;
 }) {
   useEffect(() => {
-    logger.error("investments", "Page error", error);
+    logger.error("investments", "Investments page error", error);
   }, [error]);
 
   return (

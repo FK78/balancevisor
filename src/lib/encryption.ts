@@ -1,5 +1,5 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
-import { LRUCache } from "lru-cache";
+import { TtlMap } from "@/lib/ttl-map";
 import { eq } from "drizzle-orm";
 import { userKeysTable } from "@/db/schema";
 import { db } from "@/index";
@@ -12,13 +12,13 @@ const AUTH_TAG_LENGTH = 16;
 const CURRENT_KEY_VERSION = "v1";
 
 // In-memory cache for decrypted user keys (TTL: 5 minutes)
-const userKeyCache = new LRUCache<string, Buffer>({
+const userKeyCache = new TtlMap<string, Buffer>({
   max: 10000,
   ttl: 5 * 60 * 1000,
 });
 
 // Cache for master keys by version (supports key rotation)
-const masterKeyCache = new LRUCache<string, Buffer>({
+const masterKeyCache = new TtlMap<string, Buffer>({
   max: 10,
   ttl: 60 * 60 * 1000,
 });

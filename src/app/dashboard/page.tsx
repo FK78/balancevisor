@@ -26,7 +26,7 @@ import { getRetirementProfile } from "@/db/queries/retirement";
 import { calculateRetirementProjection } from "@/lib/retirement-calculator";
 import { getDebtsSummary } from "@/db/queries/debts";
 import { calculateNetWorth } from "@/lib/net-worth";
-import { buildRetirementInputs } from "@/lib/retirement-inputs";
+import { getCompletedMonths, buildRetirementInputs } from "@/lib/retirement-inputs";
 import { DashboardPageClient } from "@/components/dashboard/DashboardPageClient";
 
 export default async function Home() {
@@ -122,15 +122,17 @@ export default async function Home() {
 
   let retirementProjection = null;
   if (on("retirement") && retirementProfile && monthlyTrend.length > 0) {
-    retirementProjection = calculateRetirementProjection(
-      buildRetirementInputs({
+    const completedMonths = getCompletedMonths(monthlyTrend);
+    if (completedMonths.length > 0) {
+      const inputs = buildRetirementInputs({
         profile: retirementProfile,
         currentNetWorth: netWorth,
         investmentValue,
+        completedMonths,
         totalDebtRemaining: debtsSummary.totalRemaining,
-        trend: monthlyTrend,
-      }),
-    );
+      });
+      retirementProjection = calculateRetirementProjection(inputs);
+    }
   }
 
   return (

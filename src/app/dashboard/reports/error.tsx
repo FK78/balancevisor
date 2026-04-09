@@ -21,7 +21,7 @@ export default function ReportsError({
   reset: () => void;
 }) {
   useEffect(() => {
-    logger.error("reports", "Page error", error);
+    logger.error("reports", "Reports page error", error);
   }, [error]);
 
   return (

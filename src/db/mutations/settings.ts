@@ -151,6 +151,9 @@ export async function deleteAccount(): Promise<{ success?: boolean; error?: stri
     await tx.delete(zakatCalculationsTable).where(eq(zakatCalculationsTable.user_id, userId));
     await tx.delete(zakatSettingsTable).where(eq(zakatSettingsTable.user_id, userId));
     await tx.delete(debtsTable).where(eq(debtsTable.user_id, userId));
+    await tx.delete(retirementProfilesTable).where(eq(retirementProfilesTable.user_id, userId));
+    await tx.delete(dashboardLayoutsTable).where(eq(dashboardLayoutsTable.user_id, userId));
+    await tx.delete(userKeysTable).where(eq(userKeysTable.user_id, userId));
 
     // --- Transactions (linked to accounts) ---
     if (accountIds.length > 0) {
@@ -230,8 +233,8 @@ export async function exportUserData(): Promise<ExportData> {
     budgetAlertPreferences,
     zakatSettingsRows,
     zakatCalculationsRows,
-    retirementProfiles,
-    dashboardLayouts,
+    retirementProfileRows,
+    dashboardLayoutRows,
   ] = await Promise.all([
     db.select().from(categoriesTable).where(eq(categoriesTable.user_id, userId)),
     db.select().from(goalsTable).where(eq(goalsTable.user_id, userId)),
@@ -291,7 +294,7 @@ export async function exportUserData(): Promise<ExportData> {
     categorisationRules,
     zakatSettings: zakatSettingsRows,
     zakatCalculations: zakatCalculationsRows,
-    retirementProfile: retirementProfiles[0] ?? null,
-    dashboardLayouts,
+    retirementProfile: retirementProfileRows[0] ?? null,
+    dashboardLayouts: dashboardLayoutRows,
   };
 }

@@ -76,10 +76,9 @@ export async function POST(req: Request) {
     profile,
     currentNetWorth: netWorth,
     investmentValue,
+    completedMonths,
     totalDebtRemaining: debtsSummary.totalRemaining,
-    trend,
   });
-
   const projection = calculateRetirementProjection(inputs);
 
   const fmt = (n: number) => formatCurrency(n, baseCurrency);

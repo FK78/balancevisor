@@ -5,12 +5,12 @@
  * and retirement-planner/route.ts.
  */
 
-const LIABILITY_TYPES = new Set(["creditCard"]);
-
 interface AccountLike {
   readonly type: string | null;
   readonly balance: number;
 }
+
+const LIABILITY_TYPES = new Set(["creditCard"]);
 
 export interface NetWorthBreakdown {
   readonly totalAssets: number;

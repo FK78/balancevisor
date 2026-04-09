@@ -7,7 +7,7 @@ import { getMonthlyIncomeExpenseTrend } from "@/db/queries/transactions";
 import { getDebtsSummary } from "@/db/queries/debts";
 import { calculateRetirementProjection } from "@/lib/retirement-calculator";
 import { calculateNetWorth } from "@/lib/net-worth";
-import { buildRetirementInputs } from "@/lib/retirement-inputs";
+import { getCompletedMonths, buildRetirementInputs } from "@/lib/retirement-inputs";
 import { RetirementPageClient } from "@/components/RetirementPageClient";
 
 export default async function RetirementPage() {
@@ -30,16 +30,15 @@ export default async function RetirementPage() {
   ]);
 
   const { netWorth } = calculateNetWorth(accounts, investmentValue);
-
-  const projection = calculateRetirementProjection(
-    buildRetirementInputs({
-      profile,
-      currentNetWorth: netWorth,
-      investmentValue,
-      totalDebtRemaining: debtsSummary.totalRemaining,
-      trend,
-    }),
-  );
+  const completedMonths = getCompletedMonths(trend);
+  const inputs = buildRetirementInputs({
+    profile,
+    currentNetWorth: netWorth,
+    investmentValue,
+    completedMonths,
+    totalDebtRemaining: debtsSummary.totalRemaining,
+  });
+  const projection = calculateRetirementProjection(inputs);
 
   return (
     <RetirementPageClient

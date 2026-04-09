@@ -21,7 +21,7 @@ export default function RetirementError({
   reset: () => void;
 }) {
   useEffect(() => {
-    logger.error("retirement", "Page error", error);
+    logger.error("retirement", "Retirement page error", error);
   }, [error]);
 
   return (
