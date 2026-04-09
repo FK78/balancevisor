@@ -1,12 +1,16 @@
 import { groq } from "@ai-sdk/groq";
 import { streamText } from "ai";
 import { getCurrentUserId } from "@/lib/auth";
+import { guardAiEnabled } from "@/lib/ai-guard";
 import { getPortfolioSnapshot, formatPortfolioContext } from "@/lib/portfolio-data";
 import { getCachedAnalysis, setCachedAnalysis, invalidateCachedAnalysis } from "@/lib/portfolio-analysis-cache";
 import { rateLimiters } from "@/lib/rate-limiter";
 
 export async function POST(req: Request) {
   const userId = await getCurrentUserId();
+
+  const aiBlocked = await guardAiEnabled();
+  if (aiBlocked) return aiBlocked;
 
   const rateLimitResult = rateLimiters.portfolioAnalysis.consume(`portfolio-analysis:${userId}`);
   if (!rateLimitResult.allowed) {

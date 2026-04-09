@@ -1,12 +1,16 @@
 import { groq } from "@ai-sdk/groq";
 import { streamText } from "ai";
 import { getCurrentUserId } from "@/lib/auth";
+import { guardAiEnabled } from "@/lib/ai-guard";
 import { getSubscriptionAdvisorData } from "@/lib/subscription-advisor-data";
 import { getCachedSubscriptionAdvice, setCachedSubscriptionAdvice, invalidateCachedSubscriptionAdvice } from "@/lib/subscription-advisor-cache";
 import { rateLimiters } from "@/lib/rate-limiter";
 
 export async function POST(req: Request) {
   const userId = await getCurrentUserId();
+
+  const aiBlocked = await guardAiEnabled();
+  if (aiBlocked) return aiBlocked;
 
   const rateLimitResult = rateLimiters.subscriptionAdvisor.consume(`subscription-advisor:${userId}`);
   if (!rateLimitResult.allowed) {

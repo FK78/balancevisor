@@ -2,6 +2,7 @@ import { groq } from "@ai-sdk/groq";
 import { generateText } from "ai";
 import { z } from "zod";
 import { getCurrentUserId } from "@/lib/auth";
+import { guardAiEnabled } from "@/lib/ai-guard";
 import { toDateString } from "@/lib/date";
 import { getAccountsWithDetails } from "@/db/queries/accounts";
 import { getCategoriesByUser } from "@/db/queries/categories";
@@ -21,6 +22,10 @@ const parseSchema = z.object({
 export async function POST(req: Request) {
   // Rate limit by user ID (already authenticated)
   const userId = await getCurrentUserId();
+
+  const aiBlocked = await guardAiEnabled();
+  if (aiBlocked) return aiBlocked;
+
   const result = rateLimiters.serverAction.consume(`parse-transaction:${userId}`);
 
   if (!result.allowed) {

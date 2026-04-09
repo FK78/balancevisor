@@ -32,6 +32,7 @@ import {
   Download,
   Loader2,
   Moon,
+  Sparkles,
   Sun,
   Trash2,
   User,
@@ -41,12 +42,14 @@ import { useTheme } from "@/components/ThemeProvider";
 import { toDateString } from "@/lib/date";
 import { MFASettings } from "@/components/MFASettings";
 import { ImportDataDialog } from "@/components/ImportDataDialog";
+import { Switch } from "@/components/ui/switch";
 import {
   updateDisplayName,
   updateBaseCurrency,
   deleteAccount,
   exportUserData,
 } from "@/db/mutations/settings";
+import { toggleAiEnabled } from "@/db/mutations/preferences";
 import { currencyLabels } from "@/lib/labels";
 
 type Props = {
@@ -54,6 +57,7 @@ type Props = {
   email: string;
   baseCurrency: string;
   supportedCurrencies: readonly string[];
+  aiEnabled: boolean;
 };
 
 export function SettingsClient({
@@ -61,6 +65,7 @@ export function SettingsClient({
   email,
   baseCurrency,
   supportedCurrencies,
+  aiEnabled,
 }: Props) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -71,6 +76,10 @@ export function SettingsClient({
   // Currency
   const [currencyValue, setCurrencyValue] = useState(baseCurrency);
   const [currencyPending, startCurrencyTransition] = useTransition();
+
+  // AI
+  const [aiValue, setAiValue] = useState(aiEnabled);
+  const [aiPending, startAiTransition] = useTransition();
 
   // Export
   const [exportPending, startExportTransition] = useTransition();
@@ -240,6 +249,52 @@ export function SettingsClient({
                 Dark
               </Button>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* AI Features */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+              <Sparkles className="h-4 w-4 text-primary" />
+            </div>
+            AI Features
+          </CardTitle>
+          <CardDescription>
+            Control AI-powered features across the app.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-1">
+              <Label htmlFor="ai_toggle">Enable AI-powered features</Label>
+              <p className="text-xs text-muted-foreground">
+                When disabled, AI chat, smart transaction parsing, advisor
+                features, and LLM-based auto-categorisation are turned off.
+                Rule-based features continue to work.
+              </p>
+            </div>
+            <Switch
+              id="ai_toggle"
+              checked={aiValue}
+              disabled={aiPending}
+              onCheckedChange={(checked) => {
+                setAiValue(checked);
+                startAiTransition(async () => {
+                  const result = await toggleAiEnabled(checked);
+                  if (result.error) {
+                    toast.error(result.error);
+                    setAiValue(!checked);
+                  } else {
+                    toast.success(
+                      checked ? "AI features enabled" : "AI features disabled",
+                    );
+                  }
+                });
+              }}
+            />
           </div>
         </CardContent>
       </Card>

@@ -1,12 +1,16 @@
 import { groq } from "@ai-sdk/groq";
 import { streamText } from "ai";
 import { getCurrentUserId } from "@/lib/auth";
+import { guardAiEnabled } from "@/lib/ai-guard";
 import { getMonthlyReportData, formatMonthlyReportContext } from "@/lib/monthly-report-data";
 import { getCachedReport, setCachedReport, invalidateCachedReport } from "@/lib/monthly-report-cache";
 import { rateLimiters } from "@/lib/rate-limiter";
 
 export async function POST(req: Request) {
   const userId = await getCurrentUserId();
+
+  const aiBlocked = await guardAiEnabled();
+  if (aiBlocked) return aiBlocked;
 
   const rateLimitResult = rateLimiters.monthlyReport.consume(`monthly-report:${userId}`);
   if (!rateLimitResult.allowed) {

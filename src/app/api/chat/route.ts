@@ -2,6 +2,7 @@ import { groq } from "@ai-sdk/groq";
 import { streamText, convertToModelMessages } from "ai";
 import type { UIMessage } from "ai";
 import { getCurrentUserId } from "@/lib/auth";
+import { guardAiEnabled } from "@/lib/ai-guard";
 import { getAccountsWithDetails } from "@/db/queries/accounts";
 import { getBudgets } from "@/db/queries/budgets";
 import { getGoals } from "@/db/queries/goals";
@@ -17,6 +18,10 @@ import { rateLimiters } from "@/lib/rate-limiter";
 export async function POST(req: Request) {
   // Rate limit by user ID (already authenticated)
   const userId = await getCurrentUserId();
+
+  const aiBlocked = await guardAiEnabled();
+  if (aiBlocked) return aiBlocked;
+
   const rateLimitResult = rateLimiters.chat.consume(`chat:${userId}`);
 
   if (!rateLimitResult.allowed) {

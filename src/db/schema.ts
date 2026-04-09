@@ -335,6 +335,12 @@ export const mfaBackupCodesTable = pgTable("mfa_backup_codes", {
   userIdx: index("mfa_backup_codes_user_id_idx").on(table.user_id),
 }])
 
+export const userPreferencesTable = pgTable("user_preferences", {
+  user_id: uuid("user_id").primaryKey(),
+  ai_enabled: boolean("ai_enabled").notNull().default(true),
+  updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const reviewFlagTypeEnum = pgEnum("review_flag_type", [
   "subscription_amount_mismatch",
   "possible_debt_payment",

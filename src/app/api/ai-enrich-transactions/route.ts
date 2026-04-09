@@ -1,4 +1,5 @@
 import { getCurrentUserId } from "@/lib/auth";
+import { guardAiEnabled } from "@/lib/ai-guard";
 import { enrichTransactions } from "@/lib/transaction-intelligence";
 import { rateLimiters } from "@/lib/rate-limiter";
 import { z } from "zod";
@@ -9,6 +10,9 @@ const bodySchema = z.object({
 
 export async function POST(req: Request) {
   const userId = await getCurrentUserId();
+
+  const aiBlocked = await guardAiEnabled();
+  if (aiBlocked) return aiBlocked;
 
   const rateLimitResult = rateLimiters.serverAction.consume(
     `ai-enrich:${userId}`,

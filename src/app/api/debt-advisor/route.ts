@@ -1,12 +1,16 @@
 import { groq } from "@ai-sdk/groq";
 import { streamText } from "ai";
 import { getCurrentUserId } from "@/lib/auth";
+import { guardAiEnabled } from "@/lib/ai-guard";
 import { getDebtAdvisorData } from "@/lib/debt-advisor-data";
 import { getCachedAdvice, setCachedAdvice, invalidateCachedAdvice } from "@/lib/debt-advisor-cache";
 import { rateLimiters } from "@/lib/rate-limiter";
 
 export async function POST(req: Request) {
   const userId = await getCurrentUserId();
+
+  const aiBlocked = await guardAiEnabled();
+  if (aiBlocked) return aiBlocked;
 
   const rateLimitResult = rateLimiters.debtAdvisor.consume(`debt-advisor:${userId}`);
   if (!rateLimitResult.allowed) {

@@ -5,6 +5,7 @@ import { groq } from "@ai-sdk/groq";
 import { generateText } from "ai";
 import { z } from "zod";
 import { getCategoriesByUser } from "@/db/queries/categories";
+import { isAiEnabled } from "@/db/queries/preferences";
 import { logger } from "@/lib/logger";
 
 const categoriseSchema = z.object({
@@ -68,7 +69,7 @@ export async function matchCategorisationRule(
   const match = matchAgainstRules(rules, description);
   if (match) return match;
 
-  if (process.env.GROQ_API_KEY) {
+  if (process.env.GROQ_API_KEY && (await isAiEnabled(userId))) {
     return aiCategorise(userId, description);
   }
 
@@ -152,6 +153,7 @@ export async function batchAiCategorise(
   transactionIds?: string[],
 ): Promise<number> {
   if (!process.env.GROQ_API_KEY) return 0;
+  if (!(await isAiEnabled(userId))) return 0;
 
   try {
     const categories = await getCategoriesByUser(userId);

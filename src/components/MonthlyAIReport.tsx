@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useAiEnabled } from "@/components/AiSettingsProvider";
 import {
   Card,
   CardContent,
@@ -38,6 +39,7 @@ function getMonthOptions(): Array<{ label: string; value: string; monthsAgo: num
 }
 
 export function MonthlyAIReport() {
+  const aiEnabled = useAiEnabled();
   const monthOptions = useMemo(() => getMonthOptions(), []);
   const [selectedMonth, setSelectedMonth] = useState("1"); // default: last completed month
   const [state, setState] = useState<ReportState>({
@@ -117,6 +119,8 @@ export function MonthlyAIReport() {
   }, []);
 
   const currentLabel = monthOptions.find((o) => o.value === selectedMonth)?.label ?? "";
+
+  if (!aiEnabled) return null;
 
   return (
     <Card>

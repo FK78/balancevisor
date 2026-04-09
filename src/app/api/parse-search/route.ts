@@ -2,6 +2,7 @@ import { groq } from "@ai-sdk/groq";
 import { generateText } from "ai";
 import { z } from "zod";
 import { getCurrentUserId } from "@/lib/auth";
+import { guardAiEnabled } from "@/lib/ai-guard";
 import { getCategoriesByUser } from "@/db/queries/categories";
 import { getAccountsWithDetails } from "@/db/queries/accounts";
 import { toDateString } from "@/lib/date";
@@ -16,6 +17,9 @@ const searchFiltersSchema = z.object({
 
 export async function POST(req: Request) {
   const userId = await getCurrentUserId();
+
+  const aiBlocked = await guardAiEnabled();
+  if (aiBlocked) return aiBlocked;
 
   const rateLimitResult = rateLimiters.serverAction.consume(`parse-search:${userId}`);
   if (!rateLimitResult.allowed) {

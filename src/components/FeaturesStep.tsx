@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InterestPicker } from "@/components/InterestPicker";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Info } from "lucide-react";
 import { completeOnboardingAndRedirectWithFeatures } from "@/db/mutations/onboarding";
 
 export function FeaturesStep() {
@@ -36,6 +36,16 @@ export function FeaturesStep() {
           selectedFeatures={selectedFeatures}
           onChange={setSelectedFeatures}
         />
+
+        <div className="flex items-start gap-2.5 rounded-lg border border-border/60 bg-muted/50 p-3 text-xs text-muted-foreground">
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>
+            BalanceVisor includes AI-powered features like a financial assistant,
+            smart transaction parsing, and spending analysis. You can disable all
+            AI features anytime from{" "}
+            <strong className="text-foreground">Settings &gt; AI Features</strong>.
+          </span>
+        </div>
 
         <div className="flex gap-2">
           <form action={handleSubmit}>

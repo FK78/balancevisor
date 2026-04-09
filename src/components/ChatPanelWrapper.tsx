@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useAiEnabled } from "@/components/AiSettingsProvider";
 
 const ChatPanel = dynamic(
   () => import("@/components/ChatPanel").then((m) => m.ChatPanel),
@@ -8,5 +9,7 @@ const ChatPanel = dynamic(
 );
 
 export function ChatPanelWrapper() {
+  const aiEnabled = useAiEnabled();
+  if (!aiEnabled) return null;
   return <ChatPanel />;
 }

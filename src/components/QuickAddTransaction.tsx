@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useRef, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { useAiEnabled } from "@/components/AiSettingsProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +45,7 @@ export function QuickAddTransaction({
 }: {
   onSaved?: (ids: string[]) => void;
 }) {
+  const aiEnabled = useAiEnabled();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [parsed, setParsed] = useState<ParsedTransaction | null>(null);
@@ -135,6 +137,8 @@ export function QuickAddTransaction({
     setParseError(null);
     setView("input");
   }
+
+  if (!aiEnabled) return null;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>

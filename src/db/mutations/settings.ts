@@ -23,6 +23,7 @@ import {
   investmentGroupsTable,
   holdingSalesTable,
   transactionSplitsTable,
+  userPreferencesTable,
 } from '@/db/schema';
 import { EXPORT_VERSION } from '@/lib/types';
 import type { ExportData } from '@/lib/types';
@@ -157,7 +158,8 @@ export async function deleteAccount(): Promise<{ success?: boolean; error?: stri
     await tx.delete(accountsTable).where(eq(accountsTable.user_id, userId));
     await tx.delete(truelayerConnectionsTable).where(eq(truelayerConnectionsTable.user_id, userId));
 
-    // --- Onboarding (last app-level record) ---
+    // --- Onboarding & preferences (last app-level records) ---
+    await tx.delete(userPreferencesTable).where(eq(userPreferencesTable.user_id, userId));
     await tx.delete(userOnboardingTable).where(eq(userOnboardingTable.user_id, userId));
   });
 

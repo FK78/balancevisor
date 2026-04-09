@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useAiEnabled } from "@/components/AiSettingsProvider";
 import Link from "next/link";
 import {
   Card,
@@ -13,6 +14,7 @@ import { Sparkles, ArrowRight, Loader2 } from "lucide-react";
 import { formatMarkdown } from "@/lib/formatMarkdown";
 
 export function DashboardMonthlyReport() {
+  const aiEnabled = useAiEnabled();
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -84,6 +86,8 @@ export function DashboardMonthlyReport() {
   const teaser = text
     ? text.split("\n").slice(0, 8).join("\n")
     : "";
+
+  if (!aiEnabled) return null;
 
   return (
     <Card>

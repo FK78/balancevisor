@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { TransactionFormDialog } from "@/components/AddTransactionForm";
 import { QuickAddTransaction } from "@/components/QuickAddTransaction";
+import { useAiEnabled } from "@/components/AiSettingsProvider";
 import { TransferFormDialog } from "@/components/AddTransferForm";
 import { ImportCSVDialog } from "@/components/ImportCSVDialog";
 import {
@@ -168,6 +169,7 @@ export function TransactionsClient({
   uncategorisedCount?: number;
 }) {
   const router = useRouter();
+  const aiEnabled = useAiEnabled();
   const [expandedSplits, setExpandedSplits] = useState<Set<string>>(new Set());
   const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -481,6 +483,7 @@ export function TransactionsClient({
               <Button type="submit">
                 Search
               </Button>
+              {aiEnabled && (
               <Button
                 type="button"
                 variant="secondary"
@@ -520,6 +523,7 @@ export function TransactionsClient({
                 )}
                 AI
               </Button>
+              )}
               {isSearchActive && (
                 <Button
                   type="button"
