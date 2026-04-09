@@ -17,6 +17,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import posthog from "posthog-js";
 
 export function LoginForm({
   className,
@@ -35,11 +36,15 @@ export function LoginForm({
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       if (error) throw error;
+      if (data.user) {
+        posthog.identify(data.user.id, { email: data.user.email });
+        posthog.capture("user_logged_in", { email: data.user.email });
+      }
       router.push("/dashboard");
     } catch (err: unknown) {
       setError(userError("login", err, "Unable to sign in. Please try again."));

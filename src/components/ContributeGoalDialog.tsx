@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { contributeToGoal } from "@/db/mutations/goals";
 import { toast } from "sonner";
+import posthog from "posthog-js";
 
 export function ContributeGoalDialog({ goalId, goalName }: { goalId: string; goalName: string }) {
   const [open, setOpen] = useState(false);
@@ -29,6 +30,7 @@ export function ContributeGoalDialog({ goalId, goalName }: { goalId: string; goa
     startTransition(async () => {
       try {
         await contributeToGoal(goalId, amount);
+        posthog.capture("goal_contribution_added", { goal_name: goalName, amount });
         toast.success("Funds added to goal");
         setOpen(false);
       } catch {

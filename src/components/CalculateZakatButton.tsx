@@ -4,11 +4,13 @@ import { useTransition } from "react";
 import { Calculator, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { triggerZakatCalculation } from "@/db/mutations/zakat";
+import posthog from "posthog-js";
 
 export function CalculateZakatButton() {
   const [isPending, startTransition] = useTransition();
 
   function handleClick() {
+    posthog.capture("zakat_calculation_triggered");
     startTransition(async () => {
       await triggerZakatCalculation(false);
     });

@@ -15,6 +15,7 @@ import {
 import { importFromTrueLayer, disconnectTrueLayer } from '@/db/mutations/truelayer';
 import { formatTimeAgo } from '@/lib/formatTimeAgo';
 import { toast } from 'sonner';
+import posthog from 'posthog-js';
 
 type Connection = {
   id: string;
@@ -42,6 +43,10 @@ export function ConnectBankButton({ connections }: { connections: Connection[] }
       try {
         const res = await importFromTrueLayer();
         setResult(res);
+        posthog.capture('bank_sync_completed', {
+          accounts_imported: res.accountsImported,
+          transactions_imported: res.transactionsImported,
+        });
         toast.success(
           `Imported ${res.accountsImported} account${res.accountsImported !== 1 ? 's' : ''}, ${res.transactionsImported} transaction${res.transactionsImported !== 1 ? 's' : ''}`,
         );

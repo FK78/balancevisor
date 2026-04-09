@@ -3,6 +3,7 @@ import { exchangeCode } from '@/lib/truelayer';
 import { saveTrueLayerConnection, importFromTrueLayer } from '@/db/mutations/truelayer';
 import { getCurrentUserId } from '@/lib/auth';
 import { logger } from '@/lib/logger';
+import { getPostHogClient } from '@/lib/posthog-server';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -47,6 +48,13 @@ export async function GET(request: NextRequest) {
     } catch {
       // Non-critical: user can manually import later
     }
+
+    const posthog = getPostHogClient();
+    posthog.capture({
+      distinctId: userId,
+      event: 'bank_connection_completed',
+      properties: { source: 'truelayer_oauth' },
+    });
 
     const response = NextResponse.redirect(
       `${siteUrl}/dashboard/accounts?truelayer_connected=true`,

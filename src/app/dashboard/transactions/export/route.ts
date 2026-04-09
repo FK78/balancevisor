@@ -1,6 +1,7 @@
 import { getTransactionsForExport, type ExportTransaction } from "@/db/queries/transactions";
 import { getCurrentUserId } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -81,6 +82,17 @@ export async function GET(request: NextRequest) {
   const rows = await getTransactionsForExport(userId, startDate, endDate);
   const csv = buildCsv(rows);
   const fileName = `transactions_${startDate}_to_${endDate}.csv`;
+
+  const posthog = getPostHogClient();
+  posthog.capture({
+    distinctId: userId,
+    event: "transactions_exported",
+    properties: {
+      start_date: startDate,
+      end_date: endDate,
+      row_count: rows.length,
+    },
+  });
 
   return new NextResponse(csv, {
     headers: {

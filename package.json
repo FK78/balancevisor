@@ -36,6 +36,8 @@
     "next": "16.2.3",
     "nodemailer": "^8.0.5",
     "postgres": "^3.4.9",
+    "posthog-js": "^1.367.0",
+    "posthog-node": "^5.29.2",
     "radix-ui": "^1.4.3",
     "react": "19.2.5",
     "react-dom": "19.2.5",

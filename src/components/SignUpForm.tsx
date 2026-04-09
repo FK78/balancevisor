@@ -17,6 +17,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import posthog from "posthog-js";
 
 export function SignUpForm({
   className,
@@ -43,7 +44,7 @@ export function SignUpForm({
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -54,6 +55,10 @@ export function SignUpForm({
         },
       });
       if (error) throw error;
+      if (data.user) {
+        posthog.identify(data.user.id, { email: data.user.email, display_name: displayName });
+        posthog.capture("user_signed_up", { email: data.user.email });
+      }
       router.push("/auth/sign-up-success");
     } catch (err: unknown) {
       setError(userError("sign-up", err, "Unable to create account. Please try again."));

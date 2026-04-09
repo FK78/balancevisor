@@ -24,6 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { shareResource, revokeShare } from "@/db/mutations/sharing";
 import { toast } from "sonner";
+import posthog from "posthog-js";
 
 type Share = {
   id: string;
@@ -61,6 +62,10 @@ export function ShareDialog({
     startTransition(async () => {
       try {
         await shareResource(formData);
+        posthog.capture("resource_shared", {
+          resource_type: resourceType,
+          permission: formData.get("permission"),
+        });
         toast.success("Invitation sent");
         setView("success");
       } catch {
