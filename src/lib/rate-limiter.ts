@@ -163,4 +163,7 @@ export const rateLimiters = {
 
   /** Account health check: 5 requests per 10 minutes. */
   accountHealth: new RateLimiter({ maxRequests: 5, windowMs: 10 * 60 * 1000 }),
+
+  /** Retirement planner AI: 5 requests per 10 minutes. */
+  retirementPlanner: new RateLimiter({ maxRequests: 5, windowMs: 10 * 60 * 1000 }),
 };

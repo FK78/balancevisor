@@ -433,6 +433,22 @@ CREATE INDEX review_flags_transaction_id_idx ON transaction_review_flags (transa
 CREATE INDEX review_flags_unresolved_idx   ON transaction_review_flags (user_id, is_resolved);
 
 -- ---------------------------------------------------------------------------
+-- Retirement Profiles
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE retirement_profiles (
+  user_id                    UUID    PRIMARY KEY,
+  current_age                INTEGER NOT NULL,
+  target_retirement_age      INTEGER NOT NULL DEFAULT 65,
+  desired_annual_spending    NUMERIC NOT NULL,
+  expected_pension_annual    NUMERIC NOT NULL DEFAULT 0,
+  expected_investment_return NUMERIC NOT NULL DEFAULT 5.0,
+  inflation_rate             NUMERIC NOT NULL DEFAULT 2.5,
+  life_expectancy            INTEGER NOT NULL DEFAULT 90,
+  updated_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ---------------------------------------------------------------------------
 -- Dashboard Layouts (widget customization)
 -- ---------------------------------------------------------------------------
 

@@ -398,6 +398,18 @@ export const transactionReviewFlagsTable = pgTable("transaction_review_flags", {
   unresolvedIdx: index("review_flags_unresolved_idx").on(table.user_id, table.is_resolved),
 }]);
 
+export const retirementProfilesTable = pgTable("retirement_profiles", {
+  user_id: uuid("user_id").primaryKey(),
+  current_age: integer("current_age").notNull(),
+  target_retirement_age: integer("target_retirement_age").notNull().default(65),
+  desired_annual_spending: numeric("desired_annual_spending", { mode: "number" }).notNull(),
+  expected_pension_annual: numeric("expected_pension_annual", { mode: "number" }).notNull().default(0),
+  expected_investment_return: numeric("expected_investment_return", { mode: "number" }).notNull().default(5.0),
+  inflation_rate: numeric("inflation_rate", { mode: "number" }).notNull().default(2.5),
+  life_expectancy: integer("life_expectancy").notNull().default(90),
+  updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const dashboardLayoutsTable = pgTable("dashboard_layouts", {
   id: uuid().primaryKey().defaultRandom(),
   user_id: uuid("user_id").notNull(),

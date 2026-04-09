@@ -14,6 +14,7 @@ import {
   Repeat,
   Repeat2,
   BarChart3,
+  Timer,
   Settings,
   ChevronDown,
   Menu,
@@ -51,6 +52,7 @@ const moreItems: NavItem[] = [
   { href: "/dashboard/subscriptions", label: "Subscriptions", icon: Repeat, featureId: "subscriptions" },
   { href: "/dashboard/zakat", label: "Zakat", icon: Calculator, featureId: "zakat" },
   { href: "/dashboard/recurring", label: "Recurring", icon: Repeat2, featureId: "recurring" },
+  { href: "/dashboard/retirement", label: "Retirement", icon: Timer },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
