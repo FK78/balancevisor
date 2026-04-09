@@ -88,7 +88,14 @@ const RECURRING_WIDGETS: readonly WidgetDefinition[] = [
 ] as const;
 
 const REPORTS_WIDGETS: readonly WidgetDefinition[] = [
-  { id: "reports-client", label: "Reports", defaultVisible: true, colSpan: 2 },
+  { id: "ai-monthly-report", label: "AI Monthly Report", defaultVisible: true, colSpan: 2 },
+  { id: "savings-rate", label: "Savings Rate", defaultVisible: true, colSpan: 2 },
+  { id: "kpi-stats", label: "KPI Stats", defaultVisible: true, colSpan: 2 },
+  { id: "income-vs-expenses", label: "Income vs Expenses", defaultVisible: true, colSpan: 2 },
+  { id: "net-savings-trend", label: "Net Savings Trend", defaultVisible: true, colSpan: 1 },
+  { id: "spending-by-category", label: "Spending by Category", defaultVisible: true, colSpan: 1 },
+  { id: "monthly-category-breakdown", label: "Monthly Category Breakdown", defaultVisible: true, colSpan: 2 },
+  { id: "top-categories", label: "Top Spending Categories", defaultVisible: true, colSpan: 2 },
 ] as const;
 
 const SUBSCRIPTIONS_WIDGETS: readonly WidgetDefinition[] = [
