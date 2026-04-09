@@ -16,6 +16,7 @@ import { ChatPanelWrapper as ChatPanel } from "@/components/ChatPanelWrapper";
 import { BankSyncTrigger } from "@/components/BankSyncTrigger";
 import { NextFeatureButtonClient } from "@/components/NextFeatureButtonClient";
 import { isAiEnabled, getDisabledFeatures } from "@/db/queries/preferences";
+import { hasTrueLayerConnection } from "@/db/queries/truelayer";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { FeatureFlagsProvider } from "@/components/FeatureFlagsProvider";
 
@@ -25,11 +26,12 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const userId = await getCurrentUserId();
-  const [onboardingComplete, pendingFeatures, aiEnabled, disabledFeatures] = await Promise.all([
+  const [onboardingComplete, pendingFeatures, aiEnabled, disabledFeatures, hasBankConnection] = await Promise.all([
     hasCompletedOnboarding(userId),
     getPendingFeatures(userId),
     isAiEnabled(userId),
     getDisabledFeatures(userId),
+    hasTrueLayerConnection(userId),
   ]);
 
   // Fire-and-forget: write ops that don't produce data needed for rendering
@@ -77,7 +79,7 @@ export default async function DashboardLayout({
       </div>
       <MobileBottomNav />
       <InstallPrompt />
-      <BankSyncTrigger />
+      <BankSyncTrigger enabled={hasBankConnection} />
       {pendingFeaturesList.length > 0 && (
         <NextFeatureButtonClient pendingFeatures={pendingFeaturesList} />
       )}

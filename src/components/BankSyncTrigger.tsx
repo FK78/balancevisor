@@ -1,25 +1,29 @@
 "use client";
 
 import { useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { syncBankIfNeeded } from "@/db/mutations/truelayer";
 import { toast } from "sonner";
 
 /**
  * Triggers a background bank sync on mount and shows a sonner toast
- * with the result.
+ * with the result. Only attempts sync when `enabled` is true (i.e. user
+ * has at least one TrueLayer connection).
  */
-export function BankSyncTrigger() {
+export function BankSyncTrigger({ enabled }: { enabled: boolean }) {
   const ran = useRef(false);
+  const router = useRouter();
 
   const doSync = useCallback(async () => {
-    const toastId = toast.loading("Syncing bank data…");
     try {
       const res = await syncBankIfNeeded();
       if (res.synced) {
         toast.success(
           `Synced ${res.accountsImported} account${res.accountsImported !== 1 ? "s" : ""}, ${res.transactionsImported} transaction${res.transactionsImported !== 1 ? "s" : ""}`,
-          { id: toastId },
         );
+
+        // Refresh the current page so updated data is visible immediately
+        router.refresh();
 
         // Fire-and-forget AI enrichment for synced transactions
         if (res.transactionIds && res.transactionIds.length > 0) {
@@ -29,21 +33,17 @@ export function BankSyncTrigger() {
             body: JSON.stringify({ transactionIds: res.transactionIds }),
           }).catch(() => {});
         }
-      } else {
-        toast.dismiss(toastId);
       }
     } catch {
-      toast.error("Bank sync failed — try manual sync", { id: toastId });
+      toast.error("Bank sync failed — try manual sync");
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
-    if (ran.current) return;
+    if (!enabled || ran.current) return;
     ran.current = true;
-    // Delay sync to avoid competing with initial hydration/rendering
-    const timer = setTimeout(doSync, 3000);
-    return () => clearTimeout(timer);
-  }, [doSync]);
+    queueMicrotask(doSync);
+  }, [enabled, doSync]);
 
   return null;
 }

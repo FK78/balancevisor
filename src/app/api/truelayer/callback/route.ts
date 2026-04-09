@@ -45,8 +45,8 @@ export async function GET(request: NextRequest) {
     // Auto-import accounts & transactions immediately after connecting
     try {
       await importFromTrueLayer();
-    } catch {
-      // Non-critical: user can manually import later
+    } catch (importErr) {
+      logger.warn('truelayer.callback', 'Initial import after connect failed — user can manual sync', { error: importErr instanceof Error ? importErr.message : String(importErr) });
     }
 
     const posthog = getPostHogClient();
