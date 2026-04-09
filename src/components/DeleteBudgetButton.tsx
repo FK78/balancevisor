@@ -7,6 +7,7 @@ export function DeleteBudgetButton({ budget }: { budget: { id: string; budgetCat
   return (
     <DeleteConfirmButton
       onDelete={() => deleteBudget(budget.id)}
+      entityName="Budget"
       triggerClassName="h-7 w-7 text-muted-foreground hover:text-destructive"
       triggerIconClassName="h-3.5 w-3.5"
       dialogTitle="Delete budget?"

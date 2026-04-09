@@ -2,6 +2,7 @@ import { getCurrentUserId } from "@/lib/auth";
 import { guardAiEnabled } from "@/lib/ai-guard";
 import { enrichTransactions } from "@/lib/transaction-intelligence";
 import { rateLimiters } from "@/lib/rate-limiter";
+import { getPostHogClient } from "@/lib/posthog-server";
 import { z } from "zod";
 
 const bodySchema = z.object({
@@ -31,6 +32,13 @@ export async function POST(req: Request) {
   }
 
   const result = await enrichTransactions(userId, parsed.data.transactionIds);
+
+  const posthog = getPostHogClient();
+  posthog.capture({
+    distinctId: userId,
+    event: "ai_enrich_transactions_completed",
+    properties: { transaction_count: parsed.data.transactionIds?.length ?? 0 },
+  });
 
   return Response.json(result);
 }

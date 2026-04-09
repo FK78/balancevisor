@@ -30,6 +30,7 @@ import { useLastUsed } from "@/hooks/useLastUsed";
 import { checkForDuplicate } from "@/db/mutations/check-duplicate";
 import type { PotentialDuplicate } from "@/db/queries/duplicate-check";
 import { AlertTriangle } from "lucide-react";
+import posthog from "posthog-js";
 
 export function TransactionFormDialog({
   transaction,
@@ -134,6 +135,9 @@ export function TransactionFormDialog({
         ? await editTransaction(formData)
         : await addTransaction(formData);
       setSavedIds((prev) => [...prev, result.id]);
+      posthog.capture(isEdit ? "transaction_edited" : "transaction_added", {
+        type: formData.get("type") as string,
+      });
       toast.success(isEdit ? "Transaction updated" : "Transaction added");
 
       // Remember last-used values for next time

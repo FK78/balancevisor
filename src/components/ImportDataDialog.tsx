@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { importUserData } from "@/db/mutations/import-data";
 import { toast } from "sonner";
+import posthog from "posthog-js";
 import { EXPORT_VERSION } from "@/lib/types";
 
 type Step = "upload" | "preview" | "importing" | "result";
@@ -171,6 +172,7 @@ export function ImportDataDialog({ onImported }: { onImported?: () => void }) {
 
         const total = totalCount(res.imported);
         if (total > 0) {
+          posthog.capture("data_imported", { record_count: total });
           toast.success(`Imported ${total} record${total !== 1 ? "s" : ""}`);
         }
         if (res.errors.length > 0) {

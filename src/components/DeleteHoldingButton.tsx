@@ -8,6 +8,7 @@ export function DeleteHoldingButton({ holding }: { holding: Pick<ManualHolding, 
   return (
     <DeleteConfirmButton
       onDelete={() => deleteManualHolding(holding.id)}
+      entityName="Holding"
       dialogTitle="Delete holding?"
       dialogDescription={
         <>

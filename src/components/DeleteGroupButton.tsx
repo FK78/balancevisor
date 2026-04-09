@@ -18,6 +18,7 @@ export function DeleteGroupButton({
         </>
       }
       onDelete={() => deleteInvestmentGroup(group.id)}
+      entityName="Investment Group"
       successTitle="Group deleted"
       successDescription="The investment group has been removed."
     />

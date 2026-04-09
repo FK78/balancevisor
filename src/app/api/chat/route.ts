@@ -14,6 +14,7 @@ import { getPortfolioSnapshot, formatPortfolioContext } from "@/lib/portfolio-da
 import { getMonthRange } from "@/lib/date";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { rateLimiters } from "@/lib/rate-limiter";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export async function POST(req: Request) {
   // Rate limit by user ID (already authenticated)
@@ -30,6 +31,9 @@ export async function POST(req: Request) {
       { status: 429, headers: { "Content-Type": "application/json", "Retry-After": String(rateLimitResult.retryAfter) } },
     );
   }
+
+  const posthog = getPostHogClient();
+  posthog.capture({ distinctId: userId, event: "ai_chat_used" });
 
   const { messages } = await req.json();
   const thisMonth = getMonthRange(0);

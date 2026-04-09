@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { connectBroker, disconnectBroker } from "@/db/mutations/investments";
 import { toast } from "sonner";
+import posthog from "posthog-js";
 import { BROKER_LIST } from "@/lib/brokers";
 import type { BrokerSource, BrokerMeta, BrokerField } from "@/lib/brokers/types";
 
@@ -74,6 +75,7 @@ export function ConnectBrokerDialog({
     startTransition(async () => {
       try {
         await connectBroker(formData);
+        posthog.capture("broker_connected", { broker: selectedBroker.source });
         toast.success(`${selectedBroker.label} connected`);
         setView("success");
       } catch {
@@ -89,6 +91,7 @@ export function ConnectBrokerDialog({
     startTransition(async () => {
       try {
         await disconnectBroker(formData);
+        posthog.capture("broker_disconnected", { broker: selectedBroker.source });
         toast.success(`${selectedBroker.label} disconnected`);
         handleOpenChange(false);
       } catch {

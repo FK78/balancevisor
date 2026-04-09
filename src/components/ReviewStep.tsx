@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ArrowLeft, Sparkles, ShieldOff } from "lucide-react";
 import { completeOnboardingAndRedirectWithFeatures } from "@/db/mutations/onboarding";
+import posthog from "posthog-js";
 import { ONBOARDING_FEATURE_IDS } from "@/components/InterestPicker";
 
 interface ReviewStepProps {
@@ -33,6 +34,15 @@ export function ReviewStep({
 
   const handleComplete = async () => {
     setIsSubmitting(true);
+    posthog.capture("onboarding_completed", {
+      accounts_count: accountsCount,
+      categories_count: categoriesCount,
+      budgets_count: budgetsCount,
+      goals_count: goalsCount,
+      debts_count: debtsCount,
+      subscriptions_count: subscriptionsCount,
+      ai_enabled: aiEnabled,
+    });
     const remainingFeatures = selectedFeatures.slice(1);
     const firstFeature = selectedFeatures.length > 0 ? selectedFeatures[0] : undefined;
     const disabledFeatures = ONBOARDING_FEATURE_IDS.filter(

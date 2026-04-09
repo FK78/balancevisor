@@ -63,8 +63,17 @@ async function getValidToken(connectionId: string): Promise<string> {
   const userKey = await getUserKey(conn.user_id);
 
   if (conn.token_expires_at > new Date()) {
+    logger.info("truelayer.token", "Access token still valid", {
+      connectionId,
+      expiresAt: conn.token_expires_at.toISOString(),
+    });
     return decryptForUser(conn.access_token, userKey);
   }
+
+  logger.info("truelayer.token", "Access token expired, refreshing", {
+    connectionId,
+    expiredAt: conn.token_expires_at.toISOString(),
+  });
 
   const tokens = await refreshAccessToken(decryptForUser(conn.refresh_token, userKey));
   const newExpiry = new Date(Date.now() + tokens.expires_in * 1000);
@@ -310,6 +319,7 @@ export async function syncBankIfNeeded(): Promise<{
     .where(eq(truelayerConnectionsTable.user_id, userId));
 
   if (connections.length === 0) {
+    logger.info("truelayer.sync", "No connections found, skipping sync", { userId });
     return { synced: false, accountsImported: 0, transactionsImported: 0, transactionIds: [] };
   }
 
@@ -320,11 +330,22 @@ export async function syncBankIfNeeded(): Promise<{
   );
 
   if (!needsSync) {
+    logger.info("truelayer.sync", "All connections recently synced, skipping", {
+      userId,
+      lastSyncedAt: connections.map((c) => c.last_synced_at?.toISOString() ?? "never"),
+    });
     return { synced: false, accountsImported: 0, transactionsImported: 0, transactionIds: [] };
   }
 
+  logger.info("truelayer.sync", "Sync needed, starting import", { userId });
+
   try {
     const result = await importFromTrueLayer();
+    logger.info("truelayer.sync", "Sync completed", {
+      userId,
+      accountsImported: result.accountsImported,
+      transactionsImported: result.transactionsImported,
+    });
     return { synced: true, ...result };
   } catch (err) {
     logger.error("truelayer.sync", "Auto-sync failed", err);

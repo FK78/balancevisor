@@ -25,6 +25,7 @@ import {
 import { addTransfer } from "@/db/mutations/transactions";
 import type { Account } from "@/lib/types";
 import { toast } from "sonner";
+import posthog from "posthog-js";
 
 export function TransferFormDialog({
   accounts,
@@ -74,6 +75,7 @@ export function TransferFormDialog({
       try {
         const result = await addTransfer(formData);
         onSaved?.(result.id);
+        posthog.capture("transfer_added");
         toast.success("Transfer recorded");
         setView("success");
       } catch {

@@ -32,6 +32,7 @@ import {
 import { importTransactionsFromCSV } from "@/db/mutations/import-csv";
 import type { Account } from "@/lib/types";
 import { toast } from "sonner";
+import posthog from "posthog-js";
 
 type ImportResult = {
   imported: number;
@@ -228,6 +229,10 @@ export function ImportCSVDialog({
         setResult(res);
         setStep("result");
         if (res.imported > 0) {
+          posthog.capture("csv_imported", {
+            imported: res.imported,
+            skipped: res.skipped,
+          });
           toast.success(`Imported ${res.imported} transaction${res.imported !== 1 ? "s" : ""}`);
 
           // Fire-and-forget AI enrichment for imported transactions

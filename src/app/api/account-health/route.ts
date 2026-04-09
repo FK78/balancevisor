@@ -5,6 +5,7 @@ import { guardAiEnabled } from "@/lib/ai-guard";
 import { getAccountHealthData } from "@/lib/account-health-data";
 import { getCachedAccountHealth, setCachedAccountHealth, invalidateCachedAccountHealth } from "@/lib/account-health-cache";
 import { rateLimiters } from "@/lib/rate-limiter";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export async function POST(req: Request) {
   const userId = await getCurrentUserId();
@@ -33,6 +34,9 @@ export async function POST(req: Request) {
   } else {
     invalidateCachedAccountHealth(userId);
   }
+
+  const posthog = getPostHogClient();
+  posthog.capture({ distinctId: userId, event: "account_health_requested" });
 
   const data = await getAccountHealthData(userId);
 

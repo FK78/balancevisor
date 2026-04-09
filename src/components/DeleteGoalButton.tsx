@@ -9,6 +9,7 @@ export function DeleteGoalButton({ id }: { id: string }) {
       dialogTitle="Delete Goal"
       dialogDescription="Are you sure you want to delete this goal? This action cannot be undone."
       onDelete={() => deleteGoal(id)}
+      entityName="Goal"
       successTitle="Goal deleted"
       successDescription="Your goal has been removed."
     />

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { BotMessageSquare, Send, Loader2, Sparkles, User, X, RotateCcw } from "lucide-react";
 import { formatMarkdown } from "@/lib/formatMarkdown";
+import posthog from "posthog-js";
 
 function getTextContent(message: UIMessage): string {
   return message.parts
@@ -49,6 +50,7 @@ export function ChatPanel() {
     const text = input.trim();
     if (!text || isLoading) return;
     setInput("");
+    posthog.capture("ai_chat_message_sent");
     sendMessage({ text });
   };
 
