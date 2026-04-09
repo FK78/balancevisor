@@ -138,11 +138,11 @@ CREATE TABLE transactions (
   type                transaction_type NOT NULL,
   amount              NUMERIC          NOT NULL,
   description         TEXT             NOT NULL,
-  date                DATE,
+  date                DATE             NOT NULL,
   is_recurring        BOOLEAN          NOT NULL,
   recurring_pattern   recurring_pattern,
   next_recurring_date DATE,
-  created_at          DATE DEFAULT CURRENT_DATE,
+  created_at          TIMESTAMPTZ      NOT NULL DEFAULT NOW(),
   transfer_account_id UUID REFERENCES accounts(id) ON DELETE SET NULL,
   truelayer_id        VARCHAR(255),
   is_split            BOOLEAN NOT NULL DEFAULT FALSE,
@@ -163,12 +163,13 @@ CREATE TABLE budgets (
   user_id     UUID    NOT NULL,
   category_id UUID REFERENCES categories(id) ON DELETE CASCADE,
   amount      NUMERIC NOT NULL,
-  period      period,
-  start_date  DATE
+  period      period  NOT NULL DEFAULT 'monthly',
+  start_date  DATE    NOT NULL
 );
 
 CREATE INDEX budgets_user_id_idx     ON budgets (user_id);
 CREATE INDEX budgets_category_id_idx ON budgets (category_id);
+CREATE UNIQUE INDEX budgets_user_category_idx ON budgets (user_id, category_id);
 
 -- 10. categorisation_rules (FK → categories)
 CREATE TABLE categorisation_rules (
@@ -180,6 +181,7 @@ CREATE TABLE categorisation_rules (
 );
 
 CREATE INDEX categorisation_rules_user_id_idx ON categorisation_rules (user_id);
+CREATE UNIQUE INDEX categorisation_rules_user_pattern_idx ON categorisation_rules (user_id, pattern);
 
 -- 11. goals (no FK deps)
 CREATE TABLE goals (
@@ -452,7 +454,7 @@ CREATE TABLE retirement_profiles (
 -- ---------------------------------------------------------------------------
 
 CREATE TABLE dashboard_layouts (
-  id          UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  id          UUID          PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id     UUID          NOT NULL,
   page        VARCHAR(50)   NOT NULL,
   layout_json TEXT          NOT NULL,
