@@ -2,6 +2,13 @@
 -- Run this against a clean PostgreSQL database to create all tables from scratch.
 -- Requires: PostgreSQL 14+ with uuid-ossp extension.
 
+-- ---------------------------------------------------------------------------
+-- Drop entire public schema and recreate (destructive — for dev/CI only)
+-- ---------------------------------------------------------------------------
+DROP SCHEMA IF EXISTS public CASCADE;
+CREATE SCHEMA public;
+GRANT ALL ON SCHEMA public TO public;
+
 -- Extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -13,7 +20,7 @@ CREATE TYPE account_type AS ENUM ('currentAccount', 'savings', 'creditCard', 'in
 CREATE TYPE period AS ENUM ('monthly', 'weekly');
 CREATE TYPE transaction_type AS ENUM ('income', 'expense', 'transfer', 'sale');
 CREATE TYPE recurring_pattern AS ENUM ('daily', 'weekly', 'biweekly', 'monthly', 'yearly');
-CREATE TYPE investment_type AS ENUM ('stock', 'real_estate', 'private_equity', 'other');
+CREATE TYPE investment_type AS ENUM ('stock', 'crypto', 'etf', 'real_estate', 'private_equity', 'other');
 CREATE TYPE billing_cycle AS ENUM ('weekly', 'monthly', 'quarterly', 'yearly');
 CREATE TYPE shared_resource_type AS ENUM ('account', 'budget');
 CREATE TYPE shared_permission AS ENUM ('view', 'edit');
@@ -223,7 +230,21 @@ CREATE TABLE trading212_connections (
   connected_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 15. investment_groups (FK → accounts)
+-- 15. broker_connections (FK → accounts)
+CREATE TABLE broker_connections (
+  id                    UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id               UUID         NOT NULL,
+  broker                VARCHAR(20)  NOT NULL,
+  credentials_encrypted TEXT         NOT NULL,
+  environment           VARCHAR(10)  NOT NULL DEFAULT 'live',
+  account_id            UUID REFERENCES accounts(id) ON DELETE SET NULL,
+  connected_at          TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  last_synced_at        TIMESTAMPTZ
+);
+
+CREATE UNIQUE INDEX broker_connections_user_broker_idx ON broker_connections (user_id, broker);
+
+-- 16. investment_groups (FK → accounts)
 CREATE TABLE investment_groups (
   id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id    UUID         NOT NULL,
@@ -237,7 +258,7 @@ CREATE TABLE investment_groups (
 
 CREATE INDEX investment_groups_user_id_idx ON investment_groups (user_id);
 
--- 16. manual_holdings (FK → accounts, investment_groups)
+-- 17. manual_holdings (FK → accounts, investment_groups)
 CREATE TABLE manual_holdings (
   id                       UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id                  UUID         NOT NULL,
@@ -259,7 +280,7 @@ CREATE TABLE manual_holdings (
 CREATE INDEX manual_holdings_user_id_idx    ON manual_holdings (user_id);
 CREATE INDEX manual_holdings_account_id_idx ON manual_holdings (account_id);
 
--- 17. holding_sales (FK → manual_holdings, accounts)
+-- 18. holding_sales (FK → manual_holdings, accounts)
 CREATE TABLE holding_sales (
   id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   holding_id      UUID        NOT NULL REFERENCES manual_holdings(id) ON DELETE CASCADE,
@@ -276,7 +297,7 @@ CREATE TABLE holding_sales (
 CREATE INDEX holding_sales_user_id_idx    ON holding_sales (user_id);
 CREATE INDEX holding_sales_holding_id_idx ON holding_sales (holding_id);
 
--- 18. transaction_splits (FK → transactions, categories)
+-- 19. transaction_splits (FK → transactions, categories)
 CREATE TABLE transaction_splits (
   id             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   transaction_id UUID    NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
@@ -287,7 +308,7 @@ CREATE TABLE transaction_splits (
 
 CREATE INDEX transaction_splits_transaction_id_idx ON transaction_splits (transaction_id);
 
--- 19. net_worth_snapshots (no deps)
+-- 20. net_worth_snapshots (no deps)
 CREATE TABLE net_worth_snapshots (
   id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id           UUID        NOT NULL,
@@ -301,7 +322,7 @@ CREATE TABLE net_worth_snapshots (
 
 CREATE UNIQUE INDEX net_worth_snapshots_user_id_date_idx ON net_worth_snapshots (user_id, date);
 
--- 20. shared_access (no deps — resource_id is polymorphic)
+-- 21. shared_access (no deps — resource_id is polymorphic)
 CREATE TABLE shared_access (
   id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   owner_id          UUID                NOT NULL,
@@ -317,7 +338,7 @@ CREATE TABLE shared_access (
 
 CREATE UNIQUE INDEX unique_share ON shared_access (shared_with_email, resource_type, resource_id);
 
--- 21. budget_notifications (FK → budgets)
+-- 22. budget_notifications (FK → budgets)
 CREATE TABLE budget_notifications (
   id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id    UUID        NOT NULL,
@@ -331,7 +352,7 @@ CREATE TABLE budget_notifications (
 
 CREATE INDEX budget_notifications_user_budget_idx ON budget_notifications (user_id, budget_id);
 
--- 22. user_keys (no deps — envelope encryption)
+-- 23. user_keys (no deps — envelope encryption)
 CREATE TABLE user_keys (
   user_id       UUID PRIMARY KEY,
   encrypted_key TEXT        NOT NULL,
@@ -340,7 +361,7 @@ CREATE TABLE user_keys (
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 23. mfa_backup_codes (no deps)
+-- 24. mfa_backup_codes (no deps)
 CREATE TABLE mfa_backup_codes (
   id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id    UUID        NOT NULL,
@@ -352,7 +373,7 @@ CREATE TABLE mfa_backup_codes (
 
 CREATE INDEX mfa_backup_codes_user_id_idx ON mfa_backup_codes (user_id);
 
--- 24. transaction_review_flags (FK → transactions, subscriptions, debts)
+-- 25. transaction_review_flags (FK → transactions, subscriptions, debts)
 CREATE TABLE transaction_review_flags (
   id                        UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id                   UUID              NOT NULL,

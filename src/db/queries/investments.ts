@@ -1,11 +1,12 @@
 "use server";
 
 import { db } from "@/index";
-import { trading212ConnectionsTable, manualHoldingsTable, accountsTable, holdingSalesTable } from "@/db/schema";
+import { trading212ConnectionsTable, brokerConnectionsTable, manualHoldingsTable, accountsTable, holdingSalesTable } from "@/db/schema";
 import { eq, desc, sql, gt, and } from "drizzle-orm";
 import { getCurrentUserId } from "@/lib/auth";
 import { searchTicker } from "@/lib/yahoo-finance";
 import { decryptForUser, getUserKey } from "@/lib/encryption";
+import type { BrokerSource, BrokerCredentials } from "@/lib/brokers/types";
 
 export async function searchTickers(query: string) {
   await getCurrentUserId();
@@ -81,6 +82,52 @@ export async function getT212ConnectionByAccountId(accountId: string) {
     .where(eq(trading212ConnectionsTable.account_id, accountId))
     .limit(1);
   return rows[0] ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Generic broker connection queries
+// ---------------------------------------------------------------------------
+
+export async function getBrokerConnections(userId: string) {
+  return db
+    .select()
+    .from(brokerConnectionsTable)
+    .where(eq(brokerConnectionsTable.user_id, userId));
+}
+
+export async function getBrokerConnection(userId: string, broker: BrokerSource) {
+  const rows = await db
+    .select()
+    .from(brokerConnectionsTable)
+    .where(
+      and(
+        eq(brokerConnectionsTable.user_id, userId),
+        eq(brokerConnectionsTable.broker, broker),
+      ),
+    )
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function getBrokerConnectionByAccountId(accountId: string) {
+  const rows = await db
+    .select()
+    .from(brokerConnectionsTable)
+    .where(eq(brokerConnectionsTable.account_id, accountId))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+/**
+ * Decrypt broker credentials from a broker connection row.
+ */
+export async function decryptBrokerCredentials(
+  userId: string,
+  credentialsEncrypted: string,
+): Promise<BrokerCredentials> {
+  const userKey = await getUserKey(userId);
+  const json = decryptForUser(credentialsEncrypted, userKey);
+  return JSON.parse(json) as BrokerCredentials;
 }
 
 export async function getManualHoldings(userId: string) {
