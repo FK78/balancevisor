@@ -26,6 +26,8 @@ import {
   retirementProfilesTable,
   dashboardLayoutsTable,
   userPreferencesTable,
+  transactionReviewFlagsTable,
+  sharedAccessTable,
 } from "./schema";
 
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -67,6 +69,14 @@ async function seed() {
 
   // ── Cleanup existing data (FK-safe order) ─────────────────────
   console.log("  🗑  Clearing existing data for user...");
+  await db.execute(sql`
+    DELETE FROM transaction_review_flags WHERE user_id = ${USER_ID}
+  `);
+  await db.execute(sql`
+    DELETE FROM shared_access
+    WHERE owner_id = ${USER_ID}
+       OR shared_with_email = 'dev@balancevisor.local'
+  `);
   await db.delete(dashboardLayoutsTable).where(eq(dashboardLayoutsTable.user_id, USER_ID));
   await db.delete(userPreferencesTable).where(eq(userPreferencesTable.user_id, USER_ID));
   await db.delete(zakatCalculationsTable).where(eq(zakatCalculationsTable.user_id, USER_ID));
@@ -220,10 +230,51 @@ async function seed() {
     { account_id: acctMap["Starling Joint"], category_id: catMap["Bills & Utilities"], type: "expense" as const, amount: 14.99, description: "Council tax share", date: daysAgo(6), is_recurring: true, recurring_pattern: "monthly" as const, next_recurring_date: daysFromNow(24) },
     // A split transaction
     { account_id: acctMap["Monzo Current"], category_id: catMap["Groceries"], type: "expense" as const, amount: 156.80, description: "Big Tesco shop (split)", date: daysAgo(13), is_recurring: false, is_split: true },
+    // Weekly recurring
+    { account_id: acctMap["Monzo Current"], category_id: catMap["Dining Out"], type: "expense" as const, amount: 4.50, description: "Pret coffee", date: daysAgo(0), is_recurring: true, recurring_pattern: "weekly" as const, next_recurring_date: daysFromNow(7) },
+    { account_id: acctMap["Monzo Current"], category_id: catMap["Dining Out"], type: "expense" as const, amount: 4.50, description: "Pret coffee", date: daysAgo(7), is_recurring: true, recurring_pattern: "weekly" as const },
+    { account_id: acctMap["Monzo Current"], category_id: catMap["Dining Out"], type: "expense" as const, amount: 4.50, description: "Pret coffee", date: daysAgo(14), is_recurring: true, recurring_pattern: "weekly" as const },
+    { account_id: acctMap["Monzo Current"], category_id: catMap["Dining Out"], type: "expense" as const, amount: 4.50, description: "Pret coffee", date: daysAgo(21), is_recurring: true, recurring_pattern: "weekly" as const },
+    // Yearly recurring
+    { account_id: acctMap["Monzo Current"], category_id: catMap["Bills & Utilities"], type: "expense" as const, amount: 420.00, description: "Car Insurance - Admiral", date: daysAgo(45), is_recurring: true, recurring_pattern: "yearly" as const, next_recurring_date: daysFromNow(320) },
+    // Refund transactions
+    { account_id: acctMap["Amex Gold"], category_id: catMap["Shopping"], type: "refund" as const, amount: 59.99, description: "Amazon refund - headphones returned", date: daysAgo(2), is_recurring: false },
+    { account_id: acctMap["Monzo Current"], category_id: catMap["Transport"], type: "refund" as const, amount: 45.00, description: "Uber refund - cancelled ride", date: daysAgo(10), is_recurring: false },
+    // Sale transaction (investment sale proceeds)
+    { account_id: acctMap["Monzo Current"], category_id: catMap["Investments"], type: "sale" as const, amount: 851.25, description: "Sold 5x AAPL shares", date: daysAgo(30), is_recurring: false },
+    // Older month transactions for richer report charts
+    { account_id: acctMap["Monzo Current"], category_id: catMap["Salary"], type: "income" as const, amount: 3800, description: "Monthly Salary - January", date: daysAgo(90), is_recurring: true, recurring_pattern: "monthly" as const },
+    { account_id: acctMap["Monzo Current"], category_id: catMap["Salary"], type: "income" as const, amount: 3800, description: "Monthly Salary - December", date: daysAgo(120), is_recurring: true, recurring_pattern: "monthly" as const },
+    { account_id: acctMap["Monzo Current"], category_id: catMap["Salary"], type: "income" as const, amount: 3650, description: "Monthly Salary - November", date: daysAgo(150), is_recurring: true, recurring_pattern: "monthly" as const },
+    { account_id: acctMap["Monzo Current"], category_id: catMap["Groceries"], type: "expense" as const, amount: 312.40, description: "Tesco monthly shop", date: daysAgo(90), is_recurring: false },
+    { account_id: acctMap["Monzo Current"], category_id: catMap["Groceries"], type: "expense" as const, amount: 278.15, description: "Tesco monthly shop", date: daysAgo(120), is_recurring: false },
+    { account_id: acctMap["Monzo Current"], category_id: catMap["Groceries"], type: "expense" as const, amount: 295.60, description: "Tesco monthly shop", date: daysAgo(150), is_recurring: false },
+    { account_id: acctMap["Amex Gold"], category_id: catMap["Entertainment"], type: "expense" as const, amount: 15.99, description: "Netflix", date: daysAgo(34), is_recurring: true, recurring_pattern: "monthly" as const },
+    { account_id: acctMap["Amex Gold"], category_id: catMap["Entertainment"], type: "expense" as const, amount: 15.99, description: "Netflix", date: daysAgo(64), is_recurring: true, recurring_pattern: "monthly" as const },
+    { account_id: acctMap["Amex Gold"], category_id: catMap["Entertainment"], type: "expense" as const, amount: 15.99, description: "Netflix", date: daysAgo(94), is_recurring: true, recurring_pattern: "monthly" as const },
+    { account_id: acctMap["Monzo Current"], category_id: catMap["Bills & Utilities"], type: "expense" as const, amount: 1200, description: "Rent - March", date: daysAgo(31), is_recurring: true, recurring_pattern: "monthly" as const },
+    { account_id: acctMap["Monzo Current"], category_id: catMap["Bills & Utilities"], type: "expense" as const, amount: 1200, description: "Rent - February", date: daysAgo(59), is_recurring: true, recurring_pattern: "monthly" as const },
+    { account_id: acctMap["Monzo Current"], category_id: catMap["Bills & Utilities"], type: "expense" as const, amount: 1200, description: "Rent - January", date: daysAgo(90), is_recurring: true, recurring_pattern: "monthly" as const },
+    { account_id: acctMap["Monzo Current"], category_id: catMap["Transport"], type: "expense" as const, amount: 160, description: "Oyster card - March", date: daysAgo(33), is_recurring: true, recurring_pattern: "monthly" as const },
+    { account_id: acctMap["Monzo Current"], category_id: catMap["Transport"], type: "expense" as const, amount: 160, description: "Oyster card - February", date: daysAgo(61), is_recurring: true, recurring_pattern: "monthly" as const },
+    { account_id: acctMap["Amex Gold"], category_id: catMap["Dining Out"], type: "expense" as const, amount: 95.00, description: "Wagamama - team lunch", date: daysAgo(40), is_recurring: false },
+    { account_id: acctMap["Amex Gold"], category_id: catMap["Shopping"], type: "expense" as const, amount: 149.99, description: "John Lewis - coat", date: daysAgo(55), is_recurring: false },
+    { account_id: acctMap["Monzo Current"], category_id: catMap["Health"], type: "expense" as const, amount: 39.99, description: "PureGym membership", date: daysAgo(32), is_recurring: true, recurring_pattern: "monthly" as const },
+    { account_id: acctMap["Monzo Current"], category_id: catMap["Health"], type: "expense" as const, amount: 39.99, description: "PureGym membership", date: daysAgo(62), is_recurring: true, recurring_pattern: "monthly" as const },
+    { account_id: acctMap["Monzo Current"], category_id: catMap["Freelance"], type: "income" as const, amount: 1200, description: "React consulting - TechCorp", date: daysAgo(75), is_recurring: false },
   ];
 
   const transactions = await db.insert(transactionsTable).values(txValues.map(v => ({ ...v, user_id: USER_ID }))).returning();
   console.log(`  ✓ ${transactions.length} transactions`);
+
+  // Link refund → original expense
+  const headphonesExpense = transactions.find((t) => t.description === "Amazon - headphones");
+  const headphonesRefund = transactions.find((t) => t.description === "Amazon refund - headphones returned");
+  if (headphonesExpense && headphonesRefund) {
+    await db.update(transactionsTable)
+      .set({ refund_for_transaction_id: headphonesExpense.id })
+      .where(eq(transactionsTable.id, headphonesRefund.id));
+  }
 
   // ── Transaction splits ───────────────────────────────────────────
   const splitTx = transactions.find((t) => t.is_split);
@@ -249,6 +300,7 @@ async function seed() {
       { user_id: USER_ID, category_id: catMap["Dining Out"], amount: 300, period: "monthly" as const, start_date: monthsAgo(0) },
       { user_id: USER_ID, category_id: catMap["Shopping"], amount: 200, period: "monthly" as const, start_date: monthsAgo(0) },
       { user_id: USER_ID, category_id: catMap["Health"], amount: 100, period: "monthly" as const, start_date: monthsAgo(0) },
+      { user_id: USER_ID, category_id: catMap["Bills & Utilities"], amount: 350, period: "weekly" as const, start_date: monthsAgo(0) },
     ])
     .returning();
   console.log(`  ✓ ${budgets.length} budgets`);
@@ -308,6 +360,8 @@ async function seed() {
       { user_id: USER_ID, name: "Holiday - Japan", target_amount: 5000, saved_amount: 2200, target_date: daysFromNow(270), icon: "Plane", color: "#3b82f6" },
       { user_id: USER_ID, name: "New Laptop", target_amount: 2000, saved_amount: 1400, target_date: daysFromNow(90), icon: "Laptop", color: "#a855f7" },
       { user_id: USER_ID, name: "House Deposit", target_amount: 50000, saved_amount: 18000, target_date: daysFromNow(730), icon: "Home", color: "#f97316" },
+      { user_id: USER_ID, name: "New Phone", target_amount: 1100, saved_amount: 1100, target_date: daysFromNow(0), icon: "Smartphone", color: "#06b6d4" },
+      { user_id: USER_ID, name: "Rainy Day Fund", target_amount: 3000, saved_amount: 850, icon: "Umbrella", color: "#64748b" },
     ])
     .returning();
   console.log(`  ✓ ${goals.length} goals`);
@@ -359,10 +413,13 @@ async function seed() {
       { user_id: USER_ID, ticker: "AAPL", name: "Apple Inc.", quantity: 15, average_price: 142.50, current_price: 178.30, currency: "USD", investment_type: "stock" as const, account_id: acctMap["Vanguard ISA"], group_id: groupMap["Tech Stocks"], last_price_update: new Date() },
       { user_id: USER_ID, ticker: "MSFT", name: "Microsoft Corp.", quantity: 10, average_price: 285.00, current_price: 412.60, currency: "USD", investment_type: "stock" as const, account_id: acctMap["Vanguard ISA"], group_id: groupMap["Tech Stocks"], last_price_update: new Date() },
       { user_id: USER_ID, ticker: "NVDA", name: "NVIDIA Corp.", quantity: 8, average_price: 450.00, current_price: 875.40, currency: "USD", investment_type: "stock" as const, account_id: acctMap["Vanguard ISA"], group_id: groupMap["Tech Stocks"], last_price_update: new Date() },
-      { user_id: USER_ID, ticker: "VWRL", name: "Vanguard FTSE All-World ETF", quantity: 50, average_price: 82.40, current_price: 96.20, currency: "GBP", investment_type: "stock" as const, account_id: acctMap["Vanguard ISA"], group_id: groupMap["Index Funds"], last_price_update: new Date() },
-      { user_id: USER_ID, ticker: "VUSA", name: "Vanguard S&P 500 ETF", quantity: 30, average_price: 62.10, current_price: 78.50, currency: "GBP", investment_type: "stock" as const, account_id: acctMap["Vanguard ISA"], group_id: groupMap["Index Funds"], last_price_update: new Date() },
+      { user_id: USER_ID, ticker: "VWRL", name: "Vanguard FTSE All-World ETF", quantity: 50, average_price: 82.40, current_price: 96.20, currency: "GBP", investment_type: "etf" as const, account_id: acctMap["Vanguard ISA"], group_id: groupMap["Index Funds"], last_price_update: new Date() },
+      { user_id: USER_ID, ticker: "VUSA", name: "Vanguard S&P 500 ETF", quantity: 30, average_price: 62.10, current_price: 78.50, currency: "GBP", investment_type: "etf" as const, account_id: acctMap["Vanguard ISA"], group_id: groupMap["Index Funds"], last_price_update: new Date() },
       { user_id: USER_ID, ticker: "LLOY", name: "Lloyds Banking Group", quantity: 500, average_price: 0.48, current_price: 0.56, currency: "GBP", investment_type: "stock" as const, account_id: acctMap["Vanguard ISA"], group_id: groupMap["UK Equities"], last_price_update: new Date() },
       { user_id: USER_ID, ticker: "BP", name: "BP plc", quantity: 200, average_price: 4.80, current_price: 5.15, currency: "GBP", investment_type: "stock" as const, account_id: acctMap["Vanguard ISA"], group_id: groupMap["UK Equities"], last_price_update: new Date() },
+      { user_id: USER_ID, ticker: "BTC", name: "Bitcoin", quantity: 0.15, average_price: 28500, current_price: 62400, currency: "USD", investment_type: "crypto" as const, notes: "Self-custody cold wallet" },
+      { user_id: USER_ID, ticker: "ETH", name: "Ethereum", quantity: 2.5, average_price: 1650, current_price: 3420, currency: "USD", investment_type: "crypto" as const, notes: "Coinbase" },
+      { user_id: USER_ID, name: "Seedrs - FinTech Fund", quantity: 1, average_price: 5000, current_price: 5800, currency: "GBP", investment_type: "private_equity" as const, estimated_return_percent: 12.0, notes: "Seedrs fund of 8 early-stage FinTech startups" },
       { user_id: USER_ID, name: "BTL Property - Manchester", quantity: 1, average_price: 185000, current_price: 210000, currency: "GBP", investment_type: "real_estate" as const, estimated_return_percent: 6.2, notes: "2-bed flat, Ancoats. Rental yield ~6.2%" },
     ])
     .returning();
@@ -389,14 +446,16 @@ async function seed() {
       { user_id: USER_ID, name: "Three Mobile", amount: 32.00, currency: "GBP", billing_cycle: "monthly" as const, next_billing_date: daysFromNow(23), category_id: catMap["Bills & Utilities"], account_id: acctMap["Monzo Current"], color: "#ff6600", icon: "Smartphone" },
       { user_id: USER_ID, name: "Amazon Prime", amount: 95.00, currency: "GBP", billing_cycle: "yearly" as const, next_billing_date: daysFromNow(195), category_id: catMap["Shopping"], account_id: acctMap["Amex Gold"], url: "https://amazon.co.uk", color: "#ff9900", icon: "Package" },
       { user_id: USER_ID, name: "iCloud+ 200GB", amount: 2.99, currency: "GBP", billing_cycle: "monthly" as const, next_billing_date: daysFromNow(18), category_id: catMap["Bills & Utilities"], account_id: acctMap["Monzo Current"], color: "#007aff", icon: "Cloud" },
-      { user_id: USER_ID, name: "ChatGPT Plus", amount: 20.00, currency: "USD", billing_cycle: "monthly" as const, next_billing_date: daysFromNow(12), category_id: catMap["Bills & Utilities"], account_id: acctMap["Amex Gold"], url: "https://chat.openai.com", color: "#10a37f", icon: "Bot" },
+      { user_id: USER_ID, name: "ChatGPT Plus", amount: 20.00, currency: "USD", billing_cycle: "monthly" as const, next_billing_date: daysFromNow(12), category_id: catMap["Entertainment"], account_id: acctMap["Amex Gold"], url: "https://chat.openai.com", color: "#10a37f", icon: "Bot" },
+      { user_id: USER_ID, name: "Hover Domain Renewal", amount: 45.00, currency: "GBP", billing_cycle: "quarterly" as const, next_billing_date: daysFromNow(60), category_id: catMap["Bills & Utilities"], account_id: acctMap["Monzo Current"], url: "https://hover.com", color: "#333333", icon: "Globe" },
+      { user_id: USER_ID, name: "Disney+", amount: 7.99, currency: "GBP", billing_cycle: "monthly" as const, next_billing_date: daysAgo(15), category_id: catMap["Entertainment"], account_id: acctMap["Amex Gold"], url: "https://disneyplus.com", color: "#113ccf", icon: "Film", is_active: false },
     ])
     .returning();
   console.log(`  ✓ ${subscriptions.length} subscriptions`);
 
-  // ── Net worth snapshots (last 12 months) ─────────────────────────
-  const snapshotValues = Array.from({ length: 12 }, (_, i) => {
-    const monthOffset = 11 - i;
+  // ── Net worth snapshots (last 24 months) ─────────────────────────
+  const snapshotValues = Array.from({ length: 24 }, (_, i) => {
+    const monthOffset = 23 - i;
     const baseAssets = 42000 + i * 1800;
     const baseLiabilities = 38500 - i * 600;
     const investmentValue = 28000 + i * 520;
@@ -469,25 +528,261 @@ async function seed() {
   }).onConflictDoNothing();
   console.log("  ✓ user preferences");
 
-  // ── Dashboard layout (default for main dashboard) ──────────────
-  await db.insert(dashboardLayoutsTable).values({
-    user_id: USER_ID,
-    page: "dashboard",
-    layout_json: JSON.stringify([
-      { widgetId: "greeting", visible: true },
-      { widgetId: "insights", visible: true },
-      { widgetId: "net-worth", visible: true },
-      { widgetId: "cashflow", visible: true },
-      { widgetId: "spending-anomalies", visible: true },
-      { widgetId: "budget-progress", visible: true },
-      { widgetId: "upcoming-bills", visible: true },
-      { widgetId: "retirement", visible: true },
-      { widgetId: "recent-transactions", visible: true },
-      { widgetId: "zakat-summary", visible: true },
-      { widgetId: "spend-by-category", visible: true },
-    ]),
-  });
-  console.log("  ✓ dashboard layout");
+  // ── Link transactions to subscriptions ──────────────────────────
+  const subMap = Object.fromEntries(subscriptions.map((s) => [s.name, s.id]));
+  const netflixTxns = transactions.filter((t) => t.description === "Netflix" && t.type === "expense");
+  const spotifyTxn = transactions.find((t) => t.description === "Spotify Premium");
+  for (const tx of netflixTxns) {
+    await db.update(transactionsTable)
+      .set({ subscription_id: subMap["Netflix Standard"] })
+      .where(eq(transactionsTable.id, tx.id));
+  }
+  if (spotifyTxn) {
+    await db.update(transactionsTable)
+      .set({ subscription_id: subMap["Spotify Premium"] })
+      .where(eq(transactionsTable.id, spotifyTxn.id));
+  }
+  console.log("  ✓ linked transactions → subscriptions");
+
+  // ── Link transactions to debts ────────────────────────────────
+  const carPayments = transactions.filter((t) => t.description.startsWith("April car") || t.description.startsWith("March car"));
+  for (const tx of carPayments) {
+    await db.update(transactionsTable)
+      .set({ linked_debt_id: debts[1].id })
+      .where(eq(transactionsTable.id, tx.id));
+  }
+  console.log("  ✓ linked transactions → debts");
+
+  // ── Transaction review flags ──────────────────────────────────
+  // Find a Netflix expense that differs from sub amount (simulate price change)
+  const netflixSub = subscriptions.find((s) => s.name === "Netflix Standard");
+  const possibleDebtTxn = transactions.find((t) => t.description === "Wagamama - team lunch");
+  const possibleSubTxn = transactions.find((t) => t.description === "PureGym membership" && !t.subscription_id);
+
+  const reviewFlagValues: {
+    user_id: string;
+    transaction_id: string;
+    flag_type: "subscription_amount_mismatch" | "possible_debt_payment" | "possible_subscription";
+    suggested_subscription_id?: string;
+    suggested_debt_id?: string;
+    expected_amount?: number;
+    actual_amount: number;
+  }[] = [];
+
+  // Netflix amount mismatch flag
+  if (netflixSub) {
+    const mismatchTx = transactions.find(
+      (t) => t.description === "Netflix" && t.type === "expense"
+    );
+    if (mismatchTx) {
+      reviewFlagValues.push({
+        user_id: USER_ID,
+        transaction_id: mismatchTx.id,
+        flag_type: "subscription_amount_mismatch",
+        suggested_subscription_id: netflixSub.id,
+        expected_amount: 15.99,
+        actual_amount: 17.99,
+      });
+    }
+  }
+
+  // Possible debt payment flag
+  if (possibleDebtTxn) {
+    reviewFlagValues.push({
+      user_id: USER_ID,
+      transaction_id: possibleDebtTxn.id,
+      flag_type: "possible_debt_payment",
+      suggested_debt_id: debts[2].id,
+      expected_amount: 200,
+      actual_amount: 95.00,
+    });
+  }
+
+  // Possible subscription flag
+  if (possibleSubTxn) {
+    const pureGymSub = subscriptions.find((s) => s.name === "PureGym");
+    reviewFlagValues.push({
+      user_id: USER_ID,
+      transaction_id: possibleSubTxn.id,
+      flag_type: "possible_subscription",
+      suggested_subscription_id: pureGymSub?.id,
+      expected_amount: 39.99,
+      actual_amount: 39.99,
+    });
+  }
+
+  if (reviewFlagValues.length > 0) {
+    const flags = await db.insert(transactionReviewFlagsTable).values(reviewFlagValues).returning();
+    console.log(`  ✓ ${flags.length} transaction review flags`);
+  }
+
+  // ── Shared access (pending invitations) ───────────────────────
+  const sharedRows = await db
+    .insert(sharedAccessTable)
+    .values([
+      {
+        owner_id: "00000000-0000-0000-0000-000000000001",
+        shared_with_email: "dev@balancevisor.local",
+        resource_type: "account" as const,
+        resource_id: accounts[0].id,
+        permission: "view" as const,
+        status: "pending" as const,
+      },
+      {
+        owner_id: "00000000-0000-0000-0000-000000000002",
+        shared_with_email: "dev@balancevisor.local",
+        resource_type: "budget" as const,
+        resource_id: budgets[0].id,
+        permission: "edit" as const,
+        status: "pending" as const,
+      },
+    ])
+    .returning();
+  console.log(`  ✓ ${sharedRows.length} shared access invitations`);
+
+  // ── Dashboard layouts (all pages) ─────────────────────────────
+  const layouts = [
+    {
+      page: "dashboard",
+      widgets: [
+        { widgetId: "insights", visible: true },
+        { widgetId: "monthly-report", visible: true },
+        { widgetId: "net-worth", visible: true },
+        { widgetId: "net-worth-history", visible: true },
+        { widgetId: "cashflow", visible: true },
+        { widgetId: "cashflow-forecast", visible: true },
+        { widgetId: "anomalies", visible: true },
+        { widgetId: "weekly-digest", visible: true },
+        { widgetId: "upcoming-bills", visible: true },
+        { widgetId: "budget-progress", visible: true },
+        { widgetId: "category-spend", visible: true },
+        { widgetId: "recent-transactions", visible: true },
+        { widgetId: "zakat-summary", visible: true },
+        { widgetId: "retirement", visible: true },
+      ],
+    },
+    {
+      page: "accounts",
+      widgets: [
+        { widgetId: "pending-invitations", visible: true },
+        { widgetId: "stats", visible: true },
+        { widgetId: "charts", visible: true },
+        { widgetId: "account-cards", visible: true },
+        { widgetId: "health-check", visible: true },
+      ],
+    },
+    {
+      page: "budgets",
+      widgets: [
+        { widgetId: "pending-invitations", visible: true },
+        { widgetId: "stats", visible: true },
+        { widgetId: "suggestions", visible: true },
+        { widgetId: "charts", visible: true },
+        { widgetId: "budget-cards", visible: true },
+      ],
+    },
+    {
+      page: "categories",
+      widgets: [
+        { widgetId: "charts", visible: true },
+        { widgetId: "all-categories", visible: true },
+        { widgetId: "auto-rules", visible: true },
+      ],
+    },
+    {
+      page: "debts",
+      widgets: [
+        { widgetId: "overview", visible: true },
+        { widgetId: "debt-cards", visible: true },
+        { widgetId: "payoff-strategies", visible: true },
+        { widgetId: "ai-advisor", visible: true },
+      ],
+    },
+    {
+      page: "goals",
+      widgets: [
+        { widgetId: "overview", visible: true },
+        { widgetId: "forecasts", visible: true },
+        { widgetId: "goals-grid", visible: true },
+      ],
+    },
+    {
+      page: "investments",
+      widgets: [
+        { widgetId: "broker-errors", visible: true },
+        { widgetId: "summary-cards", visible: true },
+        { widgetId: "charts", visible: true },
+        { widgetId: "ai-analysis", visible: true },
+        { widgetId: "holdings-table", visible: true },
+      ],
+    },
+    {
+      page: "recurring",
+      widgets: [
+        { widgetId: "stats", visible: true },
+        { widgetId: "recurring-list", visible: true },
+      ],
+    },
+    {
+      page: "reports",
+      widgets: [
+        { widgetId: "ai-monthly-report", visible: true },
+        { widgetId: "savings-rate", visible: true },
+        { widgetId: "kpi-stats", visible: true },
+        { widgetId: "income-vs-expenses", visible: true },
+        { widgetId: "net-savings-trend", visible: true },
+        { widgetId: "spending-by-category", visible: true },
+        { widgetId: "monthly-category-breakdown", visible: true },
+        { widgetId: "top-categories", visible: true },
+      ],
+    },
+    {
+      page: "subscriptions",
+      widgets: [
+        { widgetId: "stats", visible: true },
+        { widgetId: "subscription-cards", visible: true },
+        { widgetId: "ai-advisor", visible: true },
+      ],
+    },
+    {
+      page: "zakat",
+      widgets: [
+        { widgetId: "countdown", visible: true },
+        { widgetId: "summary-cards", visible: true },
+        { widgetId: "nisab-status", visible: true },
+        { widgetId: "breakdown", visible: true },
+        { widgetId: "formula", visible: true },
+        { widgetId: "history", visible: true },
+      ],
+    },
+    {
+      page: "retirement",
+      widgets: [
+        { widgetId: "countdown", visible: true },
+        { widgetId: "progress", visible: true },
+        { widgetId: "snapshot", visible: true },
+        { widgetId: "projection-chart", visible: true },
+        { widgetId: "scenarios", visible: true },
+        { widgetId: "ai-advisor", visible: true },
+      ],
+    },
+    {
+      page: "transactions",
+      widgets: [
+        { widgetId: "review-banners", visible: true },
+        { widgetId: "transactions-client", visible: true },
+      ],
+    },
+  ];
+
+  await db.insert(dashboardLayoutsTable).values(
+    layouts.map((l) => ({
+      user_id: USER_ID,
+      page: l.page,
+      layout_json: JSON.stringify(l.widgets),
+    }))
+  );
+  console.log(`  ✓ ${layouts.length} dashboard layouts (all pages)`);
 
   console.log("\n\u2705 Seed complete!");
 }
