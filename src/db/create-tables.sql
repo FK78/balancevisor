@@ -374,7 +374,7 @@ CREATE TABLE mfa_backup_codes (
 
 CREATE INDEX mfa_backup_codes_user_id_idx ON mfa_backup_codes (user_id);
 
--- 24. zakat_settings (no FK deps)
+-- 25. zakat_settings (no FK deps)
 CREATE TABLE zakat_settings (
   id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id           UUID        NOT NULL UNIQUE,
@@ -385,7 +385,7 @@ CREATE TABLE zakat_settings (
   updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 25. zakat_calculations (no FK deps)
+-- 26. zakat_calculations (no FK deps)
 CREATE TABLE zakat_calculations (
   id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id           UUID        NOT NULL,
@@ -405,8 +405,7 @@ CREATE TABLE zakat_calculations (
 
 CREATE INDEX zakat_calculations_user_id_idx ON zakat_calculations (user_id);
 
--- 24. transaction_review_flags (FK → transactions, subscriptions, debts)
--- 25. user_preferences (no deps)
+-- 27. user_preferences (no deps)
 CREATE TABLE user_preferences (
   user_id            UUID PRIMARY KEY,
   ai_enabled         BOOLEAN     NOT NULL DEFAULT TRUE,
@@ -414,7 +413,7 @@ CREATE TABLE user_preferences (
   updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 26. transaction_review_flags (FK → transactions, subscriptions, debts)
+-- 28. transaction_review_flags (FK → transactions, subscriptions, debts)
 CREATE TABLE transaction_review_flags (
   id                        UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id                   UUID              NOT NULL,
@@ -433,7 +432,7 @@ CREATE INDEX review_flags_transaction_id_idx ON transaction_review_flags (transa
 CREATE INDEX review_flags_unresolved_idx   ON transaction_review_flags (user_id, is_resolved);
 
 -- ---------------------------------------------------------------------------
--- Retirement Profiles
+-- 29. Retirement Profiles
 -- ---------------------------------------------------------------------------
 
 CREATE TABLE retirement_profiles (
@@ -449,7 +448,7 @@ CREATE TABLE retirement_profiles (
 );
 
 -- ---------------------------------------------------------------------------
--- Dashboard Layouts (widget customization)
+-- 30. Dashboard Layouts (widget customization)
 -- ---------------------------------------------------------------------------
 
 CREATE TABLE dashboard_layouts (

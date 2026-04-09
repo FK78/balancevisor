@@ -23,6 +23,7 @@ export type DashboardPageId =
   | "reports"
   | "retirement"
   | "subscriptions"
+  | "zakat"
   | "transactions";
 
 const DASHBOARD_WIDGETS: readonly WidgetDefinition[] = [
@@ -107,6 +108,15 @@ const SUBSCRIPTIONS_WIDGETS: readonly WidgetDefinition[] = [
   { id: "ai-advisor", label: "AI Savings Advisor", defaultVisible: true, colSpan: 2 },
 ] as const;
 
+const ZAKAT_WIDGETS: readonly WidgetDefinition[] = [
+  { id: "countdown", label: "Anniversary Countdown", defaultVisible: true, colSpan: 2 },
+  { id: "summary-cards", label: "Summary Cards", defaultVisible: true, colSpan: 2 },
+  { id: "nisab-status", label: "Nisab Status", defaultVisible: true, colSpan: 2 },
+  { id: "breakdown", label: "Assets & Deductions Breakdown", defaultVisible: true, colSpan: 2 },
+  { id: "formula", label: "Zakat Formula", defaultVisible: true, colSpan: 2 },
+  { id: "history", label: "Calculation History", defaultVisible: true, colSpan: 2 },
+] as const;
+
 const RETIREMENT_WIDGETS: readonly WidgetDefinition[] = [
   { id: "countdown", label: "Retirement Countdown", defaultVisible: true, colSpan: 2 },
   { id: "progress", label: "Fund Progress", defaultVisible: true, colSpan: 2 },
@@ -132,6 +142,7 @@ export const PAGE_WIDGETS: Readonly<Record<DashboardPageId, readonly WidgetDefin
   recurring: RECURRING_WIDGETS,
   reports: REPORTS_WIDGETS,
   retirement: RETIREMENT_WIDGETS,
+  zakat: ZAKAT_WIDGETS,
   subscriptions: SUBSCRIPTIONS_WIDGETS,
   transactions: TRANSACTIONS_WIDGETS,
 } as const;

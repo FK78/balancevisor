@@ -96,12 +96,14 @@ export default async function Home() {
     return pct >= 80;
   });
 
-  const [insights, forecast, anomalies, zakatSettings, latestZakatCalc] = await Promise.all([
+  const [insights, forecast, anomalies, zakatSettings, latestZakatCalc, retirementProfile, debtsSummary] = await Promise.all([
     getDashboardInsights(userId, budgets, goals),
     on("reports") ? getCashflowForecast(userId) : Promise.resolve(null),
     on("reports") ? getSpendingAnomalies(userId) : Promise.resolve([]),
     on("zakat") ? getZakatSettings(userId) : Promise.resolve(null),
     on("zakat") ? getLatestZakatCalculation(userId) : Promise.resolve(null),
+    getRetirementProfile(userId),
+    getDebtsSummary(userId),
   ]);
 
   let zakatData: { zakatDue: number; zakatableAmount: number; aboveNisab: boolean; daysUntil: number | null; hasSettings: boolean } | null = null;
@@ -124,13 +126,7 @@ export default async function Home() {
       daysUntil,
       hasSettings: !!zakatSettings,
     };
-  const [insights, forecast, anomalies, retirementProfile, debtsSummary] = await Promise.all([
-    getDashboardInsights(userId, budgets, goals),
-    on("reports") ? getCashflowForecast(userId) : Promise.resolve(null),
-    on("reports") ? getSpendingAnomalies(userId) : Promise.resolve([]),
-    getRetirementProfile(userId),
-    getDebtsSummary(userId),
-  ]);
+  }
 
   let retirementProjection = null;
   if (retirementProfile && monthlyTrend.length > 0) {
