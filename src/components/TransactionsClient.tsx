@@ -606,26 +606,26 @@ export function TransactionsClient({
 
       {/* Compact stats */}
       <Card>
-        <CardContent className="grid grid-cols-5 divide-x py-4">
+        <CardContent className="grid grid-cols-2 gap-4 py-4 sm:grid-cols-5 sm:gap-0 sm:divide-x">
           <div className="px-4 text-center">
             <p className="text-xs text-muted-foreground">Transactions</p>
-            <p className="text-lg font-semibold tabular-nums">{totalTransactions}</p>
+            <p className="text-base font-semibold tabular-nums sm:text-lg">{totalTransactions}</p>
           </div>
           <div className="px-4 text-center">
             <p className="text-xs text-muted-foreground">Income</p>
-            <p className="text-lg font-semibold tabular-nums text-emerald-600">{formatCurrency(totalIncome, currency)}</p>
+            <p className="text-base font-semibold tabular-nums text-emerald-600 sm:text-lg">{formatCurrency(totalIncome, currency)}</p>
           </div>
           <div className="px-4 text-center">
             <p className="text-xs text-muted-foreground">Spend</p>
-            <p className="text-lg font-semibold tabular-nums text-red-600">{formatCurrency(totalExpenses, currency)}</p>
+            <p className="text-base font-semibold tabular-nums text-red-600 sm:text-lg">{formatCurrency(totalExpenses, currency)}</p>
           </div>
           <div className="px-4 text-center">
             <p className="text-xs text-muted-foreground">Refunds</p>
-            <p className="text-lg font-semibold tabular-nums text-amber-600">{formatCurrency(totalRefunds, currency)}</p>
+            <p className="text-base font-semibold tabular-nums text-amber-600 sm:text-lg">{formatCurrency(totalRefunds, currency)}</p>
           </div>
-          <div className="px-4 text-center">
+          <div className="col-span-2 px-4 text-center sm:col-span-1">
             <p className="text-xs text-muted-foreground">Net Spend</p>
-            <p className="text-lg font-semibold tabular-nums text-red-600">{formatCurrency(totalExpenses - totalRefunds, currency)}</p>
+            <p className="text-base font-semibold tabular-nums text-red-600 sm:text-lg">{formatCurrency(totalExpenses - totalRefunds, currency)}</p>
           </div>
         </CardContent>
       </Card>
