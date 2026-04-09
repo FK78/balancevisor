@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DashboardPageId, WidgetLayoutItem } from "@/lib/widget-registry";
 import { getDefaultLayout, reconcileLayout } from "@/lib/widget-registry";
+import { logger } from "@/lib/logger";
 
 const STORAGE_PREFIX = "bv_layout_";
 
@@ -70,8 +71,8 @@ export function useWidgetLayout(pageId: DashboardPageId, serverLayout: readonly 
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ page: pageId, layout: nextLayout }),
           });
-        } catch {
-          // silently fail — localStorage still has the data
+        } catch (err) {
+          logger.warn("useWidgetLayout", `Failed to persist layout for ${pageId}`, { error: String(err) });
         } finally {
           if (mountedRef.current) setSaving(false);
         }
@@ -115,22 +116,24 @@ export function useWidgetLayout(pageId: DashboardPageId, serverLayout: readonly 
     setSaving(true);
     try {
       await fetch(`/api/dashboard-layout?page=${pageId}`, { method: "DELETE" });
-    } catch {
-      // ignore
+    } catch (err) {
+      logger.warn("useWidgetLayout", `Failed to reset layout for ${pageId}`, { error: String(err) });
     } finally {
       if (mountedRef.current) setSaving(false);
     }
   }, [pageId]);
 
-  const isCustomised = layout.some((item, i) => {
+  const isCustomised = useMemo(() => {
     const defaults = getDefaultLayout(pageId);
-    const def = defaults[i];
-    return (
-      !def ||
-      def.widgetId !== item.widgetId ||
-      def.visible !== item.visible
-    );
-  });
+    return layout.some((item, i) => {
+      const def = defaults[i];
+      return (
+        !def ||
+        def.widgetId !== item.widgetId ||
+        def.visible !== item.visible
+      );
+    });
+  }, [layout, pageId]);
 
   return { layout, reorder, toggleVisibility, resetToDefault, isCustomised, saving } as const;
 }

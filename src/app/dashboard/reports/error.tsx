@@ -13,7 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export default function DashboardError({
+export default function ReportsError({
   error,
   reset,
 }: {
@@ -21,7 +21,7 @@ export default function DashboardError({
   reset: () => void;
 }) {
   useEffect(() => {
-    logger.error("dashboard", "Page error", error);
+    logger.error("reports", "Page error", error);
   }, [error]);
 
   return (
@@ -31,9 +31,9 @@ export default function DashboardError({
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
             <AlertTriangle className="h-6 w-6" />
           </div>
-          <CardTitle>Couldn&apos;t load dashboard data</CardTitle>
+          <CardTitle>Couldn&apos;t load reports</CardTitle>
           <CardDescription>
-            Something went wrong while fetching your data. Please try again or contact support if the issue persists.
+            Something went wrong while fetching your report data. Please try again or contact support if the issue persists.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">

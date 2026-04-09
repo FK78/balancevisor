@@ -14,7 +14,7 @@ import { getDashboardInsights } from "@/db/queries/insights";
 import { getCashflowForecast } from "@/lib/cashflow-forecast";
 import { getSpendingAnomalies } from "@/lib/spending-anomalies";
 import { snapshotNetWorthIfNeeded } from "@/lib/snapshot-net-worth";
-import { getMonthRange, getMonthKey } from "@/lib/date";
+import { getMonthRange } from "@/lib/date";
 import { getCurrentUserId } from "@/lib/auth";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { getDisabledFeatures } from "@/db/queries/preferences";
@@ -25,6 +25,8 @@ import { getZakatSettings, getLatestZakatCalculation } from "@/db/queries/zakat"
 import { getRetirementProfile } from "@/db/queries/retirement";
 import { calculateRetirementProjection } from "@/lib/retirement-calculator";
 import { getDebtsSummary } from "@/db/queries/debts";
+import { calculateNetWorth } from "@/lib/net-worth";
+import { buildRetirementInputs } from "@/lib/retirement-inputs";
 import { DashboardPageClient } from "@/components/dashboard/DashboardPageClient";
 
 export default async function Home() {
@@ -73,17 +75,7 @@ export default async function Home() {
     snapshotNetWorthIfNeeded(userId, investmentValue).catch(() => {});
   }
 
-  const liabilityTypes = new Set(["creditCard"]);
-  const totalAssets = accounts
-    .filter((a: { type: string | null }) => !liabilityTypes.has(a.type ?? ""))
-    .reduce((sum: number, a: { balance: number }) => sum + a.balance, 0);
-  const totalLiabilities = accounts
-    .filter((a: { type: string | null }) => liabilityTypes.has(a.type ?? ""))
-    .reduce(
-      (sum: number, a: { balance: number }) => sum + Math.abs(a.balance),
-      0
-    );
-  const netWorth = totalAssets - totalLiabilities + investmentValue;
+  const { totalAssets, totalLiabilities, netWorth } = calculateNetWorth(accounts, investmentValue);
 
   const user = claimsResult.data?.claims;
 
@@ -102,7 +94,7 @@ export default async function Home() {
     on("reports") ? getSpendingAnomalies(userId) : Promise.resolve([]),
     on("zakat") ? getZakatSettings(userId) : Promise.resolve(null),
     on("zakat") ? getLatestZakatCalculation(userId) : Promise.resolve(null),
-    getRetirementProfile(userId),
+    on("retirement") ? getRetirementProfile(userId) : Promise.resolve(null),
     getDebtsSummary(userId),
   ]);
 
@@ -129,23 +121,16 @@ export default async function Home() {
   }
 
   let retirementProjection = null;
-  if (retirementProfile && monthlyTrend.length > 0) {
-    const currentMonthKey = getMonthKey(new Date());
-    const completedMonths = monthlyTrend.filter((m: { month: string }) => m.month !== currentMonthKey);
-    const monthCount = Math.max(completedMonths.length, 1);
-    const avgMonthlyIncome = completedMonths.reduce((s: number, m: { income: number }) => s + m.income, 0) / monthCount;
-    const avgMonthlyExpenses = completedMonths.reduce((s: number, m: { expenses: number }) => s + m.expenses, 0) / monthCount;
-    const annualSavings = (avgMonthlyIncome - avgMonthlyExpenses) * 12;
-
-    retirementProjection = calculateRetirementProjection({
-      profile: retirementProfile,
-      currentNetWorth: netWorth,
-      investmentValue,
-      annualSavings,
-      totalDebtRemaining: debtsSummary.totalRemaining,
-      avgMonthlyIncome,
-      avgMonthlyExpenses,
-    });
+  if (on("retirement") && retirementProfile && monthlyTrend.length > 0) {
+    retirementProjection = calculateRetirementProjection(
+      buildRetirementInputs({
+        profile: retirementProfile,
+        currentNetWorth: netWorth,
+        investmentValue,
+        totalDebtRemaining: debtsSummary.totalRemaining,
+        trend: monthlyTrend,
+      }),
+    );
   }
 
   return (
@@ -160,6 +145,7 @@ export default async function Home() {
       budgetsEnabled={on("budgets")}
       categoriesEnabled={on("categories")}
       subscriptionsEnabled={on("subscriptions")}
+      retirementEnabled={on("retirement")}
       zakatEnabled={on("zakat")}
       zakatData={zakatData}
       insights={insights}

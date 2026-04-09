@@ -28,6 +28,12 @@ import { DashboardWidget } from "@/components/DashboardWidget";
 import { CustomiseDrawer } from "@/components/CustomiseDrawer";
 import { EditLayoutToggle } from "@/components/EditLayoutToggle";
 import type { WidgetLayoutItem } from "@/lib/widget-registry";
+import type { Insight } from "@/db/queries/insights";
+import type { NetWorthPoint } from "@/db/queries/net-worth";
+import type { MonthlyCashflowPoint } from "@/db/queries/transactions";
+import type { CashflowForecast } from "@/lib/cashflow-forecast";
+import type { SpendingAnomaly } from "@/lib/spending-anomalies";
+import type { RetirementProjection } from "@/lib/retirement-calculator";
 import dynamic from "next/dynamic";
 
 const CashflowCharts = dynamic(
@@ -39,7 +45,6 @@ const NetWorthChart = dynamic(
   { loading: () => <div className="min-h-[260px]" /> }
 );
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 interface DashboardPageClientProps {
   readonly serverLayout: readonly WidgetLayoutItem[];
   readonly displayName: string;
@@ -51,25 +56,30 @@ interface DashboardPageClientProps {
   readonly budgetsEnabled: boolean;
   readonly categoriesEnabled: boolean;
   readonly subscriptionsEnabled: boolean;
+  readonly retirementEnabled: boolean;
   readonly zakatEnabled: boolean;
   readonly zakatData: { zakatDue: number; zakatableAmount: number; aboveNisab: boolean; daysUntil: number | null; hasSettings: boolean } | null;
-  readonly insights: any[];
+  readonly insights: Insight[];
   readonly netWorth: number;
   readonly totalAssets: number;
   readonly totalLiabilities: number;
   readonly investmentValue: number;
   readonly baseCurrency: string;
-  readonly netWorthHistory: any[];
-  readonly monthlyTrend: any[];
-  readonly forecast: any;
-  readonly anomalies: any[];
+  readonly netWorthHistory: NetWorthPoint[];
+  readonly monthlyTrend: MonthlyCashflowPoint[];
+  readonly forecast: CashflowForecast | null;
+  readonly anomalies: SpendingAnomaly[];
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   readonly upcomingRenewals: any[];
   readonly budgets: any[];
   readonly budgetsAtRisk: any[];
-  readonly spendByCategory: any[];
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+  readonly spendByCategory: { category: string; total: string | null; color: string }[];
   readonly expenses: number;
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   readonly lastFiveTransactions: any[];
-  readonly retirementProjection: any;
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+  readonly retirementProjection: RetirementProjection | null;
   readonly hasRetirementProfile: boolean;
 }
 
@@ -85,6 +95,7 @@ export function DashboardPageClient(props: DashboardPageClientProps) {
     budgetsEnabled,
     categoriesEnabled,
     subscriptionsEnabled,
+    retirementEnabled,
     zakatEnabled,
     zakatData,
     insights,
@@ -222,11 +233,13 @@ export function DashboardPageClient(props: DashboardPageClientProps) {
           </DashboardWidget>
 
           <DashboardWidget id="retirement">
-            <DashboardRetirement
-              projection={retirementProjection}
-              hasProfile={hasRetirementProfile}
-              baseCurrency={baseCurrency}
-            />
+            {retirementEnabled && (
+              <DashboardRetirement
+                projection={retirementProjection}
+                hasProfile={hasRetirementProfile}
+                baseCurrency={baseCurrency}
+              />
+            )}
           </DashboardWidget>
 
           <DashboardWidget id="recent-transactions">

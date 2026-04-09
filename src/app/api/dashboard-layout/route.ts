@@ -3,6 +3,8 @@ import { getCurrentUserId } from "@/lib/auth";
 import { savePageLayout, deletePageLayout } from "@/db/mutations/dashboard-layouts";
 import { getPageLayout } from "@/db/queries/dashboard-layouts";
 import { PAGE_WIDGETS, type DashboardPageId, type WidgetLayoutItem } from "@/lib/widget-registry";
+import { rateLimiters } from "@/lib/rate-limiter";
+import { logger } from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
   try {
@@ -23,6 +25,12 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const userId = await getCurrentUserId();
+
+    const rl = rateLimiters.api.consume(`layout-save:${userId}`);
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: { "Retry-After": String(rl.retryAfter) } });
+    }
+
     const body = await req.json();
     const { page, layout } = body as { page: DashboardPageId; layout: WidgetLayoutItem[] };
 
@@ -36,7 +44,8 @@ export async function POST(req: NextRequest) {
 
     await savePageLayout(userId, page, layout);
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (err) {
+    logger.error("dashboard-layout.POST", "Failed to save layout", err);
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 }
@@ -44,6 +53,12 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const userId = await getCurrentUserId();
+
+    const rl = rateLimiters.api.consume(`layout-delete:${userId}`);
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: { "Retry-After": String(rl.retryAfter) } });
+    }
+
     const page = req.nextUrl.searchParams.get("page") as DashboardPageId | null;
 
     if (!page || !(page in PAGE_WIDGETS)) {
@@ -52,7 +67,8 @@ export async function DELETE(req: NextRequest) {
 
     await deletePageLayout(userId, page);
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (err) {
+    logger.error("dashboard-layout.DELETE", "Failed to delete layout", err);
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 }

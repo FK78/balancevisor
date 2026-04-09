@@ -249,4 +249,6 @@ export type ExportData = {
   categorisationRules: CategorisationRule[];
   zakatSettings: ZakatSettings[];
   zakatCalculations: ZakatCalculation[];
+  retirementProfile: Record<string, unknown> | null;
+  dashboardLayouts: Record<string, unknown>[];
 };

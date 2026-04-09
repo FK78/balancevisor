@@ -24,6 +24,8 @@ import {
   zakatSettingsTable,
   zakatCalculationsTable,
   retirementProfilesTable,
+  dashboardLayoutsTable,
+  userPreferencesTable,
 } from "./schema";
 
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -65,6 +67,8 @@ async function seed() {
 
   // ── Cleanup existing data (FK-safe order) ─────────────────────
   console.log("  🗑  Clearing existing data for user...");
+  await db.delete(dashboardLayoutsTable).where(eq(dashboardLayoutsTable.user_id, USER_ID));
+  await db.delete(userPreferencesTable).where(eq(userPreferencesTable.user_id, USER_ID));
   await db.delete(zakatCalculationsTable).where(eq(zakatCalculationsTable.user_id, USER_ID));
   await db.delete(zakatSettingsTable).where(eq(zakatSettingsTable.user_id, USER_ID));
   await db.delete(retirementProfilesTable).where(eq(retirementProfilesTable.user_id, USER_ID));
@@ -457,6 +461,33 @@ async function seed() {
     life_expectancy: 90,
   });
   console.log("  ✓ retirement profile");
+
+  // ── User preferences (no features disabled by default) ──────────
+  await db.insert(userPreferencesTable).values({
+    user_id: USER_ID,
+    disabled_features: null,
+  }).onConflictDoNothing();
+  console.log("  ✓ user preferences");
+
+  // ── Dashboard layout (default for main dashboard) ──────────────
+  await db.insert(dashboardLayoutsTable).values({
+    user_id: USER_ID,
+    page: "dashboard",
+    layout_json: JSON.stringify([
+      { widgetId: "greeting", visible: true },
+      { widgetId: "insights", visible: true },
+      { widgetId: "net-worth", visible: true },
+      { widgetId: "cashflow", visible: true },
+      { widgetId: "spending-anomalies", visible: true },
+      { widgetId: "budget-progress", visible: true },
+      { widgetId: "upcoming-bills", visible: true },
+      { widgetId: "retirement", visible: true },
+      { widgetId: "recent-transactions", visible: true },
+      { widgetId: "zakat-summary", visible: true },
+      { widgetId: "spend-by-category", visible: true },
+    ]),
+  });
+  console.log("  ✓ dashboard layout");
 
   console.log("\n\u2705 Seed complete!");
 }

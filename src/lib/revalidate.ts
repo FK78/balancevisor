@@ -19,7 +19,10 @@ export type Domain =
   | "onboarding"
   | "sharing"
   | "categories"
-  | "settings";
+  | "settings"
+  | "zakat"
+  | "reports"
+  | "retirement";
 
 const DOMAIN_PATHS: Record<Domain, readonly string[]> = {
   accounts: ["/dashboard/accounts"],
@@ -34,6 +37,9 @@ const DOMAIN_PATHS: Record<Domain, readonly string[]> = {
   sharing: ["/dashboard/accounts", "/dashboard/budgets"],
   categories: ["/dashboard/categories"],
   settings: ["/dashboard/settings"],
+  zakat: ["/dashboard/zakat"],
+  reports: ["/dashboard/reports"],
+  retirement: ["/dashboard/retirement"],
 };
 
 /**

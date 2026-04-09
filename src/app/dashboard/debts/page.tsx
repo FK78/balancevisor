@@ -21,6 +21,7 @@ import { requireFeature } from "@/components/FeatureGate";
 import { getPageLayout } from "@/db/queries/dashboard-layouts";
 import { PageWidgetWrapper } from "@/components/PageWidgetWrapper";
 import { DashboardWidget } from "@/components/DashboardWidget";
+import { DebtPayoffStrategies } from "@/components/DebtPayoffStrategies";
 
 export default async function DebtsPage() {
   await requireFeature("debts");

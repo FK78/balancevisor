@@ -115,12 +115,17 @@ export function handleApiError(error: unknown): NextResponse {
   }
 
   if (error instanceof Error) {
-    // Log the full error in development
+    // Always log full error server-side for debugging
+    console.error(`[API Error] ${error.name}: ${error.message}`);
     if (process.env.NODE_ENV === "development") {
-      console.error(`[API Error] ${error.name}: ${error.message}`);
       console.error(error.stack);
     }
-    return serverError(error.message);
+    // Never leak raw error messages in production
+    return serverError(
+      process.env.NODE_ENV === "development"
+        ? error.message
+        : "An unexpected error occurred",
+    );
   }
 
   return serverError("An unexpected error occurred");

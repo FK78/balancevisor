@@ -26,6 +26,9 @@ import {
   userPreferencesTable,
   zakatSettingsTable,
   zakatCalculationsTable,
+  retirementProfilesTable,
+  dashboardLayoutsTable,
+  userKeysTable,
 } from '@/db/schema';
 import { EXPORT_VERSION } from '@/lib/types';
 import type { ExportData } from '@/lib/types';
@@ -162,9 +165,14 @@ export async function deleteAccount(): Promise<{ success?: boolean; error?: stri
     await tx.delete(accountsTable).where(eq(accountsTable.user_id, userId));
     await tx.delete(truelayerConnectionsTable).where(eq(truelayerConnectionsTable.user_id, userId));
 
-    // --- Onboarding & preferences (last app-level records) ---
+    // --- Retirement, dashboard layouts, and preferences ---
+    await tx.delete(retirementProfilesTable).where(eq(retirementProfilesTable.user_id, userId));
+    await tx.delete(dashboardLayoutsTable).where(eq(dashboardLayoutsTable.user_id, userId));
     await tx.delete(userPreferencesTable).where(eq(userPreferencesTable.user_id, userId));
     await tx.delete(userOnboardingTable).where(eq(userOnboardingTable.user_id, userId));
+
+    // --- Encryption keys (must be last, after all encrypted data is deleted) ---
+    await tx.delete(userKeysTable).where(eq(userKeysTable.user_id, userId));
   });
 
   // Delete the Supabase auth user account itself using admin client
@@ -222,6 +230,8 @@ export async function exportUserData(): Promise<ExportData> {
     budgetAlertPreferences,
     zakatSettingsRows,
     zakatCalculationsRows,
+    retirementProfiles,
+    dashboardLayouts,
   ] = await Promise.all([
     db.select().from(categoriesTable).where(eq(categoriesTable.user_id, userId)),
     db.select().from(goalsTable).where(eq(goalsTable.user_id, userId)),
@@ -243,6 +253,8 @@ export async function exportUserData(): Promise<ExportData> {
       : Promise.resolve([]),
     db.select().from(zakatSettingsTable).where(eq(zakatSettingsTable.user_id, userId)),
     db.select().from(zakatCalculationsTable).where(eq(zakatCalculationsTable.user_id, userId)),
+    db.select().from(retirementProfilesTable).where(eq(retirementProfilesTable.user_id, userId)),
+    db.select().from(dashboardLayoutsTable).where(eq(dashboardLayoutsTable.user_id, userId)),
   ]);
 
   // Decrypt encrypted fields so user receives readable data
@@ -279,5 +291,7 @@ export async function exportUserData(): Promise<ExportData> {
     categorisationRules,
     zakatSettings: zakatSettingsRows,
     zakatCalculations: zakatCalculationsRows,
+    retirementProfile: retirementProfiles[0] ?? null,
+    dashboardLayouts,
   };
 }

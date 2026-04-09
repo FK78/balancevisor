@@ -37,6 +37,7 @@ const drawerRoutes = [
   "/dashboard/subscriptions",
   "/dashboard/zakat",
   "/dashboard/recurring",
+  "/dashboard/retirement",
   "/dashboard/settings",
 ];
 

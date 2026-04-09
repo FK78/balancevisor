@@ -25,15 +25,14 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const userId = await getCurrentUserId();
-  const [onboardingComplete, pendingFeatures, , aiEnabled, disabledFeatures] = await Promise.all([
+  const [onboardingComplete, pendingFeatures, aiEnabled, disabledFeatures] = await Promise.all([
     hasCompletedOnboarding(userId),
     getPendingFeatures(userId),
-    generateDueRecurringTransactions(userId),
     isAiEnabled(userId),
     getDisabledFeatures(userId),
   ]);
 
-  // Fire-and-forget: these write ops don't produce data needed for rendering
+  // Fire-and-forget: write ops that don't produce data needed for rendering
   generateDueRecurringTransactions(userId).catch(() => {});
   autoCalculateZakatIfDue(userId).catch(() => {});
 
