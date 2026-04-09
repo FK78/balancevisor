@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DashboardPageId, WidgetLayoutItem } from "@/lib/widget-registry";
 import { getDefaultLayout, reconcileLayout } from "@/lib/widget-registry";
+import { logger } from "@/lib/logger";
 
 const STORAGE_PREFIX = "bv_layout_";
 
@@ -71,7 +72,7 @@ export function useWidgetLayout(pageId: DashboardPageId, serverLayout: readonly 
             body: JSON.stringify({ page: pageId, layout: nextLayout }),
           });
         } catch {
-          // silently fail — localStorage still has the data
+          logger.warn("useWidgetLayout", "Failed to persist layout to server");
         } finally {
           if (mountedRef.current) setSaving(false);
         }
@@ -122,15 +123,17 @@ export function useWidgetLayout(pageId: DashboardPageId, serverLayout: readonly 
     }
   }, [pageId]);
 
-  const isCustomised = layout.some((item, i) => {
+  const isCustomised = useMemo(() => {
     const defaults = getDefaultLayout(pageId);
-    const def = defaults[i];
-    return (
-      !def ||
-      def.widgetId !== item.widgetId ||
-      def.visible !== item.visible
-    );
-  });
+    return layout.some((item, i) => {
+      const def = defaults[i];
+      return (
+        !def ||
+        def.widgetId !== item.widgetId ||
+        def.visible !== item.visible
+      );
+    });
+  }, [layout, pageId]);
 
   return { layout, reorder, toggleVisibility, resetToDefault, isCustomised, saving } as const;
 }

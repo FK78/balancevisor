@@ -9,6 +9,7 @@ import {
   CreditCard,
   Repeat,
   Repeat2,
+  Timer,
   type LucideIcon,
 } from "lucide-react";
 
@@ -22,7 +23,8 @@ export type FeatureId =
   | "goals"
   | "debts"
   | "subscriptions"
-  | "recurring";
+  | "recurring"
+  | "retirement";
 
 export interface FeatureDefinition {
   readonly id: FeatureId;
@@ -43,6 +45,7 @@ export const FEATURE_DEFINITIONS: readonly FeatureDefinition[] = [
   { id: "debts", label: "Debts", description: "Monitor loans and payoff progress", icon: CreditCard, route: "/dashboard/debts" },
   { id: "subscriptions", label: "Subscriptions", description: "Track recurring payments", icon: Repeat, route: "/dashboard/subscriptions" },
   { id: "recurring", label: "Recurring", description: "Auto-generate recurring transactions", icon: Repeat2, route: "/dashboard/recurring" },
+  { id: "retirement", label: "Retirement", description: "Plan and track retirement goals", icon: Timer, route: "/dashboard/retirement" },
 ] as const;
 
 export const ALL_FEATURE_IDS: readonly FeatureId[] = FEATURE_DEFINITIONS.map((f) => f.id);

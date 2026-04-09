@@ -120,7 +120,9 @@ export function handleApiError(error: unknown): NextResponse {
       console.error(`[API Error] ${error.name}: ${error.message}`);
       console.error(error.stack);
     }
-    return serverError(error.message);
+    // Never leak internal error messages in production
+    const msg = process.env.NODE_ENV === "development" ? error.message : "Internal server error";
+    return serverError(msg);
   }
 
   return serverError("An unexpected error occurred");

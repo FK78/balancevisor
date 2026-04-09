@@ -14,7 +14,7 @@ import { getDashboardInsights } from "@/db/queries/insights";
 import { getCashflowForecast } from "@/lib/cashflow-forecast";
 import { getSpendingAnomalies } from "@/lib/spending-anomalies";
 import { snapshotNetWorthIfNeeded } from "@/lib/snapshot-net-worth";
-import { getMonthRange, getMonthKey } from "@/lib/date";
+import { getMonthRange } from "@/lib/date";
 import { getCurrentUserId } from "@/lib/auth";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { getDisabledFeatures } from "@/db/queries/preferences";
@@ -24,6 +24,8 @@ import { getPageLayout } from "@/db/queries/dashboard-layouts";
 import { getRetirementProfile } from "@/db/queries/retirement";
 import { calculateRetirementProjection } from "@/lib/retirement-calculator";
 import { getDebtsSummary } from "@/db/queries/debts";
+import { calculateNetWorth } from "@/lib/net-worth";
+import { getCompletedMonths, buildRetirementInputs } from "@/lib/retirement-inputs";
 import { DashboardPageClient } from "@/components/dashboard/DashboardPageClient";
 
 export default async function Home() {
@@ -72,17 +74,7 @@ export default async function Home() {
     snapshotNetWorthIfNeeded(userId, investmentValue).catch(() => {});
   }
 
-  const liabilityTypes = new Set(["creditCard"]);
-  const totalAssets = accounts
-    .filter((a: { type: string | null }) => !liabilityTypes.has(a.type ?? ""))
-    .reduce((sum: number, a: { balance: number }) => sum + a.balance, 0);
-  const totalLiabilities = accounts
-    .filter((a: { type: string | null }) => liabilityTypes.has(a.type ?? ""))
-    .reduce(
-      (sum: number, a: { balance: number }) => sum + Math.abs(a.balance),
-      0
-    );
-  const netWorth = totalAssets - totalLiabilities + investmentValue;
+  const { netWorth, totalAssets, totalLiabilities } = calculateNetWorth(accounts, investmentValue);
 
   const user = claimsResult.data?.claims;
 
@@ -95,32 +87,29 @@ export default async function Home() {
     return pct >= 80;
   });
 
+  const retirementEnabled = on("retirement");
+
   const [insights, forecast, anomalies, retirementProfile, debtsSummary] = await Promise.all([
     getDashboardInsights(userId, budgets, goals),
     on("reports") ? getCashflowForecast(userId) : Promise.resolve(null),
     on("reports") ? getSpendingAnomalies(userId) : Promise.resolve([]),
-    getRetirementProfile(userId),
-    getDebtsSummary(userId),
+    retirementEnabled ? getRetirementProfile(userId) : Promise.resolve(null),
+    retirementEnabled ? getDebtsSummary(userId) : Promise.resolve({ totalRemaining: 0, totalOriginal: 0, totalPaid: 0, totalMinPayment: 0, overallPercentPaid: 0, active: [] }),
   ]);
 
   let retirementProjection = null;
-  if (retirementProfile && monthlyTrend.length > 0) {
-    const currentMonthKey = getMonthKey(new Date());
-    const completedMonths = monthlyTrend.filter((m: { month: string }) => m.month !== currentMonthKey);
-    const monthCount = Math.max(completedMonths.length, 1);
-    const avgMonthlyIncome = completedMonths.reduce((s: number, m: { income: number }) => s + m.income, 0) / monthCount;
-    const avgMonthlyExpenses = completedMonths.reduce((s: number, m: { expenses: number }) => s + m.expenses, 0) / monthCount;
-    const annualSavings = (avgMonthlyIncome - avgMonthlyExpenses) * 12;
-
-    retirementProjection = calculateRetirementProjection({
-      profile: retirementProfile,
-      currentNetWorth: netWorth,
-      investmentValue,
-      annualSavings,
-      totalDebtRemaining: debtsSummary.totalRemaining,
-      avgMonthlyIncome,
-      avgMonthlyExpenses,
-    });
+  if (retirementEnabled && retirementProfile && monthlyTrend.length > 0) {
+    const completedMonths = getCompletedMonths(monthlyTrend);
+    if (completedMonths.length > 0) {
+      const inputs = buildRetirementInputs({
+        profile: retirementProfile,
+        currentNetWorth: netWorth,
+        investmentValue,
+        completedMonths,
+        totalDebtRemaining: debtsSummary.totalRemaining,
+      });
+      retirementProjection = calculateRetirementProjection(inputs);
+    }
   }
 
   return (
@@ -135,6 +124,7 @@ export default async function Home() {
       budgetsEnabled={on("budgets")}
       categoriesEnabled={on("categories")}
       subscriptionsEnabled={on("subscriptions")}
+      retirementEnabled={retirementEnabled}
       insights={insights}
       netWorth={netWorth}
       totalAssets={totalAssets}

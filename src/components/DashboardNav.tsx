@@ -49,7 +49,7 @@ const moreItems: NavItem[] = [
   { href: "/dashboard/debts", label: "Debts", icon: CreditCard, featureId: "debts" },
   { href: "/dashboard/subscriptions", label: "Subscriptions", icon: Repeat, featureId: "subscriptions" },
   { href: "/dashboard/recurring", label: "Recurring", icon: Repeat2, featureId: "recurring" },
-  { href: "/dashboard/retirement", label: "Retirement", icon: Timer },
+  { href: "/dashboard/retirement", label: "Retirement", icon: Timer, featureId: "retirement" },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 

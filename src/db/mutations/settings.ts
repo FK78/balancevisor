@@ -24,6 +24,9 @@ import {
   holdingSalesTable,
   transactionSplitsTable,
   userPreferencesTable,
+  retirementProfilesTable,
+  dashboardLayoutsTable,
+  userKeysTable,
 } from '@/db/schema';
 import { EXPORT_VERSION } from '@/lib/types';
 import type { ExportData } from '@/lib/types';
@@ -144,6 +147,9 @@ export async function deleteAccount(): Promise<{ success?: boolean; error?: stri
     await tx.delete(trading212ConnectionsTable).where(eq(trading212ConnectionsTable.user_id, userId));
     await tx.delete(brokerConnectionsTable).where(eq(brokerConnectionsTable.user_id, userId));
     await tx.delete(debtsTable).where(eq(debtsTable.user_id, userId));
+    await tx.delete(retirementProfilesTable).where(eq(retirementProfilesTable.user_id, userId));
+    await tx.delete(dashboardLayoutsTable).where(eq(dashboardLayoutsTable.user_id, userId));
+    await tx.delete(userKeysTable).where(eq(userKeysTable.user_id, userId));
 
     // --- Transactions (linked to accounts) ---
     if (accountIds.length > 0) {
@@ -216,6 +222,8 @@ export async function exportUserData(): Promise<ExportData> {
     debtPayments,
     holdingSales,
     budgetAlertPreferences,
+    retirementProfileRows,
+    dashboardLayoutRows,
   ] = await Promise.all([
     db.select().from(categoriesTable).where(eq(categoriesTable.user_id, userId)),
     db.select().from(goalsTable).where(eq(goalsTable.user_id, userId)),
@@ -235,6 +243,8 @@ export async function exportUserData(): Promise<ExportData> {
     budgetIds.length > 0
       ? db.select().from(budgetAlertPreferencesTable).where(inArray(budgetAlertPreferencesTable.budget_id, budgetIds))
       : Promise.resolve([]),
+    db.select().from(retirementProfilesTable).where(eq(retirementProfilesTable.user_id, userId)),
+    db.select().from(dashboardLayoutsTable).where(eq(dashboardLayoutsTable.user_id, userId)),
   ]);
 
   // Decrypt encrypted fields so user receives readable data
@@ -269,5 +279,7 @@ export async function exportUserData(): Promise<ExportData> {
     subscriptions,
     netWorthSnapshots,
     categorisationRules,
+    retirementProfile: retirementProfileRows[0] ?? null,
+    dashboardLayouts: dashboardLayoutRows,
   };
 }

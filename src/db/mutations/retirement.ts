@@ -4,7 +4,7 @@ import { db } from '@/index';
 import { retirementProfilesTable } from '@/db/schema';
 import { getCurrentUserId } from '@/lib/auth';
 import { sanitizeNumber } from '@/lib/sanitize';
-import { revalidatePath } from 'next/cache';
+import { revalidateDomains } from '@/lib/revalidate';
 import { invalidateByUser } from '@/lib/cache';
 
 export async function upsertRetirementProfile(formData: FormData) {
@@ -71,6 +71,5 @@ export async function upsertRetirementProfile(formData: FormData) {
   });
 
   invalidateByUser(userId);
-  revalidatePath('/dashboard/retirement');
-  revalidatePath('/dashboard');
+  revalidateDomains('retirement');
 }

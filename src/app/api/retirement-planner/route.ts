@@ -13,7 +13,8 @@ import { calculateRetirementProjection } from "@/lib/retirement-calculator";
 import { getCachedRetirementAdvice, setCachedRetirementAdvice, invalidateCachedRetirementAdvice } from "@/lib/retirement-planner-cache";
 import { rateLimiters } from "@/lib/rate-limiter";
 import { formatCurrency } from "@/lib/formatCurrency";
-import { getMonthKey } from "@/lib/date";
+import { calculateNetWorth } from "@/lib/net-worth";
+import { getCompletedMonths, buildRetirementInputs } from "@/lib/retirement-inputs";
 
 export async function POST(req: Request) {
   const userId = await getCurrentUserId();
@@ -60,8 +61,7 @@ export async function POST(req: Request) {
     getUserBaseCurrency(userId),
   ]);
 
-  const currentMonthKey = getMonthKey(new Date());
-  const completedMonths = trend.filter((m) => m.month !== currentMonthKey);
+  const completedMonths = getCompletedMonths(trend);
 
   if (completedMonths.length === 0) {
     return new Response(
@@ -70,29 +70,15 @@ export async function POST(req: Request) {
     );
   }
 
-  const monthCount = Math.max(completedMonths.length, 1);
-  const avgMonthlyIncome = completedMonths.reduce((s, m) => s + m.income, 0) / monthCount;
-  const avgMonthlyExpenses = completedMonths.reduce((s, m) => s + m.expenses, 0) / monthCount;
-  const annualSavings = (avgMonthlyIncome - avgMonthlyExpenses) * 12;
-
-  const liabilityTypes = new Set(["creditCard"]);
-  const totalAssets = accounts
-    .filter((a) => !liabilityTypes.has(a.type ?? ""))
-    .reduce((sum, a) => sum + a.balance, 0);
-  const totalLiabilities = accounts
-    .filter((a) => liabilityTypes.has(a.type ?? ""))
-    .reduce((sum, a) => sum + Math.abs(a.balance), 0);
-  const netWorth = totalAssets - totalLiabilities + investmentValue;
-
-  const projection = calculateRetirementProjection({
+  const { netWorth } = calculateNetWorth(accounts, investmentValue);
+  const inputs = buildRetirementInputs({
     profile,
     currentNetWorth: netWorth,
     investmentValue,
-    annualSavings,
+    completedMonths,
     totalDebtRemaining: debtsSummary.totalRemaining,
-    avgMonthlyIncome,
-    avgMonthlyExpenses,
   });
+  const projection = calculateRetirementProjection(inputs);
 
   const fmt = (n: number) => formatCurrency(n, baseCurrency);
 

@@ -29,6 +29,8 @@ import type {
   netWorthSnapshotsTable,
   sharedAccessTable,
   defaultCategoryTemplatesTable,
+  retirementProfilesTable,
+  dashboardLayoutsTable,
 } from "@/db/schema";
 
 // ---------------------------------------------------------------------------
@@ -100,6 +102,9 @@ export type NewSharedAccess = InferInsertModel<typeof sharedAccessTable>;
 
 export type DefaultCategoryTemplate = InferSelectModel<typeof defaultCategoryTemplatesTable>;
 export type NewDefaultCategoryTemplate = InferInsertModel<typeof defaultCategoryTemplatesTable>;
+
+export type RetirementProfileRow = InferSelectModel<typeof retirementProfilesTable>;
+export type DashboardLayoutRow = InferSelectModel<typeof dashboardLayoutsTable>;
 
 // ---------------------------------------------------------------------------
 // UI-specific types (with decrypted fields and computed values)
@@ -240,4 +245,6 @@ export type ExportData = {
   subscriptions: Subscription[];
   netWorthSnapshots: NetWorthSnapshot[];
   categorisationRules: CategorisationRule[];
+  retirementProfile: RetirementProfileRow | null;
+  dashboardLayouts: DashboardLayoutRow[];
 };
