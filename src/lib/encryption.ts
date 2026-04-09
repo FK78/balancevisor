@@ -119,12 +119,17 @@ export function decrypt(encrypted: string): string {
     return '';
   }
 
-  const { version, iv, authTag, ciphertext } = parseEncrypted(encrypted);
-  const key = getMasterKey(version);
-  const decipher = createDecipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
-  decipher.setAuthTag(authTag);
-  const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-  return decrypted.toString("utf8");
+  try {
+    const { version, iv, authTag, ciphertext } = parseEncrypted(encrypted);
+    const key = getMasterKey(version);
+    const decipher = createDecipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
+    decipher.setAuthTag(authTag);
+    const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+    return decrypted.toString("utf8");
+  } catch (err) {
+    console.warn("[encryption] decrypt (master key) failed — data may be corrupt or key mismatch:", err instanceof Error ? err.message : String(err));
+    throw err;
+  }
 }
 
 /**
@@ -281,11 +286,21 @@ export function decryptForUser(encrypted: string, userKey: Buffer): string {
     return encrypted;
   }
 
-  const { iv, authTag, ciphertext } = parseEncrypted(encrypted);
-  const decipher = createDecipheriv(ALGORITHM, userKey, iv, { authTagLength: AUTH_TAG_LENGTH });
-  decipher.setAuthTag(authTag);
-  const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-  return decrypted.toString("utf8");
+  try {
+    const { iv, authTag, ciphertext } = parseEncrypted(encrypted);
+    const decipher = createDecipheriv(ALGORITHM, userKey, iv, { authTagLength: AUTH_TAG_LENGTH });
+    decipher.setAuthTag(authTag);
+    const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+    return decrypted.toString("utf8");
+  } catch {
+    // User key failed — try master key as fallback (handles data encrypted with encrypt() instead of encryptForUser())
+    try {
+      return decrypt(encrypted);
+    } catch {
+      console.warn("[encryption] decryptForUser failed with both user key and master key — returning placeholder for value:", encrypted.slice(0, 20) + "...");
+      return "[Encrypted]";
+    }
+  }
 }
 
 /**
