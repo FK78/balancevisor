@@ -63,7 +63,7 @@ export default function RootLayout({
             {children}
           </QueryProvider>
         </ThemeProvider>
-        <Toaster richColors closeButton position="top-center" className="md:!bottom-4 md:!top-auto md:!right-4 md:!left-auto" />
+        <Toaster richColors closeButton position="bottom-right" className="!bottom-20 md:!bottom-4" />
         <ServiceWorkerRegistrar />
       </body>
     </html>
