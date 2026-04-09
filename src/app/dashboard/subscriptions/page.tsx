@@ -32,17 +32,21 @@ const cycleLabels: Record<string, string> = {
 };
 
 import { requireFeature } from "@/components/FeatureGate";
+import { getPageLayout } from "@/db/queries/dashboard-layouts";
+import { PageWidgetWrapper } from "@/components/PageWidgetWrapper";
+import { DashboardWidget } from "@/components/DashboardWidget";
 
 export default async function SubscriptionsPage() {
   await requireFeature("subscriptions");
   const userId = await getCurrentUserId();
 
-  const [subscriptions, totals, categories, accounts, baseCurrency] = await Promise.all([
+  const [subscriptions, totals, categories, accounts, baseCurrency, serverLayout] = await Promise.all([
     getSubscriptions(userId),
     getActiveSubscriptionsTotals(userId),
     getCategoriesByUser(userId),
     getAccountsWithDetails(userId),
     getUserBaseCurrency(userId),
+    getPageLayout(userId, "subscriptions"),
   ]);
 
   const activeCount = subscriptions.filter((s) => s.is_active).length;
@@ -56,16 +60,18 @@ export default async function SubscriptionsPage() {
     (s) => s.is_active && s.next_billing_date >= today && s.next_billing_date <= next7Str
   ).length;
 
-  return (
-    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Subscriptions</h1>
-        </div>
-        <SubscriptionFormDialog categories={categories} accounts={accounts} />
+  const headerEl = (
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Subscriptions</h1>
       </div>
+      <SubscriptionFormDialog categories={categories} accounts={accounts} />
+    </div>
+  );
 
-      {/* Compact stats */}
+  return (
+    <PageWidgetWrapper pageId="subscriptions" serverLayout={serverLayout} header={headerEl}>
+      <DashboardWidget id="stats">
       <Card>
         <CardContent className="grid grid-cols-2 gap-4 py-4 sm:grid-cols-4 sm:divide-x sm:gap-0">
           <div className="px-4 text-center">
@@ -86,8 +92,9 @@ export default async function SubscriptionsPage() {
           </div>
         </CardContent>
       </Card>
+      </DashboardWidget>
 
-      {/* Subscription cards */}
+      <DashboardWidget id="subscription-cards">
       {subscriptions.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
@@ -227,9 +234,11 @@ export default async function SubscriptionsPage() {
           })}
         </div>
       )}
+      </DashboardWidget>
 
-      {/* AI Savings Advisor */}
+      <DashboardWidget id="ai-advisor">
       {activeCount > 0 && <SubscriptionAIAdvisor />}
-    </div>
+      </DashboardWidget>
+    </PageWidgetWrapper>
   );
 }

@@ -18,14 +18,18 @@ import { Badge } from "@/components/ui/badge";
 import { CreditCard, CheckCircle2, TrendingDown, Percent } from "lucide-react";
 import { DebtAIAdvisor } from "@/components/DebtAIAdvisor";
 import { requireFeature } from "@/components/FeatureGate";
+import { getPageLayout } from "@/db/queries/dashboard-layouts";
+import { PageWidgetWrapper } from "@/components/PageWidgetWrapper";
+import { DashboardWidget } from "@/components/DashboardWidget";
 
 export default async function DebtsPage() {
   await requireFeature("debts");
   const userId = await getCurrentUserId();
-  const [summary, accounts, baseCurrency] = await Promise.all([
+  const [summary, accounts, baseCurrency, serverLayout] = await Promise.all([
     getDebtsSummary(userId),
     getAccountsWithDetails(userId),
     getUserBaseCurrency(userId),
+    getPageLayout(userId, "debts"),
   ]);
 
   const {
@@ -49,16 +53,18 @@ export default async function DebtsPage() {
     }
   }
 
-  return (
-    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Debt Payoff Tracker</h1>
-        </div>
-        <DebtFormDialog />
+  const headerEl = (
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Debt Payoff Tracker</h1>
       </div>
+      <DebtFormDialog />
+    </div>
+  );
 
-      {/* Overview banner */}
+  return (
+    <PageWidgetWrapper pageId="debts" serverLayout={serverLayout} header={headerEl}>
+      <DashboardWidget id="overview">
       {active.length > 0 && (
         <Card>
           <CardContent className="flex flex-col gap-4 py-6 sm:flex-row sm:items-center sm:justify-between">
@@ -107,8 +113,9 @@ export default async function DebtsPage() {
           </CardContent>
         </Card>
       )}
+      </DashboardWidget>
 
-      {/* Debts grid */}
+      <DashboardWidget id="debt-cards">
       {debts.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
@@ -247,7 +254,9 @@ export default async function DebtsPage() {
           })}
         </div>
       )}
-      {/* Payoff strategies */}
+      </DashboardWidget>
+
+      <DashboardWidget id="payoff-strategies">
       {active.length >= 2 && (
         <DebtPayoffStrategies
           debts={active.map((d) => ({
@@ -262,9 +271,11 @@ export default async function DebtsPage() {
           currency={baseCurrency}
         />
       )}
+      </DashboardWidget>
 
-      {/* AI Debt Advisor */}
+      <DashboardWidget id="ai-advisor">
       {active.length > 0 && <DebtAIAdvisor />}
-    </div>
+      </DashboardWidget>
+    </PageWidgetWrapper>
   );
 }

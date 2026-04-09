@@ -36,6 +36,8 @@ import { BROKER_META } from "@/lib/brokers";
 import type { BrokerSource } from "@/lib/brokers/types";
 import Link from "next/link";
 import { requireFeature } from "@/components/FeatureGate";
+import { getPageLayout } from "@/db/queries/dashboard-layouts";
+import { AccountsPageClient } from "@/components/AccountsPageClient";
 
 const typeConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   currentAccount: { label: "Current Account", variant: "secondary" },
@@ -57,7 +59,7 @@ export default async function Accounts() {
 
   const email = await getCurrentUserEmail();
 
-  const [ownedAccounts, sharedAccounts, baseCurrency, truelayerConnections, manualHoldings, brokerConnections, pendingInvitations] = await Promise.all([
+  const [ownedAccounts, sharedAccounts, baseCurrency, truelayerConnections, manualHoldings, brokerConnections, pendingInvitationsData, serverLayout] = await Promise.all([
     getAccountsWithDetails(userId),
     getSharedAccounts(userId, email),
     getUserBaseCurrency(userId),
@@ -65,12 +67,13 @@ export default async function Accounts() {
     getManualHoldings(userId),
     getBrokerConnections(userId),
     getPendingInvitations(userId, email),
+    getPageLayout(userId, "accounts"),
   ]);
 
   const allShares = await getSharesByOwner(userId);
 
   const accounts = [...ownedAccounts, ...sharedAccounts];
-  const accountPendingInvitations = pendingInvitations.filter(i => i.resource_type === "account");
+  const accountPendingInvitations = pendingInvitationsData.filter(i => i.resource_type === "account");
 
   // Build shares map: accountId -> shares[]
   const accountSharesMap = new Map<string, typeof allShares>();
@@ -109,172 +112,181 @@ export default async function Accounts() {
   const totalBalance = totalAssets - totalLiabilities;
   const totalAbsolute = accounts.reduce((sum, a) => sum + Math.abs(a.balance), 0);
 
-  return (
-    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Accounts</h1>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <ConnectBankButton connections={truelayerConnections} />
-          <AccountFormDialog />
-        </div>
+  const headerEl = (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Accounts</h1>
       </div>
-
-      {accountPendingInvitations.length > 0 && (
-        <PendingInvitations invitations={accountPendingInvitations} />
-      )}
-
-      {/* Compact stats */}
-      <Card>
-        <CardContent className="grid grid-cols-3 divide-x py-4">
-          <div className="px-4 text-center">
-            <p className="text-xs text-muted-foreground">Net Worth</p>
-            <p className={`text-lg font-semibold tabular-nums ${totalBalance < 0 ? "text-red-600" : ""}`}>
-              {totalBalance < 0 ? "−" : ""}{formatCurrency(totalBalance, baseCurrency)}
-            </p>
-          </div>
-          <div className="px-4 text-center">
-            <p className="text-xs text-muted-foreground">Assets</p>
-            <p className="text-lg font-semibold tabular-nums text-emerald-600">{formatCurrency(totalAssets, baseCurrency)}</p>
-          </div>
-          <div className="px-4 text-center">
-            <p className="text-xs text-muted-foreground">Liabilities</p>
-            <p className="text-lg font-semibold tabular-nums text-red-600">{formatCurrency(totalLiabilities, baseCurrency)}</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {accounts.length > 0 && (
-        <AccountCharts accounts={accounts} currency={baseCurrency} />
-      )}
-
-      {/* Account cards */}
-      {accounts.length === 0 ? (
-        <Card>
-          <CardContent className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-12 text-center">
-            <Wallet className="h-10 w-10 opacity-40" />
-            <div>
-              <p className="text-sm font-medium text-foreground">No accounts yet</p>
-              <p className="text-xs">Create your first account to start tracking balances.</p>
-            </div>
-            <AccountFormDialog />
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {accounts.map((account) => {
-            const config = typeConfig[account.type ?? ""] ?? {
-              label: account.type,
-              variant: "secondary" as const,
-            };
-            return (
-              <Card key={account.id} className="transition-colors">
-                <CardHeader className="flex flex-row items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-primary/10 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl">
-                      {(() => { const Icon = typeIcons[account.type ?? ""] ?? Wallet; return <Icon className="text-primary h-5 w-5" />; })()}
-                    </div>
-                    <div>
-                      <CardTitle className="text-base">
-                        <Link
-                          href={`/dashboard/accounts/${account.id}`}
-                          className="hover:underline"
-                        >
-                          {account.accountName}
-                        </Link>
-                      </CardTitle>
-                      <CardDescription className="text-xs">
-                        <Link
-                          href={`/dashboard/accounts/${account.id}`}
-                          className="hover:underline"
-                        >
-                          {account.transactions} transactions
-                        </Link>
-                      </CardDescription>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={config.variant}>{config.label}</Badge>
-                    {account.isShared && (
-                      <Badge variant="outline" className="gap-1 text-[10px]">
-                        <Users className="h-3 w-3" />
-                        Shared
-                      </Badge>
-                    )}
-                    {!account.isShared && (
-                      <ShareDialog
-                        resourceType="account"
-                        resourceId={account.id}
-                        resourceName={account.accountName}
-                        existingShares={(accountSharesMap.get(account.id) ?? []).map(s => ({
-                          id: s.id,
-                          shared_with_email: s.shared_with_email,
-                          permission: s.permission,
-                          status: s.status,
-                        }))}
-                      />
-                    )}
-                    {!account.isShared && <AccountFormDialog account={account} />}
-                    {!account.isShared && <DeleteAccountButton account={account} />}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <Link
-                    href={`/dashboard/accounts/${account.id}`}
-                    className={`text-2xl font-bold tabular-nums hover:underline ${account.balance >= 0 ? "text-foreground" : "text-red-600"
-                      }`}
-                  >
-                    {account.balance < 0 ? "−" : ""}
-                    {formatCurrency(account.balance, baseCurrency)}
-                  </Link>
-                  {/* Linked investments for investment accounts */}
-                  {account.type === "investment" && investmentCountByAccount.has(account.id) && (() => {
-                    const info = investmentCountByAccount.get(account.id)!;
-                    const parts: string[] = [];
-                    for (const b of info.brokers) parts.push(b);
-                    if (info.manual > 0) parts.push(`${info.manual} manual holding${info.manual !== 1 ? "s" : ""}`);
-                    return (
-                      <Link
-                        href="/dashboard/investments"
-                        className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        <TrendingUp className="h-3 w-3" />
-                        {parts.join(" · ")}
-                      </Link>
-                    );
-                  })()}
-
-                  {/* Balance bar relative to total assets */}
-                  <div className="mt-3">
-                    <div className="bg-muted h-2 w-full overflow-hidden rounded-full">
-                      <div
-                        className={`h-full rounded-full transition-all ${account.balance >= 0 ? "bg-emerald-400" : "bg-red-400"
-                          }`}
-                        style={{
-                          width: `${totalAbsolute > 0 ? Math.min(
-                            (Math.abs(account.balance) / totalAbsolute) * 100,
-                            100
-                          ) : 0}%`,
-                        }}
-                      />
-                    </div>
-                    <p className="text-muted-foreground mt-1 text-xs">
-                      {totalAbsolute > 0 ? ((Math.abs(account.balance) / totalAbsolute) * 100).toFixed(
-                        1
-                      ) : "0.0"}
-                      % of total
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-
-      {/* AI Account Health Check */}
-      {accounts.length > 0 && <AccountHealthCheck />}
+      <div className="flex flex-wrap gap-2">
+        <ConnectBankButton connections={truelayerConnections} />
+        <AccountFormDialog />
+      </div>
     </div>
+  );
+
+  const pendingInvitationsEl = accountPendingInvitations.length > 0 ? (
+    <PendingInvitations invitations={accountPendingInvitations} />
+  ) : null;
+
+  const statsEl = (
+    <Card>
+      <CardContent className="grid grid-cols-3 divide-x py-4">
+        <div className="px-4 text-center">
+          <p className="text-xs text-muted-foreground">Net Worth</p>
+          <p className={`text-lg font-semibold tabular-nums ${totalBalance < 0 ? "text-red-600" : ""}`}>
+            {totalBalance < 0 ? "−" : ""}{formatCurrency(totalBalance, baseCurrency)}
+          </p>
+        </div>
+        <div className="px-4 text-center">
+          <p className="text-xs text-muted-foreground">Assets</p>
+          <p className="text-lg font-semibold tabular-nums text-emerald-600">{formatCurrency(totalAssets, baseCurrency)}</p>
+        </div>
+        <div className="px-4 text-center">
+          <p className="text-xs text-muted-foreground">Liabilities</p>
+          <p className="text-lg font-semibold tabular-nums text-red-600">{formatCurrency(totalLiabilities, baseCurrency)}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const chartsEl = accounts.length > 0 ? (
+    <AccountCharts accounts={accounts} currency={baseCurrency} />
+  ) : null;
+
+  const accountCardsEl = accounts.length === 0 ? (
+    <Card>
+      <CardContent className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-12 text-center">
+        <Wallet className="h-10 w-10 opacity-40" />
+        <div>
+          <p className="text-sm font-medium text-foreground">No accounts yet</p>
+          <p className="text-xs">Create your first account to start tracking balances.</p>
+        </div>
+        <AccountFormDialog />
+      </CardContent>
+    </Card>
+  ) : (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      {accounts.map((account) => {
+        const config = typeConfig[account.type ?? ""] ?? {
+          label: account.type,
+          variant: "secondary" as const,
+        };
+        return (
+          <Card key={account.id} className="transition-colors">
+            <CardHeader className="flex flex-row items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-primary/10 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl">
+                  {(() => { const Icon = typeIcons[account.type ?? ""] ?? Wallet; return <Icon className="text-primary h-5 w-5" />; })()}
+                </div>
+                <div>
+                  <CardTitle className="text-base">
+                    <Link
+                      href={`/dashboard/accounts/${account.id}`}
+                      className="hover:underline"
+                    >
+                      {account.accountName}
+                    </Link>
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    <Link
+                      href={`/dashboard/accounts/${account.id}`}
+                      className="hover:underline"
+                    >
+                      {account.transactions} transactions
+                    </Link>
+                  </CardDescription>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant={config.variant}>{config.label}</Badge>
+                {account.isShared && (
+                  <Badge variant="outline" className="gap-1 text-[10px]">
+                    <Users className="h-3 w-3" />
+                    Shared
+                  </Badge>
+                )}
+                {!account.isShared && (
+                  <ShareDialog
+                    resourceType="account"
+                    resourceId={account.id}
+                    resourceName={account.accountName}
+                    existingShares={(accountSharesMap.get(account.id) ?? []).map(s => ({
+                      id: s.id,
+                      shared_with_email: s.shared_with_email,
+                      permission: s.permission,
+                      status: s.status,
+                    }))}
+                  />
+                )}
+                {!account.isShared && <AccountFormDialog account={account} />}
+                {!account.isShared && <DeleteAccountButton account={account} />}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Link
+                href={`/dashboard/accounts/${account.id}`}
+                className={`text-2xl font-bold tabular-nums hover:underline ${account.balance >= 0 ? "text-foreground" : "text-red-600"
+                  }`}
+              >
+                {account.balance < 0 ? "−" : ""}
+                {formatCurrency(account.balance, baseCurrency)}
+              </Link>
+              {/* Linked investments for investment accounts */}
+              {account.type === "investment" && investmentCountByAccount.has(account.id) && (() => {
+                const info = investmentCountByAccount.get(account.id)!;
+                const parts: string[] = [];
+                for (const b of info.brokers) parts.push(b);
+                if (info.manual > 0) parts.push(`${info.manual} manual holding${info.manual !== 1 ? "s" : ""}`);
+                return (
+                  <Link
+                    href="/dashboard/investments"
+                    className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <TrendingUp className="h-3 w-3" />
+                    {parts.join(" · ")}
+                  </Link>
+                );
+              })()}
+
+              {/* Balance bar relative to total assets */}
+              <div className="mt-3">
+                <div className="bg-muted h-2 w-full overflow-hidden rounded-full">
+                  <div
+                    className={`h-full rounded-full transition-all ${account.balance >= 0 ? "bg-emerald-400" : "bg-red-400"
+                      }`}
+                    style={{
+                      width: `${totalAbsolute > 0 ? Math.min(
+                        (Math.abs(account.balance) / totalAbsolute) * 100,
+                        100
+                      ) : 0}%`,
+                    }}
+                  />
+                </div>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  {totalAbsolute > 0 ? ((Math.abs(account.balance) / totalAbsolute) * 100).toFixed(
+                    1
+                  ) : "0.0"}
+                  % of total
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+
+  const healthCheckEl = accounts.length > 0 ? <AccountHealthCheck /> : null;
+
+  return (
+    <AccountsPageClient
+      serverLayout={serverLayout}
+      header={headerEl}
+      pendingInvitations={pendingInvitationsEl}
+      stats={statsEl}
+      charts={chartsEl}
+      accountCards={accountCardsEl}
+      healthCheck={healthCheckEl}
+    />
   );
 }
