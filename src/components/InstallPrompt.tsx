@@ -49,12 +49,18 @@ export function InstallPrompt() {
 
   async function handleInstall() {
     if (!deferredPrompt) return;
-    await deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === "accepted") {
+    try {
+      await deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === "accepted") {
+        setVisible(false);
+      }
+    } catch {
       setVisible(false);
+    } finally {
+      setDeferredPrompt(null);
+      window.__pwaInstallPrompt = null;
     }
-    setDeferredPrompt(null);
   }
 
   function handleDismiss() {

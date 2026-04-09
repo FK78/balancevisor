@@ -16,6 +16,7 @@ import { DragDropProvider } from "@dnd-kit/react";
 import { useSortable, isSortable } from "@dnd-kit/react/sortable";
 import { PAGE_WIDGETS } from "@/lib/widget-registry";
 import { useWidgetLayoutContext } from "@/components/WidgetLayoutProvider";
+import { mobileFriendlySensors } from "@/lib/dnd-sensors";
 
 function SortableItem({
   widgetId,
@@ -42,9 +43,9 @@ function SortableItem({
     >
       <button
         ref={handleRef}
-        className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+        className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-2 -m-1 rounded-md touch-none"
       >
-        <GripVertical className="h-4 w-4" />
+        <GripVertical className="h-5 w-5" />
       </button>
       <span className="flex-1 text-sm font-medium truncate">{label}</span>
       <Switch checked={visible} onCheckedChange={onToggle} />
@@ -95,6 +96,7 @@ export function CustomiseDrawer() {
         </SheetHeader>
 
         <DragDropProvider
+          sensors={mobileFriendlySensors}
           onDragEnd={(event) => {
             if (event.canceled) return;
             const { source } = event.operation;

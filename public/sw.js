@@ -1,5 +1,5 @@
-const CACHE_NAME = "wealth-v3";
-const FONT_CACHE = "wealth-fonts-v1"; // legacy — fonts now self-hosted via next/font
+const CACHE_NAME = "wealth-v4";
+const FONT_CACHE = "wealth-fonts-v1";
 const OFFLINE_URL = "/offline.html";
 
 const PRECACHE_URLS = [
@@ -49,8 +49,13 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
 
-  // Skip API/auth routes — always network
-  if (url.pathname.startsWith("/auth/") || url.pathname.startsWith("/api/")) {
+  // Skip API/auth/dashboard routes — always network (dashboard pages contain
+  // per-user sensitive data and must NEVER be served from cache)
+  if (
+    url.pathname.startsWith("/auth/") ||
+    url.pathname.startsWith("/api/") ||
+    url.pathname.startsWith("/dashboard")
+  ) {
     return;
   }
 

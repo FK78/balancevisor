@@ -4,6 +4,7 @@ import { type ReactNode, type ReactElement, Children, useMemo } from "react";
 import { DragDropProvider } from "@dnd-kit/react";
 import { isSortable } from "@dnd-kit/react/sortable";
 import { useWidgetLayoutContext } from "@/components/WidgetLayoutProvider";
+import { mobileFriendlySensors } from "@/lib/dnd-sensors";
 
 interface WidgetGridProps {
   readonly children: ReactNode;
@@ -52,6 +53,7 @@ export function WidgetGrid({ children }: WidgetGridProps) {
 
   return (
     <DragDropProvider
+      sensors={mobileFriendlySensors}
       onDragEnd={(event) => {
         if (event.canceled) return;
         const { source } = event.operation;
