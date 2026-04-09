@@ -22,6 +22,7 @@ export type FeatureId =
   | "goals"
   | "debts"
   | "subscriptions"
+  | "zakat"
   | "recurring";
 
 export interface FeatureDefinition {
