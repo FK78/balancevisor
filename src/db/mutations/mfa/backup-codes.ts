@@ -45,43 +45,36 @@ export async function useBackupCode(code: string): Promise<UseBackupCodeResult> 
   // Hash the provided code
   const codeHash = crypto.createHash('sha256').update(code).digest('hex');
 
-  // Find the backup code
-  const [backupCode] = await db.select()
-    .from(mfaBackupCodesTable)
+  // Atomic: UPDATE only if unused, RETURNING the id — prevents double-spend
+  const [used] = await db.update(mfaBackupCodesTable)
+    .set({
+      used: true,
+      used_at: new Date(),
+    })
     .where(
       and(
         eq(mfaBackupCodesTable.user_id, userId),
         eq(mfaBackupCodesTable.code_hash, codeHash),
-        eq(mfaBackupCodesTable.used, false)
+        eq(mfaBackupCodesTable.used, false),
       )
-    );
+    )
+    .returning({ id: mfaBackupCodesTable.id });
 
-  if (!backupCode) {
+  if (!used) {
     return {
       success: false,
       error: 'Invalid or already used backup code.',
     };
   }
 
-  // Mark the code as used
-  await db.update(mfaBackupCodesTable)
-    .set({
-      used: true,
-      used_at: new Date(),
-    })
-    .where(eq(mfaBackupCodesTable.id, backupCode.id));
-
   return {
     success: true,
-    codeId: backupCode.id,
+    codeId: used.id,
   };
 }
 
 export async function regenerateBackupCodes(): Promise<string[]> {
   const userId = await getCurrentUserId();
-
-  // Delete existing backup codes
-  await db.delete(mfaBackupCodesTable).where(eq(mfaBackupCodesTable.user_id, userId));
 
   // Generate new backup codes
   const codes: string[] = [];
@@ -90,16 +83,19 @@ export async function regenerateBackupCodes(): Promise<string[]> {
     codes.push(code);
   }
 
-  // Hash and store backup codes
   const codeHashes = codes.map(code => ({
     user_id: userId,
     code_hash: crypto.createHash('sha256').update(code).digest('hex'),
     used: false,
   }));
 
-  if (codeHashes.length > 0) {
-    await db.insert(mfaBackupCodesTable).values(codeHashes);
-  }
+  // Atomic delete + insert to prevent concurrent useBackupCode from racing
+  await db.transaction(async (tx) => {
+    await tx.delete(mfaBackupCodesTable).where(eq(mfaBackupCodesTable.user_id, userId));
+    if (codeHashes.length > 0) {
+      await tx.insert(mfaBackupCodesTable).values(codeHashes);
+    }
+  });
 
   return codes;
 }

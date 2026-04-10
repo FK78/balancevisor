@@ -2,7 +2,6 @@
 
 import { db } from '@/index';
 import { merchantMappingsTable } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
 import { getCurrentUserId } from '@/lib/auth';
 import { revalidateDomains } from '@/lib/revalidate';
 
@@ -19,31 +18,15 @@ export async function learnMerchantMapping(
 
   const userId = await getCurrentUserId();
 
-  const [existing] = await db
-    .select({ id: merchantMappingsTable.id, category_id: merchantMappingsTable.category_id })
-    .from(merchantMappingsTable)
-    .where(
-      and(
-        eq(merchantMappingsTable.user_id, userId),
-        eq(merchantMappingsTable.merchant, merchant),
-      ),
-    )
-    .limit(1);
-
-  if (existing) {
-    if (existing.category_id === categoryId) return;
-    await db
-      .update(merchantMappingsTable)
-      .set({ category_id: categoryId, source, updated_at: new Date() })
-      .where(eq(merchantMappingsTable.id, existing.id));
-  } else {
-    await db.insert(merchantMappingsTable).values({
-      user_id: userId,
-      merchant,
-      category_id: categoryId,
-      source,
-    });
-  }
+  await db.insert(merchantMappingsTable).values({
+    user_id: userId,
+    merchant,
+    category_id: categoryId,
+    source,
+  }).onConflictDoUpdate({
+    target: [merchantMappingsTable.user_id, merchantMappingsTable.merchant],
+    set: { category_id: categoryId, source, updated_at: new Date() },
+  });
 
   revalidateDomains('categories');
 }
@@ -59,29 +42,13 @@ export async function learnMerchantMappingForUser(
 ) {
   if (!merchant || !categoryId) return;
 
-  const [existing] = await db
-    .select({ id: merchantMappingsTable.id, category_id: merchantMappingsTable.category_id })
-    .from(merchantMappingsTable)
-    .where(
-      and(
-        eq(merchantMappingsTable.user_id, userId),
-        eq(merchantMappingsTable.merchant, merchant),
-      ),
-    )
-    .limit(1);
-
-  if (existing) {
-    if (existing.category_id === categoryId) return;
-    await db
-      .update(merchantMappingsTable)
-      .set({ category_id: categoryId, source, updated_at: new Date() })
-      .where(eq(merchantMappingsTable.id, existing.id));
-  } else {
-    await db.insert(merchantMappingsTable).values({
-      user_id: userId,
-      merchant,
-      category_id: categoryId,
-      source,
-    });
-  }
+  await db.insert(merchantMappingsTable).values({
+    user_id: userId,
+    merchant,
+    category_id: categoryId,
+    source,
+  }).onConflictDoUpdate({
+    target: [merchantMappingsTable.user_id, merchantMappingsTable.merchant],
+    set: { category_id: categoryId, source, updated_at: new Date() },
+  });
 }
