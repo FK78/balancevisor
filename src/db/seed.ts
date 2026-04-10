@@ -37,7 +37,9 @@ if (!DATABASE_URL) {
 
 const isLocalhost = /localhost|127\.0\.0\.1/.test(DATABASE_URL);
 const client = postgres(DATABASE_URL, {
-  ssl: isLocalhost ? false : { rejectUnauthorized: false },
+  ssl: isLocalhost ? false : process.env.DATABASE_CA_CERT
+    ? { ca: process.env.DATABASE_CA_CERT }
+    : 'require',
   max: 1,
 });
 const db = drizzle(client);

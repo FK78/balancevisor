@@ -18,8 +18,11 @@ import postgres from "postgres";
 import { randomBytes } from "crypto";
 import { encrypt, isEncrypted, encryptForUser } from "@/lib/encryption";
 
+const isLocalhost = /localhost|127\.0\.0\.1/.test(process.env.DATABASE_URL!);
 const client = postgres(process.env.DATABASE_URL!, {
-  ssl: { rejectUnauthorized: false },
+  ssl: isLocalhost ? false : process.env.DATABASE_CA_CERT
+    ? { ca: process.env.DATABASE_CA_CERT }
+    : 'require',
 });
 
 async function main() {

@@ -61,17 +61,17 @@ const nextConfig: NextConfig = {
           // Restrict browser features
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
+            value: "camera=(), microphone=(), geolocation=(), payment=()",
           },
           // Content Security Policy
           {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "script-src 'self' 'sha256-F91Obb/JfCFDMzcJ/6F8cwpVMJNCEj4Q+vAkYgkoTGE='",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
-              "connect-src 'self' https://*.supabase.co https://*.supabase.in https://*.truelayer.com https://*.truelayer-sandbox.com https://live.trading212.com https://demo.trading212.com https://api.groq.com https://*.groq.com",
+              "connect-src 'self' https://*.supabase.co https://*.supabase.in https://*.truelayer.com https://*.truelayer-sandbox.com https://live.trading212.com https://demo.trading212.com https://api.groq.com",
               "font-src 'self' data:",
               "object-src 'none'",
               "frame-ancestors 'none'",

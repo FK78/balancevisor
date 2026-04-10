@@ -13,8 +13,11 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { accountsTable, transactionsTable, truelayerConnectionsTable } from "@/db/schema";
 import { encrypt, isEncrypted } from "@/lib/encryption";
 
+const isLocalhost = /localhost|127\.0\.0\.1/.test(process.env.DATABASE_URL!);
 const client = postgres(process.env.DATABASE_URL!, {
-  ssl: { rejectUnauthorized: false },
+  ssl: isLocalhost ? false : process.env.DATABASE_CA_CERT
+    ? { ca: process.env.DATABASE_CA_CERT }
+    : 'require',
 });
 const db = drizzle(client);
 

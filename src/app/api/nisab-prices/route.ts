@@ -6,8 +6,10 @@ import {
   GOLD_NISAB_GRAMS,
   SILVER_NISAB_GRAMS,
 } from '@/lib/nisab-prices';
+import { withRateLimit, getClientIp } from '@/lib/api-middleware';
+import { rateLimiters } from '@/lib/rate-limiter';
 
-export async function GET() {
+async function handler(): Promise<NextResponse> {
   try {
     const [goldPrice, silverPrice] = await Promise.all([
       fetchGoldPrice(),
@@ -44,3 +46,9 @@ export async function GET() {
     );
   }
 }
+
+export const GET = withRateLimit(
+  handler,
+  rateLimiters.search,
+  (req) => `nisab:${getClientIp(req)}`
+);

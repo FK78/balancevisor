@@ -4,21 +4,22 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   const start = Date.now();
+  const isProd = process.env.NODE_ENV === 'production';
   const health: {
     status: 'healthy' | 'degraded' | 'unhealthy';
     timestamp: string;
-    uptime: number;
+    uptime?: number;
     checks: {
       database: { status: 'ok' | 'error'; latency?: number; error?: string };
-      memory: { status: 'ok'; usage: number };
+      memory?: { status: 'ok'; usage: number };
     };
   } = {
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
+    ...(!isProd && { uptime: process.uptime() }),
     checks: {
       database: { status: 'ok' },
-      memory: { status: 'ok', usage: process.memoryUsage().heapUsed / 1024 / 1024 },
+      ...(!isProd && { memory: { status: 'ok', usage: process.memoryUsage().heapUsed / 1024 / 1024 } }),
     },
   };
 
@@ -31,7 +32,7 @@ export async function GET() {
   } catch (error) {
     health.status = 'degraded';
     health.checks.database.status = 'error';
-    health.checks.database.error = process.env.NODE_ENV === 'production'
+    health.checks.database.error = isProd
       ? 'Database connection failed'
       : (error instanceof Error ? error.message : String(error));
   }

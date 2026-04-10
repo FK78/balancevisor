@@ -3,9 +3,11 @@ import { NextResponse } from "next/server";
 import { withRateLimit, getClientIp } from "@/lib/api-middleware";
 import { handleApiError } from "@/lib/api-errors";
 import { rateLimiters } from "@/lib/rate-limiter";
+import { getCurrentUserId } from "@/lib/auth";
 
 async function handler(req: Request): Promise<NextResponse> {
   try {
+    await getCurrentUserId();
     const { searchParams } = new URL(req.url);
     const query = searchParams.get("q");
 

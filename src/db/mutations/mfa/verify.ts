@@ -39,7 +39,7 @@ export async function verifyMfaSetup(
       console.error('Error creating MFA challenge:', challengeError);
       return {
         success: false,
-        error: `Failed to start MFA verification: ${challengeError.message}`,
+        error: 'Failed to start MFA verification. Please try again.',
       };
     }
 
@@ -108,7 +108,7 @@ export async function verifyMfaLogin(
       console.error('Error getting MFA challenge:', challengeError);
       return {
         success: false,
-        error: `Failed to start MFA verification: ${challengeError.message}`,
+        error: 'Failed to start MFA verification. Please try again.',
       };
     }
 
@@ -123,7 +123,7 @@ export async function verifyMfaLogin(
       console.error('Error verifying MFA login:', verifyError);
       return {
         success: false,
-        error: `Invalid verification code: ${verifyError.message}`,
+        error: 'Invalid verification code. Please try again.',
       };
     }
 

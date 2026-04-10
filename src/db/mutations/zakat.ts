@@ -6,11 +6,12 @@ import { revalidatePath } from 'next/cache';
 import { getCurrentUserId } from '@/lib/auth';
 import { calculateZakat } from '@/lib/zakat';
 import { getZakatSettings } from '@/db/queries/zakat';
+import { requireDate, sanitizeEnum, formString } from '@/lib/sanitize';
 
 export async function saveZakatSettings(formData: FormData) {
   const userId = await getCurrentUserId();
-  const anniversaryDate = formData.get('anniversary_date') as string;
-  const nisabType = (formData.get('nisab_type') as string) || 'gold';
+  const anniversaryDate = requireDate(formString(formData, 'anniversary_date'), 'Anniversary date');
+  const nisabType = sanitizeEnum(formString(formData, 'nisab_type'), ['gold', 'silver'] as const, 'gold');
   const useLunarCalendar = formData.get('use_lunar_calendar') === 'on';
 
   await db.insert(zakatSettingsTable).values({

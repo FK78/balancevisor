@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "NODE_TLS_REJECT_UNAUTHORIZED=0 next dev",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -33,6 +33,7 @@
     "@tanstack/react-table": "^8.21.3",
     "ai": "^6.0.154",
     "drizzle-orm": "^0.45.2",
+    "isomorphic-dompurify": "^3.8.0",
     "lucide-react": "^1.8.0",
     "next": "16.2.3",
     "nodemailer": "^8.0.5",

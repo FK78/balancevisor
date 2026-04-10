@@ -23,6 +23,7 @@ import { encryptForUser, getUserKey } from '@/lib/encryption';
 import { revalidateDomains } from '@/lib/revalidate';
 import { EXPORT_VERSION } from '@/lib/types';
 import type { ExportData } from '@/lib/types';
+import { randomUUID } from 'crypto';
 
 type ImportSummary = {
   imported: Record<string, number>;
@@ -93,14 +94,30 @@ export async function importUserData(
   const imported: Record<string, number> = {};
   const skipped: Record<string, number> = {};
 
-  // Re-encrypt text fields with this user's key and stamp user_id
+  // Build old→new ID maps so FK references stay intact with fresh UUIDs.
+  // This prevents a crafted export from injecting IDs that collide with
+  // other users' data.
+  const idMap = new Map<string, string>();
+  function remap(oldId: string): string {
+    let newId = idMap.get(oldId);
+    if (!newId) { newId = randomUUID(); idMap.set(oldId, newId); }
+    return newId;
+  }
+  function remapNullable(oldId: string | null | undefined): string | null {
+    if (!oldId) return null;
+    return remap(oldId);
+  }
+
+  // Re-encrypt text fields with this user's key, stamp user_id, and remap IDs
   const categories = data.categories.map(c => ({
     ...c,
+    id: remap(c.id),
     user_id: userId,
   }));
 
   const accounts = data.accounts.map(a => ({
     ...a,
+    id: remap(a.id),
     user_id: userId,
     name: a.name ? encryptForUser(a.name, userKey) : a.name,
     // Strip truelayer references since connections are not exported
@@ -110,65 +127,100 @@ export async function importUserData(
 
   const transactions = data.transactions.map(t => ({
     ...t,
+    id: remap(t.id),
     user_id: userId,
+    account_id: remapNullable(t.account_id),
+    category_id: remapNullable(t.category_id),
+    transfer_account_id: remapNullable(t.transfer_account_id),
+    subscription_id: remapNullable(t.subscription_id),
+    linked_debt_id: remapNullable(t.linked_debt_id),
+    refund_for_transaction_id: remapNullable(t.refund_for_transaction_id),
     description: t.description ? encryptForUser(t.description, userKey) : t.description,
   }));
 
   const transactionSplits = data.transactionSplits.map(s => ({
     ...s,
+    id: remap(s.id),
+    transaction_id: remap(s.transaction_id),
+    category_id: remapNullable(s.category_id),
     description: s.description ? encryptForUser(s.description, userKey) : s.description,
   }));
 
   const budgets = data.budgets.map(b => ({
     ...b,
+    id: remap(b.id),
     user_id: userId,
+    category_id: remapNullable(b.category_id),
   }));
 
   const budgetAlertPreferences = data.budgetAlertPreferences.map(p => ({
     ...p,
+    id: remap(p.id),
     user_id: userId,
+    budget_id: remap(p.budget_id),
   }));
 
   const goals = data.goals.map(g => ({
     ...g,
+    id: remap(g.id),
     user_id: userId,
   }));
 
   const debts = data.debts.map(d => ({
     ...d,
+    id: remap(d.id),
     user_id: userId,
   }));
 
-  const debtPayments = [...data.debtPayments];
+  const debtPayments = data.debtPayments.map(p => ({
+    ...p,
+    id: remap(p.id),
+    debt_id: remap(p.debt_id),
+    account_id: remap(p.account_id),
+  }));
 
   const investmentGroups = data.investmentGroups.map(g => ({
     ...g,
+    id: remap(g.id),
     user_id: userId,
+    account_id: remapNullable(g.account_id),
   }));
 
   const manualHoldings = data.manualHoldings.map(h => ({
     ...h,
+    id: remap(h.id),
     user_id: userId,
+    account_id: remapNullable(h.account_id),
+    group_id: remapNullable(h.group_id),
   }));
 
   const holdingSales = data.holdingSales.map(s => ({
     ...s,
+    id: remap(s.id),
     user_id: userId,
+    holding_id: remap(s.holding_id),
+    cash_account_id: remapNullable(s.cash_account_id),
   }));
 
   const subscriptions = data.subscriptions.map(s => ({
     ...s,
+    id: remap(s.id),
     user_id: userId,
+    account_id: remap(s.account_id),
+    category_id: remapNullable(s.category_id),
   }));
 
   const netWorthSnapshots = data.netWorthSnapshots.map(s => ({
     ...s,
+    id: remap(s.id),
     user_id: userId,
   }));
 
   const categorisationRules = data.categorisationRules.map(r => ({
     ...r,
+    id: remap(r.id),
     user_id: userId,
+    category_id: remapNullable(r.category_id),
   }));
 
   try {
