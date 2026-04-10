@@ -8,7 +8,7 @@
  */
 import "dotenv/config";
 import { eq, or, inArray } from "drizzle-orm";
-import { db } from "@/index";
+import { adminDb as db } from "@/index";
 import {
   accountsTable,
   budgetAlertPreferencesTable,

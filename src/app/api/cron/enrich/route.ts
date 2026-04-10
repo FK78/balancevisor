@@ -1,5 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import { db } from "@/index";
+import { adminDb } from "@/index";
 import { userOnboardingTable } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { autoApplyBudgetSuggestions } from "@/lib/budget-auto-apply";
@@ -33,7 +33,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const users = await db
+    const users = await adminDb
       .select({ user_id: userOnboardingTable.user_id })
       .from(userOnboardingTable)
       .where(eq(userOnboardingTable.completed, true));

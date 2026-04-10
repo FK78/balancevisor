@@ -7,7 +7,7 @@
  * Usage: npx tsx src/db/migrations/add-transactions-user-id.ts
  */
 import 'dotenv/config';
-import { db } from '@/index';
+import { adminDb as db } from '@/index';
 import { sql } from 'drizzle-orm';
 
 async function main() {

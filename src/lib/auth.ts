@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { withRLS, type RLSCallback } from "@/lib/rls-db";
 
 /**
  * Request-scoped cached Supabase user fetch.
@@ -25,4 +26,23 @@ export async function getCurrentUserEmail(): Promise<string> {
   const user = await getCurrentUser();
   if (!user?.email) throw new Error("User email not available");
   return user.email;
+}
+
+/**
+ * Run a database operation with RLS scoped to the current authenticated user.
+ *
+ * Sets `app.current_user_id` in the Postgres session so RLS policies
+ * automatically filter rows. The session variable is transaction-scoped
+ * and cleared on commit/rollback.
+ *
+ * @example
+ * ```ts
+ * const accounts = await withAuthRLS(async (tx) => {
+ *   return tx.select().from(accountsTable);
+ * });
+ * ```
+ */
+export async function withAuthRLS<T>(fn: RLSCallback<T>): Promise<T> {
+  const userId = await getCurrentUserId();
+  return withRLS(userId, fn);
 }
