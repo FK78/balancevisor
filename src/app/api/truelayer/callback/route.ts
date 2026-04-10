@@ -4,6 +4,7 @@ import { saveTrueLayerConnection, importFromTrueLayer, getTrueLayerConnections }
 import { getCurrentUserId } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import { getPostHogClient } from '@/lib/posthog-server';
+import { env } from '@/lib/env';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get('error');
   const state = searchParams.get('state');
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+  const siteUrl = env().NEXT_PUBLIC_SITE_URL;
 
   // Validate OAuth state parameter to prevent CSRF attacks
   const cookieState = request.cookies.get('truelayer_oauth_state')?.value;

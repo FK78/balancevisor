@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { buildAuthLink, generateOAuthState } from '@/lib/truelayer';
 import { getCurrentUserId } from '@/lib/auth';
 import { rateLimiters } from '@/lib/rate-limiter';
+import { env } from '@/lib/env';
 
 export async function GET() {
   // Rate limit by user ID (authenticated route)
@@ -9,7 +10,7 @@ export async function GET() {
   const result = rateLimiters.truelayer.consume(`truelayer-connect:${userId}`);
 
   if (!result.allowed) {
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+    const siteUrl = env().NEXT_PUBLIC_SITE_URL;
     return NextResponse.redirect(
       `${siteUrl}/dashboard/accounts?truelayer_error=Too many connection attempts. Please try again later.`,
     );

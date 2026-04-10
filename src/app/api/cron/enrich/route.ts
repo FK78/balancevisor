@@ -4,6 +4,7 @@ import { userOnboardingTable } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { autoApplyBudgetSuggestions } from "@/lib/budget-auto-apply";
 import { logger } from "@/lib/logger";
+import { env } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -19,7 +20,7 @@ export const maxDuration = 300;
  */
 export async function GET(req: Request) {
   const authHeader = req.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
+  const cronSecret = env().CRON_SECRET;
 
   if (!cronSecret || !authHeader) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });

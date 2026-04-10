@@ -1,15 +1,13 @@
 import { createTransport, type Transporter } from 'nodemailer';
 import { logger } from '@/lib/logger';
+import { env } from '@/lib/env';
 
 let transporter: Transporter | null = null;
 
 function getTransporter(): Transporter | null {
   if (transporter) return transporter;
 
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT || '587');
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+  const { SMTP_HOST: host, SMTP_PORT: port, SMTP_USER: user, SMTP_PASS: pass } = env();
 
   if (!host || !user || !pass) return null;
 
@@ -39,7 +37,7 @@ export async function sendBudgetAlertEmail(
     return;
   }
 
-  const fromAddress = process.env.SMTP_FROM || 'BalanceVisor <alerts@localhost>';
+  const fromAddress = env().SMTP_FROM;
 
   const isOver = alertType === 'over_budget';
   const emoji = isOver ? '🚨' : '⚠️';

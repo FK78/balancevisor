@@ -1,4 +1,5 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { env } from "@/lib/env";
 
 /**
  * Creates a Supabase admin client using the service role key.
@@ -10,8 +11,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
  * Never expose the service role key to the client.
  */
 export function createAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const { NEXT_PUBLIC_SUPABASE_URL: url, SUPABASE_SERVICE_ROLE_KEY: serviceKey } = env();
 
   if (!url || !serviceKey) {
     throw new Error(

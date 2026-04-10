@@ -6,12 +6,13 @@
  */
 
 import { randomBytes } from 'crypto';
+import { env } from '@/lib/env';
 
 // ---------------------------------------------------------------------------
 // Environment helpers
 // ---------------------------------------------------------------------------
 
-const isSandbox = () => process.env.TRUELAYER_SANDBOX === "true";
+const isSandbox = () => env().TRUELAYER_SANDBOX;
 
 const authBase = () =>
   isSandbox()
@@ -23,9 +24,9 @@ const apiBase = () =>
     ? "https://api.truelayer-sandbox.com"
     : "https://api.truelayer.com";
 
-function requireEnv(name: string): string {
-  const v = process.env[name];
-  if (!v) throw new Error(`Missing environment variable: ${name}`);
+function requireTruelayerEnv(key: 'TRUELAYER_CLIENT_ID' | 'TRUELAYER_CLIENT_SECRET'): string {
+  const v = env()[key];
+  if (!v) throw new Error(`Missing environment variable: ${key}`);
   return v;
 }
 
@@ -82,10 +83,8 @@ export function generateOAuthState(): string {
  * @returns The full OAuth authorization URL.
  */
 export function buildAuthLink(state: string): string {
-  const clientId = requireEnv("TRUELAYER_CLIENT_ID");
-  const redirectUri = `${requireEnv(
-    "NEXT_PUBLIC_SITE_URL"
-  )}/api/truelayer/callback`;
+  const clientId = requireTruelayerEnv("TRUELAYER_CLIENT_ID");
+  const redirectUri = `${env().NEXT_PUBLIC_SITE_URL}/api/truelayer/callback`;
 
   const params = new URLSearchParams({
     response_type: "code",
@@ -110,11 +109,9 @@ export async function exchangeCode(code: string): Promise<TrueLayerTokens> {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       grant_type: "authorization_code",
-      client_id: requireEnv("TRUELAYER_CLIENT_ID"),
-      client_secret: requireEnv("TRUELAYER_CLIENT_SECRET"),
-      redirect_uri: `${requireEnv(
-        "NEXT_PUBLIC_SITE_URL"
-      )}/api/truelayer/callback`,
+      client_id: requireTruelayerEnv("TRUELAYER_CLIENT_ID"),
+      client_secret: requireTruelayerEnv("TRUELAYER_CLIENT_SECRET"),
+      redirect_uri: `${env().NEXT_PUBLIC_SITE_URL}/api/truelayer/callback`,
       code,
     }),
   });
@@ -135,8 +132,8 @@ export async function refreshAccessToken(
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       grant_type: "refresh_token",
-      client_id: requireEnv("TRUELAYER_CLIENT_ID"),
-      client_secret: requireEnv("TRUELAYER_CLIENT_SECRET"),
+      client_id: requireTruelayerEnv("TRUELAYER_CLIENT_ID"),
+      client_secret: requireTruelayerEnv("TRUELAYER_CLIENT_SECRET"),
       refresh_token: refreshToken,
     }),
   });

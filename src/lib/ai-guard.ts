@@ -1,5 +1,6 @@
 import { getCurrentUserId } from "@/lib/auth";
 import { isAiEnabled } from "@/db/queries/preferences";
+import { env } from "@/lib/env";
 
 /**
  * Checks whether AI features are enabled for the current user
@@ -10,7 +11,7 @@ import { isAiEnabled } from "@/db/queries/preferences";
  *   if (blocked) return blocked;
  */
 export async function guardAiEnabled(): Promise<Response | null> {
-  if (!process.env.GROQ_API_KEY) {
+  if (!env().GROQ_API_KEY) {
     return new Response(
       JSON.stringify({ error: "AI is temporarily unavailable — API key not configured." }),
       { status: 503, headers: { "Content-Type": "application/json" } },

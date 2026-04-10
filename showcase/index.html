@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wealth — Feature Concepts Showcase</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            wealth: {
+              50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd',
+              400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8',
+              800: '#1e40af', 900: '#1e3a8a',
+            },
+            surface: { DEFAULT: '#0a0a0f', card: '#111118', raised: '#18181f', border: '#23232e' },
+            accent: { amber: '#f59e0b', emerald: '#10b981', rose: '#f43f5e', violet: '#8b5cf6' },
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #08080c; color: #e2e8f0; font-family: 'Inter', system-ui, sans-serif; }
+
+    /* Glow effects */
+    .glow-blue { box-shadow: 0 0 60px -12px rgba(59, 130, 246, 0.3); }
+    .glow-amber { box-shadow: 0 0 60px -12px rgba(245, 158, 11, 0.3); }
+    .glow-emerald { box-shadow: 0 0 60px -12px rgba(16, 185, 129, 0.3); }
+    .glow-rose { box-shadow: 0 0 60px -12px rgba(244, 63, 94, 0.3); }
+    .glow-violet { box-shadow: 0 0 60px -12px rgba(139, 92, 246, 0.3); }
+
+    /* Animated gradient border */
+    .gradient-border {
+      position: relative;
+      border-radius: 1rem;
+      background: #111118;
+    }
+    .gradient-border::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: 1rem;
+      background: conic-gradient(from var(--angle, 0deg), #3b82f6, #8b5cf6, #f43f5e, #f59e0b, #10b981, #3b82f6);
+      z-index: -1;
+      animation: rotate-gradient 4s linear infinite;
+      opacity: 0.5;
+    }
+    @keyframes rotate-gradient {
+      to { --angle: 360deg; }
+    }
+    @property --angle {
+      syntax: '<angle>';
+      initial-value: 0deg;
+      inherits: false;
+    }
+
+    /* Score ring animation */
+    .score-ring { transition: stroke-dashoffset 2s cubic-bezier(0.4, 0, 0.2, 1); }
+
+    /* Pulse animation */
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(1.05); }
+    }
+    .pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+
+    /* Count up animation */
+    @keyframes count-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .count-up { animation: count-up 0.8s ease-out forwards; }
+
+    /* Fade in stagger */
+    @keyframes fade-in-up {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fade-in-up 0.7s ease-out forwards; opacity: 0; }
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+    .delay-4 { animation-delay: 0.4s; }
+    .delay-5 { animation-delay: 0.5s; }
+    .delay-6 { animation-delay: 0.6s; }
+
+    /* Heatmap cell hover */
+    .heat-cell { transition: all 0.15s ease; cursor: pointer; }
+    .heat-cell:hover { transform: scale(1.8); z-index: 10; filter: brightness(1.3); }
+
+    /* Sankey flow animation */
+    @keyframes flow {
+      from { stroke-dashoffset: 40; }
+      to { stroke-dashoffset: 0; }
+    }
+    .sankey-flow { animation: flow 1.5s linear infinite; }
+
+    /* Gauge needle animation */
+    @keyframes sweep {
+      from { transform: rotate(-90deg); }
+    }
+    .gauge-needle { animation: sweep 2s cubic-bezier(0.4, 0, 0.2, 1) forwards; transform-origin: bottom center; }
+
+    /* Shimmer */
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .shimmer {
+      background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.05) 50%, transparent 75%);
+      background-size: 200% 100%;
+      animation: shimmer 3s ease-in-out infinite;
+    }
+
+    /* Floating particles */
+    @keyframes float-particle {
+      0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+      10% { opacity: 0.6; }
+      90% { opacity: 0.6; }
+      100% { transform: translateY(-120px) translateX(30px); opacity: 0; }
+    }
+
+    /* Smooth scroll */
+    html { scroll-behavior: smooth; }
+
+    /* Card hover lift */
+    .card-hover { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .card-hover:hover { transform: translateY(-4px); }
+
+    /* Timeline pulse */
+    @keyframes timeline-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+      50% { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
+    }
+    .timeline-dot { animation: timeline-pulse 2s ease-in-out infinite; }
+
+    /* Share card gradient */
+    .share-gradient {
+      background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 40%, #1a1a2e 100%);
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased">
+
+  <!-- Hero -->
+  <header class="relative overflow-hidden px-6 py-20 text-center">
+    <div class="absolute inset-0 bg-gradient-to-b from-wealth-600/8 via-transparent to-transparent"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-wealth-500/5 rounded-full blur-3xl"></div>
+    <div class="relative z-10 max-w-3xl mx-auto">
+      <div class="inline-flex items-center gap-2 px-4 py-1.5 mb-6 rounded-full bg-wealth-500/10 border border-wealth-500/20 text-wealth-400 text-sm font-medium fade-in">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        Feature Concepts — Skills Showcase
+      </div>
+      <h1 class="text-5xl md:text-6xl font-extrabold tracking-tight bg-gradient-to-r from-white via-wealth-200 to-wealth-400 bg-clip-text text-transparent fade-in delay-1">
+        Next-Level Finance
+      </h1>
+      <p class="mt-4 text-lg text-slate-400 max-w-xl mx-auto fade-in delay-2">
+        Six new feature concepts for <span class="text-white font-semibold">Wealth</span> — designed with the UI/UX Pro Max skill, chart intelligence, and interaction guidelines.
+      </p>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 pb-24 space-y-32">
+
+    <!-- ============================================ -->
+    <!-- 1. FINANCIAL HEALTH SCORE -->
+    <!-- ============================================ -->
+    <section class="fade-in delay-2" id="health-score">
+      <div class="flex items-center gap-3 mb-2">
+        <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm font-bold">1</span>
+        <h2 class="text-2xl font-bold text-white">Financial Health Score</h2>
+      </div>
+      <p class="text-slate-400 mb-8 max-w-2xl">A single animated score (0–100) that synthesises your savings rate, debt-to-income ratio, emergency fund coverage, budget adherence, and investment diversification into one glanceable metric.</p>
+
+      <div class="grid md:grid-cols-2 gap-8">
+        <!-- Score Ring -->
+        <div class="gradient-border p-8 flex flex-col items-center justify-center">
+          <div class="relative w-56 h-56">
+            <svg viewBox="0 0 200 200" class="w-full h-full -rotate-90">
+              <circle cx="100" cy="100" r="85" fill="none" stroke="#1e293b" stroke-width="12" />
+              <circle cx="100" cy="100" r="85" fill="none" stroke="url(#scoreGrad)" stroke-width="12"
+                stroke-linecap="round" stroke-dasharray="534" stroke-dashoffset="134" class="score-ring" />
+              <defs>
+                <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#10b981" />
+                  <stop offset="50%" stop-color="#3b82f6" />
+                  <stop offset="100%" stop-color="#8b5cf6" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <span class="text-5xl font-extrabold text-white" id="scoreValue">0</span>
+              <span class="text-sm text-slate-400 mt-1">out of 100</span>
+              <span class="mt-2 px-3 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-xs font-semibold">Excellent</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Breakdown Cards -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-surface-card rounded-xl p-4 border border-surface-border card-hover">
+            <div class="flex items-center gap-2 mb-3">
+              <div class="w-2 h-2 rounded-full bg-emerald-400"></div>
+              <span class="text-xs text-slate-400 uppercase tracking-wide">Savings Rate</span>
+            </div>
+            <span class="text-2xl font-bold text-white">32%</span>
+            <div class="mt-2 h-1.5 rounded-full bg-surface-raised overflow-hidden">
+              <div class="h-full rounded-full bg-emerald-500" style="width:85%"></div>
+            </div>
+            <span class="text-xs text-emerald-400 mt-1 block">85/100</span>
+          </div>
+          <div class="bg-surface-card rounded-xl p-4 border border-surface-border card-hover">
+            <div class="flex items-center gap-2 mb-3">
+              <div class="w-2 h-2 rounded-full bg-blue-400"></div>
+              <span class="text-xs text-slate-400 uppercase tracking-wide">Debt Ratio</span>
+            </div>
+            <span class="text-2xl font-bold text-white">18%</span>
+            <div class="mt-2 h-1.5 rounded-full bg-surface-raised overflow-hidden">
+              <div class="h-full rounded-full bg-blue-500" style="width:78%"></div>
+            </div>
+            <span class="text-xs text-blue-400 mt-1 block">78/100</span>
+          </div>
+          <div class="bg-surface-card rounded-xl p-4 border border-surface-border card-hover">
+            <div class="flex items-center gap-2 mb-3">
+              <div class="w-2 h-2 rounded-full bg-violet-400"></div>
+              <span class="text-xs text-slate-400 uppercase tracking-wide">Emergency Fund</span>
+            </div>
+            <span class="text-2xl font-bold text-white">4.2 mo</span>
+            <div class="mt-2 h-1.5 rounded-full bg-surface-raised overflow-hidden">
+              <div class="h-full rounded-full bg-violet-500" style="width:70%"></div>
+            </div>
+            <span class="text-xs text-violet-400 mt-1 block">70/100</span>
+          </div>
+          <div class="bg-surface-card rounded-xl p-4 border border-surface-border card-hover">
+            <div class="flex items-center gap-2 mb-3">
+              <div class="w-2 h-2 rounded-full bg-amber-400"></div>
+              <span class="text-xs text-slate-400 uppercase tracking-wide">Budget Adherence</span>
+            </div>
+            <span class="text-2xl font-bold text-white">91%</span>
+            <div class="mt-2 h-1.5 rounded-full bg-surface-raised overflow-hidden">
+              <div class="h-full rounded-full bg-amber-500" style="width:91%"></div>
+            </div>
+            <span class="text-xs text-amber-400 mt-1 block">91/100</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- 2. SPENDING HEATMAP -->
+    <!-- ============================================ -->
+    <section class="fade-in" id="heatmap">
+      <div class="flex items-center gap-3 mb-2">
+        <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 text-sm font-bold">2</span>
+        <h2 class="text-2xl font-bold text-white">Spending Heatmap</h2>
+      </div>
+      <p class="text-slate-400 mb-8 max-w-2xl">GitHub-style calendar heatmap showing your spending intensity day-by-day. Instantly spot your expensive days, weekly patterns, and spending-free streaks.</p>
+
+      <div class="bg-surface-card rounded-xl border border-surface-border p-6 glow-rose">
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center gap-4">
+            <h3 class="text-sm font-semibold text-white">2025 Spending Activity</h3>
+            <span class="text-xs text-slate-500">Hover for details</span>
+          </div>
+          <div class="flex items-center gap-2 text-xs text-slate-400">
+            <span>Less</span>
+            <div class="flex gap-0.5">
+              <div class="w-3 h-3 rounded-sm bg-surface-raised"></div>
+              <div class="w-3 h-3 rounded-sm bg-rose-900/50"></div>
+              <div class="w-3 h-3 rounded-sm bg-rose-700/60"></div>
+              <div class="w-3 h-3 rounded-sm bg-rose-500/80"></div>
+              <div class="w-3 h-3 rounded-sm bg-rose-400"></div>
+            </div>
+            <span>More</span>
+          </div>
+        </div>
+
+        <!-- Heatmap Grid -->
+        <div class="overflow-x-auto">
+          <div class="flex gap-3 mb-2 pl-8">
+            <span class="text-xs text-slate-500 w-[calc(4*(12px+2px)*4.3)]">Jan</span>
+            <span class="text-xs text-slate-500 w-[calc(4*(12px+2px)*4.3)]">Feb</span>
+            <span class="text-xs text-slate-500 w-[calc(4*(12px+2px)*4.3)]">Mar</span>
+            <span class="text-xs text-slate-500 w-[calc(4*(12px+2px)*4.3)]">Apr</span>
+            <span class="text-xs text-slate-500 w-[calc(4*(12px+2px)*4.3)]">May</span>
+            <span class="text-xs text-slate-500 w-[calc(4*(12px+2px)*4.3)]">Jun</span>
+          </div>
+          <div class="flex gap-1" id="heatmapGrid">
+            <div class="flex flex-col gap-0.5 text-xs text-slate-500 pr-1 justify-around">
+              <span class="h-3 flex items-center">Mon</span>
+              <span class="h-3 flex items-center">Wed</span>
+              <span class="h-3 flex items-center">Fri</span>
+            </div>
+            <!-- Grid generated by JS -->
+          </div>
+        </div>
+
+        <div class="mt-6 grid grid-cols-3 gap-4">
+          <div class="text-center">
+            <span class="text-2xl font-bold text-white">£127</span>
+            <p class="text-xs text-slate-400 mt-0.5">Average daily spend</p>
+          </div>
+          <div class="text-center">
+            <span class="text-2xl font-bold text-rose-400">£894</span>
+            <p class="text-xs text-slate-400 mt-0.5">Biggest single day</p>
+          </div>
+          <div class="text-center">
+            <span class="text-2xl font-bold text-emerald-400">23 days</span>
+            <p class="text-xs text-slate-400 mt-0.5">No-spend streak record</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- 3. MONEY FLOW SANKEY -->
+    <!-- ============================================ -->
+    <section class="fade-in" id="sankey">
+      <div class="flex items-center gap-3 mb-2">
+        <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 text-sm font-bold">3</span>
+        <h2 class="text-2xl font-bold text-white">Money Flow Visualisation</h2>
+      </div>
+      <p class="text-slate-400 mb-8 max-w-2xl">An animated Sankey diagram tracing exactly where your money comes from and where it goes. See income sources flow through your accounts and out into spending categories.</p>
+
+      <div class="bg-surface-card rounded-xl border border-surface-border p-6 glow-blue">
+        <svg viewBox="0 0 900 400" class="w-full" style="max-height: 400px;">
+          <!-- Income Sources (Left) -->
+          <rect x="20" y="30" width="16" height="120" rx="4" fill="#10b981" opacity="0.9"/>
+          <text x="20" y="20" fill="#94a3b8" font-size="11" font-family="Inter">Salary — £4,200</text>
+
+          <rect x="20" y="180" width="16" height="50" rx="4" fill="#3b82f6" opacity="0.9"/>
+          <text x="20" y="170" fill="#94a3b8" font-size="11" font-family="Inter">Freelance — £1,800</text>
+
+          <rect x="20" y="260" width="16" height="30" rx="4" fill="#8b5cf6" opacity="0.9"/>
+          <text x="20" y="250" fill="#94a3b8" font-size="11" font-family="Inter">Dividends — £350</text>
+
+          <rect x="20" y="320" width="16" height="20" rx="4" fill="#f59e0b" opacity="0.9"/>
+          <text x="20" y="310" fill="#94a3b8" font-size="11" font-family="Inter">Side Income — £150</text>
+
+          <!-- Accounts (Middle) -->
+          <rect x="370" y="40" width="16" height="140" rx="4" fill="#60a5fa" opacity="0.9"/>
+          <text x="370" y="30" fill="#e2e8f0" font-size="12" font-weight="600" font-family="Inter">Current Acct</text>
+
+          <rect x="370" y="210" width="16" height="80" rx="4" fill="#818cf8" opacity="0.9"/>
+          <text x="370" y="200" fill="#e2e8f0" font-size="12" font-weight="600" font-family="Inter">Savings</text>
+
+          <rect x="370" y="320" width="16" height="40" rx="4" fill="#a78bfa" opacity="0.9"/>
+          <text x="370" y="310" fill="#e2e8f0" font-size="12" font-weight="600" font-family="Inter">ISA</text>
+
+          <!-- Spending Categories (Right) -->
+          <rect x="740" y="20" width="16" height="60" rx="4" fill="#f43f5e" opacity="0.9"/>
+          <text x="770" y="55" fill="#94a3b8" font-size="11" font-family="Inter">Housing £1,400</text>
+
+          <rect x="740" y="100" width="16" height="40" rx="4" fill="#fb923c" opacity="0.9"/>
+          <text x="770" y="125" fill="#94a3b8" font-size="11" font-family="Inter">Food £680</text>
+
+          <rect x="740" y="160" width="16" height="30" rx="4" fill="#fbbf24" opacity="0.9"/>
+          <text x="770" y="180" fill="#94a3b8" font-size="11" font-family="Inter">Transport £420</text>
+
+          <rect x="740" y="210" width="16" height="25" rx="4" fill="#34d399" opacity="0.9"/>
+          <text x="770" y="228" fill="#94a3b8" font-size="11" font-family="Inter">Savings £1,200</text>
+
+          <rect x="740" y="255" width="16" height="25" rx="4" fill="#60a5fa" opacity="0.9"/>
+          <text x="770" y="272" fill="#94a3b8" font-size="11" font-family="Inter">Subs £320</text>
+
+          <rect x="740" y="300" width="16" height="30" rx="4" fill="#c084fc" opacity="0.9"/>
+          <text x="770" y="320" fill="#94a3b8" font-size="11" font-family="Inter">Investments £850</text>
+
+          <rect x="740" y="350" width="16" height="20" rx="4" fill="#94a3b8" opacity="0.6"/>
+          <text x="770" y="365" fill="#94a3b8" font-size="11" font-family="Inter">Other £630</text>
+
+          <!-- Flows: Income → Accounts -->
+          <path d="M36,90 C200,90 200,80 370,80" fill="none" stroke="#10b981" stroke-width="8" opacity="0.25" stroke-dasharray="8 4" class="sankey-flow"/>
+          <path d="M36,90 C200,90 200,240 370,240" fill="none" stroke="#10b981" stroke-width="4" opacity="0.2" stroke-dasharray="8 4" class="sankey-flow" style="animation-delay:0.3s"/>
+          <path d="M36,205 C200,205 200,100 370,100" fill="none" stroke="#3b82f6" stroke-width="5" opacity="0.25" stroke-dasharray="8 4" class="sankey-flow" style="animation-delay:0.5s"/>
+          <path d="M36,275 C200,275 200,335 370,335" fill="none" stroke="#8b5cf6" stroke-width="3" opacity="0.25" stroke-dasharray="8 4" class="sankey-flow" style="animation-delay:0.7s"/>
+          <path d="M36,330 C200,330 200,120 370,120" fill="none" stroke="#f59e0b" stroke-width="2" opacity="0.2" stroke-dasharray="8 4" class="sankey-flow" style="animation-delay:0.9s"/>
+
+          <!-- Flows: Accounts → Spending -->
+          <path d="M386,60 C560,60 560,45 740,45" fill="none" stroke="#f43f5e" stroke-width="7" opacity="0.2" stroke-dasharray="8 4" class="sankey-flow" style="animation-delay:0.2s"/>
+          <path d="M386,80 C560,80 560,118 740,118" fill="none" stroke="#fb923c" stroke-width="5" opacity="0.2" stroke-dasharray="8 4" class="sankey-flow" style="animation-delay:0.4s"/>
+          <path d="M386,100 C560,100 560,173 740,173" fill="none" stroke="#fbbf24" stroke-width="4" opacity="0.2" stroke-dasharray="8 4" class="sankey-flow" style="animation-delay:0.6s"/>
+          <path d="M386,240 C560,240 560,220 740,220" fill="none" stroke="#34d399" stroke-width="5" opacity="0.25" stroke-dasharray="8 4" class="sankey-flow" style="animation-delay:0.1s"/>
+          <path d="M386,130 C560,130 560,265 740,265" fill="none" stroke="#60a5fa" stroke-width="3" opacity="0.2" stroke-dasharray="8 4" class="sankey-flow" style="animation-delay:0.3s"/>
+          <path d="M386,340 C560,340 560,312 740,312" fill="none" stroke="#c084fc" stroke-width="4" opacity="0.25" stroke-dasharray="8 4" class="sankey-flow" style="animation-delay:0.8s"/>
+          <path d="M386,155 C560,155 560,358 740,358" fill="none" stroke="#94a3b8" stroke-width="3" opacity="0.15" stroke-dasharray="8 4" class="sankey-flow" style="animation-delay:0.5s"/>
+        </svg>
+      </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- 4. EXPENSE VELOCITY GAUGE -->
+    <!-- ============================================ -->
+    <section class="fade-in" id="velocity">
+      <div class="flex items-center gap-3 mb-2">
+        <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 text-sm font-bold">4</span>
+        <h2 class="text-2xl font-bold text-white">Expense Velocity Gauge</h2>
+      </div>
+      <p class="text-slate-400 mb-8 max-w-2xl">A real-time speedometer showing your daily burn rate against your monthly budget. Green zone means on track, amber means watch out, red means slow down.</p>
+
+      <div class="grid md:grid-cols-3 gap-6">
+        <!-- Main Gauge -->
+        <div class="md:col-span-2 bg-surface-card rounded-xl border border-surface-border p-8 glow-amber flex items-center justify-center">
+          <div class="relative w-72 h-40 overflow-hidden">
+            <svg viewBox="0 0 300 160" class="w-full h-full">
+              <!-- Background arc -->
+              <path d="M30,150 A120,120 0 0,1 270,150" fill="none" stroke="#1e293b" stroke-width="20" stroke-linecap="round"/>
+              <!-- Green zone -->
+              <path d="M30,150 A120,120 0 0,1 110,32" fill="none" stroke="#10b981" stroke-width="20" stroke-linecap="round" opacity="0.7"/>
+              <!-- Amber zone -->
+              <path d="M110,32 A120,120 0 0,1 190,32" fill="none" stroke="#f59e0b" stroke-width="20" stroke-linecap="round" opacity="0.7"/>
+              <!-- Red zone -->
+              <path d="M190,32 A120,120 0 0,1 270,150" fill="none" stroke="#f43f5e" stroke-width="20" stroke-linecap="round" opacity="0.7"/>
+
+              <!-- Needle -->
+              <g class="gauge-needle" style="transform: rotate(-25deg); transform-origin: 150px 150px;">
+                <line x1="150" y1="150" x2="150" y2="45" stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/>
+                <circle cx="150" cy="150" r="8" fill="#f59e0b"/>
+                <circle cx="150" cy="150" r="4" fill="#08080c"/>
+              </g>
+
+              <!-- Labels -->
+              <text x="35" y="148" fill="#10b981" font-size="10" font-family="Inter">£0</text>
+              <text x="140" y="18" fill="#f59e0b" font-size="10" font-family="Inter">£100</text>
+              <text x="255" y="148" fill="#f43f5e" font-size="10" font-family="Inter">£200+</text>
+            </svg>
+            <div class="absolute bottom-0 left-1/2 -translate-x-1/2 text-center">
+              <span class="text-3xl font-extrabold text-amber-400">£78</span>
+              <span class="text-sm text-slate-400 block">/day burn rate</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Side Stats -->
+        <div class="space-y-4">
+          <div class="bg-surface-card rounded-xl border border-surface-border p-5">
+            <span class="text-xs text-slate-400 uppercase tracking-wide">Budget Remaining</span>
+            <div class="mt-2 flex items-end gap-2">
+              <span class="text-3xl font-bold text-white">£1,247</span>
+              <span class="text-sm text-slate-400 mb-1">of £3,200</span>
+            </div>
+            <div class="mt-3 h-2 rounded-full bg-surface-raised overflow-hidden">
+              <div class="h-full rounded-full bg-gradient-to-r from-emerald-500 via-amber-500 to-amber-500" style="width:61%"></div>
+            </div>
+          </div>
+          <div class="bg-surface-card rounded-xl border border-surface-border p-5">
+            <span class="text-xs text-slate-400 uppercase tracking-wide">Days Left This Month</span>
+            <div class="mt-2 flex items-end gap-2">
+              <span class="text-3xl font-bold text-white">16</span>
+              <span class="text-sm text-slate-400 mb-1">days</span>
+            </div>
+            <span class="text-xs text-emerald-400 mt-2 block">Safe daily spend: £78/day</span>
+          </div>
+          <div class="bg-surface-card rounded-xl border border-surface-border p-5">
+            <span class="text-xs text-slate-400 uppercase tracking-wide">Projected End</span>
+            <div class="mt-2">
+              <span class="text-2xl font-bold text-amber-400">-£5</span>
+              <span class="text-sm text-slate-400 ml-1">over budget</span>
+            </div>
+            <span class="text-xs text-amber-400 mt-2 block">Reduce by £0.31/day to stay on track</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- 5. BILL PREDICTION TIMELINE -->
+    <!-- ============================================ -->
+    <section class="fade-in" id="timeline">
+      <div class="flex items-center gap-3 mb-2">
+        <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-500/10 text-violet-400 text-sm font-bold">5</span>
+        <h2 class="text-2xl font-bold text-white">Smart Bill Timeline</h2>
+      </div>
+      <p class="text-slate-400 mb-8 max-w-2xl">A predictive timeline of upcoming bills and expenses. Uses your transaction history to forecast what's coming, with confidence levels and total cash impact per week.</p>
+
+      <div class="bg-surface-card rounded-xl border border-surface-border p-6 glow-violet overflow-x-auto">
+        <div class="min-w-[700px]">
+          <!-- Timeline -->
+          <div class="relative">
+            <!-- Line -->
+            <div class="absolute top-6 left-4 right-4 h-0.5 bg-surface-border"></div>
+
+            <div class="flex justify-between relative">
+              <!-- Week 1 -->
+              <div class="flex flex-col items-center w-1/4">
+                <div class="w-12 h-12 rounded-full bg-violet-500/20 border-2 border-violet-500 flex items-center justify-center timeline-dot z-10">
+                  <span class="text-sm font-bold text-violet-300">W1</span>
+                </div>
+                <span class="text-xs text-slate-400 mt-3 font-medium">Apr 14–20</span>
+                <span class="text-lg font-bold text-white mt-1">£892</span>
+                <div class="mt-3 space-y-2 w-full max-w-[160px]">
+                  <div class="bg-surface-raised rounded-lg p-2.5 border border-surface-border">
+                    <div class="flex justify-between items-center">
+                      <span class="text-xs font-medium text-white">Netflix</span>
+                      <span class="text-xs font-bold text-rose-400">£15.99</span>
+                    </div>
+                    <div class="flex items-center gap-1 mt-1">
+                      <div class="w-full h-1 rounded-full bg-emerald-500/30"><div class="h-full rounded-full bg-emerald-500" style="width:98%"></div></div>
+                      <span class="text-[10px] text-emerald-400">98%</span>
+                    </div>
+                  </div>
+                  <div class="bg-surface-raised rounded-lg p-2.5 border border-surface-border">
+                    <div class="flex justify-between items-center">
+                      <span class="text-xs font-medium text-white">Council Tax</span>
+                      <span class="text-xs font-bold text-rose-400">£186</span>
+                    </div>
+                    <div class="flex items-center gap-1 mt-1">
+                      <div class="w-full h-1 rounded-full bg-emerald-500/30"><div class="h-full rounded-full bg-emerald-500" style="width:95%"></div></div>
+                      <span class="text-[10px] text-emerald-400">95%</span>
+                    </div>
+                  </div>
+                  <div class="bg-surface-raised rounded-lg p-2.5 border border-surface-border">
+                    <div class="flex justify-between items-center">
+                      <span class="text-xs font-medium text-white">Rent</span>
+                      <span class="text-xs font-bold text-rose-400">£690</span>
+                    </div>
+                    <div class="flex items-center gap-1 mt-1">
+                      <div class="w-full h-1 rounded-full bg-emerald-500/30"><div class="h-full rounded-full bg-emerald-500" style="width:99%"></div></div>
+                      <span class="text-[10px] text-emerald-400">99%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Week 2 -->
+              <div class="flex flex-col items-center w-1/4">
+                <div class="w-12 h-12 rounded-full bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center timeline-dot z-10" style="animation-delay:0.5s">
+                  <span class="text-sm font-bold text-blue-300">W2</span>
+                </div>
+                <span class="text-xs text-slate-400 mt-3 font-medium">Apr 21–27</span>
+                <span class="text-lg font-bold text-white mt-1">£423</span>
+                <div class="mt-3 space-y-2 w-full max-w-[160px]">
+                  <div class="bg-surface-raised rounded-lg p-2.5 border border-surface-border">
+                    <div class="flex justify-between items-center">
+                      <span class="text-xs font-medium text-white">Gym</span>
+                      <span class="text-xs font-bold text-rose-400">£39.99</span>
+                    </div>
+                    <div class="flex items-center gap-1 mt-1">
+                      <div class="w-full h-1 rounded-full bg-emerald-500/30"><div class="h-full rounded-full bg-emerald-500" style="width:92%"></div></div>
+                      <span class="text-[10px] text-emerald-400">92%</span>
+                    </div>
+                  </div>
+                  <div class="bg-surface-raised rounded-lg p-2.5 border border-surface-border">
+                    <div class="flex justify-between items-center">
+                      <span class="text-xs font-medium text-white">Phone Bill</span>
+                      <span class="text-xs font-bold text-rose-400">£24</span>
+                    </div>
+                    <div class="flex items-center gap-1 mt-1">
+                      <div class="w-full h-1 rounded-full bg-emerald-500/30"><div class="h-full rounded-full bg-emerald-500" style="width:88%"></div></div>
+                      <span class="text-[10px] text-emerald-400">88%</span>
+                    </div>
+                  </div>
+                  <div class="bg-surface-raised rounded-lg p-2.5 border border-surface-border">
+                    <div class="flex justify-between items-center">
+                      <span class="text-xs font-medium text-white">Groceries (est.)</span>
+                      <span class="text-xs font-bold text-amber-400">~£360</span>
+                    </div>
+                    <div class="flex items-center gap-1 mt-1">
+                      <div class="w-full h-1 rounded-full bg-amber-500/30"><div class="h-full rounded-full bg-amber-500" style="width:72%"></div></div>
+                      <span class="text-[10px] text-amber-400">72%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Week 3 -->
+              <div class="flex flex-col items-center w-1/4">
+                <div class="w-12 h-12 rounded-full bg-amber-500/20 border-2 border-amber-500 flex items-center justify-center timeline-dot z-10" style="animation-delay:1s">
+                  <span class="text-sm font-bold text-amber-300">W3</span>
+                </div>
+                <span class="text-xs text-slate-400 mt-3 font-medium">Apr 28–May 4</span>
+                <span class="text-lg font-bold text-white mt-1">£215</span>
+                <div class="mt-3 space-y-2 w-full max-w-[160px]">
+                  <div class="bg-surface-raised rounded-lg p-2.5 border border-surface-border">
+                    <div class="flex justify-between items-center">
+                      <span class="text-xs font-medium text-white">Spotify</span>
+                      <span class="text-xs font-bold text-rose-400">£10.99</span>
+                    </div>
+                    <div class="flex items-center gap-1 mt-1">
+                      <div class="w-full h-1 rounded-full bg-emerald-500/30"><div class="h-full rounded-full bg-emerald-500" style="width:97%"></div></div>
+                      <span class="text-[10px] text-emerald-400">97%</span>
+                    </div>
+                  </div>
+                  <div class="bg-surface-raised rounded-lg p-2.5 border border-surface-border">
+                    <div class="flex justify-between items-center">
+                      <span class="text-xs font-medium text-white">Energy Bill</span>
+                      <span class="text-xs font-bold text-amber-400">~£145</span>
+                    </div>
+                    <div class="flex items-center gap-1 mt-1">
+                      <div class="w-full h-1 rounded-full bg-amber-500/30"><div class="h-full rounded-full bg-amber-500" style="width:65%"></div></div>
+                      <span class="text-[10px] text-amber-400">65%</span>
+                    </div>
+                  </div>
+                  <div class="bg-surface-raised rounded-lg p-2.5 border border-surface-border shimmer">
+                    <div class="flex justify-between items-center">
+                      <span class="text-xs font-medium text-slate-400">Car Insurance?</span>
+                      <span class="text-xs font-bold text-slate-500">~£59</span>
+                    </div>
+                    <div class="flex items-center gap-1 mt-1">
+                      <div class="w-full h-1 rounded-full bg-slate-700"><div class="h-full rounded-full bg-slate-500" style="width:40%"></div></div>
+                      <span class="text-[10px] text-slate-500">40%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Week 4 -->
+              <div class="flex flex-col items-center w-1/4">
+                <div class="w-12 h-12 rounded-full bg-slate-500/20 border-2 border-slate-600 flex items-center justify-center z-10">
+                  <span class="text-sm font-bold text-slate-400">W4</span>
+                </div>
+                <span class="text-xs text-slate-400 mt-3 font-medium">May 5–11</span>
+                <span class="text-lg font-bold text-slate-400 mt-1">~£180</span>
+                <div class="mt-3 space-y-2 w-full max-w-[160px]">
+                  <div class="bg-surface-raised rounded-lg p-2.5 border border-surface-border shimmer">
+                    <div class="flex justify-between items-center">
+                      <span class="text-xs font-medium text-slate-400">Cloud Storage</span>
+                      <span class="text-xs font-bold text-slate-500">£7.99</span>
+                    </div>
+                  </div>
+                  <div class="bg-surface-raised rounded-lg p-2.5 border border-surface-border shimmer">
+                    <div class="flex justify-between items-center">
+                      <span class="text-xs font-medium text-slate-400">Dining out (est.)</span>
+                      <span class="text-xs font-bold text-slate-500">~£120</span>
+                    </div>
+                  </div>
+                  <div class="text-center py-3">
+                    <span class="text-[10px] text-slate-500 italic">Lower confidence</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- 6. SHAREABLE FINANCIAL SNAPSHOT -->
+    <!-- ============================================ -->
+    <section class="fade-in" id="snapshot">
+      <div class="flex items-center gap-3 mb-2">
+        <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 text-sm font-bold">6</span>
+        <h2 class="text-2xl font-bold text-white">Shareable Snapshot Cards</h2>
+      </div>
+      <p class="text-slate-400 mb-8 max-w-2xl">Beautiful, privacy-safe cards you can share on social media or export as images. Show off milestones like debt payoff, savings goals hit, or net worth growth — without revealing exact numbers.</p>
+
+      <div class="grid md:grid-cols-3 gap-6">
+        <!-- Card 1: Net Worth Milestone -->
+        <div class="share-gradient rounded-2xl p-6 border border-blue-900/30 card-hover cursor-pointer relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl"></div>
+          <div class="relative">
+            <div class="flex items-center gap-2 mb-4">
+              <svg class="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+              <span class="text-xs text-blue-400 font-semibold uppercase tracking-wider">Milestone</span>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-1">Net Worth ↗ +34%</h3>
+            <p class="text-sm text-slate-400 mb-4">Year-over-year growth</p>
+            <div class="flex items-center gap-3 mt-4 pt-4 border-t border-white/10">
+              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white text-xs font-bold">W</div>
+              <div>
+                <span class="text-xs text-slate-300 font-medium">Tracked with Wealth</span>
+                <span class="text-[10px] text-slate-500 block">April 2025</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Savings Goal -->
+        <div class="rounded-2xl p-6 border border-emerald-900/30 card-hover cursor-pointer relative overflow-hidden" style="background: linear-gradient(135deg, #0d3320 0%, #0a0a0f 50%, #0d2818 100%);">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl"></div>
+          <div class="relative">
+            <div class="flex items-center gap-2 mb-4">
+              <svg class="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span class="text-xs text-emerald-400 font-semibold uppercase tracking-wider">Goal Reached</span>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-1">Emergency Fund ✓</h3>
+            <p class="text-sm text-slate-400 mb-4">6 months of expenses saved</p>
+            <div class="flex gap-1 mb-4">
+              <div class="h-2 flex-1 rounded-full bg-emerald-500"></div>
+              <div class="h-2 flex-1 rounded-full bg-emerald-500"></div>
+              <div class="h-2 flex-1 rounded-full bg-emerald-500"></div>
+              <div class="h-2 flex-1 rounded-full bg-emerald-500"></div>
+              <div class="h-2 flex-1 rounded-full bg-emerald-500"></div>
+              <div class="h-2 flex-1 rounded-full bg-emerald-500"></div>
+            </div>
+            <div class="flex items-center gap-3 mt-4 pt-4 border-t border-white/10">
+              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white text-xs font-bold">W</div>
+              <div>
+                <span class="text-xs text-slate-300 font-medium">Tracked with Wealth</span>
+                <span class="text-[10px] text-slate-500 block">April 2025</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Debt Free -->
+        <div class="rounded-2xl p-6 border border-amber-900/30 card-hover cursor-pointer relative overflow-hidden" style="background: linear-gradient(135deg, #3d2800 0%, #0a0a0f 50%, #2d1f00 100%);">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl"></div>
+          <div class="relative">
+            <div class="flex items-center gap-2 mb-4">
+              <svg class="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span class="text-xs text-amber-400 font-semibold uppercase tracking-wider">Achievement</span>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-1">Student Loan: Paid Off</h3>
+            <p class="text-sm text-slate-400 mb-4">3 years ahead of schedule</p>
+            <div class="flex items-center gap-2 mb-4">
+              <span class="text-3xl">🎉</span>
+              <div>
+                <span class="text-sm text-amber-400 font-semibold">£24,500 cleared</span>
+                <span class="text-xs text-slate-400 block">Saved £2,100 in interest</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 mt-4 pt-4 border-t border-white/10">
+              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white text-xs font-bold">W</div>
+              <div>
+                <span class="text-xs text-slate-300 font-medium">Tracked with Wealth</span>
+                <span class="text-[10px] text-slate-500 block">April 2025</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Summary -->
+    <section class="text-center fade-in">
+      <div class="inline-flex flex-col items-center gap-4 bg-surface-card rounded-2xl border border-surface-border p-10 max-w-xl mx-auto">
+        <h2 class="text-2xl font-bold text-white">Skills Used</h2>
+        <div class="grid grid-cols-2 gap-3 text-left text-sm">
+          <div class="flex items-start gap-2">
+            <div class="w-2 h-2 mt-1.5 rounded-full bg-emerald-400 shrink-0"></div>
+            <div>
+              <span class="text-white font-medium">UI/UX Pro Max</span>
+              <p class="text-xs text-slate-400">Design system, chart types, UX guidelines</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-2">
+            <div class="w-2 h-2 mt-1.5 rounded-full bg-blue-400 shrink-0"></div>
+            <div>
+              <span class="text-white font-medium">Brainstorming</span>
+              <p class="text-xs text-slate-400">Feature ideation, approach selection</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-2">
+            <div class="w-2 h-2 mt-1.5 rounded-full bg-violet-400 shrink-0"></div>
+            <div>
+              <span class="text-white font-medium">Chart Intelligence</span>
+              <p class="text-xs text-slate-400">Sankey, heatmap, gauge, timeline</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-2">
+            <div class="w-2 h-2 mt-1.5 rounded-full bg-amber-400 shrink-0"></div>
+            <div>
+              <span class="text-white font-medium">UX Guidelines</span>
+              <p class="text-xs text-slate-400">Animations, loading states, accessibility</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // Animate score counter
+    function animateCounter(el, target, duration = 2000) {
+      const start = performance.now();
+      function update(now) {
+        const elapsed = now - start;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        el.textContent = Math.round(eased * target);
+        if (progress < 1) requestAnimationFrame(update);
+      }
+      requestAnimationFrame(update);
+    }
+
+    // Start score animation when visible
+    const scoreEl = document.getElementById('scoreValue');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          animateCounter(scoreEl, 75);
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.5 });
+    observer.observe(scoreEl);
+
+    // Fade-in on scroll
+    const fadeObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.animationPlayState = 'running';
+          fadeObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.fade-in').forEach(el => {
+      el.style.animationPlayState = 'paused';
+      fadeObserver.observe(el);
+    });
+
+    // Generate heatmap
+    const grid = document.getElementById('heatmapGrid');
+    const colors = [
+      'bg-surface-raised',
+      'bg-rose-900/40',
+      'bg-rose-700/50',
+      'bg-rose-500/70',
+      'bg-rose-400',
+    ];
+    const amounts = [0, 50, 120, 250, 500];
+    for (let week = 0; week < 26; week++) {
+      const col = document.createElement('div');
+      col.className = 'flex flex-col gap-0.5';
+      for (let day = 0; day < 7; day++) {
+        const cell = document.createElement('div');
+        // Weighted random: more low spending days
+        const rand = Math.random();
+        let level;
+        if (rand < 0.3) level = 0;
+        else if (rand < 0.55) level = 1;
+        else if (rand < 0.75) level = 2;
+        else if (rand < 0.9) level = 3;
+        else level = 4;
+
+        const amount = amounts[level] + Math.round(Math.random() * 50);
+        cell.className = `w-3 h-3 rounded-sm heat-cell ${colors[level]}`;
+        cell.title = `£${amount} spent`;
+        cell.style.position = 'relative';
+        col.appendChild(cell);
+      }
+      grid.appendChild(col);
+    }
+  </script>
+</body>
+</html>

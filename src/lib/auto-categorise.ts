@@ -10,6 +10,7 @@ import { logger } from "@/lib/logger";
 import { normaliseMerchant } from "@/lib/merchant-normalise";
 import { learnMerchantMappingForUser } from "@/db/mutations/merchant-mappings";
 import { revalidateDomains } from "@/lib/revalidate";
+import { env } from "@/lib/env";
 
 const categoriseSchema = z.object({
   category_id: z.string().nullable(),
@@ -72,7 +73,7 @@ export async function matchCategorisationRule(
   const match = matchAgainstRules(rules, description);
   if (match) return match;
 
-  if (process.env.GROQ_API_KEY && (await isAiEnabled(userId))) {
+  if (env().GROQ_API_KEY && (await isAiEnabled(userId))) {
     return aiCategorise(userId, description);
   }
 
@@ -168,7 +169,7 @@ export async function batchAiCategorise(
   userId: string,
   transactionIds?: string[],
 ): Promise<BatchAiResult> {
-  if (!process.env.GROQ_API_KEY) return { categorised: 0, categoriesCreated: 0 };
+  if (!env().GROQ_API_KEY) return { categorised: 0, categoriesCreated: 0 };
   if (!(await isAiEnabled(userId))) return { categorised: 0, categoriesCreated: 0 };
 
   try {

@@ -5,6 +5,7 @@ import { getRecentTransactionsForPatterns } from "@/db/queries/transactions";
 import { detectSpendingPatterns, type SubscriptionInput } from "@/lib/spending-patterns";
 import { getCachedFunnyMilestones, setCachedFunnyMilestones } from "@/lib/funny-milestones-cache";
 import { isAiEnabled } from "@/db/queries/preferences";
+import { env } from "@/lib/env";
 
 // ---------------------------------------------------------------------------
 // Server-side orchestrator: detect patterns → AI copy → cache → return
@@ -27,7 +28,7 @@ export async function getFunnyMilestones(
   if (cached) return cached;
 
   // 2. Guard: AI must be enabled and key must exist
-  if (!process.env.GROQ_API_KEY) {
+  if (!env().GROQ_API_KEY) {
     setCachedFunnyMilestones(userId, []);
     return [];
   }

@@ -1,4 +1,5 @@
 import { PostHog } from "posthog-node";
+import { env } from "@/lib/env";
 
 const noopPostHog = {
   capture() {},
@@ -11,13 +12,14 @@ const noopPostHog = {
 let posthogClient: PostHog | null = null;
 
 export function getPostHogClient(): PostHog {
-  if (!process.env.NEXT_PUBLIC_POSTHOG_KEY) {
+  const { NEXT_PUBLIC_POSTHOG_KEY, NEXT_PUBLIC_POSTHOG_HOST } = env();
+  if (!NEXT_PUBLIC_POSTHOG_KEY) {
     return noopPostHog;
   }
 
   if (!posthogClient) {
-    posthogClient = new PostHog(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
-      host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+    posthogClient = new PostHog(NEXT_PUBLIC_POSTHOG_KEY, {
+      host: NEXT_PUBLIC_POSTHOG_HOST,
       flushAt: 1,
       flushInterval: 0,
     });
