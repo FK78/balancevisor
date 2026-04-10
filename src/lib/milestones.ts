@@ -10,7 +10,8 @@ export type MilestoneKind =
   | "goal_completed"
   | "debt_paid_off"
   | "savings_streak"
-  | "budget_adherence";
+  | "budget_adherence"
+  | "funny";
 
 export interface Milestone {
   readonly kind: MilestoneKind;

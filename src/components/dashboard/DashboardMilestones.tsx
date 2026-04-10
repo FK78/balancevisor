@@ -17,6 +17,7 @@ import {
   Target,
   Share2,
   Award,
+  Laugh,
 } from "lucide-react";
 import { ShareSnapshotDialog } from "@/components/ShareSnapshotDialog";
 import type { Milestone, MilestoneKind } from "@/lib/milestones";
@@ -31,6 +32,7 @@ const KIND_ICON: Record<MilestoneKind, typeof TrendingUp> = {
   debt_paid_off: CreditCard,
   savings_streak: Flame,
   budget_adherence: Target,
+  funny: Laugh,
 };
 
 const ACCENT_BG: Record<Milestone["accent"], string> = {

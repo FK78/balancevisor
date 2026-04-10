@@ -167,6 +167,9 @@ export const rateLimiters = {
   /** Retirement planner AI: 5 requests per 10 minutes. */
   retirementPlanner: new RateLimiter({ maxRequests: 5, windowMs: 10 * 60 * 1000 }),
 
+  /** Funny milestones AI copy: 3 requests per 10 minutes. */
+  funnyMilestones: new RateLimiter({ maxRequests: 3, windowMs: 10 * 60 * 1000 }),
+
   /** Dashboard layout save/delete: 20 requests per minute. */
   dashboardLayout: new RateLimiter({ maxRequests: 20, windowMs: 60 * 1000 }),
 };

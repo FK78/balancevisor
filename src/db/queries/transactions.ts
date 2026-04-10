@@ -467,6 +467,54 @@ export async function getDailyExpenseByCategory(userId: string, dayCount = 30): 
   return rows;
 }
 
+// ---------------------------------------------------------------------------
+// Lightweight query for spending-pattern detection (funny milestones)
+// ---------------------------------------------------------------------------
+
+export interface PatternTransactionRow {
+  merchant_name: string | null;
+  category: string | null;
+  amount: number;
+  date: string;
+  type: string | null;
+}
+
+export async function getRecentTransactionsForPatterns(
+  userId: string,
+  days = 90,
+): Promise<PatternTransactionRow[]> {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+
+  const rows = await db
+    .select({
+      merchant_name: transactionsTable.merchant_name,
+      category: categoriesTable.name,
+      amount: transactionsTable.amount,
+      date: transactionsTable.date,
+      type: transactionsTable.type,
+    })
+    .from(transactionsTable)
+    .leftJoin(categoriesTable, eq(transactionsTable.category_id, categoriesTable.id))
+    .where(
+      and(
+        eq(transactionsTable.user_id, userId),
+        gte(transactionsTable.date, cutoffStr),
+      ),
+    )
+    .orderBy(desc(transactionsTable.date))
+    .limit(2000);
+
+  return rows.map((r) => ({
+    merchant_name: r.merchant_name,
+    category: r.category,
+    amount: Number(r.amount),
+    date: r.date ?? "",
+    type: r.type,
+  }));
+}
+
 export async function getMonthlyCategorySpendTrend(userId: string, monthCount = 6): Promise<MonthlyCategorySpendPoint[]> {
   const monthKeys = getRecentMonthKeys(monthCount);
   const [startMonth] = monthKeys;

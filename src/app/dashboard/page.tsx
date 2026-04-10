@@ -30,6 +30,8 @@ import { getCompletedMonths, buildRetirementInputs } from "@/lib/retirement-inpu
 import { DashboardPageClient } from "@/components/dashboard/DashboardPageClient";
 import { detectMilestones } from "@/lib/milestones";
 import { computeHealthScore } from "@/lib/financial-health-score";
+import { getFunnyMilestones } from "@/lib/funny-milestones";
+import { getActiveSubscriptionsTotals } from "@/db/queries/subscriptions";
 
 export default async function Home() {
   const userId = await getCurrentUserId();
@@ -48,6 +50,7 @@ export default async function Home() {
   const latestZakatCalcP = on("zakat") ? getLatestZakatCalculation(userId) : Promise.resolve(null);
   const retirementProfileP = on("retirement") ? getRetirementProfile(userId) : Promise.resolve(null);
   const debtsSummaryP = getDebtsSummary(userId);
+  const subsTotalsP = on("subscriptions") ? getActiveSubscriptionsTotals(userId) : Promise.resolve(null);
 
   const [
     lastFiveTransactions,
@@ -101,7 +104,7 @@ export default async function Home() {
 
   // Await insights (depends on budgets + goals) alongside the pre-started independent queries.
   // Forecast receives prefetched trend + currency to avoid duplicate DB queries.
-  const [insights, forecast, anomalies, zakatSettings, latestZakatCalc, retirementProfile, debtsSummary] = await Promise.all([
+  const [insights, forecast, anomalies, zakatSettings, latestZakatCalc, retirementProfile, debtsSummary, subsTotals] = await Promise.all([
     getDashboardInsights(userId, budgets, goals),
     on("reports") ? getCashflowForecast(userId, { prefetchedTrend: monthlyTrend, prefetchedCurrency: baseCurrency }) : Promise.resolve(null),
     anomaliesP,
@@ -109,6 +112,7 @@ export default async function Home() {
     latestZakatCalcP,
     retirementProfileP,
     debtsSummaryP,
+    subsTotalsP,
   ]);
 
   let zakatData: { zakatDue: number; zakatableAmount: number; aboveNisab: boolean; daysUntil: number | null; hasSettings: boolean } | null = null;
@@ -134,7 +138,7 @@ export default async function Home() {
   }
 
   // Detect shareable milestones from data already fetched
-  const milestones = detectMilestones({
+  const baseMilestones = detectMilestones({
     netWorthHistory,
     monthlyTrend,
     goals: goals.map((g) => ({ id: g.id, name: g.name, target_amount: g.target_amount, saved_amount: g.saved_amount })),
@@ -142,6 +146,15 @@ export default async function Home() {
     budgets: budgets.map((b) => ({ id: b.id, spent: b.budgetSpent, limit: b.budgetAmount })),
     currency: baseCurrency,
   });
+
+  // Fetch AI-generated funny milestone cards (non-blocking — falls back to empty)
+  const funnyMilestones = await getFunnyMilestones(
+    userId,
+    baseCurrency,
+    subsTotals ? { count: subsTotals.count, monthlyTotal: subsTotals.monthly } : null,
+  ).catch(() => [] as const);
+
+  const milestones = [...baseMilestones, ...funnyMilestones];
 
   // Compute financial health score from data already fetched
   const avgMonthlyExpense = monthlyTrend.length > 0

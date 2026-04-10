@@ -6,6 +6,7 @@ import {
   CreditCard,
   Flame,
   Target,
+  Laugh,
 } from "lucide-react";
 import type { Milestone, MilestoneKind } from "@/lib/milestones";
 
@@ -50,6 +51,7 @@ const KIND_ICON: Record<MilestoneKind, typeof TrendingUp> = {
   debt_paid_off: CreditCard,
   savings_streak: Flame,
   budget_adherence: Target,
+  funny: Laugh,
 };
 
 const KIND_LABEL: Record<MilestoneKind, string> = {
@@ -58,6 +60,7 @@ const KIND_LABEL: Record<MilestoneKind, string> = {
   debt_paid_off: "Achievement",
   savings_streak: "Streak",
   budget_adherence: "Discipline",
+  funny: "Fun Fact",
 };
 
 // ---------------------------------------------------------------------------

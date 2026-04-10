@@ -24,6 +24,7 @@ const KIND_LABEL: Record<MilestoneKind, string> = {
   debt_paid_off: "Achievement",
   savings_streak: "Streak",
   budget_adherence: "Discipline",
+  funny: "Fun Fact",
 };
 
 // ---------------------------------------------------------------------------
