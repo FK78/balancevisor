@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildAccountCardDecision,
   buildAccountSummaryCards,
+  buildVisibleExposureTotal,
 } from "@/components/accounts/account-decision";
 
 const sampleAccounts = [
@@ -89,5 +90,46 @@ describe("account decision helpers", () => {
     expect(state.shareLabel).toBe("Shared with you");
     expect(state.statusLabel).toBe("Cash ready");
     expect(state.interpretation).toContain("spending buffer");
+  });
+
+  it("uses warning emphasis for negative cash accounts", () => {
+    const state = buildAccountCardDecision(
+      {
+        id: "acc_10",
+        accountName: "Main Current",
+        type: "currentAccount",
+        balance: -75,
+        transactions: 14,
+        isShared: false,
+      },
+      {
+        currency: "GBP",
+        totalAbsoluteBalance: 3000,
+      },
+    );
+
+    expect(state.amountTone).toBe("warning");
+    expect(state.statusLabel).toBe("Low cash buffer");
+  });
+
+  it("includes the current shared account in exposure total when missing from owned set", () => {
+    const exposureTotal = buildVisibleExposureTotal(
+      [
+        {
+          id: "owned_1",
+          accountName: "Owned Account",
+          type: "currentAccount",
+          balance: 300,
+        },
+      ],
+      {
+        id: "shared_1",
+        accountName: "Shared Account",
+        type: "savings",
+        balance: 700,
+      },
+    );
+
+    expect(exposureTotal).toBe(1000);
   });
 });

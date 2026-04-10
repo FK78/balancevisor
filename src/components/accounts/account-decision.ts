@@ -124,11 +124,12 @@ export function buildAccountCardDecision(
   const accountType = account.type ?? "";
   const isLiability = LIABILITY_TYPES.has(accountType);
 
-  const amountTone: AccountCardDecisionState["amountTone"] = isLiability && account.balance < 0
-    ? "negative"
-    : account.balance > 0
-      ? "positive"
-      : "neutral";
+  let amountTone: AccountCardDecisionState["amountTone"] = "neutral";
+  if (account.balance < 0) {
+    amountTone = isLiability ? "negative" : "warning";
+  } else if (account.balance > 0) {
+    amountTone = "positive";
+  }
 
   let statusLabel: string | undefined;
   let interpretation: string;
@@ -177,4 +178,17 @@ export function buildAccountCardDecision(
     typeLabel: formatAccountTypeLabel(account.type),
     transactionsLabel: `${pluralize(transactionCount, "transaction", "transactions")}`,
   };
+}
+
+export function buildVisibleExposureTotal(
+  visibleAccounts: readonly AccountDecisionInput[],
+  currentAccount?: Pick<AccountDecisionInput, "id" | "balance">,
+) {
+  const total = visibleAccounts.reduce((sum, account) => sum + Math.abs(account.balance), 0);
+  if (!currentAccount) return total;
+
+  const isCurrentIncluded = visibleAccounts.some((account) => account.id === currentAccount.id);
+  if (isCurrentIncluded) return total;
+
+  return total + Math.abs(currentAccount.balance);
 }

@@ -40,7 +40,10 @@ import { ShareDialog } from "@/components/ShareDialog";
 import { TransactionsClient } from "@/components/TransactionsClient";
 import { DecisionMetricCard } from "@/components/dense-data/DecisionMetricCard";
 import { DecisionRow } from "@/components/dense-data/DecisionRow";
-import { buildAccountCardDecision } from "@/components/accounts/account-decision";
+import {
+  buildAccountCardDecision,
+  buildVisibleExposureTotal,
+} from "@/components/accounts/account-decision";
 
 const typeConfig: Record<
   string,
@@ -161,7 +164,10 @@ export default async function AccountDetailPage({
   }
 
   const totalPages = Math.max(1, Math.ceil(totalTransactions / PAGE_SIZE));
-  const totalAbsoluteBalance = allAccounts.reduce((sum, item) => sum + Math.abs(item.balance), 0);
+  const totalAbsoluteBalance = buildVisibleExposureTotal(allAccounts, {
+    id: account.id,
+    balance: account.balance,
+  });
 
   if (totalTransactions > 0 && requestedPage > totalPages) {
     const p = new URLSearchParams();
