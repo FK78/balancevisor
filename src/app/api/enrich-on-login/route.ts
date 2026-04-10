@@ -6,26 +6,31 @@ import { enrichTransactions } from "@/lib/transaction-intelligence";
 import { autoApplyBudgetSuggestions } from "@/lib/budget-auto-apply";
 import { logger } from "@/lib/logger";
 
-const COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
+const COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
 
 /**
  * On-login enrichment endpoint. Runs the full enrichment + budget auto-apply
  * pipeline with a 1-hour cooldown per user to avoid redundant processing.
  */
-export async function POST() {
+export async function POST(req: Request) {
   const userId = await getCurrentUserId();
 
   try {
-    // Check cooldown
-    const [prefs] = await db
-      .select({ last_enriched_at: userPreferencesTable.last_enriched_at })
-      .from(userPreferencesTable)
-      .where(eq(userPreferencesTable.user_id, userId));
+    const body = await req.json().catch(() => ({}));
+    const force = body?.force === true;
 
-    if (prefs?.last_enriched_at) {
-      const elapsed = Date.now() - prefs.last_enriched_at.getTime();
-      if (elapsed < COOLDOWN_MS) {
-        return Response.json({ skipped: true, reason: "cooldown" });
+    // Check cooldown (skip if force=true from manual trigger)
+    if (!force) {
+      const [prefs] = await db
+        .select({ last_enriched_at: userPreferencesTable.last_enriched_at })
+        .from(userPreferencesTable)
+        .where(eq(userPreferencesTable.user_id, userId));
+
+      if (prefs?.last_enriched_at) {
+        const elapsed = Date.now() - prefs.last_enriched_at.getTime();
+        if (elapsed < COOLDOWN_MS) {
+          return Response.json({ skipped: true, reason: "cooldown" });
+        }
       }
     }
 

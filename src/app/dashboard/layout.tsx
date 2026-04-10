@@ -62,6 +62,7 @@ export default async function DashboardLayout({
             <DashboardNav />
           </div>
           <div className="flex items-center gap-1.5">
+            <EnrichmentTrigger />
             <ChatPanel />
             <ThemeToggle />
             <Suspense>
@@ -81,7 +82,6 @@ export default async function DashboardLayout({
       <MobileBottomNav />
       <InstallPrompt />
       <BankSyncTrigger enabled={hasBankConnection} />
-      <EnrichmentTrigger />
       {pendingFeaturesList.length > 0 && (
         <NextFeatureButtonClient pendingFeatures={pendingFeaturesList} />
       )}
