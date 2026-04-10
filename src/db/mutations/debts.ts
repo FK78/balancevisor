@@ -65,6 +65,7 @@ export async function editDebt(id: string, formData: FormData) {
 
 export async function deleteDebt(id: string) {
   const userId = await getCurrentUserId();
+  await requireOwnership(debtsTable, id, userId, 'debt');
   await db.delete(debtsTable).where(and(eq(debtsTable.id, id), eq(debtsTable.user_id, userId)));
   revalidateDomains('debts');
 }

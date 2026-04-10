@@ -46,25 +46,24 @@ export function withRateLimit(
 
 /**
  * Extract the client IP from a request.
- * Works with Vercel, Cloudflare, and standard Node.js.
+ * Ordered for VPS/Coolify deployment: standard headers first, then Cloudflare.
  */
 export function getClientIp(req: Request): string {
   const headers = req.headers;
 
-  // Vercel
-  const vercelIp = headers.get("x-vercel-forwarded-for")
-    ?? headers.get("x-real-ip");
-  if (vercelIp) return vercelIp;
+  // Standard proxy header (Nginx, Caddy, etc.)
+  const forwardedFor = headers.get("x-forwarded-for");
+  if (forwardedFor) {
+    return forwardedFor.split(",")[0].trim();
+  }
 
   // Cloudflare
   const cfIp = headers.get("cf-connecting-ip");
   if (cfIp) return cfIp;
 
-  // Standard
-  const forwardedFor = headers.get("x-forwarded-for");
-  if (forwardedFor) {
-    return forwardedFor.split(",")[0].trim();
-  }
+  // Fallback: x-real-ip (common in Nginx configs)
+  const realIp = headers.get("x-real-ip");
+  if (realIp) return realIp;
 
   return "unknown";
 }
