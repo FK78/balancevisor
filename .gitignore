@@ -46,3 +46,6 @@ next-env.d.ts
 .codex
 .windsurf
 .superpowers
+
+*storybook.log
+storybook-static
