@@ -78,6 +78,39 @@ export async function confirmRecurringCandidate(
 }
 
 /**
+ * Dismiss a detected recurring candidate — marks the transaction so it
+ * won't appear in future suggestions. Sets is_recurring=true with no
+ * pattern, which excludes it from both detection (requires is_recurring=false)
+ * and the recurring list (requires recurring_pattern IS NOT NULL).
+ */
+export async function dismissRecurringCandidate(transactionId: string) {
+  const userId = await getCurrentUserId();
+
+  const [txn] = await db
+    .select({ is_recurring: transactionsTable.is_recurring })
+    .from(transactionsTable)
+    .where(
+      and(
+        eq(transactionsTable.id, transactionId),
+        eq(transactionsTable.user_id, userId),
+      )
+    );
+
+  if (!txn) throw new Error('Transaction not found');
+
+  await db
+    .update(transactionsTable)
+    .set({
+      is_recurring: true,
+      recurring_pattern: null,
+      next_recurring_date: null,
+    })
+    .where(eq(transactionsTable.id, transactionId));
+
+  revalidateDomains('recurring', 'transactions');
+}
+
+/**
  * Stop a recurring transaction — sets is_recurring to false and clears
  * recurring_pattern / next_recurring_date. The transaction itself remains
  * as a historical record.

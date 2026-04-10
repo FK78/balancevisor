@@ -47,11 +47,36 @@ export async function getRecurringTransactions(userId: string): Promise<Recurrin
     .orderBy(desc(transactionsTable.next_recurring_date));
 
   const userKey = await getUserKey(userId);
-  return rows.map((row) => ({
+  const decrypted = rows.map((row) => ({
     ...row,
     description: row.description ? decryptForUser(row.description, userKey) : '',
     accountName: row.accountName ? decryptForUser(row.accountName, userKey) : '',
   }));
+
+  // Deduplicate: many historical transactions share is_recurring=true for the
+  // same charge (e.g. 12 months of Netflix).  We only want one row per unique
+  // recurring charge so the summary totals are correct.
+  const seen = new Map<string, RecurringTransaction>();
+  for (const row of decrypted) {
+    const key = dedupeKey(row.description) + '|' + (row.type ?? '');
+    const existing = seen.get(key);
+    if (
+      !existing ||
+      (row.next_recurring_date ?? row.date ?? '') >
+        (existing.next_recurring_date ?? existing.date ?? '')
+    ) {
+      seen.set(key, row);
+    }
+  }
+  return Array.from(seen.values());
+}
+
+function dedupeKey(description: string): string {
+  return description
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 export async function getRecurringTransactionsSummary(userId: string) {

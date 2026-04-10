@@ -59,7 +59,7 @@ import {
   Sparkles,
   XCircle,
 } from "lucide-react";
-import { cancelRecurring, confirmRecurringCandidate, updateRecurringPattern } from "@/db/mutations/recurring";
+import { cancelRecurring, confirmRecurringCandidate, dismissRecurringCandidate, updateRecurringPattern } from "@/db/mutations/recurring";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { recurringPatternLabels as patternLabels } from "@/lib/labels";
 import type { RecurringTransaction } from "@/db/queries/recurring";
@@ -238,6 +238,38 @@ function ConfirmCandidateBtn({
   );
 }
 
+function DismissCandidateBtn({
+  candidate,
+  onDismissed,
+}: {
+  candidate: RecurringCandidate;
+  onDismissed: (id: string) => void;
+}) {
+  const [isPending, startTransition] = useTransition();
+
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+      disabled={isPending}
+      aria-label="Dismiss suggestion"
+      onClick={() => {
+        startTransition(async () => {
+          await dismissRecurringCandidate(candidate.latestTransactionId);
+          onDismissed(candidate.latestTransactionId);
+        });
+      }}
+    >
+      {isPending ? (
+        <Loader2 className="h-3 w-3 animate-spin" />
+      ) : (
+        <XCircle className="h-3.5 w-3.5" />
+      )}
+    </Button>
+  );
+}
+
 function SuggestedRecurringCard({
   candidates: initialCandidates,
   currency,
@@ -245,14 +277,14 @@ function SuggestedRecurringCard({
   candidates: RecurringCandidate[];
   currency: string;
 }) {
-  const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
 
   const candidates = initialCandidates.filter(
-    (c) => !confirmed.has(c.latestTransactionId),
+    (c) => !hidden.has(c.latestTransactionId),
   );
 
-  function handleConfirmed(id: string) {
-    setConfirmed((prev) => new Set(prev).add(id));
+  function handleHidden(id: string) {
+    setHidden((prev) => new Set(prev).add(id));
   }
 
   if (candidates.length === 0) return null;
@@ -314,7 +346,8 @@ function SuggestedRecurringCard({
                 {c.type === "income" ? "+" : "−"}
                 {formatCurrency(c.amount, currency)}
               </span>
-              <ConfirmCandidateBtn candidate={c} onConfirmed={handleConfirmed} />
+              <DismissCandidateBtn candidate={c} onDismissed={handleHidden} />
+              <ConfirmCandidateBtn candidate={c} onConfirmed={handleHidden} />
             </div>
           </div>
         ))}
