@@ -52,6 +52,7 @@ import { toDateString, addDays } from "@/lib/date";
 import type { AccountWithDetails, CategoryWithColor, TransactionWithDetails, SplitDetail } from "@/lib/types";
 import type { DailyCashflowPoint, DailyCategoryExpensePoint } from "@/db/queries/transactions";
 import dynamic from "next/dynamic";
+import { InlineCategoryPicker } from "@/components/InlineCategoryPicker";
 
 const TransactionsInsightsCharts = dynamic(
   () => import("@/components/TransactionsInsightsCharts").then((mod) => mod.TransactionsInsightsCharts),
@@ -278,7 +279,13 @@ export function TransactionsClient({
         </Button>
       ),
       cell: ({ row }) => (
-        <span className="text-muted-foreground">{row.original.category ?? "—"}</span>
+        <InlineCategoryPicker
+          transactionId={row.original.id}
+          currentCategoryId={row.original.category_id}
+          categorySource={row.original.category_source}
+          merchantName={row.original.merchant_name}
+          categories={categories}
+        />
       ),
     },
     {

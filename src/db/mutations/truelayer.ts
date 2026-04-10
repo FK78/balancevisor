@@ -21,7 +21,11 @@ import {
   fetchTransactions,
 } from "@/lib/truelayer";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
-import { fetchUserRules, matchAgainstRules } from "@/lib/auto-categorise";
+import { fetchUserRules } from "@/lib/auto-categorise";
+import { getAllMerchantMappings } from "@/db/queries/merchant-mappings";
+import { categoriseTransaction } from "@/lib/categorise-transaction";
+import type { CategoriseContext } from "@/lib/categorise-transaction";
+import { learnMerchantMappingForUser } from "@/db/mutations/merchant-mappings";
 import { logger } from "@/lib/logger";
 
 // ---------------------------------------------------------------------------
@@ -124,9 +128,15 @@ export async function importFromTrueLayer() {
     );
   }
 
-  // Fetch rules once for the entire import — used for all transactions
-  // across all connections and accounts, avoiding an N+1 per transaction.
-  const rules = await fetchUserRules(userId);
+  // Build categorisation context once for the entire import
+  const [rules, merchantMappings, userCategories] = await Promise.all([
+    fetchUserRules(userId),
+    getAllMerchantMappings(userId),
+    db.select({ id: categoriesTable.id, name: categoriesTable.name })
+      .from(categoriesTable)
+      .where(eq(categoriesTable.user_id, userId)),
+  ]);
+  const catCtx: CategoriseContext = { rules, merchantMappings, userCategories };
 
   const accountsImported = 0;
   let transactionsImported = 0;
@@ -203,16 +213,10 @@ export async function importFromTrueLayer() {
         continue;
       }
 
-      // Fetch categories once per account, not once per transaction
-      const categories = await db
-        .select({ id: categoriesTable.id, name: categoriesTable.name })
-        .from(categoriesTable)
-        .where(eq(categoriesTable.user_id, userId));
-
       const uncategorised =
-        categories.find((c) => c.name.toLowerCase() === "uncategorised") ??
-        categories.find((c) => c.name.toLowerCase() === "other") ??
-        categories[0];
+        userCategories.find((c) => c.name.toLowerCase() === "uncategorised") ??
+        userCategories.find((c) => c.name.toLowerCase() === "other") ??
+        userCategories[0];
 
       for (const tlTxn of tlTransactions) {
         const isExpense =
@@ -233,15 +237,21 @@ export async function importFromTrueLayer() {
           }
         }
 
-        // Pure rule match — no DB call, rules already fetched above
-        const matchedCategoryId = matchAgainstRules(rules, description);
-        const categoryId = matchedCategoryId ?? uncategorised?.id ?? null;
+        // Unified categorisation pipeline: rules → merchant → bank category
+        const catResult = categoriseTransaction(
+          description,
+          catCtx,
+          tlTxn.transaction_category,
+        );
+        const categoryId = catResult.categoryId ?? uncategorised?.id ?? null;
 
         // Use onConflictDoNothing to safely skip duplicates during concurrent imports
         const rows = await db.insert(transactionsTable).values({
           user_id: userId,
           account_id: localAccountId,
           category_id: categoryId,
+          category_source: catResult.categorySource,
+          merchant_name: catResult.merchantName,
           type,
           amount,
           description: encryptForUser(description, userKey),
@@ -254,6 +264,11 @@ export async function importFromTrueLayer() {
         if (rows.length > 0) {
           importedTransactionIds.push(rows[0].id);
           transactionsImported++;
+
+          // Learn merchant mapping from bank category matches
+          if (catResult.categorySource === 'bank' && catResult.merchantName && catResult.categoryId) {
+            learnMerchantMappingForUser(userId, catResult.merchantName, catResult.categoryId, 'bank').catch(() => {});
+          }
         }
       }
     }

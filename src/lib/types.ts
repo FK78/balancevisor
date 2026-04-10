@@ -32,6 +32,7 @@ import type {
   zakatCalculationsTable,
   retirementProfilesTable,
   dashboardLayoutsTable,
+  merchantMappingsTable,
 } from "@/db/schema";
 
 // ---------------------------------------------------------------------------
@@ -109,6 +110,9 @@ export type NewZakatCalculation = InferInsertModel<typeof zakatCalculationsTable
 export type RetirementProfileRow = InferSelectModel<typeof retirementProfilesTable>;
 export type DashboardLayoutRow = InferSelectModel<typeof dashboardLayoutsTable>;
 
+export type MerchantMapping = InferSelectModel<typeof merchantMappingsTable>;
+export type NewMerchantMapping = InferInsertModel<typeof merchantMappingsTable>;
+
 // ---------------------------------------------------------------------------
 // UI-specific types (with decrypted fields and computed values)
 // ---------------------------------------------------------------------------
@@ -127,6 +131,8 @@ export type TransactionWithDetails = {
   transfer_account_id: string | null;
   is_split: boolean;
   refund_for_transaction_id: string | null;
+  category_source: string | null;
+  merchant_name: string | null;
 };
 
 export type AccountWithDetails = {

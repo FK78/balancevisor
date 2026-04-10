@@ -8,11 +8,12 @@ import { eq, sql } from 'drizzle-orm';
 import { getCurrentUserId, getCurrentUserEmail } from '@/lib/auth';
 import { hasEditAccess } from '@/db/queries/sharing';
 import { checkBudgetAlerts } from '@/lib/budget-alerts';
-import { encryptForUser, getUserKey } from '@/lib/encryption';
+import { encryptForUser, decryptForUser, getUserKey } from '@/lib/encryption';
 import { matchCategorisationRule } from '@/lib/auto-categorise';
 import { matchTransactionsToSubscriptions, matchTransactionsToDebts } from '@/lib/transaction-intelligence';
 import { requireString, sanitizeNumber, sanitizeEnum, requireDate, sanitizeUUID, sanitizeString } from '@/lib/sanitize';
 import { findMatchingExpense } from '@/lib/refund-matcher';
+import { normaliseMerchant } from '@/lib/merchant-normalise';
 
 type Transaction = Omit<typeof transactionsTable.$inferInsert, 'user_id'>;
 type RecurringPattern = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
@@ -75,11 +76,16 @@ export async function addTransaction(formData: FormData) {
 
   const description = sanitizeString(formData.get('description') as string) ?? '';
   let categoryId = sanitizeUUID(formData.get('category_id') as string);
+  let categorySource: string | null = categoryId ? 'manual' : null;
+  const merchantName = normaliseMerchant(description);
 
   // Auto-categorise if no category was selected
   if (!categoryId && description) {
     const matched = await matchCategorisationRule(userId, description);
-    if (matched) categoryId = matched;
+    if (matched) {
+      categoryId = matched;
+      categorySource = 'rule';
+    }
   }
 
   // For refunds, attempt to auto-match to an original expense
@@ -98,6 +104,8 @@ export async function addTransaction(formData: FormData) {
       date: txnDate,
       account_id: accountId,
       category_id: categoryId || (formData.get('category_id') as string) || null,
+      category_source: categorySource,
+      merchant_name: merchantName,
       recurring_pattern: recurringPattern as typeof transactionsTable.$inferInsert['recurring_pattern'],
       next_recurring_date: nextRecurringDate,
       refund_for_transaction_id: refundForTransactionId || null,
@@ -154,6 +162,7 @@ export async function editTransaction(formData: FormData) {
     }).from(transactionsTable).where(eq(transactionsTable.id, id));
 
     const editRefundId = sanitizeUUID(formData.get('refund_for_transaction_id') as string);
+    const editMerchant = normaliseMerchant(editDescription);
     const [updated] = await tx.update(transactionsTable).set({
       type: newType,
       amount: newAmount,
@@ -162,6 +171,8 @@ export async function editTransaction(formData: FormData) {
       date: txnDate,
       account_id: newAccountId,
       category_id: sanitizeUUID(formData.get('category_id') as string),
+      category_source: 'manual',
+      merchant_name: editMerchant,
       recurring_pattern: recurringPattern as typeof transactionsTable.$inferInsert['recurring_pattern'],
       next_recurring_date: nextRecurringDate,
       refund_for_transaction_id: newType === 'refund' ? (editRefundId || null) : null,
@@ -358,4 +369,44 @@ export async function addSplitTransaction(
   await checkBudgetAlerts(userId);
 
   return parent;
+}
+
+/**
+ * Lightweight category reassignment — used by the inline category picker.
+ * Updates category_id + category_source, then auto-learns a rule + merchant mapping.
+ */
+export async function quickRecategorise(transactionId: string, categoryId: string) {
+  const userId = await getCurrentUserId();
+
+  const [txn] = await db
+    .select({
+      description: transactionsTable.description,
+      merchant_name: transactionsTable.merchant_name,
+    })
+    .from(transactionsTable)
+    .where(eq(transactionsTable.id, transactionId));
+
+  if (!txn) throw new Error('Transaction not found');
+
+  await db
+    .update(transactionsTable)
+    .set({ category_id: categoryId, category_source: 'manual' })
+    .where(eq(transactionsTable.id, transactionId));
+
+  revalidateDomains('transactions', 'categories');
+
+  // Auto-learn in the background — decrypted description needed for rule pattern
+  const userKey = await getUserKey(userId);
+  const description = txn.description ? decryptForUser(txn.description, userKey) : '';
+  const merchantName = txn.merchant_name ?? description;
+
+  const { learnCategorisationRule } = await import('@/db/mutations/categorisation-rules');
+  const { learnMerchantMapping } = await import('@/db/mutations/merchant-mappings');
+
+  await Promise.all([
+    learnCategorisationRule(description, categoryId),
+    learnMerchantMapping(merchantName, categoryId),
+  ]).catch(() => {});
+
+  return { id: transactionId };
 }

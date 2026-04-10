@@ -27,6 +27,8 @@ const transactionSelect = {
   transfer_account_id: transactionsTable.transfer_account_id,
   is_split: transactionsTable.is_split,
   refund_for_transaction_id: transactionsTable.refund_for_transaction_id,
+  category_source: transactionsTable.category_source,
+  merchant_name: transactionsTable.merchant_name,
 };
 
 function baseTransactionsQuery(userId: string) {

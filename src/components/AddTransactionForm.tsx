@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toDateString } from "@/lib/date";
-import { Plus, Pencil, CheckCircle2, Loader2, Sparkles } from "lucide-react";
+import { Plus, Pencil, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { addTransaction, editTransaction } from "@/db/mutations/transactions";
 import { learnCategorisationRule } from "@/db/mutations/categorisation-rules";
+import { learnMerchantMapping } from "@/db/mutations/merchant-mappings";
 import type { AccountWithDetails, CategoryWithColor, TransactionWithDetails } from "@/lib/types";
 import { toast } from "sonner";
 import { useLastUsed } from "@/hooks/useLastUsed";
@@ -50,9 +51,7 @@ export function TransactionFormDialog({
   const [isPending, startTransition] = useTransition();
   const [formKey, setFormKey] = useState(0);
   const [isRecurring, setIsRecurring] = useState(transaction?.is_recurring ?? false);
-  const [ruleSuggestion, setRuleSuggestion] = useState<{ description: string; categoryId: string; categoryName: string } | null>(null);
-  const [ruleSaved, setRuleSaved] = useState(false);
-  const [isSavingRule, startSavingRule] = useTransition();
+  const [ruleLearnedName, setRuleLearnedName] = useState<string | null>(null);
   const [duplicateWarning, setDuplicateWarning] = useState<PotentialDuplicate[] | null>(null);
   const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
 
@@ -76,8 +75,7 @@ export function TransactionFormDialog({
       }
       setSavedIds([]);
       setView("form");
-      setRuleSuggestion(null);
-      setRuleSaved(false);
+      setRuleLearnedName(null);
     }
     setOpen(nextOpen);
   }
@@ -148,11 +146,20 @@ export function TransactionFormDialog({
         if (txnType) lastType.set(txnType);
       }
 
-      // Check if category changed during edit — offer to create a rule
+      // Auto-learn when category changed during edit — no prompt needed
       if (isEdit && newCategoryId && newCategoryId !== transaction!.category_id && description) {
         const cat = categories.find((c) => c.id === newCategoryId);
         if (cat) {
-          setRuleSuggestion({ description, categoryId: newCategoryId, categoryName: cat.name });
+          setRuleLearnedName(cat.name);
+          // Fire-and-forget: learn rule + merchant mapping in parallel
+          Promise.all([
+            learnCategorisationRule(description, newCategoryId),
+            learnMerchantMapping(
+              transaction?.merchant_name ?? description,
+              newCategoryId,
+            ),
+          ]).catch(() => {});
+          toast.success(`Got it — future "${transaction?.merchant_name ?? description}" transactions → ${cat.name}`);
         }
       }
 
@@ -162,14 +169,6 @@ export function TransactionFormDialog({
     } catch {
       toast.error("Something went wrong. Please try again.");
     }
-  }
-
-  function handleLearnRule() {
-    if (!ruleSuggestion) return;
-    startSavingRule(async () => {
-      await learnCategorisationRule(ruleSuggestion.description, ruleSuggestion.categoryId);
-      setRuleSaved(true);
-    });
   }
 
   function handleAddAnother() {
@@ -214,31 +213,10 @@ export function TransactionFormDialog({
                 </p>
               </div>
 
-              {ruleSuggestion && !ruleSaved && (
-                <div className="w-full rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <Sparkles className="h-3.5 w-3.5 text-primary" />
-                    Create a rule?
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Always categorise &ldquo;{ruleSuggestion.description}&rdquo; as <span className="font-medium text-foreground">{ruleSuggestion.categoryName}</span>?
-                  </p>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setRuleSuggestion(null)}>
-                      No thanks
-                    </Button>
-                    <Button size="sm" onClick={handleLearnRule} disabled={isSavingRule}>
-                      {isSavingRule && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
-                      Create rule
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {ruleSaved && (
+              {ruleLearnedName && (
                 <div className="flex items-center gap-2 text-sm text-emerald-600">
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  Rule created — future transactions will auto-categorise.
+                  Rule created — future matches will auto-categorise as {ruleLearnedName}.
                 </div>
               )}
             </div>

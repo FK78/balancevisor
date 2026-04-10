@@ -78,6 +78,8 @@ export const transactionsTable = pgTable("transactions", {
   subscription_id: uuid("subscription_id").references(() => subscriptionsTable.id, { onDelete: "set null" }),
   linked_debt_id: uuid("linked_debt_id").references(() => debtsTable.id, { onDelete: "set null" }),
   refund_for_transaction_id: uuid("refund_for_transaction_id"),
+  category_source: varchar("category_source", { length: 20 }),
+  merchant_name: varchar("merchant_name", { length: 255 }),
 }, (table) => [{
   userIdx: index("transactions_user_id_idx").on(table.user_id),
   accountIdx: index("transactions_account_id_idx").on(table.account_id),
@@ -85,6 +87,19 @@ export const transactionsTable = pgTable("transactions", {
   dateIdx: index("transactions_date_idx").on(table.date),
   accountDateIdx: index("transactions_account_id_date_idx").on(table.account_id, table.date),
   truelayerIdx: uniqueIndex("transactions_truelayer_id_idx").on(table.user_id, table.truelayer_id),
+}]);
+
+export const merchantMappingsTable = pgTable("merchant_mappings", {
+  id: uuid().primaryKey().defaultRandom(),
+  user_id: uuid("user_id").notNull(),
+  merchant: varchar({ length: 255 }).notNull(),
+  category_id: uuid("category_id").references(() => categoriesTable.id, { onDelete: "cascade" }),
+  source: varchar({ length: 20 }).notNull().default("correction"),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [{
+  userMerchantUniq: uniqueIndex("merchant_mappings_user_merchant_idx").on(table.user_id, table.merchant),
+  userIdx: index("merchant_mappings_user_id_idx").on(table.user_id),
 }]);
 
 export const budgetsTable = pgTable("budgets", {
