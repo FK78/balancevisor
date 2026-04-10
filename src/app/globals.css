@@ -308,6 +308,71 @@ html {
   [role="tabpanel"] {
     animation: workspace-tab-enter 0.25s ease-out;
   }
+
+  .decision-row {
+    background: color-mix(in srgb, var(--card) 90%, var(--workspace-muted-surface) 10%);
+    border: 1px solid color-mix(in srgb, var(--workspace-card-border) 70%, transparent);
+    border-radius: var(--radius-xl);
+    display: grid;
+    gap: 0.6rem;
+    padding: 0.85rem 0.95rem;
+  }
+
+  .decision-eyebrow {
+    color: var(--muted-foreground);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .decision-amount {
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+
+  .decision-meta {
+    color: color-mix(in srgb, var(--foreground) 72%, transparent);
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 0.76rem;
+    gap: 0.35rem 0.85rem;
+    line-height: 1.35;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .decision-interpretation {
+    border-left: 2px solid color-mix(in srgb, var(--workspace-accent) 45%, transparent);
+    color: color-mix(in srgb, var(--foreground) 82%, transparent);
+    font-size: 0.88rem;
+    line-height: 1.45;
+    margin: 0;
+    padding-left: 0.6rem;
+  }
+
+  .decision-metric-card {
+    background:
+      radial-gradient(circle at top right, color-mix(in srgb, white 8%, transparent) 0%, transparent 38%),
+      color-mix(in srgb, var(--card) 92%, var(--workspace-blue) 8%);
+    border: 1px solid color-mix(in srgb, var(--workspace-card-border) 78%, transparent);
+    border-radius: var(--radius-2xl);
+    display: grid;
+    gap: 0.55rem;
+    padding: 1rem;
+  }
+
+  .decision-empty-state {
+    background: color-mix(in srgb, var(--card) 87%, var(--muted) 13%);
+    border: 1px dashed color-mix(in srgb, var(--workspace-card-border) 85%, transparent);
+    border-radius: var(--radius-xl);
+    display: grid;
+    gap: 0.55rem;
+    padding: 1rem;
+  }
 }
 
 .input-no-spinner::-webkit-outer-spin-button,
