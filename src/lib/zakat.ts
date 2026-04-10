@@ -3,7 +3,7 @@ import { accountsTable, debtsTable } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { getInvestmentValue } from "@/lib/investment-value";
 import { fetchGoldPrice, fetchSilverPrice, calculateNisabValue } from "@/lib/nisab-prices";
-import { decrypt } from "@/lib/encryption";
+import { getUserKey, decryptForUser } from "@/lib/encryption";
 
 // Zakat rate: 2.5% of net zakatable wealth
 const ZAKAT_RATE = 0.025;
@@ -36,6 +36,9 @@ export async function calculateZakat(
   userId: string,
   nisabType: string = "gold"
 ): Promise<ZakatBreakdown> {
+  // 0. Get user encryption key for decrypting account names
+  const userKey = await getUserKey(userId);
+
   // 1. Fetch accounts
   const accounts = await db
     .select({
@@ -106,12 +109,12 @@ export async function calculateZakat(
     nisabValue,
     aboveNisab,
     accounts: accounts.map((a) => ({
-      name: decrypt(a.name),
+      name: decryptForUser(a.name, userKey),
       type: a.type,
       balance: a.balance,
     })),
     debts: activeDebts.map((d) => ({
-      name: decrypt(d.name),
+      name: d.name,
       remainingAmount: d.remaining_amount,
     })),
   };
