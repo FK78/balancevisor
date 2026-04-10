@@ -16,9 +16,12 @@ export type BudgetSuggestion = {
   avgMonthlySpend: number;
   /** Reason for the suggestion */
   reason: string;
+  /** Budget ID (only for increase/decrease) */
+  budgetId: string | null;
 };
 
 type ExistingBudget = {
+  id: string;
   category_id: string | null;
   budgetCategory: string;
   budgetColor: string;
@@ -41,7 +44,7 @@ export async function getSmartBudgetSuggestions(
 
   const categoryStats = new Map<
     string,
-    { totalSpend: number; monthsWithSpend: number; color: string; monthlyAmounts: number[] }
+    { categoryId: string; totalSpend: number; monthsWithSpend: number; color: string; monthlyAmounts: number[] }
   >();
 
   for (const row of completedMonthData) {
@@ -52,6 +55,7 @@ export async function getSmartBudgetSuggestions(
       existing.monthlyAmounts.push(row.total);
     } else {
       categoryStats.set(row.category, {
+        categoryId: row.category_id,
         totalSpend: row.total,
         monthsWithSpend: 1,
         color: row.color,
@@ -70,7 +74,7 @@ export async function getSmartBudgetSuggestions(
   for (const [categoryName, stats] of categoryStats) {
     if (budgetedCategoryNames.has(categoryName)) continue;
 
-    const avgSpend = stats.totalSpend / monthCount;
+    const avgSpend = stats.totalSpend / stats.monthsWithSpend;
     // Only suggest if avg spend is meaningful (>5/month) and consistent (appears in 2+ months)
     if (avgSpend < 5 || stats.monthsWithSpend < 2) continue;
 
@@ -79,13 +83,14 @@ export async function getSmartBudgetSuggestions(
 
     suggestions.push({
       type: "new",
-      categoryId: "",
+      categoryId: stats.categoryId,
       categoryName,
       categoryColor: stats.color,
       suggestedAmount,
       currentAmount: null,
       avgMonthlySpend: Math.round(avgSpend * 100) / 100,
       reason: `You spend ~${formatRound(avgSpend)}/mo on ${categoryName} across ${stats.monthsWithSpend} of the last ${monthCount} months, but have no budget set.`,
+      budgetId: null,
     });
   }
 
@@ -94,7 +99,7 @@ export async function getSmartBudgetSuggestions(
     const stats = categoryStats.get(budget.budgetCategory);
     if (!stats || stats.monthsWithSpend < 2) continue;
 
-    const avgSpend = stats.totalSpend / monthCount;
+    const avgSpend = stats.totalSpend / stats.monthsWithSpend;
     const maxMonthly = Math.max(...stats.monthlyAmounts);
     const currentAmount = budget.budgetAmount;
 
@@ -111,6 +116,7 @@ export async function getSmartBudgetSuggestions(
           currentAmount,
           avgMonthlySpend: Math.round(avgSpend * 100) / 100,
           reason: `Average spend of ${formatRound(avgSpend)}/mo is close to or exceeds your ${formatRound(currentAmount)} budget. Peak month was ${formatRound(maxMonthly)}.`,
+          budgetId: budget.id,
         });
       }
     }
@@ -128,6 +134,7 @@ export async function getSmartBudgetSuggestions(
           currentAmount,
           avgMonthlySpend: Math.round(avgSpend * 100) / 100,
           reason: `You typically spend only ${formatRound(avgSpend)}/mo — well under your ${formatRound(currentAmount)} budget. Tightening it could improve tracking accuracy.`,
+          budgetId: budget.id,
         });
       }
     }
