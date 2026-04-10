@@ -31,7 +31,7 @@ export async function connectBroker(formData: FormData) {
     "trading212",
   ) as BrokerSource;
   const apiKey = requireString(formData.get("apiKey") as string, "API key");
-  const apiSecret = ((formData.get("apiSecret") as string) ?? "").trim();
+  const apiSecret = requireString(formData.get("apiSecret") as string, "API secret");
   const environment = sanitizeEnum(
     formData.get("environment") as string,
     ["live", "demo", "paper"] as const,

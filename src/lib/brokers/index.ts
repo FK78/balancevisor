@@ -64,6 +64,7 @@ export const BROKER_META: Record<BrokerSource, BrokerMeta> = {
     helpUrl: "https://helpcentre.trading212.com/hc/en-us/articles/9876543210-API",
     fields: [
       apiKeyField(),
+      apiSecretField(),
       environmentField([
         { value: "live", label: "Live" },
         { value: "demo", label: "Demo" },

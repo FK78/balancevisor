@@ -112,16 +112,17 @@ const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1_000;
 const REQUEST_TIMEOUT_MS = 15_000;
 
-async function t212Fetch<T>(apiKey: string, environment: string, path: string): Promise<T> {
+async function t212Fetch<T>(apiKey: string, apiSecret: string, environment: string, path: string): Promise<T> {
   const baseUrl = BASE_URLS[environment] ?? BASE_URLS.live;
   const url = `${baseUrl}${path}`;
+  const credentials = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64");
 
   let lastError: T212ApiError | null = null;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       const res = await fetch(url, {
-        headers: { Authorization: apiKey },
+        headers: { Authorization: `Basic ${credentials}` },
         next: { revalidate: 60 },
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
@@ -187,16 +188,18 @@ function sleep(ms: number): Promise<void> {
 
 export async function getT212AccountSummary(
   apiKey: string,
+  apiSecret: string,
   environment: string = "live",
 ): Promise<T212AccountSummary> {
-  return t212Fetch<T212AccountSummary>(apiKey, environment, "/equity/account/summary");
+  return t212Fetch<T212AccountSummary>(apiKey, apiSecret, environment, "/equity/account/summary");
 }
 
 export async function getT212Positions(
   apiKey: string,
+  apiSecret: string,
   environment: string = "live",
 ): Promise<T212Position[]> {
-  return t212Fetch<T212Position[]>(apiKey, environment, "/equity/positions");
+  return t212Fetch<T212Position[]>(apiKey, apiSecret, environment, "/equity/positions");
 }
 
 // ---------------------------------------------------------------------------
@@ -205,10 +208,11 @@ export async function getT212Positions(
 
 export async function validateT212ApiKey(
   apiKey: string,
+  apiSecret: string,
   environment: string = "live",
 ): Promise<{ valid: true } | { valid: false; error: T212ApiError }> {
   try {
-    await t212Fetch<unknown>(apiKey, environment, "/equity/account/info");
+    await t212Fetch<unknown>(apiKey, apiSecret, environment, "/equity/account/info");
     return { valid: true };
   } catch (err) {
     if (err instanceof T212ApiError) {
