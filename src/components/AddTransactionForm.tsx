@@ -158,7 +158,7 @@ export function TransactionFormDialog({
               transaction?.merchant_name ?? description,
               newCategoryId,
             ),
-          ]).catch(() => {});
+          ]).catch((err) => console.warn('[AddTransactionForm] auto-learn failed:', err));
           toast.success(`Got it — future "${transaction?.merchant_name ?? description}" transactions → ${cat.name}`);
         }
       }

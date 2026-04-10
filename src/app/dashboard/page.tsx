@@ -32,6 +32,7 @@ import { detectMilestones } from "@/lib/milestones";
 import { computeHealthScore } from "@/lib/financial-health-score";
 import { getFunnyMilestones } from "@/lib/funny-milestones";
 import { getActiveSubscriptionsTotals } from "@/db/queries/subscriptions";
+import { logger } from "@/lib/logger";
 
 export default async function Home() {
   const userId = await getCurrentUserId();
@@ -86,7 +87,7 @@ export default async function Home() {
 
   // Fire-and-forget: snapshot uses the already-fetched investmentValue to avoid duplicate API calls
   if (on("accounts")) {
-    snapshotNetWorthIfNeeded(userId, { prefetchedInvestmentValue: investmentValue, prefetchedAccounts: accounts }).catch(() => {});
+    snapshotNetWorthIfNeeded(userId, { prefetchedInvestmentValue: investmentValue, prefetchedAccounts: accounts }).catch((err) => logger.warn('dashboard-page', 'net worth snapshot failed', err));
   }
 
   const { totalAssets, totalLiabilities, netWorth } = calculateNetWorth(accounts, investmentValue);

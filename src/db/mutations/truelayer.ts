@@ -267,7 +267,7 @@ export async function importFromTrueLayer() {
 
           // Learn merchant mapping from bank category matches
           if (catResult.categorySource === 'bank' && catResult.merchantName && catResult.categoryId) {
-            learnMerchantMappingForUser(userId, catResult.merchantName, catResult.categoryId, 'bank').catch(() => {});
+            learnMerchantMappingForUser(userId, catResult.merchantName, catResult.categoryId, 'bank').catch((err) => logger.warn('truelayer-import', 'merchant mapping learn failed', err));
           }
         }
       }

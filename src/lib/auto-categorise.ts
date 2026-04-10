@@ -345,7 +345,7 @@ Respond with ONLY the JSON array, no other text.`,
             }
           }
           if (merchantName) {
-            learnMerchantMappingForUser(userId, merchantName, assignedCategoryId, 'ai').catch(() => {});
+            learnMerchantMappingForUser(userId, merchantName, assignedCategoryId, 'ai').catch((err) => logger.warn('auto-categorise', 'merchant mapping learn failed', err));
           }
         }
       }

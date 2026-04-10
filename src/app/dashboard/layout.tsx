@@ -20,6 +20,7 @@ import { isAiEnabled, getDisabledFeatures } from "@/db/queries/preferences";
 import { hasTrueLayerConnection } from "@/db/queries/truelayer";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { FeatureFlagsProvider } from "@/components/FeatureFlagsProvider";
+import { logger } from "@/lib/logger";
 
 export default async function DashboardLayout({
   children,
@@ -36,8 +37,8 @@ export default async function DashboardLayout({
   ]);
 
   // Fire-and-forget: write ops that don't produce data needed for rendering
-  generateDueRecurringTransactions(userId).catch(() => {});
-  autoCalculateZakatIfDue(userId).catch(() => {});
+  generateDueRecurringTransactions(userId).catch((err) => logger.warn('dashboard-layout', 'recurring generation failed', err));
+  autoCalculateZakatIfDue(userId).catch((err) => logger.warn('dashboard-layout', 'zakat auto-check failed', err));
 
   if (!onboardingComplete) {
     redirect("/onboarding");

@@ -260,7 +260,7 @@ export function ImportCSVDialog({
                   toast.success(`AI enrichment: ${parts.join(" · ")}`, { duration: 6000 });
                 }
               })
-              .catch(() => {});
+              .catch((err) => console.warn('[ImportCSVDialog] AI enrichment failed:', err));
           }
         }
         if (res.errors.length > 0) {

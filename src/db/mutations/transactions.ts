@@ -14,6 +14,7 @@ import { matchTransactionsToSubscriptions, matchTransactionsToDebts } from '@/li
 import { requireString, sanitizeNumber, sanitizeEnum, requireDate, sanitizeUUID, sanitizeString } from '@/lib/sanitize';
 import { findMatchingExpense } from '@/lib/refund-matcher';
 import { normaliseMerchant } from '@/lib/merchant-normalise';
+import { logger } from '@/lib/logger';
 
 type Transaction = Omit<typeof transactionsTable.$inferInsert, 'user_id'>;
 type RecurringPattern = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
@@ -123,8 +124,8 @@ export async function addTransaction(formData: FormData) {
   await checkBudgetAlerts(userId);
 
   // Run subscription + debt matching inline (fast, no AI)
-  matchTransactionsToSubscriptions(userId, [result.id]).catch(() => {});
-  matchTransactionsToDebts(userId, [result.id]).catch(() => {});
+  matchTransactionsToSubscriptions(userId, [result.id]).catch((err) => logger.warn('addTransaction', 'subscription matching failed', err));
+  matchTransactionsToDebts(userId, [result.id]).catch((err) => logger.warn('addTransaction', 'debt matching failed', err));
 
   return result;
 }
@@ -406,7 +407,7 @@ export async function quickRecategorise(transactionId: string, categoryId: strin
   await Promise.all([
     learnCategorisationRule(description, categoryId),
     learnMerchantMapping(merchantName, categoryId),
-  ]).catch(() => {});
+  ]).catch((err) => logger.warn('quickRecategorise', 'auto-learn failed', err));
 
   return { id: transactionId };
 }

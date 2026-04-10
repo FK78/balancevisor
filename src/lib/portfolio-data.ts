@@ -68,14 +68,14 @@ export async function getPortfolioSnapshot(userId: string): Promise<PortfolioSna
       const errMsg = result.reason instanceof Error ? result.reason.message : String(result.reason);
       logger.error("portfolio-data", `${brokerSource} fetch failed`, result.reason);
       // Fire-and-forget: don't block portfolio render for status tracking
-      updateBrokerSyncStatus(userId, brokerSource, { success: false, error: errMsg }).catch(() => {});
+      updateBrokerSyncStatus(userId, brokerSource, { success: false, error: errMsg }).catch((err) => logger.warn('portfolio-data', 'sync status update failed', err));
       continue;
     }
 
     const { broker, summary } = result.value;
     brokerCash += summary.cash;
     // Fire-and-forget: record successful sync
-    updateBrokerSyncStatus(userId, broker, { success: true }).catch(() => {});
+    updateBrokerSyncStatus(userId, broker, { success: true }).catch((err) => logger.warn('portfolio-data', 'sync status update failed', err));
 
     for (const pos of summary.positions) {
       holdings.push({

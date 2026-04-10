@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { db } from "@/index";
 import { userOnboardingTable } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -20,7 +21,13 @@ export async function GET(req: Request) {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || !authHeader) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const expected = Buffer.from(`Bearer ${cronSecret}`, "utf-8");
+  const actual = Buffer.from(authHeader, "utf-8");
+  if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 

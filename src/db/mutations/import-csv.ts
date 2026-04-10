@@ -113,6 +113,13 @@ export async function importTransactionsFromCSV(
   accountId: string,
   defaultType: 'income' | 'expense' | 'auto',
 ): Promise<{ imported: number; skipped: number; errors: string[]; transactionIds: string[] }> {
+  const MAX_CSV_BYTES = 5_000_000; // 5 MB
+  const MAX_DATA_ROWS = 10_000;
+
+  if (csvText.length > MAX_CSV_BYTES) {
+    return { imported: 0, skipped: 0, errors: [`CSV too large (${(csvText.length / 1_000_000).toFixed(1)} MB). Maximum is 5 MB.`], transactionIds: [] };
+  }
+
   const userId = await getCurrentUserId();
 
   await requireOwnership(accountsTable, accountId, userId, 'account');
@@ -120,6 +127,10 @@ export async function importTransactionsFromCSV(
   const allRows = parseCSV(csvText);
   if (allRows.length < 2) {
     return { imported: 0, skipped: 0, errors: ['CSV must have a header row and at least one data row.'], transactionIds: [] };
+  }
+
+  if (allRows.length - 1 > MAX_DATA_ROWS) {
+    return { imported: 0, skipped: 0, errors: [`CSV has ${allRows.length - 1} rows. Maximum is ${MAX_DATA_ROWS}.`], transactionIds: [] };
   }
 
   // Skip header row

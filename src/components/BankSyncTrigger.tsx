@@ -48,7 +48,7 @@ export function BankSyncTrigger({ enabled }: { enabled: boolean }) {
                 toast.success(`AI enrichment: ${parts.join(" · ")}`, { duration: 6000 });
               }
             })
-            .catch(() => {});
+            .catch((err) => console.warn('[BankSyncTrigger] AI enrichment failed:', err));
         }
       }
     } catch {
