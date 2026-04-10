@@ -283,6 +283,7 @@ export type DailyCategoryExpensePoint = {
 export type MonthlyCategorySpendPoint = {
   month: string;
   category: string;
+  category_id: string;
   color: string;
   total: number;
 };
@@ -440,6 +441,7 @@ export async function getMonthlyCategorySpendTrend(userId: string, monthCount = 
     .select({
       month: sql<string>`to_char(date_trunc('month', ${transactionsTable.date}), 'YYYY-MM')`,
       category: categoriesTable.name,
+      category_id: categoriesTable.id,
       color: categoriesTable.color,
       total: sql<number>`coalesce(sum(${transactionsTable.amount}), 0)`.mapWith(Number),
     })
@@ -453,6 +455,7 @@ export async function getMonthlyCategorySpendTrend(userId: string, monthCount = 
     ))
     .groupBy(
       sql`date_trunc('month', ${transactionsTable.date})`,
+      categoriesTable.id,
       categoriesTable.name,
       categoriesTable.color,
     )

@@ -106,7 +106,7 @@ export async function getAvgMonthlySpendByCategory(userId: string): Promise<Reco
         eq(transactionsTable.user_id, userId),
         eq(transactionsTable.type, 'expense'),
         gte(transactionsTable.date, threeMonthsAgo.start),
-        lt(transactionsTable.date, thisMonth.end),
+        lt(transactionsTable.date, thisMonth.start),
       ),
     )
     .groupBy(transactionsTable.category_id);

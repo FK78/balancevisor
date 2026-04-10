@@ -47,6 +47,39 @@ export async function editBudget(id: string, formData: FormData) {
   revalidateDomains('budgets');
 }
 
+export async function applyBudgetSuggestion(
+  type: 'new' | 'increase' | 'decrease',
+  categoryId: string,
+  suggestedAmount: number,
+  budgetId: string | null,
+) {
+  const userId = await getCurrentUserId();
+
+  if (type === 'new') {
+    const validCategoryId = requireUUID(categoryId, 'Category');
+    const amount = sanitizeNumber(String(suggestedAmount), 'Amount', { required: true, min: 0.01 });
+    const start_date = new Date().toISOString().split('T')[0];
+
+    await db.insert(budgetsTable).values({
+      user_id: userId,
+      category_id: validCategoryId,
+      amount,
+      period: 'monthly',
+      start_date,
+    });
+  } else {
+    if (!budgetId) throw new Error('Budget ID is required for adjustments');
+    await requireOwnership(budgetsTable, budgetId, userId, 'budget');
+    const amount = sanitizeNumber(String(suggestedAmount), 'Amount', { required: true, min: 0.01 });
+
+    await db.update(budgetsTable).set({ amount }).where(
+      and(eq(budgetsTable.id, budgetId), eq(budgetsTable.user_id, userId)),
+    );
+  }
+
+  revalidateDomains('budgets', 'onboarding');
+}
+
 export async function deleteBudget(id: string) {
   const userId = await getCurrentUserId();
 
