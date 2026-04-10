@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, ArrowRight, Calendar } from "lucide-react";
-import { formatCurrency } from "@/lib/formatCurrency";
+import { formatCurrency, formatCompactCurrency } from "@/lib/formatCurrency";
 import type { CashflowForecast } from "@/lib/cashflow-forecast";
 import Link from "next/link";
 
@@ -44,33 +44,36 @@ export function DashboardCashflowForecast({ forecast }: { forecast: CashflowFore
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Projected totals */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="rounded-lg border px-3 py-2.5 text-center">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          <div className="rounded-lg border px-1.5 py-2.5 text-center sm:px-3 min-w-0 overflow-hidden">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Income</p>
-            <p className="text-lg font-bold tabular-nums text-emerald-600">
-              {formatCurrency(forecast.projectedIncome, c)}
+            <p className="text-xs font-bold tabular-nums text-emerald-600 sm:text-lg truncate">
+              <span className="sm:hidden">{formatCompactCurrency(forecast.projectedIncome, c)}</span>
+              <span className="hidden sm:inline">{formatCurrency(forecast.projectedIncome, c)}</span>
             </p>
             {forecast.actualIncome > 0 && (
-              <p className="text-[10px] text-muted-foreground">
-                {formatCurrency(forecast.actualIncome, c)} so far
+              <p className="text-[10px] text-muted-foreground truncate">
+                {formatCompactCurrency(forecast.actualIncome, c)} so far
               </p>
             )}
           </div>
-          <div className="rounded-lg border px-3 py-2.5 text-center">
+          <div className="rounded-lg border px-1.5 py-2.5 text-center sm:px-3 min-w-0 overflow-hidden">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Expenses</p>
-            <p className="text-lg font-bold tabular-nums text-red-600">
-              {formatCurrency(forecast.projectedExpenses, c)}
+            <p className="text-xs font-bold tabular-nums text-red-600 sm:text-lg truncate">
+              <span className="sm:hidden">{formatCompactCurrency(forecast.projectedExpenses, c)}</span>
+              <span className="hidden sm:inline">{formatCurrency(forecast.projectedExpenses, c)}</span>
             </p>
             {forecast.actualExpenses > 0 && (
-              <p className="text-[10px] text-muted-foreground">
-                {formatCurrency(forecast.actualExpenses, c)} so far
+              <p className="text-[10px] text-muted-foreground truncate">
+                {formatCompactCurrency(forecast.actualExpenses, c)} so far
               </p>
             )}
           </div>
-          <div className={`rounded-lg border px-3 py-2.5 text-center ${netPositive ? "bg-emerald-500/5 border-emerald-200" : "bg-red-500/5 border-red-200"}`}>
+          <div className={`rounded-lg border px-1.5 py-2.5 text-center sm:px-3 min-w-0 overflow-hidden ${netPositive ? "bg-emerald-500/5 border-emerald-200" : "bg-red-500/5 border-red-200"}`}>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Net</p>
-            <p className={`text-lg font-bold tabular-nums ${netPositive ? "text-emerald-600" : "text-red-600"}`}>
-              {netPositive ? "+" : "−"}{formatCurrency(Math.abs(forecast.projectedNet), c)}
+            <p className={`text-xs font-bold tabular-nums sm:text-lg truncate ${netPositive ? "text-emerald-600" : "text-red-600"}`}>
+              <span className="sm:hidden">{netPositive ? "+" : "−"}{formatCompactCurrency(Math.abs(forecast.projectedNet), c)}</span>
+              <span className="hidden sm:inline">{netPositive ? "+" : "−"}{formatCurrency(Math.abs(forecast.projectedNet), c)}</span>
             </p>
           </div>
         </div>
@@ -101,15 +104,15 @@ export function DashboardCashflowForecast({ forecast }: { forecast: CashflowFore
         {forecast.recentMonths.length > 1 && (
           <div className="space-y-1.5">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Recent Months</p>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 gap-1 sm:gap-2">
               {forecast.recentMonths.map((m) => {
                 const label = new Intl.DateTimeFormat("en-GB", { month: "short" }).format(
                   new Date(m.month + "-01T00:00:00"),
                 );
                 return (
-                  <div key={m.month} className="text-center">
+                  <div key={m.month} className="text-center min-w-0">
                     <p className="text-[10px] text-muted-foreground">{label}</p>
-                    <p className={`text-xs font-semibold tabular-nums ${m.net >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                    <p className={`text-[10px] font-semibold tabular-nums sm:text-xs ${m.net >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                       {m.net >= 0 ? "+" : "−"}{formatCurrency(Math.abs(m.net), c)}
                     </p>
                   </div>

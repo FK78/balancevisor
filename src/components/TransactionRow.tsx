@@ -23,17 +23,17 @@ function TransactionRowComponent({
 
     return (
         <TableRow>
-            <TableCell className="font-medium">
+            <TableCell className="font-medium max-w-[180px] truncate">
                 {t.description}
             </TableCell>
-            <TableCell className="text-muted-foreground">
+            <TableCell className="text-muted-foreground whitespace-nowrap">
                 {t.type === "transfer" ? "Transfer" : t.type === "sale" ? "Sale" : t.type === "refund" ? "Refund" : t.category}
             </TableCell>
-            <TableCell className="text-muted-foreground">
+            <TableCell className="text-muted-foreground whitespace-nowrap">
                 {t.date}
             </TableCell>
             <TableCell
-                className={`text-right font-semibold tabular-nums ${colorClass}`}
+                className={`text-right font-semibold tabular-nums whitespace-nowrap ${colorClass}`}
             >
                 {prefix}
                 {formatCurrency(t.amount, currency)}
