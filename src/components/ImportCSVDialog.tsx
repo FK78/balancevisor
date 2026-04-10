@@ -235,13 +235,32 @@ export function ImportCSVDialog({
           });
           toast.success(`Imported ${res.imported} transaction${res.imported !== 1 ? "s" : ""}`);
 
-          // Fire-and-forget AI enrichment for imported transactions
+          // Run AI enrichment and show detailed results
           if (aiEnabled && res.transactionIds && res.transactionIds.length > 0) {
             fetch("/api/ai-enrich-transactions", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ transactionIds: res.transactionIds }),
-            }).catch(() => {});
+            })
+              .then((r) => (r.ok ? r.json() : null))
+              .then((enrichResult) => {
+                if (!enrichResult) return;
+                const parts: string[] = [];
+                if (enrichResult.aiCategorised > 0)
+                  parts.push(`${enrichResult.aiCategorised} categorised`);
+                if (enrichResult.categoriesCreated > 0)
+                  parts.push(`${enrichResult.categoriesCreated} new categories`);
+                if (enrichResult.subscriptionsCreated > 0)
+                  parts.push(`${enrichResult.subscriptionsCreated} subscriptions detected`);
+                if (enrichResult.recurringDetected > 0)
+                  parts.push(`${enrichResult.recurringDetected} recurring`);
+                if (enrichResult.subscriptions?.linked > 0)
+                  parts.push(`${enrichResult.subscriptions.linked} linked to subscriptions`);
+                if (parts.length > 0) {
+                  toast.success(`AI enrichment: ${parts.join(" · ")}`, { duration: 6000 });
+                }
+              })
+              .catch(() => {});
           }
         }
         if (res.errors.length > 0) {

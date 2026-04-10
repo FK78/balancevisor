@@ -378,6 +378,7 @@ export const userPreferencesTable = pgTable("user_preferences", {
   user_id: uuid("user_id").primaryKey(),
   ai_enabled: boolean("ai_enabled").notNull().default(true),
   disabled_features: text("disabled_features"),
+  last_enriched_at: timestamp("last_enriched_at", { withTimezone: true }),
   updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

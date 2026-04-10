@@ -346,16 +346,58 @@ async function seed() {
   const rules = await db
     .insert(categorisationRulesTable)
     .values([
+      // Groceries
       { user_id: USER_ID, pattern: "tesco", category_id: catMap["Groceries"], priority: 1 },
       { user_id: USER_ID, pattern: "sainsbury", category_id: catMap["Groceries"], priority: 2 },
       { user_id: USER_ID, pattern: "aldi", category_id: catMap["Groceries"], priority: 3 },
-      { user_id: USER_ID, pattern: "uber", category_id: catMap["Transport"], priority: 4 },
-      { user_id: USER_ID, pattern: "tfl", category_id: catMap["Transport"], priority: 5 },
-      { user_id: USER_ID, pattern: "netflix", category_id: catMap["Entertainment"], priority: 6 },
-      { user_id: USER_ID, pattern: "spotify", category_id: catMap["Entertainment"], priority: 7 },
-      { user_id: USER_ID, pattern: "amazon", category_id: catMap["Shopping"], priority: 8 },
-      { user_id: USER_ID, pattern: "pret", category_id: catMap["Dining Out"], priority: 9 },
-      { user_id: USER_ID, pattern: "puregym", category_id: catMap["Health"], priority: 10 },
+      { user_id: USER_ID, pattern: "ocado", category_id: catMap["Groceries"], priority: 4 },
+      { user_id: USER_ID, pattern: "m&s food", category_id: catMap["Groceries"], priority: 5 },
+      { user_id: USER_ID, pattern: "costco", category_id: catMap["Groceries"], priority: 6 },
+      { user_id: USER_ID, pattern: "lidl", category_id: catMap["Groceries"], priority: 7 },
+      { user_id: USER_ID, pattern: "waitrose", category_id: catMap["Groceries"], priority: 8 },
+      // Transport
+      { user_id: USER_ID, pattern: "uber", category_id: catMap["Transport"], priority: 10 },
+      { user_id: USER_ID, pattern: "tfl", category_id: catMap["Transport"], priority: 11 },
+      { user_id: USER_ID, pattern: "oyster", category_id: catMap["Transport"], priority: 12 },
+      { user_id: USER_ID, pattern: "train", category_id: catMap["Transport"], priority: 13 },
+      { user_id: USER_ID, pattern: "bolt", category_id: catMap["Transport"], priority: 14 },
+      // Entertainment
+      { user_id: USER_ID, pattern: "netflix", category_id: catMap["Entertainment"], priority: 20 },
+      { user_id: USER_ID, pattern: "spotify", category_id: catMap["Entertainment"], priority: 21 },
+      { user_id: USER_ID, pattern: "vue cinema", category_id: catMap["Entertainment"], priority: 22 },
+      { user_id: USER_ID, pattern: "concert", category_id: catMap["Entertainment"], priority: 23 },
+      { user_id: USER_ID, pattern: "odeon", category_id: catMap["Entertainment"], priority: 24 },
+      // Shopping
+      { user_id: USER_ID, pattern: "amazon", category_id: catMap["Shopping"], priority: 30 },
+      { user_id: USER_ID, pattern: "asos", category_id: catMap["Shopping"], priority: 31 },
+      { user_id: USER_ID, pattern: "tk maxx", category_id: catMap["Shopping"], priority: 32 },
+      { user_id: USER_ID, pattern: "currys", category_id: catMap["Shopping"], priority: 33 },
+      { user_id: USER_ID, pattern: "uniqlo", category_id: catMap["Shopping"], priority: 34 },
+      { user_id: USER_ID, pattern: "john lewis", category_id: catMap["Shopping"], priority: 35 },
+      { user_id: USER_ID, pattern: "whsmith", category_id: catMap["Shopping"], priority: 36 },
+      { user_id: USER_ID, pattern: "argos", category_id: catMap["Shopping"], priority: 37 },
+      // Dining Out
+      { user_id: USER_ID, pattern: "pret", category_id: catMap["Dining Out"], priority: 40 },
+      { user_id: USER_ID, pattern: "dishoom", category_id: catMap["Dining Out"], priority: 41 },
+      { user_id: USER_ID, pattern: "nando", category_id: catMap["Dining Out"], priority: 42 },
+      { user_id: USER_ID, pattern: "wagamama", category_id: catMap["Dining Out"], priority: 43 },
+      { user_id: USER_ID, pattern: "five guys", category_id: catMap["Dining Out"], priority: 44 },
+      { user_id: USER_ID, pattern: "pizza express", category_id: catMap["Dining Out"], priority: 45 },
+      { user_id: USER_ID, pattern: "hawksmoor", category_id: catMap["Dining Out"], priority: 46 },
+      { user_id: USER_ID, pattern: "nobu", category_id: catMap["Dining Out"], priority: 47 },
+      // Health
+      { user_id: USER_ID, pattern: "puregym", category_id: catMap["Health"], priority: 50 },
+      { user_id: USER_ID, pattern: "boots", category_id: catMap["Health"], priority: 51 },
+      { user_id: USER_ID, pattern: "pharmacy", category_id: catMap["Health"], priority: 52 },
+      // Bills & Utilities
+      { user_id: USER_ID, pattern: "edf", category_id: catMap["Bills & Utilities"], priority: 60 },
+      { user_id: USER_ID, pattern: "sky", category_id: catMap["Bills & Utilities"], priority: 61 },
+      { user_id: USER_ID, pattern: "three mobile", category_id: catMap["Bills & Utilities"], priority: 62 },
+      { user_id: USER_ID, pattern: "thames water", category_id: catMap["Bills & Utilities"], priority: 63 },
+      { user_id: USER_ID, pattern: "council tax", category_id: catMap["Bills & Utilities"], priority: 64 },
+      { user_id: USER_ID, pattern: "admiral", category_id: catMap["Bills & Utilities"], priority: 65 },
+      { user_id: USER_ID, pattern: "broadband", category_id: catMap["Bills & Utilities"], priority: 66 },
+      { user_id: USER_ID, pattern: "rent", category_id: catMap["Bills & Utilities"], priority: 67 },
     ])
     .returning();
   console.log(`  ✓ ${rules.length} categorisation rules`);
