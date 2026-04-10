@@ -17,7 +17,6 @@ type AdvisorState = {
   text: string;
   loading: boolean;
   error: string | null;
-  cached: boolean;
 };
 
 export function RetirementAIAdvisor() {
@@ -26,23 +25,20 @@ export function RetirementAIAdvisor() {
     text: "",
     loading: true,
     error: null,
-    cached: false,
   });
   const abortRef = useRef<AbortController | null>(null);
   const hasFetched = useRef(false);
 
-  const fetchAdvice = useCallback(async (refresh: boolean) => {
+  const fetchAdvice = useCallback(async () => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
 
-    setState({ text: "", loading: true, error: null, cached: false });
+    setState({ text: "", loading: true, error: null });
 
     try {
       const res = await fetch("/api/retirement-planner", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh }),
         signal: controller.signal,
       });
 
@@ -55,7 +51,7 @@ export function RetirementAIAdvisor() {
 
       if (contentType.includes("application/json")) {
         const data = await res.json();
-        setState({ text: data.advice, loading: false, error: null, cached: data.cached ?? false });
+        setState({ text: data.advice, loading: false, error: null });
         return;
       }
 
@@ -72,7 +68,7 @@ export function RetirementAIAdvisor() {
         setState((prev) => ({ ...prev, text: accumulated }));
       }
 
-      setState({ text: accumulated, loading: false, error: null, cached: false });
+      setState({ text: accumulated, loading: false, error: null });
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
       setState((prev) => ({
@@ -86,7 +82,7 @@ export function RetirementAIAdvisor() {
   useEffect(() => {
     if (hasFetched.current) return;
     hasFetched.current = true;
-    fetchAdvice(false);
+    fetchAdvice();
   }, [fetchAdvice]);
 
   useEffect(() => {
@@ -106,9 +102,7 @@ export function RetirementAIAdvisor() {
             <div>
               <CardTitle className="text-lg">AI Retirement Advisor</CardTitle>
               <CardDescription>
-                {state.cached
-                  ? "Cached advice — click refresh for latest"
-                  : state.loading
+                {state.loading
                     ? "Analysing your retirement outlook..."
                     : "Personalised retirement recommendations"}
               </CardDescription>
@@ -118,7 +112,7 @@ export function RetirementAIAdvisor() {
             size="sm"
             variant="outline"
             disabled={state.loading}
-            onClick={() => fetchAdvice(true)}
+            onClick={() => fetchAdvice()}
             className="gap-1.5"
           >
             {state.loading ? (

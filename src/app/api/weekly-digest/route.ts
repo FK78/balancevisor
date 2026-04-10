@@ -27,7 +27,7 @@ export async function POST() {
 
   if (!data.hasData) {
     return new Response(
-      JSON.stringify({ digest: "No transactions recorded in the last 7 days.", cached: false }),
+      JSON.stringify({ digest: "No transactions recorded in the last 7 days." }),
       { headers: { "Content-Type": "application/json" } },
     );
   }

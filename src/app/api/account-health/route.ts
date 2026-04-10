@@ -27,7 +27,7 @@ export async function POST() {
 
   if (!data.hasAccounts) {
     return new Response(
-      JSON.stringify({ advice: "No accounts found. Add an account to get a health check.", cached: false }),
+      JSON.stringify({ advice: "No accounts found. Add an account to get a health check." }),
       { headers: { "Content-Type": "application/json" } },
     );
   }

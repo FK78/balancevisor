@@ -27,7 +27,7 @@ export async function POST() {
 
   if (!data.hasDebts) {
     return new Response(
-      JSON.stringify({ advice: "No active debts found. You're debt free!", cached: false }),
+      JSON.stringify({ advice: "No active debts found. You're debt free!" }),
       { headers: { "Content-Type": "application/json" } },
     );
   }

@@ -27,7 +27,7 @@ export async function POST() {
 
   if (!data.hasSubscriptions) {
     return new Response(
-      JSON.stringify({ advice: "No active subscriptions found. Add subscriptions to get savings advice.", cached: false }),
+      JSON.stringify({ advice: "No active subscriptions found. Add subscriptions to get savings advice." }),
       { headers: { "Content-Type": "application/json" } },
     );
   }

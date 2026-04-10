@@ -36,7 +36,7 @@ export async function POST() {
   const profile = await getRetirementProfile(userId);
   if (!profile) {
     return new Response(
-      JSON.stringify({ advice: "Set up your retirement profile to get personalised AI advice.", cached: false }),
+      JSON.stringify({ advice: "Set up your retirement profile to get personalised AI advice." }),
       { headers: { "Content-Type": "application/json" } },
     );
   }
@@ -54,7 +54,7 @@ export async function POST() {
 
   if (completedMonths.length === 0) {
     return new Response(
-      JSON.stringify({ advice: "Not enough transaction history yet. Keep tracking for at least one month to get retirement insights.", cached: false }),
+      JSON.stringify({ advice: "Not enough transaction history yet. Keep tracking for at least one month to get retirement insights." }),
       { headers: { "Content-Type": "application/json" } },
     );
   }

@@ -37,7 +37,7 @@ export async function POST() {
 
   if (completedMonths.length === 0) {
     return new Response(
-      JSON.stringify({ tips: "Not enough data yet. Keep tracking for personalised savings tips.", cached: false }),
+      JSON.stringify({ tips: "Not enough data yet. Keep tracking for personalised savings tips." }),
       { headers: { "Content-Type": "application/json" } },
     );
   }
