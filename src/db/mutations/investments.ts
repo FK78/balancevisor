@@ -2,7 +2,7 @@
 
 import { db } from "@/index";
 import { createTransaction } from "@/db/mutations/transactions";
-import { trading212ConnectionsTable, brokerConnectionsTable, manualHoldingsTable, holdingSalesTable, accountsTable } from "@/db/schema";
+import { brokerConnectionsTable, manualHoldingsTable, holdingSalesTable, accountsTable } from "@/db/schema";
 import { eq, and, isNotNull, sql } from "drizzle-orm";
 import { revalidateDomains } from "@/lib/revalidate";
 import { getCurrentUserId } from "@/lib/auth";
@@ -15,44 +15,6 @@ import { BROKER_SOURCES } from "@/lib/brokers/types";
 
 function revalidateInvestments() {
   revalidateDomains('investments');
-}
-
-export async function connectTrading212(formData: FormData) {
-  const userId = await getCurrentUserId();
-  const apiKey = requireString(formData.get("apiKey") as string, "API key");
-  const environment = sanitizeEnum(formData.get("environment") as string, ["live", "demo"] as const, "live");
-  const accountId = sanitizeUUID(formData.get("account_id") as string);
-
-  const userKey = await getUserKey(userId);
-  const encryptedKey = encryptForUser(apiKey, userKey);
-
-  await db
-    .insert(trading212ConnectionsTable)
-    .values({
-      user_id: userId,
-      api_key_encrypted: encryptedKey,
-      environment,
-      account_id: accountId,
-    })
-    .onConflictDoUpdate({
-      target: trading212ConnectionsTable.user_id,
-      set: {
-        api_key_encrypted: encryptedKey,
-        environment,
-        account_id: accountId,
-        connected_at: new Date(),
-      },
-    });
-
-  revalidateInvestments();
-}
-
-export async function disconnectTrading212() {
-  const userId = await getCurrentUserId();
-  await db
-    .delete(trading212ConnectionsTable)
-    .where(eq(trading212ConnectionsTable.user_id, userId));
-  revalidateInvestments();
 }
 
 // ---------------------------------------------------------------------------

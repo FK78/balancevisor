@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/index";
-import { trading212ConnectionsTable, brokerConnectionsTable, manualHoldingsTable, accountsTable, holdingSalesTable } from "@/db/schema";
+import { brokerConnectionsTable, manualHoldingsTable, accountsTable, holdingSalesTable } from "@/db/schema";
 import { eq, desc, sql, gt, and } from "drizzle-orm";
 import { getCurrentUserId } from "@/lib/auth";
 import { searchTicker } from "@/lib/yahoo-finance";
@@ -14,15 +14,6 @@ export async function searchTickers(query: string) {
   const sanitized = query.trim().slice(0, 100);
   if (sanitized.length === 0) return [];
   return searchTicker(sanitized);
-}
-
-export async function getTrading212Connection(userId: string) {
-  const rows = await db
-    .select()
-    .from(trading212ConnectionsTable)
-    .where(eq(trading212ConnectionsTable.user_id, userId))
-    .limit(1);
-  return rows[0] ?? null;
 }
 
 export async function getInvestmentsByAccountId(accountId: string) {
@@ -73,15 +64,6 @@ export async function getHoldingSales(userId: string) {
     ...row,
     cashAccountName: row.cashAccountName ? decryptForUser(row.cashAccountName, userKey) : null,
   }));
-}
-
-export async function getT212ConnectionByAccountId(accountId: string) {
-  const rows = await db
-    .select()
-    .from(trading212ConnectionsTable)
-    .where(eq(trading212ConnectionsTable.account_id, accountId))
-    .limit(1);
-  return rows[0] ?? null;
 }
 
 // ---------------------------------------------------------------------------
