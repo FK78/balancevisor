@@ -82,7 +82,7 @@ export function ConnectBankButton({ connections }: { connections: Connection[] }
           {hasConnections ? 'Manage Bank' : 'Connect Bank'}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent mobileLayout="full-height" className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Open Banking</DialogTitle>
           <DialogDescription>
@@ -153,7 +153,7 @@ export function ConnectBankButton({ connections }: { connections: Connection[] }
           )}
         </div>
 
-        <DialogFooter className="flex gap-2 sm:justify-between">
+        <DialogFooter mobileSticky className="flex gap-2 sm:justify-between">
           <Button asChild variant="outline">
             <a href="/api/truelayer/connect">
               <Building2 className="mr-1 h-4 w-4" />

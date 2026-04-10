@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { verifyMfaLogin, useBackupCode as consumeBackupCode } from '@/db/mutations/mfa';
 import { Loader2, AlertCircle, Key } from 'lucide-react';
 import { toast } from 'sonner';
@@ -100,7 +100,7 @@ export function MFAVerificationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent mobileLayout="full-height" className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Two-Factor Authentication for {email}</DialogTitle>
           <DialogDescription>
@@ -142,7 +142,7 @@ export function MFAVerificationDialog({
               </div>
             )}
 
-            <div className="flex flex-col gap-3">
+            <DialogFooter mobileSticky className="flex-col gap-3 sm:flex-col sm:justify-stretch">
               <Button 
                 onClick={handleVerifyCode} 
                 disabled={isLoading || verificationCode.length !== 6}
@@ -175,7 +175,7 @@ export function MFAVerificationDialog({
                   Need a new code?
                 </button>
               </div>
-            </div>
+            </DialogFooter>
           </div>
         ) : (
           <div className="space-y-4">
@@ -214,7 +214,7 @@ export function MFAVerificationDialog({
               </div>
             )}
 
-            <div className="flex flex-col gap-3">
+            <DialogFooter mobileSticky className="flex-col gap-3 sm:flex-col sm:justify-stretch">
               <Button 
                 onClick={handleUseBackupCode} 
                 disabled={isLoading || backupCode.length !== 8}
@@ -238,7 +238,7 @@ export function MFAVerificationDialog({
               >
                 Back to Authenticator Code
               </Button>
-            </div>
+            </DialogFooter>
           </div>
         )}
       </DialogContent>

@@ -78,7 +78,7 @@ export function ZakatSettingsDialog({ settings, baseCurrency = "GBP" }: { settin
           {settings ? "Edit Settings" : "Set Anniversary"}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent mobileLayout="full-height" className="sm:max-w-md">
         {view === "success" ? (
           <>
             <DialogHeader className="sr-only">
@@ -93,7 +93,7 @@ export function ZakatSettingsDialog({ settings, baseCurrency = "GBP" }: { settin
                 </p>
               </div>
             </div>
-            <DialogFooter className="flex gap-2 sm:justify-center">
+            <DialogFooter mobileSticky className="flex gap-2 sm:justify-center">
               <Button onClick={() => handleOpenChange(false)}>Done</Button>
             </DialogFooter>
           </>
@@ -142,7 +142,7 @@ export function ZakatSettingsDialog({ settings, baseCurrency = "GBP" }: { settin
                 </p>
               </div>
 
-              <DialogFooter>
+              <DialogFooter mobileSticky>
                 <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
                   Cancel
                 </Button>

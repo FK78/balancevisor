@@ -67,7 +67,7 @@ export function BudgetAlertSettings({
           <Bell className="h-3.5 w-3.5" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent mobileLayout="full-height" className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Alert Settings</DialogTitle>
           <DialogDescription>
@@ -123,7 +123,7 @@ export function BudgetAlertSettings({
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter mobileSticky>
           <Button variant="outline" onClick={() => setOpen(false)}>
             Cancel
           </Button>

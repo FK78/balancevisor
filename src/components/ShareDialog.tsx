@@ -103,7 +103,7 @@ export function ShareDialog({
           <Share2 className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent mobileLayout="full-height" className="sm:max-w-md">
         {view === "success" ? (
           <>
             <DialogHeader className="sr-only">
@@ -118,7 +118,7 @@ export function ShareDialog({
                 </p>
               </div>
             </div>
-            <DialogFooter className="flex gap-2 sm:justify-center">
+            <DialogFooter mobileSticky className="flex gap-2 sm:justify-center">
               <Button variant="outline" onClick={handleShareAnother}>
                 <Share2 className="mr-1 h-4 w-4" />
                 Share with another
@@ -165,7 +165,7 @@ export function ShareDialog({
                 </Select>
               </div>
 
-              <DialogFooter>
+              <DialogFooter mobileSticky>
                 <Button
                   type="button"
                   variant="outline"

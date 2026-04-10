@@ -111,7 +111,7 @@ export function ConnectBrokerDialog({
           {connectedBrokers.length > 0 ? "Manage Brokers" : "Connect Broker"}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent mobileLayout="full-height" className="sm:max-w-md">
         {view === "list" && (
           <>
             <DialogHeader>
@@ -218,7 +218,7 @@ export function ConnectBrokerDialog({
                   <ExternalLink className="h-3 w-3" />
                 </a>
               </p>
-              <DialogFooter>
+              <DialogFooter mobileSticky>
                 <Button type="button" variant="outline" onClick={() => setView("list")}>
                   Back
                 </Button>
@@ -243,7 +243,7 @@ export function ConnectBrokerDialog({
               <p className="text-sm text-muted-foreground">
                 You can reconnect with new credentials or disconnect entirely.
               </p>
-              <DialogFooter className="gap-2">
+              <DialogFooter mobileSticky className="gap-2">
                 <Button
                   type="button"
                   variant="destructive"
@@ -279,7 +279,7 @@ export function ConnectBrokerDialog({
                 </p>
               </div>
             </div>
-            <DialogFooter className="sm:justify-center">
+            <DialogFooter mobileSticky className="sm:justify-center">
               <Button onClick={() => handleOpenChange(false)}>Done</Button>
             </DialogFooter>
           </>
