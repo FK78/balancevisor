@@ -13,6 +13,7 @@ import {
 import { MobileNavDrawer } from "@/components/MobileNavDrawer";
 import { useFeatureFlags } from "@/components/FeatureFlagsProvider";
 import type { FeatureId } from "@/lib/features";
+import { cn } from "@/lib/utils";
 
 interface BottomNavItem {
   href: string;
@@ -22,7 +23,7 @@ interface BottomNavItem {
 }
 
 const bottomNavItems: BottomNavItem[] = [
-  { href: "/dashboard", label: "Home", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/transactions", label: "Transactions", icon: ArrowLeftRight, featureId: "transactions" },
   { href: "/dashboard/accounts", label: "Accounts", icon: Wallet, featureId: "accounts" },
   { href: "/dashboard/investments", label: "Investments", icon: TrendingUp, featureId: "investments" },
@@ -62,11 +63,13 @@ export function MobileBottomNav() {
 
   return (
     <>
-      {/* iOS-style tab bar */}
-      <nav className="fixed inset-x-0 bottom-0 z-50 bg-card/80 backdrop-blur-xl md:hidden" style={{ borderTop: '0.5px solid var(--border)' }}>
+      <nav
+        aria-label="Primary"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-border/70 bg-background/88 backdrop-blur-xl md:hidden"
+      >
         <div
-          className="mx-auto grid max-w-lg"
-          style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)`, paddingBottom: "env(safe-area-inset-bottom)" }}
+          className="mx-auto grid max-w-lg px-2 pt-2"
+          style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)`, paddingBottom: "calc(env(safe-area-inset-bottom) + 0.35rem)" }}
         >
           {visibleBottomItems.map((item) => {
             const active = isActive(item.href, pathname);
@@ -74,11 +77,13 @@ export function MobileBottomNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center justify-center gap-[2px] pb-1 pt-2 transition-colors ${
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex min-h-[68px] flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 transition-all",
                   active
-                    ? "text-primary"
-                    : "text-muted-foreground"
-                }`}
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-card/80 hover:text-foreground",
+                )}
               >
                 <item.icon
                   className="h-[22px] w-[22px]"
@@ -98,20 +103,25 @@ export function MobileBottomNav() {
           {/* More tab */}
           <button
             onClick={() => setDrawerOpen(true)}
-            className={`flex flex-col items-center justify-center gap-[2px] pb-1 pt-2 transition-colors ${
-              moreIsActive
-                ? "text-primary"
-                : "text-muted-foreground"
-            }`}
+            type="button"
+            aria-label="More"
+            aria-expanded={drawerOpen}
+            className={cn(
+              "flex min-h-[68px] flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 transition-all",
+              moreIsActive || drawerOpen
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-card/80 hover:text-foreground",
+            )}
           >
             <MoreHorizontal
               className="h-[22px] w-[22px]"
-              strokeWidth={moreIsActive ? 2.2 : 1.5}
+              strokeWidth={moreIsActive || drawerOpen ? 2.2 : 1.5}
             />
             <span
-              className={`text-[10px] leading-tight ${
-                moreIsActive ? "font-semibold" : "font-normal"
-              }`}
+              className={cn(
+                "text-[10px] leading-tight",
+                moreIsActive || drawerOpen ? "font-semibold" : "font-normal",
+              )}
             >
               More
             </span>

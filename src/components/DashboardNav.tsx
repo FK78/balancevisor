@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useFeatureFlags } from "@/components/FeatureFlagsProvider";
 import type { FeatureId } from "@/lib/features";
+import { cn } from "@/lib/utils";
 
 interface NavItem {
   href: string;
@@ -63,11 +64,12 @@ function isActive(href: string, pathname: string | null) {
 }
 
 const linkClass = (active: boolean) =>
-  `flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors ${
+  cn(
+    "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors",
     active
-      ? "bg-primary text-primary-foreground"
-      : "text-muted-foreground hover:text-foreground"
-  }`;
+      ? "bg-card text-foreground shadow-sm"
+      : "text-muted-foreground hover:bg-card/80 hover:text-foreground",
+  );
 
 export function DashboardNav() {
   const pathname = usePathname();
@@ -85,7 +87,7 @@ export function DashboardNav() {
         {visiblePrimary.map((item) => {
           const active = isActive(item.href, pathname);
           return (
-            <Link key={item.href} href={item.href} className={linkClass(active)}>
+            <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} className={linkClass(active)}>
               <item.icon className="h-4 w-4" />
               {item.label}
             </Link>
@@ -95,6 +97,7 @@ export function DashboardNav() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
+              type="button"
               className={`${linkClass(moreIsActive)} cursor-pointer select-none`}
             >
               More
@@ -108,6 +111,7 @@ export function DashboardNav() {
                 <DropdownMenuItem key={item.href} asChild>
                   <Link
                     href={item.href}
+                    aria-current={active ? "page" : undefined}
                     className={`flex w-full items-center gap-2 ${active ? "font-semibold text-foreground" : ""}`}
                   >
                     <item.icon className="h-4 w-4" />

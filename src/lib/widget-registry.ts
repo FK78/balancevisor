@@ -29,7 +29,6 @@ export type DashboardPageId =
 const DASHBOARD_WIDGETS: readonly WidgetDefinition[] = [
   { id: "insights", label: "Insights", defaultVisible: true, colSpan: 2 },
   { id: "monthly-report", label: "AI Monthly Report", defaultVisible: true, colSpan: 2 },
-  { id: "net-worth", label: "Net Worth", defaultVisible: true, colSpan: 2 },
   { id: "net-worth-history", label: "Net Worth History", defaultVisible: true, colSpan: 2 },
   { id: "cashflow", label: "Cashflow Charts", defaultVisible: true, colSpan: 2 },
   { id: "cashflow-forecast", label: "Cash Flow Forecast", defaultVisible: true, colSpan: 2 },
