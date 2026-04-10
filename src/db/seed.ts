@@ -542,6 +542,68 @@ async function seed() {
     });
   }
 
+  // ─── FUNNY MILESTONE PATTERNS ──────────────────────────────────────
+
+  // ─── EXPENSE: Deliveroo habit (last 3 months, 4-5x per week) ───
+  for (let w = 0; w < 13; w++) {
+    const ordersThisWeek = randInt(4, 5);
+    for (let d = 0; d < ordersThisWeek; d++) {
+      txValues.push({
+        account_id: acctMap["Monzo Current"], category_id: catMap["Dining Out"], type: "expense",
+        amount: rand(8, 22), description: "Deliveroo order",
+        date: daysAgo(w * 7 + d), is_recurring: false,
+        merchant_name: "Deliveroo", category_source: "merchant",
+      });
+    }
+  }
+
+  // ─── EXPENSE: Coffee addiction (last 60 weekdays) ───
+  const coffeeShops = ["Costa Coffee", "Starbucks", "Pret A Manger", "Caffe Nero", "Black Sheep Coffee"];
+  for (let d = 0; d < 60; d++) {
+    const date = new Date();
+    date.setDate(date.getDate() - d);
+    const dow = date.getDay();
+    if (dow === 0 || dow === 6) continue; // skip weekends
+    txValues.push({
+      account_id: acctMap["Monzo Current"], category_id: catMap["Dining Out"], type: "expense",
+      amount: rand(3, 5.5), description: `${pick(coffeeShops)} - coffee`,
+      date: date.toISOString().slice(0, 10), is_recurring: false,
+      merchant_name: pick(coffeeShops), category_source: "merchant",
+    });
+  }
+
+  // ─── EXPENSE: Micro transactions under £5 (last 30 days) ───
+  const microItems = [
+    "Vending machine", "Parking meter", "Newspaper", "Chewing gum",
+    "Water bottle", "Bus single", "Contactless - corner shop",
+    "Bakery - pastry", "Fruit stand", "Meal deal top-up",
+  ];
+  for (let d = 0; d < 30; d++) {
+    if (rng() < 0.75) {
+      txValues.push({
+        account_id: acctMap["Monzo Current"], category_id: catMap["Shopping"], type: "expense",
+        amount: rand(0.80, 4.99), description: pick(microItems),
+        date: daysAgo(d), is_recurring: false,
+        category_source: "ai",
+      });
+    }
+  }
+
+  // ─── EXPENSE: Amazon shopping spree (last 2 months) ───
+  const amazonItems = [
+    "Amazon - tech accessories", "Amazon - kitchen gadget", "Amazon - book",
+    "Amazon - household", "Amazon - electronics", "Amazon - gift",
+    "Amazon - clothing", "Amazon - office supplies",
+  ];
+  for (let d = 0; d < 60; d += randInt(2, 5)) {
+    txValues.push({
+      account_id: acctMap["Amex Gold"], category_id: catMap["Shopping"], type: "expense",
+      amount: rand(15, 120), description: pick(amazonItems),
+      date: daysAgo(d), is_recurring: false,
+      merchant_name: "Amazon", category_source: "merchant",
+    });
+  }
+
   // ─── YEARLY: Insurance payments (once per year) ───
   for (let y = 0; y < 3; y++) {
     const mOff = y * 12 + 3; // March each year
@@ -770,6 +832,9 @@ async function seed() {
     ["EDF Energy", "Bills & Utilities"], ["Sky Broadband", "Bills & Utilities"],
     ["Three Mobile", "Bills & Utilities"], ["Thames Water", "Bills & Utilities"],
     ["Little Stars Nursery", "Childcare"], ["Acme Corp Ltd", "Salary"],
+    ["Deliveroo", "Dining Out"], ["Costa Coffee", "Dining Out"],
+    ["Starbucks", "Dining Out"], ["Caffe Nero", "Dining Out"],
+    ["Black Sheep Coffee", "Dining Out"],
   ];
   const merchantRows = await db
     .insert(merchantMappingsTable)

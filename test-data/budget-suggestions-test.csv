@@ -933,6 +933,11 @@ Date,Description,Amount,Type
 2026-01-13,Udemy course,-16.99,expense
 2026-01-22,Haircut - barber,-32.00,expense
 2026-01-10,Landing page - SaaSX,1650.00,income
+2026-01-03,Deliveroo order,-14.50,expense
+2026-01-06,Deliveroo order,-18.20,expense
+2026-01-10,Deliveroo order,-11.90,expense
+2026-01-14,Deliveroo order,-16.80,expense
+2026-01-17,Deliveroo order,-9.50,expense
 2026-02-25,Monthly Salary,4200.00,income
 2026-02-01,Rent,-1350.00,expense
 2026-02-05,EDF Energy,-108.80,expense
@@ -963,6 +968,18 @@ Date,Description,Amount,Type
 2026-02-20,Skincare products,-42.00,expense
 2026-02-19,Charity donation - Macmillan,-35.00,expense
 2026-02-09,ASOS refund - wrong size,42.00,refund
+2026-02-02,Deliveroo order,-12.40,expense
+2026-02-05,Deliveroo order,-19.90,expense
+2026-02-09,Deliveroo order,-15.30,expense
+2026-02-13,Deliveroo order,-8.70,expense
+2026-02-18,Deliveroo order,-21.50,expense
+2026-02-03,Costa Coffee - latte,-4.20,expense
+2026-02-07,Starbucks - flat white,-4.80,expense
+2026-02-11,Pret A Manger - coffee,-3.95,expense
+2026-02-17,Caffe Nero - cappuccino,-4.10,expense
+2026-02-24,Black Sheep Coffee,-5.20,expense
+2026-02-08,Amazon - wireless earbuds,-45.99,expense
+2026-02-19,Amazon - desk lamp,-28.50,expense
 2026-02-17,React consulting - TechCorp,2100.00,income
 2026-03-25,Monthly Salary,4200.00,income
 2026-03-01,Rent,-1350.00,expense
@@ -1002,6 +1019,26 @@ Date,Description,Amount,Type
 2026-03-21,Wedding gift,-85.00,expense
 2026-03-10,John Lewis refund - faulty item,89.99,refund
 2026-03-16,Zara refund - exchange,55.00,refund
+2026-03-01,Deliveroo order,-13.20,expense
+2026-03-04,Deliveroo order,-17.60,expense
+2026-03-09,Deliveroo order,-10.80,expense
+2026-03-15,Deliveroo order,-22.10,expense
+2026-03-21,Deliveroo order,-14.90,expense
+2026-03-03,Costa Coffee - latte,-4.20,expense
+2026-03-06,Starbucks - oat latte,-5.10,expense
+2026-03-10,Pret A Manger - coffee,-3.95,expense
+2026-03-16,Costa Coffee - mocha,-4.60,expense
+2026-03-23,Caffe Nero - flat white,-4.30,expense
+2026-03-02,Amazon - protein powder,-34.99,expense
+2026-03-11,Amazon - HDMI cable,-12.99,expense
+2026-03-18,Amazon - running shoes,-89.99,expense
+2026-03-28,Amazon - webcam,-52.00,expense
+2026-03-03,Vending machine,-1.50,expense
+2026-03-08,Parking meter,-2.80,expense
+2026-03-12,Corner shop - water,-1.20,expense
+2026-03-17,Bus single,-2.40,expense
+2026-03-22,Bakery - pastry,-3.50,expense
+2026-03-29,Newspaper,-2.00,expense
 2026-04-01,Rent,-1350.00,expense
 2026-04-01,Little Stars Nursery,-950.00,expense
 2026-04-02,PureGym membership,-39.99,expense
@@ -1013,3 +1050,19 @@ Date,Description,Amount,Type
 2026-04-07,Dishoom dinner,-88.00,expense
 2026-04-08,Three Mobile,-32.00,expense
 2026-04-09,Amazon - phone charger,-24.99,expense
+2026-04-02,Deliveroo order,-11.30,expense
+2026-04-05,Deliveroo order,-16.50,expense
+2026-04-07,Deliveroo order,-19.80,expense
+2026-04-09,Deliveroo order,-13.40,expense
+2026-04-10,Deliveroo order,-8.90,expense
+2026-04-01,Costa Coffee - latte,-4.20,expense
+2026-04-03,Starbucks - cold brew,-4.90,expense
+2026-04-04,Black Sheep Coffee,-5.50,expense
+2026-04-07,Pret A Manger - coffee,-3.95,expense
+2026-04-09,Costa Coffee - cappuccino,-4.40,expense
+2026-04-03,Amazon - water bottle,-15.99,expense
+2026-04-08,Amazon - USB hub,-24.99,expense
+2026-04-02,Vending machine,-1.80,expense
+2026-04-04,Parking meter,-3.20,expense
+2026-04-06,Corner shop - snack,-2.50,expense
+2026-04-09,Fruit stand,-1.90,expense
