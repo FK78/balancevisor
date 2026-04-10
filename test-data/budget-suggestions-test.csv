@@ -1,61 +1,1015 @@
 Date,Description,Amount,Type
+2023-05-25,Monthly Salary,3500.00,income
+2023-05-01,Rent,-1100.00,expense
+2023-05-05,EDF Energy,-72.50,expense
+2023-05-08,Three Mobile,-28.00,expense
+2023-05-10,Sky Broadband,-55.00,expense
+2023-05-12,Thames Water,-27.30,expense
+2023-05-03,Monthly Oyster card,-145.00,expense
+2023-05-02,PureGym membership,-29.99,expense
+2023-05-04,Netflix,-13.99,expense
+2023-05-06,Spotify Premium,-10.99,expense
+2023-05-07,Tesco Weekly Shop,-67.40,expense
+2023-05-14,Sainsbury's,-52.80,expense
+2023-05-20,Aldi top-up,-28.90,expense
+2023-05-27,Ocado delivery,-91.20,expense
+2023-05-09,Dishoom dinner,-78.50,expense
+2023-05-16,Pret A Manger,-8.90,expense
+2023-05-22,Wagamama lunch,-42.00,expense
+2023-05-11,Amazon - phone case,-18.99,expense
+2023-05-18,Uber to office,-15.50,expense
+2023-05-15,Web design - ClientCo,650.00,income
+2023-06-25,Monthly Salary,3500.00,income
+2023-06-01,Rent,-1100.00,expense
+2023-06-05,EDF Energy,-68.20,expense
+2023-06-08,Three Mobile,-28.00,expense
+2023-06-10,Sky Broadband,-55.00,expense
+2023-06-12,Thames Water,-29.10,expense
+2023-06-03,Monthly Oyster card,-145.00,expense
+2023-06-02,PureGym membership,-29.99,expense
+2023-06-04,Netflix,-13.99,expense
+2023-06-06,Spotify Premium,-10.99,expense
+2023-06-05,Tesco Weekly Shop,-82.30,expense
+2023-06-12,Lidl,-38.70,expense
+2023-06-19,M&S Food Hall,-55.40,expense
+2023-06-26,Asda,-71.20,expense
+2023-06-08,Nando's,-35.50,expense
+2023-06-15,Pizza Express,-48.00,expense
+2023-06-22,Five Guys,-22.80,expense
+2023-06-28,Leon,-14.50,expense
+2023-06-09,Vue Cinema tickets,-32.00,expense
+2023-06-17,ASOS order,-65.00,expense
+2023-06-21,Uber ride,-12.40,expense
+2023-06-14,Boots pharmacy,-15.80,expense
+2023-06-11,Logo design - BrandX,480.00,income
+2023-07-25,Monthly Salary,3500.00,income
+2023-07-01,Rent,-1100.00,expense
+2023-07-05,EDF Energy,-65.80,expense
+2023-07-08,Three Mobile,-28.00,expense
+2023-07-10,Sky Broadband,-55.00,expense
+2023-07-12,Thames Water,-26.80,expense
+2023-07-03,Monthly Oyster card,-145.00,expense
+2023-07-02,PureGym membership,-29.99,expense
+2023-07-04,Netflix,-13.99,expense
+2023-07-06,Spotify Premium,-10.99,expense
+2023-07-04,Tesco Weekly Shop,-74.60,expense
+2023-07-11,Waitrose,-62.30,expense
+2023-07-18,Ocado delivery,-98.50,expense
+2023-07-25,Sainsbury's,-45.20,expense
+2023-07-06,Dishoom dinner,-82.00,expense
+2023-07-13,Hawksmoor steak night,-135.00,expense
+2023-07-20,Itsu,-12.50,expense
+2023-07-27,Pret coffee x5,-22.50,expense
+2023-07-08,TK Maxx,-42.00,expense
+2023-07-15,Amazon - headphones,-59.99,expense
+2023-07-19,Concert tickets - O2,-85.00,expense
+2023-07-22,Train to Manchester,-58.00,expense
+2023-07-10,Holland & Barrett,-28.50,expense
+2023-07-14,Udemy course,-14.99,expense
+2023-07-17,Birthday present,-45.00,expense
+2023-07-09,React consulting - TechCorp,1200.00,income
+2023-08-25,Monthly Salary,3500.00,income
+2023-08-01,Rent,-1100.00,expense
+2023-08-05,EDF Energy,-71.40,expense
+2023-08-08,Three Mobile,-28.00,expense
+2023-08-10,Sky Broadband,-55.00,expense
+2023-08-12,Thames Water,-28.50,expense
+2023-08-03,Monthly Oyster card,-145.00,expense
+2023-08-02,PureGym membership,-29.99,expense
+2023-08-04,Netflix,-13.99,expense
+2023-08-06,Spotify Premium,-10.99,expense
+2023-08-03,Tesco Weekly Shop,-88.20,expense
+2023-08-10,Aldi top-up,-32.50,expense
+2023-08-17,Morrisons,-56.80,expense
+2023-08-24,Co-op,-41.30,expense
+2023-08-31,Sainsbury's,-63.20,expense
+2023-08-07,Franco Manca,-28.50,expense
+2023-08-14,Honest Burgers,-38.00,expense
+2023-08-21,Chipotle,-16.80,expense
+2023-08-08,John Lewis - summer sale,-89.99,expense
+2023-08-16,Zara,-55.00,expense
+2023-08-12,Bowling,-24.00,expense
+2023-08-19,Uber to Gatwick,-42.00,expense
+2023-08-26,Bolt ride,-9.80,expense
+2023-08-23,Dentist appointment,-65.00,expense
+2023-08-11,Haircut - barber,-22.00,expense
+2023-08-15,Charity donation - UNICEF,-25.00,expense
+2023-08-28,Restaurant in Barcelona,-95.00,expense
+2023-09-25,Monthly Salary,3500.00,income
+2023-09-01,Rent,-1100.00,expense
+2023-09-05,EDF Energy,-78.30,expense
+2023-09-08,Three Mobile,-28.00,expense
+2023-09-10,Sky Broadband,-55.00,expense
+2023-09-12,Thames Water,-30.20,expense
+2023-09-03,Monthly Oyster card,-145.00,expense
+2023-09-02,PureGym membership,-29.99,expense
+2023-09-04,Netflix,-13.99,expense
+2023-09-06,Spotify Premium,-10.99,expense
+2023-09-06,Tesco Weekly Shop,-72.10,expense
+2023-09-13,Lidl,-35.60,expense
+2023-09-20,Ocado delivery,-105.30,expense
+2023-09-27,Waitrose,-58.40,expense
+2023-09-05,Wagamama lunch,-38.50,expense
+2023-09-12,GBK,-22.00,expense
+2023-09-19,Nobu birthday dinner,-155.00,expense
+2023-09-09,Amazon - books,-28.50,expense
+2023-09-15,Currys - monitor,-249.99,expense
+2023-09-18,Theatre tickets,-65.00,expense
+2023-09-22,Train to Bristol,-45.00,expense
+2023-09-08,Coursera subscription,-39.00,expense
+2023-09-14,Skincare products,-35.00,expense
+2023-09-16,Shopify store - LocalBiz,850.00,income
+2023-09-21,Wedding gift,-75.00,expense
+2023-10-25,Monthly Salary,3500.00,income
+2023-10-01,Rent,-1100.00,expense
+2023-10-05,EDF Energy,-85.40,expense
+2023-10-08,Three Mobile,-28.00,expense
+2023-10-10,Sky Broadband,-55.00,expense
+2023-10-12,Thames Water,-28.90,expense
+2023-10-03,Monthly Oyster card,-145.00,expense
+2023-10-02,PureGym membership,-29.99,expense
+2023-10-04,Netflix,-13.99,expense
+2023-10-06,Spotify Premium,-10.99,expense
+2023-10-05,Tesco Weekly Shop,-79.80,expense
+2023-10-12,Sainsbury's,-64.20,expense
+2023-10-19,Aldi top-up,-29.50,expense
+2023-10-26,M&S Food Hall,-48.70,expense
+2023-10-07,Dishoom dinner,-88.00,expense
+2023-10-14,Pret A Manger,-12.50,expense
+2023-10-21,Nando's,-42.50,expense
+2023-10-28,Byron Burger,-35.00,expense
+2023-10-09,ASOS order,-78.00,expense
+2023-10-16,H&M,-45.00,expense
+2023-10-20,Comedy show,-28.00,expense
+2023-10-23,National Express coach,-18.50,expense
+2023-10-11,Optician appointment,-35.00,expense
+2023-10-30,Car Insurance - Admiral,-385.00,expense
+2023-10-13,WordPress site - CafeZ,550.00,income
+2023-11-25,Monthly Salary,3500.00,income
+2023-11-01,Rent,-1100.00,expense
+2023-11-05,EDF Energy,-92.60,expense
+2023-11-08,Three Mobile,-28.00,expense
+2023-11-10,Sky Broadband,-55.00,expense
+2023-11-12,Thames Water,-31.40,expense
+2023-11-03,Monthly Oyster card,-145.00,expense
+2023-11-02,PureGym membership,-29.99,expense
+2023-11-04,Netflix,-13.99,expense
+2023-11-06,Spotify Premium,-10.99,expense
+2023-11-03,Tesco Weekly Shop,-92.50,expense
+2023-11-10,Asda,-68.30,expense
+2023-11-17,Ocado delivery,-112.40,expense
+2023-11-24,Lidl,-42.80,expense
+2023-11-07,Pizza Express,-55.00,expense
+2023-11-14,Leon,-16.80,expense
+2023-11-21,Five Guys,-24.50,expense
+2023-11-28,Dishoom dinner,-92.00,expense
+2023-11-09,Uniqlo - winter coat,-79.99,expense
+2023-11-15,Argos,-34.99,expense
+2023-11-11,Museum entry,-18.00,expense
+2023-11-18,Uber ride,-22.00,expense
+2023-11-20,Physiotherapy session,-55.00,expense
+2023-11-13,O'Reilly Books,-42.00,expense
+2023-11-08,Dry cleaning,-18.00,expense
+2023-11-22,Charity donation - Macmillan,-30.00,expense
+2023-11-16,UI audit - StartupY,780.00,income
+2023-12-25,Monthly Salary,3500.00,income
+2023-12-01,Rent,-1100.00,expense
+2023-12-05,EDF Energy,-105.80,expense
+2023-12-08,Three Mobile,-28.00,expense
+2023-12-10,Sky Broadband,-55.00,expense
+2023-12-12,Thames Water,-29.50,expense
+2023-12-03,Monthly Oyster card,-145.00,expense
+2023-12-02,PureGym membership,-29.99,expense
+2023-12-04,Netflix,-13.99,expense
+2023-12-06,Spotify Premium,-10.99,expense
+2023-12-05,Tesco Weekly Shop,-125.80,expense
+2023-12-12,Waitrose,-98.50,expense
+2023-12-19,M&S Food Hall,-85.60,expense
+2023-12-23,Sainsbury's,-142.30,expense
+2023-12-07,Hawksmoor steak night,-145.00,expense
+2023-12-14,Wagamama lunch,-38.50,expense
+2023-12-21,Nobu,-165.00,expense
+2023-12-09,IKEA,-185.00,expense
+2023-12-15,John Lewis - gifts,-245.00,expense
+2023-12-18,Amazon - Christmas presents,-189.99,expense
+2023-12-11,Christmas presents,-125.00,expense
+2023-12-16,Housewarming gift,-55.00,expense
+2023-12-20,JustGiving donation,-50.00,expense
+2023-12-13,Gig tickets,-45.00,expense
+2023-12-22,Uber to Heathrow,-48.00,expense
+2023-12-10,Perfume,-62.00,expense
+2023-12-17,Home Contents Insurance,-220.00,expense
+2024-01-25,Monthly Salary,3500.00,income
+2024-01-01,Rent,-1100.00,expense
+2024-01-05,EDF Energy,-115.20,expense
+2024-01-08,Three Mobile,-28.00,expense
+2024-01-10,Sky Broadband,-55.00,expense
+2024-01-12,Thames Water,-28.80,expense
+2024-01-03,Monthly Oyster card,-145.00,expense
+2024-01-02,PureGym membership,-29.99,expense
+2024-01-04,Netflix,-13.99,expense
+2024-01-06,Spotify Premium,-10.99,expense
+2024-01-04,Tesco Weekly Shop,-78.40,expense
+2024-01-11,Aldi top-up,-35.20,expense
+2024-01-18,Morrisons,-62.90,expense
+2024-01-25,Co-op,-38.50,expense
+2024-01-07,Pret A Manger,-9.50,expense
+2024-01-14,Itsu,-14.80,expense
+2024-01-21,Chipotle,-18.50,expense
+2024-01-09,WHSmith - books,-22.50,expense
+2024-01-16,TK Maxx,-55.00,expense
+2024-01-12,Escape room,-32.00,expense
+2024-01-19,Bolt ride,-14.20,expense
+2024-01-08,Boots pharmacy,-12.50,expense
+2024-01-15,Pluralsight,-29.00,expense
+2024-01-20,Amazon refund - item returned,59.99,refund
+2024-01-22,Laundry service,-15.00,expense
+2024-01-13,App design - FinCo,1850.00,income
+2024-02-25,Monthly Salary,3500.00,income
+2024-02-01,Rent,-1100.00,expense
+2024-02-05,EDF Energy,-108.40,expense
+2024-02-08,Three Mobile,-28.00,expense
+2024-02-10,Sky Broadband,-55.00,expense
+2024-02-12,Thames Water,-30.50,expense
+2024-02-03,Monthly Oyster card,-145.00,expense
+2024-02-02,PureGym membership,-29.99,expense
+2024-02-04,Netflix,-13.99,expense
+2024-02-06,Spotify Premium,-10.99,expense
+2024-02-06,Tesco Weekly Shop,-85.60,expense
+2024-02-13,Sainsbury's,-72.30,expense
+2024-02-20,Ocado delivery,-95.80,expense
+2024-02-27,Lidl,-41.20,expense
+2024-02-08,Dishoom dinner,-82.00,expense
+2024-02-14,Hawksmoor steak night,-155.00,expense
+2024-02-21,Franco Manca,-32.50,expense
+2024-02-09,Uniqlo - shirts,-65.00,expense
+2024-02-15,Amazon - headphones,-79.99,expense
+2024-02-11,Vue Cinema 2 tickets,-38.00,expense
+2024-02-18,Train to Birmingham,-72.00,expense
+2024-02-22,Holland & Barrett,-32.00,expense
+2024-02-10,AWS certification exam,-150.00,expense
+2024-02-16,Haircut - barber,-25.00,expense
+2024-02-19,ASOS refund - wrong size,42.00,refund
+2024-03-25,Monthly Salary,3500.00,income
+2024-03-01,Rent,-1200.00,expense
+2024-03-05,EDF Energy,-95.30,expense
+2024-03-08,Three Mobile,-28.00,expense
+2024-03-10,Sky Broadband,-55.00,expense
+2024-03-12,Thames Water,-29.40,expense
+2024-03-15,Council Tax,-162.00,expense
+2024-03-03,Monthly Oyster card,-145.00,expense
+2024-03-02,PureGym membership,-39.99,expense
+2024-03-04,Netflix,-15.99,expense
+2024-03-06,Spotify Premium,-10.99,expense
+2024-03-07,Tesco Weekly Shop,-71.80,expense
+2024-03-14,Waitrose,-58.90,expense
+2024-03-21,Asda,-82.30,expense
+2024-03-28,M&S Food Hall,-52.40,expense
+2024-03-09,Nando's,-42.50,expense
+2024-03-16,Wagamama lunch,-35.00,expense
+2024-03-23,Pizza Express,-48.00,expense
+2024-03-30,Pret coffee x5,-25.00,expense
+2024-03-11,Currys - keyboard,-89.99,expense
+2024-03-18,John Lewis - jacket,-129.99,expense
+2024-03-13,Art exhibition,-22.00,expense
+2024-03-20,Uber ride,-18.50,expense
+2024-03-08,Dentist appointment,-75.00,expense
+2024-03-15,Conference ticket,-195.00,expense
+2024-03-22,Baby shower gift,-40.00,expense
+2024-03-17,Car Insurance - Admiral,-410.00,expense
+2024-03-19,Life Insurance premium,-165.00,expense
+2024-03-24,Travel Insurance - annual,-180.00,expense
+2024-03-10,Landing page - SaaSX,950.00,income
+2024-04-25,Monthly Salary,3800.00,income
+2024-04-01,Rent,-1200.00,expense
+2024-04-05,EDF Energy,-82.10,expense
+2024-04-08,Three Mobile,-32.00,expense
+2024-04-10,Sky Broadband,-55.00,expense
+2024-04-12,Thames Water,-28.60,expense
+2024-04-15,Council Tax,-162.00,expense
+2024-04-03,Monthly Oyster card,-160.00,expense
+2024-04-02,PureGym membership,-39.99,expense
+2024-04-04,Netflix,-15.99,expense
+2024-04-06,Spotify Premium,-10.99,expense
+2024-04-04,Tesco Weekly Shop,-68.90,expense
+2024-04-11,Sainsbury's,-82.40,expense
+2024-04-18,Aldi top-up,-35.60,expense
+2024-04-25,Ocado delivery,-108.20,expense
+2024-04-07,Dishoom dinner,-85.00,expense
+2024-04-14,GBK,-28.00,expense
+2024-04-21,Honest Burgers,-42.50,expense
+2024-04-09,ASOS order,-92.00,expense
+2024-04-16,Zara,-68.00,expense
+2024-04-12,Theatre tickets,-55.00,expense
+2024-04-19,Train to Manchester,-62.00,expense
+2024-04-08,Superdrug,-18.50,expense
+2024-04-22,Technical book,-32.00,expense
+2024-04-13,Web design - ClientCo,1100.00,income
+2024-05-25,Monthly Salary,3800.00,income
+2024-05-01,Rent,-1200.00,expense
+2024-05-05,EDF Energy,-75.80,expense
+2024-05-08,Three Mobile,-32.00,expense
+2024-05-10,Sky Broadband,-55.00,expense
+2024-05-12,Thames Water,-27.90,expense
+2024-05-15,Council Tax,-162.00,expense
+2024-05-03,Monthly Oyster card,-160.00,expense
+2024-05-02,PureGym membership,-39.99,expense
+2024-05-04,Netflix,-15.99,expense
+2024-05-06,Spotify Premium,-10.99,expense
+2024-05-03,Tesco Weekly Shop,-92.30,expense
+2024-05-10,Lidl,-45.80,expense
+2024-05-17,Morrisons,-68.40,expense
+2024-05-24,Waitrose,-55.20,expense
+2024-05-31,Co-op,-38.90,expense
+2024-05-08,Nobu - celebration,-175.00,expense
+2024-05-15,Pret A Manger,-11.50,expense
+2024-05-22,Five Guys,-24.80,expense
+2024-05-09,Amazon - garden tools,-45.99,expense
+2024-05-16,H&M,-52.00,expense
+2024-05-11,Bowling,-28.00,expense
+2024-05-19,Uber to Heathrow,-45.00,expense
+2024-05-23,Lime scooter,-5.80,expense
+2024-05-07,Boots - vitamins,-24.00,expense
+2024-05-14,Udemy course,-16.99,expense
+2024-05-20,Charity donation - UNICEF,-50.00,expense
+2024-05-18,Uber refund - cancelled ride,15.00,refund
+2024-05-12,Logo design - BrandX,620.00,income
+2024-06-25,Monthly Salary,3800.00,income
+2024-06-01,Rent,-1200.00,expense
+2024-06-05,EDF Energy,-68.50,expense
+2024-06-08,Three Mobile,-32.00,expense
+2024-06-10,Sky Broadband,-55.00,expense
+2024-06-12,Thames Water,-29.30,expense
+2024-06-15,Council Tax,-162.00,expense
+2024-06-03,Monthly Oyster card,-160.00,expense
+2024-06-02,PureGym membership,-39.99,expense
+2024-06-04,Netflix,-15.99,expense
+2024-06-06,Spotify Premium,-10.99,expense
+2024-06-05,Tesco Weekly Shop,-75.40,expense
+2024-06-12,Sainsbury's,-62.80,expense
+2024-06-19,Ocado delivery,-115.50,expense
+2024-06-26,Asda,-58.20,expense
+2024-06-07,Wagamama lunch,-35.00,expense
+2024-06-14,Itsu,-15.80,expense
+2024-06-21,Dishoom dinner,-92.00,expense
+2024-06-28,Leon,-18.50,expense
+2024-06-09,Uniqlo - summer clothes,-95.00,expense
+2024-06-16,WHSmith - books,-18.99,expense
+2024-06-11,Concert tickets,-72.00,expense
+2024-06-18,Bolt ride,-11.50,expense
+2024-06-22,Uber to Gatwick,-38.00,expense
+2024-06-08,Physiotherapy session,-60.00,expense
+2024-06-13,Skincare products,-42.00,expense
+2024-06-20,Restaurant in Paris,-125.00,expense
+2024-06-15,React consulting - TechCorp,1500.00,income
+2024-07-25,Monthly Salary,3800.00,income
+2024-07-01,Rent,-1200.00,expense
+2024-07-05,EDF Energy,-66.20,expense
+2024-07-08,Three Mobile,-32.00,expense
+2024-07-10,Sky Broadband,-55.00,expense
+2024-07-12,Thames Water,-26.50,expense
+2024-07-15,Council Tax,-162.00,expense
+2024-07-03,Monthly Oyster card,-160.00,expense
+2024-07-02,PureGym membership,-39.99,expense
+2024-07-04,Netflix,-15.99,expense
+2024-07-06,Spotify Premium,-10.99,expense
+2024-07-04,Tesco Weekly Shop,-82.60,expense
+2024-07-11,M&S Food Hall,-65.30,expense
+2024-07-18,Aldi top-up,-38.90,expense
+2024-07-25,Lidl,-42.50,expense
+2024-07-07,Nando's,-45.00,expense
+2024-07-14,Chipotle,-19.80,expense
+2024-07-21,Pizza Express,-52.00,expense
+2024-07-28,Pret coffee x5,-27.50,expense
+2024-07-09,Currys - tablet,-299.99,expense
+2024-07-16,Argos,-42.00,expense
+2024-07-11,Escape room,-35.00,expense
+2024-07-19,Museum entry,-15.00,expense
+2024-07-22,Train to Bristol,-52.00,expense
+2024-07-08,Holland & Barrett,-35.00,expense
+2024-07-13,Dry cleaning,-22.00,expense
+2024-07-17,Restaurant in Amsterdam,-98.00,expense
+2024-07-20,Online purchase (USD) - Newegg,-85.00,expense
+2024-07-24,Train refund - delay compensation,32.50,refund
+2024-07-10,Shopify store - LocalBiz,720.00,income
+2024-08-25,Monthly Salary,3800.00,income
+2024-08-01,Rent,-1200.00,expense
+2024-08-05,EDF Energy,-72.80,expense
+2024-08-08,Three Mobile,-32.00,expense
+2024-08-10,Sky Broadband,-55.00,expense
+2024-08-12,Thames Water,-28.10,expense
+2024-08-15,Council Tax,-162.00,expense
+2024-08-03,Monthly Oyster card,-160.00,expense
+2024-08-02,PureGym membership,-39.99,expense
+2024-08-04,Netflix,-15.99,expense
+2024-08-06,Spotify Premium,-10.99,expense
+2024-08-06,Tesco Weekly Shop,-95.80,expense
+2024-08-13,Waitrose,-72.40,expense
+2024-08-20,Sainsbury's,-58.60,expense
+2024-08-27,Morrisons,-82.30,expense
+2024-08-08,Hawksmoor steak night,-148.00,expense
+2024-08-15,Franco Manca,-35.00,expense
+2024-08-22,Honest Burgers,-42.00,expense
+2024-08-29,GBK,-28.50,expense
+2024-08-09,IKEA,-142.00,expense
+2024-08-16,Amazon - electronics,-129.99,expense
+2024-08-11,Gig tickets,-55.00,expense
+2024-08-18,Uber ride,-15.80,expense
+2024-08-23,National Express coach,-25.00,expense
+2024-08-07,Optician appointment,-45.00,expense
+2024-08-14,Laundry service,-18.00,expense
+2024-08-19,O'Reilly Books,-35.00,expense
+2024-08-21,Wedding gift,-85.00,expense
+2024-08-25,Restaurant in Berlin,-82.00,expense
+2024-08-12,Netflix refund - billing error,15.99,refund
+2024-09-25,Monthly Salary,3800.00,income
+2024-09-01,Rent,-1200.00,expense
+2024-09-05,EDF Energy,-85.60,expense
+2024-09-08,Three Mobile,-32.00,expense
+2024-09-10,Sky Broadband,-55.00,expense
+2024-09-12,Thames Water,-30.80,expense
+2024-09-15,Council Tax,-162.00,expense
+2024-09-03,Monthly Oyster card,-160.00,expense
+2024-09-02,PureGym membership,-39.99,expense
+2024-09-04,Netflix,-15.99,expense
+2024-09-06,Spotify Premium,-10.99,expense
+2024-09-05,Tesco Weekly Shop,-78.90,expense
+2024-09-12,Aldi top-up,-32.40,expense
+2024-09-19,Co-op,-45.80,expense
+2024-09-26,Ocado delivery,-102.30,expense
+2024-09-07,Dishoom dinner,-85.00,expense
+2024-09-14,Wagamama lunch,-42.00,expense
+2024-09-21,Nobu,-165.00,expense
+2024-09-28,Pret A Manger,-12.80,expense
+2024-09-09,John Lewis - coat,-149.99,expense
+2024-09-16,ASOS sale,-82.00,expense
+2024-09-11,Theatre tickets,-72.00,expense
+2024-09-18,Uber to Heathrow,-42.00,expense
+2024-09-08,Boots pharmacy,-18.50,expense
+2024-09-13,Coursera subscription,-49.00,expense
+2024-09-20,Haircut - barber,-28.00,expense
+2024-09-22,Birthday present,-65.00,expense
+2024-09-17,Gym refund - closed facility,39.99,refund
+2024-09-10,UI audit - StartupY,920.00,income
+2024-10-25,Monthly Salary,3800.00,income
+2024-10-01,Rent,-1200.00,expense
+2024-10-05,EDF Energy,-98.40,expense
+2024-10-08,Three Mobile,-32.00,expense
+2024-10-10,Sky Broadband,-55.00,expense
+2024-10-12,Thames Water,-29.50,expense
+2024-10-15,Council Tax,-175.00,expense
+2024-10-01,Little Stars Nursery,-950.00,expense
+2024-10-03,Monthly Oyster card,-160.00,expense
+2024-10-02,PureGym membership,-39.99,expense
+2024-10-04,Netflix,-15.99,expense
+2024-10-06,Spotify Premium,-10.99,expense
+2024-10-04,Tesco Weekly Shop,-88.50,expense
+2024-10-11,Sainsbury's,-75.20,expense
+2024-10-18,Lidl,-48.60,expense
+2024-10-25,Asda,-62.30,expense
+2024-10-07,Nando's,-45.00,expense
+2024-10-14,Five Guys,-26.80,expense
+2024-10-21,Pizza Express,-55.00,expense
+2024-10-09,TK Maxx,-68.00,expense
+2024-10-16,Superdrug,-22.50,expense
+2024-10-11,Vue Cinema tickets,-42.00,expense
+2024-10-19,Comedy show,-32.00,expense
+2024-10-22,Train to Manchester,-65.00,expense
+2024-10-07,Dentist appointment,-85.00,expense
+2024-10-13,Technical book,-28.00,expense
+2024-10-20,Perfume,-55.00,expense
+2024-10-30,Car Insurance - Admiral,-425.00,expense
+2024-10-31,Pet Insurance,-195.00,expense
+2024-10-17,Currys refund - price match,30.00,refund
+2024-11-25,Monthly Salary,3800.00,income
+2024-11-01,Rent,-1200.00,expense
+2024-11-05,EDF Energy,-112.50,expense
+2024-11-08,Three Mobile,-32.00,expense
+2024-11-10,Sky Broadband,-55.00,expense
+2024-11-12,Thames Water,-31.20,expense
+2024-11-15,Council Tax,-175.00,expense
+2024-11-01,Little Stars Nursery,-950.00,expense
+2024-11-03,Monthly Oyster card,-160.00,expense
+2024-11-02,PureGym membership,-39.99,expense
+2024-11-04,Netflix,-15.99,expense
+2024-11-06,Spotify Premium,-10.99,expense
+2024-11-07,Tesco Weekly Shop,-95.40,expense
+2024-11-14,Waitrose,-68.20,expense
+2024-11-21,Ocado delivery,-118.50,expense
+2024-11-28,M&S Food Hall,-72.80,expense
+2024-11-08,Dishoom dinner,-95.00,expense
+2024-11-15,Hawksmoor steak night,-155.00,expense
+2024-11-22,Leon,-18.50,expense
+2024-11-29,Itsu,-15.20,expense
+2024-11-09,Uniqlo - winter clothes,-112.00,expense
+2024-11-16,Amazon - Black Friday,-185.99,expense
+2024-11-23,ASOS - Black Friday,-95.00,expense
+2024-11-11,Escape room,-35.00,expense
+2024-11-18,Uber ride,-22.00,expense
+2024-11-07,Holland & Barrett,-38.00,expense
+2024-11-13,Pluralsight,-29.00,expense
+2024-11-20,Dry cleaning,-22.00,expense
+2024-11-25,Charity donation - Macmillan,-40.00,expense
+2024-11-10,Landing page - SaaSX,1350.00,income
+2024-12-25,Monthly Salary,3800.00,income
+2024-12-01,Rent,-1200.00,expense
+2024-12-05,EDF Energy,-125.80,expense
+2024-12-08,Three Mobile,-32.00,expense
+2024-12-10,Sky Broadband,-55.00,expense
+2024-12-12,Thames Water,-30.10,expense
+2024-12-15,Council Tax,-175.00,expense
+2024-12-01,Little Stars Nursery,-950.00,expense
+2024-12-03,Monthly Oyster card,-160.00,expense
+2024-12-02,PureGym membership,-39.99,expense
+2024-12-04,Netflix,-15.99,expense
+2024-12-06,Spotify Premium,-10.99,expense
+2024-12-05,Tesco Weekly Shop,-135.60,expense
+2024-12-12,Waitrose,-112.30,expense
+2024-12-19,M&S Food Hall,-98.50,expense
+2024-12-23,Sainsbury's,-155.80,expense
+2024-12-07,Nobu - Christmas dinner,-195.00,expense
+2024-12-14,Wagamama lunch,-45.00,expense
+2024-12-21,Dishoom dinner,-105.00,expense
+2024-12-09,John Lewis - Christmas gifts,-285.00,expense
+2024-12-15,Amazon - Christmas presents,-225.00,expense
+2024-12-18,IKEA - home decor,-165.00,expense
+2024-12-11,Christmas presents,-175.00,expense
+2024-12-16,Housewarming gift,-65.00,expense
+2024-12-20,JustGiving donation,-75.00,expense
+2024-12-22,Baby shower gift,-55.00,expense
+2024-12-13,Concert tickets,-95.00,expense
+2024-12-17,Uber to Gatwick,-52.00,expense
+2024-12-10,Perfume,-78.00,expense
+2024-12-24,Restaurant in Rome,-118.00,expense
+2024-12-19,Zara refund - exchange,55.00,refund
+2025-01-25,Monthly Salary,3800.00,income
+2025-01-01,Rent,-1350.00,expense
+2025-01-05,EDF Energy,-118.50,expense
+2025-01-08,Three Mobile,-32.00,expense
+2025-01-10,Sky Broadband,-55.00,expense
+2025-01-12,Thames Water,-29.80,expense
+2025-01-15,Council Tax,-175.00,expense
+2025-01-01,Little Stars Nursery,-950.00,expense
+2025-01-03,Monthly Oyster card,-160.00,expense
+2025-01-02,PureGym membership,-39.99,expense
+2025-01-04,Netflix,-15.99,expense
+2025-01-06,Spotify Premium,-10.99,expense
+2025-01-06,Tesco Weekly Shop,-82.40,expense
+2025-01-13,Aldi top-up,-38.90,expense
+2025-01-20,Morrisons,-72.50,expense
+2025-01-27,Co-op,-45.80,expense
+2025-01-08,Pret A Manger,-11.20,expense
+2025-01-15,Chipotle,-22.50,expense
+2025-01-22,GBK,-28.00,expense
+2025-01-09,WHSmith - books,-19.99,expense
+2025-01-16,Boots,-28.00,expense
+2025-01-11,Bowling,-28.00,expense
+2025-01-19,Bolt ride,-12.80,expense
+2025-01-07,Boots pharmacy,-15.50,expense
+2025-01-13,Udemy course,-18.99,expense
+2025-01-20,Haircut - barber,-28.00,expense
+2025-01-14,John Lewis refund - faulty item,89.99,refund
+2025-01-10,App design - FinCo,2200.00,income
+2025-02-25,Monthly Salary,3800.00,income
+2025-02-01,Rent,-1350.00,expense
+2025-02-05,EDF Energy,-105.20,expense
+2025-02-08,Three Mobile,-32.00,expense
+2025-02-10,Sky Broadband,-55.00,expense
+2025-02-12,Thames Water,-31.50,expense
+2025-02-15,Council Tax,-175.00,expense
+2025-02-01,Little Stars Nursery,-950.00,expense
+2025-02-03,Monthly Oyster card,-160.00,expense
+2025-02-02,PureGym membership,-39.99,expense
+2025-02-04,Netflix,-15.99,expense
+2025-02-06,Spotify Premium,-10.99,expense
+2025-02-05,Tesco Weekly Shop,-78.90,expense
+2025-02-12,Sainsbury's,-65.40,expense
+2025-02-19,Ocado delivery,-98.50,expense
+2025-02-26,Lidl,-42.30,expense
+2025-02-07,Dishoom dinner,-88.00,expense
+2025-02-14,Hawksmoor - Valentine's,-185.00,expense
+2025-02-21,Franco Manca,-35.00,expense
+2025-02-28,Pret coffee x5,-27.50,expense
+2025-02-09,Amazon - Valentine's gift,-65.00,expense
+2025-02-15,Uniqlo,-55.00,expense
+2025-02-11,Vue Cinema 2 tickets,-42.00,expense
+2025-02-18,Train to Birmingham,-75.00,expense
+2025-02-08,Optician appointment,-45.00,expense
+2025-02-13,AWS certification exam,-165.00,expense
+2025-02-20,Skincare products,-48.00,expense
+2025-02-22,Charity donation - UNICEF,-35.00,expense
+2025-03-25,Monthly Salary,3800.00,income
+2025-03-01,Rent,-1350.00,expense
+2025-03-05,EDF Energy,-92.80,expense
+2025-03-08,Three Mobile,-32.00,expense
+2025-03-10,Sky Broadband,-55.00,expense
+2025-03-12,Thames Water,-28.90,expense
+2025-03-15,Council Tax,-175.00,expense
+2025-03-01,Little Stars Nursery,-950.00,expense
+2025-03-03,Monthly Oyster card,-160.00,expense
+2025-03-02,PureGym membership,-39.99,expense
+2025-03-04,Netflix,-15.99,expense
+2025-03-06,Spotify Premium,-10.99,expense
+2025-03-06,Tesco Weekly Shop,-72.60,expense
+2025-03-13,Waitrose,-58.90,expense
+2025-03-20,Asda,-85.40,expense
+2025-03-27,M&S Food Hall,-62.30,expense
+2025-03-08,Nando's,-42.50,expense
+2025-03-15,Wagamama lunch,-38.50,expense
+2025-03-22,Pizza Express,-55.00,expense
+2025-03-29,Five Guys,-26.80,expense
+2025-03-09,Currys - keyboard,-119.99,expense
+2025-03-16,John Lewis - jacket,-145.00,expense
+2025-03-11,Art exhibition,-25.00,expense
+2025-03-18,Theatre tickets,-68.00,expense
+2025-03-22,Uber ride,-18.50,expense
+2025-03-07,Dentist appointment,-85.00,expense
+2025-03-13,Conference ticket,-225.00,expense
+2025-03-20,Dry cleaning,-25.00,expense
+2025-03-17,Car Insurance - Admiral,-445.00,expense
+2025-03-19,Life Insurance premium,-175.00,expense
+2025-03-24,Travel Insurance - annual,-195.00,expense
+2025-03-26,Home Contents Insurance,-235.00,expense
+2025-03-10,Restaurant overcharge refund,24.50,refund
+2025-03-14,WordPress site - CafeZ,680.00,income
+2025-04-25,Monthly Salary,4200.00,income
+2025-04-01,Rent,-1350.00,expense
+2025-04-05,EDF Energy,-78.40,expense
+2025-04-08,Three Mobile,-32.00,expense
+2025-04-10,Sky Broadband,-55.00,expense
+2025-04-12,Thames Water,-27.80,expense
+2025-04-15,Council Tax,-175.00,expense
+2025-04-01,Little Stars Nursery,-950.00,expense
+2025-04-03,Monthly Oyster card,-160.00,expense
+2025-04-02,PureGym membership,-39.99,expense
+2025-04-04,Netflix,-15.99,expense
+2025-04-06,Spotify Premium,-10.99,expense
+2025-04-04,Tesco Weekly Shop,-68.90,expense
+2025-04-11,Sainsbury's,-82.40,expense
+2025-04-18,Aldi top-up,-35.60,expense
+2025-04-25,Ocado delivery,-108.20,expense
+2025-04-07,Dishoom dinner,-85.00,expense
+2025-04-14,GBK,-28.00,expense
+2025-04-21,Honest Burgers,-42.50,expense
+2025-04-28,Pret A Manger,-12.80,expense
+2025-04-09,ASOS order,-95.00,expense
+2025-04-16,Zara,-72.00,expense
+2025-04-12,Gig tickets,-48.00,expense
+2025-04-19,Uber to Heathrow,-45.00,expense
+2025-04-08,Superdrug,-22.50,expense
+2025-04-22,Technical book,-35.00,expense
+2025-04-13,Laundry service,-18.00,expense
+2025-04-20,Online purchase (USD) - Best Buy,-145.00,expense
+2025-04-10,React consulting - TechCorp,1800.00,income
+2025-05-25,Monthly Salary,4200.00,income
+2025-05-01,Rent,-1350.00,expense
+2025-05-05,EDF Energy,-72.50,expense
+2025-05-08,Three Mobile,-32.00,expense
+2025-05-10,Sky Broadband,-55.00,expense
+2025-05-12,Thames Water,-28.50,expense
+2025-05-15,Council Tax,-175.00,expense
+2025-05-01,Little Stars Nursery,-950.00,expense
+2025-05-03,Monthly Oyster card,-160.00,expense
+2025-05-02,PureGym membership,-39.99,expense
+2025-05-04,Netflix,-15.99,expense
+2025-05-06,Spotify Premium,-10.99,expense
+2025-05-05,Tesco Weekly Shop,-88.60,expense
+2025-05-12,Lidl,-52.30,expense
+2025-05-19,Morrisons,-75.80,expense
+2025-05-26,Waitrose,-62.50,expense
+2025-05-08,Nobu - celebration,-185.00,expense
+2025-05-15,Itsu,-14.80,expense
+2025-05-22,Chipotle,-22.50,expense
+2025-05-29,Leon,-18.80,expense
+2025-05-09,Amazon - smart home,-78.99,expense
+2025-05-16,H&M,-48.00,expense
+2025-05-11,Museum entry,-18.00,expense
+2025-05-19,Concert tickets,-85.00,expense
+2025-05-22,Lime scooter,-6.50,expense
+2025-05-07,Holland & Barrett,-32.00,expense
+2025-05-14,Udemy course,-14.99,expense
+2025-05-20,Birthday present,-55.00,expense
+2025-05-18,Haircut - barber,-30.00,expense
+2025-05-25,Restaurant in Lisbon,-110.00,expense
+2025-06-25,Monthly Salary,4200.00,income
+2025-06-01,Rent,-1350.00,expense
+2025-06-05,EDF Energy,-68.90,expense
+2025-06-08,Three Mobile,-32.00,expense
+2025-06-10,Sky Broadband,-55.00,expense
+2025-06-12,Thames Water,-29.40,expense
+2025-06-15,Council Tax,-175.00,expense
+2025-06-01,Little Stars Nursery,-950.00,expense
+2025-06-03,Monthly Oyster card,-160.00,expense
+2025-06-02,PureGym membership,-39.99,expense
+2025-06-04,Netflix,-15.99,expense
+2025-06-06,Spotify Premium,-10.99,expense
+2025-06-06,Tesco Weekly Shop,-75.80,expense
+2025-06-13,Sainsbury's,-68.40,expense
+2025-06-20,Ocado delivery,-105.20,expense
+2025-06-27,Asda,-58.90,expense
+2025-06-08,Wagamama lunch,-38.50,expense
+2025-06-15,Pizza Express,-52.00,expense
+2025-06-22,Dishoom dinner,-92.00,expense
+2025-06-09,Uniqlo - summer sale,-85.00,expense
+2025-06-16,Currys - headphones,-149.99,expense
+2025-06-11,Theatre tickets,-65.00,expense
+2025-06-18,Train to Bristol,-55.00,expense
+2025-06-23,Uber ride,-19.50,expense
+2025-06-07,Boots pharmacy,-22.00,expense
+2025-06-13,Physiotherapy session,-65.00,expense
+2025-06-20,Skincare products,-45.00,expense
+2025-06-17,JustGiving donation,-50.00,expense
+2025-06-25,Restaurant in Barcelona,-132.00,expense
+2025-06-10,Shopify store - LocalBiz,980.00,income
+2025-07-25,Monthly Salary,4200.00,income
+2025-07-01,Rent,-1350.00,expense
+2025-07-05,EDF Energy,-65.80,expense
+2025-07-08,Three Mobile,-32.00,expense
+2025-07-10,Sky Broadband,-55.00,expense
+2025-07-12,Thames Water,-27.20,expense
+2025-07-15,Council Tax,-175.00,expense
+2025-07-01,Little Stars Nursery,-950.00,expense
+2025-07-03,Monthly Oyster card,-160.00,expense
+2025-07-02,PureGym membership,-39.99,expense
+2025-07-04,Netflix,-15.99,expense
+2025-07-06,Spotify Premium,-10.99,expense
+2025-07-03,Tesco Weekly Shop,-82.40,expense
+2025-07-10,M&S Food Hall,-72.30,expense
+2025-07-17,Aldi top-up,-42.80,expense
+2025-07-24,Co-op,-38.50,expense
+2025-07-31,Lidl,-55.20,expense
+2025-07-07,Nando's,-48.00,expense
+2025-07-14,Five Guys,-28.50,expense
+2025-07-21,Franco Manca,-35.00,expense
+2025-07-28,Pret coffee x5,-27.50,expense
+2025-07-09,ASOS sale,-78.00,expense
+2025-07-16,TK Maxx,-55.00,expense
+2025-07-11,Bowling,-32.00,expense
+2025-07-19,Escape room,-38.00,expense
+2025-07-22,National Express coach,-22.00,expense
+2025-07-08,Boots - vitamins,-28.00,expense
+2025-07-13,O'Reilly Books,-42.00,expense
+2025-07-20,Laundry service,-18.00,expense
+2025-07-17,Online purchase (USD) - B&H Photo,-195.00,expense
+2025-07-15,Web design - ClientCo,1450.00,income
+2025-08-25,Monthly Salary,4200.00,income
+2025-08-01,Rent,-1350.00,expense
+2025-08-05,EDF Energy,-70.20,expense
+2025-08-08,Three Mobile,-32.00,expense
+2025-08-10,Sky Broadband,-55.00,expense
+2025-08-12,Thames Water,-28.80,expense
+2025-08-15,Council Tax,-175.00,expense
+2025-08-01,Little Stars Nursery,-950.00,expense
+2025-08-03,Monthly Oyster card,-160.00,expense
+2025-08-02,PureGym membership,-39.99,expense
+2025-08-04,Netflix,-15.99,expense
+2025-08-06,Spotify Premium,-10.99,expense
+2025-08-05,Tesco Weekly Shop,-98.50,expense
+2025-08-12,Waitrose,-78.20,expense
+2025-08-19,Sainsbury's,-62.80,expense
+2025-08-26,Morrisons,-85.40,expense
+2025-08-07,Hawksmoor steak night,-158.00,expense
+2025-08-14,Honest Burgers,-45.00,expense
+2025-08-21,Byron Burger,-38.00,expense
+2025-08-28,Dishoom dinner,-98.00,expense
+2025-08-09,John Lewis - home,-125.00,expense
+2025-08-16,Amazon - back to school,-95.99,expense
+2025-08-11,Concert tickets,-78.00,expense
+2025-08-18,Uber to Gatwick,-42.00,expense
+2025-08-22,Bolt ride,-14.50,expense
+2025-08-07,Dentist appointment,-95.00,expense
+2025-08-13,Coursera subscription,-49.00,expense
+2025-08-20,Dry cleaning,-25.00,expense
+2025-08-24,Charity donation - Macmillan,-45.00,expense
+2025-08-17,Restaurant in Amsterdam,-105.00,expense
+2025-09-25,Monthly Salary,4200.00,income
+2025-09-01,Rent,-1350.00,expense
+2025-09-05,EDF Energy,-82.50,expense
+2025-09-08,Three Mobile,-32.00,expense
+2025-09-10,Sky Broadband,-55.00,expense
+2025-09-12,Thames Water,-30.20,expense
+2025-09-15,Council Tax,-175.00,expense
+2025-09-01,Little Stars Nursery,-950.00,expense
+2025-09-03,Monthly Oyster card,-160.00,expense
+2025-09-02,PureGym membership,-39.99,expense
+2025-09-04,Netflix,-15.99,expense
+2025-09-06,Spotify Premium,-10.99,expense
+2025-09-04,Tesco Weekly Shop,-75.20,expense
+2025-09-11,Ocado delivery,-112.50,expense
+2025-09-18,Asda,-68.30,expense
+2025-09-25,Lidl,-48.90,expense
+2025-09-07,Nobu birthday dinner,-175.00,expense
+2025-09-14,Wagamama lunch,-42.00,expense
+2025-09-21,GBK,-32.00,expense
+2025-09-28,Pret A Manger,-14.50,expense
+2025-09-09,Currys - monitor,-329.99,expense
+2025-09-16,ASOS order,-88.00,expense
+2025-09-11,Art exhibition,-28.00,expense
+2025-09-18,Gig tickets,-55.00,expense
+2025-09-22,Train to Manchester,-68.00,expense
+2025-09-07,Superdrug,-25.00,expense
+2025-09-13,Pluralsight,-29.00,expense
+2025-09-20,Perfume,-72.00,expense
+2025-09-15,Wedding gift,-95.00,expense
+2025-09-10,Logo design - BrandX,750.00,income
+2025-10-25,Monthly Salary,4200.00,income
+2025-10-01,Rent,-1350.00,expense
+2025-10-05,EDF Energy,-95.80,expense
+2025-10-08,Three Mobile,-32.00,expense
+2025-10-10,Sky Broadband,-55.00,expense
+2025-10-12,Thames Water,-29.50,expense
+2025-10-15,Council Tax,-175.00,expense
+2025-10-01,Little Stars Nursery,-950.00,expense
+2025-10-03,Monthly Oyster card,-160.00,expense
+2025-10-02,PureGym membership,-39.99,expense
+2025-10-04,Netflix,-15.99,expense
+2025-10-06,Spotify Premium,-10.99,expense
+2025-10-05,Tesco Weekly Shop,-85.60,expense
+2025-10-12,Sainsbury's,-72.40,expense
+2025-10-19,M&S Food Hall,-65.80,expense
+2025-10-26,Waitrose,-58.20,expense
+2025-10-07,Dishoom dinner,-92.00,expense
+2025-10-14,Nando's,-45.00,expense
+2025-10-21,Pizza Express,-58.00,expense
+2025-10-28,Chipotle,-22.50,expense
+2025-10-09,Uniqlo - autumn clothes,-98.00,expense
+2025-10-16,Argos,-45.00,expense
+2025-10-11,Comedy show,-35.00,expense
+2025-10-19,Uber ride,-22.00,expense
+2025-10-08,Holland & Barrett,-35.00,expense
+2025-10-13,Technical book,-38.00,expense
+2025-10-20,Haircut - barber,-30.00,expense
+2025-10-30,Car Insurance - Admiral,-458.00,expense
+2025-10-31,Pet Insurance,-210.00,expense
+2025-10-17,Online purchase (USD) - Apple Store US,-189.00,expense
+2025-10-14,App design - FinCo,2500.00,income
+2025-11-25,Monthly Salary,4200.00,income
+2025-11-01,Rent,-1350.00,expense
+2025-11-05,EDF Energy,-115.40,expense
+2025-11-08,Three Mobile,-32.00,expense
+2025-11-10,Sky Broadband,-55.00,expense
+2025-11-12,Thames Water,-31.80,expense
+2025-11-15,Council Tax,-175.00,expense
+2025-11-01,Little Stars Nursery,-950.00,expense
+2025-11-03,Monthly Oyster card,-160.00,expense
+2025-11-02,PureGym membership,-39.99,expense
+2025-11-04,Netflix,-15.99,expense
+2025-11-06,Spotify Premium,-10.99,expense
+2025-11-06,Tesco Weekly Shop,-92.80,expense
+2025-11-13,Aldi top-up,-48.50,expense
+2025-11-20,Morrisons,-78.60,expense
+2025-11-27,Co-op,-52.30,expense
+2025-11-07,Hawksmoor steak night,-162.00,expense
+2025-11-14,Leon,-19.50,expense
+2025-11-21,Itsu,-16.80,expense
+2025-11-28,Franco Manca,-38.00,expense
+2025-11-09,IKEA,-198.00,expense
+2025-11-16,Amazon - Black Friday,-215.00,expense
+2025-11-23,ASOS - Black Friday,-105.00,expense
+2025-11-11,Vue Cinema tickets,-45.00,expense
+2025-11-18,Uber ride,-25.00,expense
+2025-11-07,Physiotherapy session,-65.00,expense
+2025-11-13,AWS certification exam,-175.00,expense
+2025-11-20,Laundry service,-22.00,expense
+2025-11-22,Charity donation - UNICEF,-60.00,expense
+2025-11-25,JustGiving donation,-40.00,expense
+2025-12-25,Monthly Salary,4200.00,income
+2025-12-01,Rent,-1350.00,expense
+2025-12-05,EDF Energy,-128.50,expense
+2025-12-08,Three Mobile,-32.00,expense
+2025-12-10,Sky Broadband,-55.00,expense
+2025-12-12,Thames Water,-30.50,expense
+2025-12-15,Council Tax,-175.00,expense
+2025-12-01,Little Stars Nursery,-950.00,expense
+2025-12-03,Monthly Oyster card,-160.00,expense
+2025-12-02,PureGym membership,-39.99,expense
+2025-12-04,Netflix,-15.99,expense
+2025-12-06,Spotify Premium,-10.99,expense
+2025-12-04,Tesco Weekly Shop,-142.50,expense
+2025-12-11,Waitrose,-118.60,expense
+2025-12-18,M&S Food Hall,-105.80,expense
+2025-12-23,Sainsbury's,-168.40,expense
+2025-12-07,Nobu - Christmas dinner,-210.00,expense
+2025-12-14,Dishoom dinner,-115.00,expense
+2025-12-21,Wagamama lunch,-48.00,expense
+2025-12-09,John Lewis - Christmas gifts,-315.00,expense
+2025-12-15,Amazon - Christmas presents,-255.00,expense
+2025-12-18,IKEA - home decor,-185.00,expense
+2025-12-11,Christmas presents,-195.00,expense
+2025-12-16,Baby shower gift,-65.00,expense
+2025-12-20,JustGiving donation,-80.00,expense
+2025-12-22,Housewarming gift,-75.00,expense
+2025-12-13,Concert tickets,-110.00,expense
+2025-12-17,Train to Manchester,-72.00,expense
+2025-12-10,Perfume,-85.00,expense
+2025-12-19,Skincare products,-55.00,expense
+2025-12-24,Restaurant in Lisbon,-135.00,expense
+2026-01-25,Monthly Salary,4200.00,income
+2026-01-01,Rent,-1350.00,expense
+2026-01-05,EDF Energy,-122.40,expense
+2026-01-08,Three Mobile,-32.00,expense
+2026-01-10,Sky Broadband,-55.00,expense
+2026-01-12,Thames Water,-29.20,expense
+2026-01-15,Council Tax,-175.00,expense
+2026-01-01,Little Stars Nursery,-950.00,expense
+2026-01-03,Monthly Oyster card,-160.00,expense
+2026-01-02,PureGym membership,-39.99,expense
+2026-01-04,Netflix,-15.99,expense
+2026-01-06,Spotify Premium,-10.99,expense
 2026-01-05,Tesco Weekly Shop,-78.50,expense
 2026-01-12,Sainsbury's,-62.30,expense
-2026-01-18,Aldi top-up,-31.20,expense
-2026-01-25,Ocado delivery,-95.00,expense
-2026-01-08,Monthly Oyster card,-160.00,expense
-2026-01-15,Uber to office,-22.00,expense
-2026-01-03,Netflix,-15.99,expense
-2026-01-10,Spotify Premium,-10.99,expense
+2026-01-19,Aldi top-up,-35.80,expense
+2026-01-26,Ocado delivery,-95.00,expense
 2026-01-07,Dishoom dinner,-85.00,expense
 2026-01-14,Nando's,-42.50,expense
 2026-01-21,Wagamama lunch,-55.00,expense
 2026-01-28,Five Guys,-18.50,expense
-2026-01-06,Amazon - wireless mouse,-34.99,expense
-2026-01-17,ASOS order,-89.00,expense
-2026-01-22,TK Maxx,-45.00,expense
-2026-01-09,PureGym membership,-39.99,expense
+2026-01-09,TK Maxx,-62.00,expense
+2026-01-16,Amazon - wireless mouse,-34.99,expense
 2026-01-20,Boots pharmacy,-18.50,expense
-2026-01-04,Rent,-1200.00,expense
-2026-01-04,EDF Energy,-82.00,expense
-2026-01-30,Monthly Salary,3800.00,income
+2026-01-11,Escape room,-35.00,expense
+2026-01-18,Uber ride,-18.00,expense
+2026-01-08,Dentist appointment,-95.00,expense
+2026-01-13,Udemy course,-16.99,expense
+2026-01-22,Haircut - barber,-32.00,expense
+2026-01-10,Landing page - SaaSX,1650.00,income
+2026-02-25,Monthly Salary,4200.00,income
+2026-02-01,Rent,-1350.00,expense
+2026-02-05,EDF Energy,-108.80,expense
+2026-02-08,Three Mobile,-32.00,expense
+2026-02-10,Sky Broadband,-55.00,expense
+2026-02-12,Thames Water,-30.50,expense
+2026-02-15,Council Tax,-175.00,expense
+2026-02-01,Little Stars Nursery,-950.00,expense
+2026-02-03,Monthly Oyster card,-160.00,expense
+2026-02-02,PureGym membership,-39.99,expense
+2026-02-04,Netflix,-15.99,expense
+2026-02-06,Spotify Premium,-10.99,expense
 2026-02-04,Tesco Weekly Shop,-81.20,expense
 2026-02-11,Sainsbury's,-55.40,expense
 2026-02-18,Aldi top-up,-28.90,expense
 2026-02-25,M&S Food Hall,-48.70,expense
-2026-02-06,Monthly Oyster card,-160.00,expense
-2026-02-14,Train to Birmingham,-72.00,expense
-2026-02-03,Netflix,-15.99,expense
-2026-02-10,Vue Cinema 2 tickets,-38.00,expense
+2026-02-06,Train to Birmingham,-72.00,expense
+2026-02-10,Vue Cinema 2 tickets,-42.00,expense
 2026-02-05,Dishoom dinner,-78.00,expense
 2026-02-12,Pizza Express,-52.00,expense
-2026-02-19,Hawksmoor steak night,-125.00,expense
+2026-02-14,Hawksmoor - Valentine's,-195.00,expense
 2026-02-26,Pret lunch x3,-28.50,expense
 2026-02-08,John Lewis - jacket,-129.99,expense
 2026-02-15,Amazon - headphones,-59.99,expense
 2026-02-22,Uniqlo - shirts,-65.00,expense
-2026-02-07,PureGym membership,-39.99,expense
 2026-02-16,Boots - vitamins,-24.00,expense
-2026-02-04,Rent,-1200.00,expense
-2026-02-04,EDF Energy,-85.00,expense
-2026-02-27,Monthly Salary,3800.00,income
+2026-02-13,Coursera subscription,-49.00,expense
+2026-02-20,Skincare products,-42.00,expense
+2026-02-19,Charity donation - Macmillan,-35.00,expense
+2026-02-09,ASOS refund - wrong size,42.00,refund
+2026-02-17,React consulting - TechCorp,2100.00,income
+2026-03-25,Monthly Salary,4200.00,income
+2026-03-01,Rent,-1350.00,expense
+2026-03-05,EDF Energy,-92.50,expense
+2026-03-08,Three Mobile,-32.00,expense
+2026-03-10,Sky Broadband,-55.00,expense
+2026-03-12,Thames Water,-28.40,expense
+2026-03-15,Council Tax,-175.00,expense
+2026-03-01,Little Stars Nursery,-950.00,expense
+2026-03-03,Monthly Oyster card,-160.00,expense
+2026-03-02,PureGym membership,-39.99,expense
+2026-03-04,Netflix,-15.99,expense
+2026-03-06,Spotify Premium,-10.99,expense
 2026-03-05,Tesco Weekly Shop,-72.60,expense
 2026-03-12,Sainsbury's,-68.90,expense
 2026-03-19,Ocado delivery,-102.30,expense
 2026-03-26,Aldi top-up,-35.10,expense
-2026-03-07,Monthly Oyster card,-160.00,expense
-2026-03-15,Uber to Heathrow,-48.00,expense
-2026-03-03,Netflix,-15.99,expense
-2026-03-10,Spotify Premium,-10.99,expense
-2026-03-06,Nobu birthday dinner,-145.00,expense
+2026-03-07,Uber to Heathrow,-48.00,expense
+2026-03-06,Nobu birthday dinner,-185.00,expense
 2026-03-13,Dishoom dinner,-82.00,expense
 2026-03-20,Nando's,-38.50,expense
 2026-03-27,Pret coffee x5,-22.50,expense
 2026-03-08,Currys - keyboard,-119.99,expense
 2026-03-18,Amazon - books,-32.50,expense
 2026-03-25,ASOS sale,-78.00,expense
-2026-03-07,PureGym membership,-39.99,expense
 2026-03-14,Boots pharmacy,-15.00,expense
-2026-03-04,Rent,-1200.00,expense
-2026-03-04,Sky Broadband,-55.00,expense
-2026-03-30,Monthly Salary,3800.00,income
+2026-03-11,Gig tickets,-62.00,expense
+2026-03-22,Uber ride,-22.00,expense
+2026-03-07,Holland & Barrett,-35.00,expense
+2026-03-17,Car Insurance - Admiral,-475.00,expense
+2026-03-19,Life Insurance premium,-185.00,expense
+2026-03-24,Travel Insurance - annual,-210.00,expense
+2026-03-26,Home Contents Insurance,-248.00,expense
+2026-03-28,Pet Insurance,-225.00,expense
+2026-03-09,Dry cleaning,-28.00,expense
+2026-03-15,O'Reilly Books,-45.00,expense
+2026-03-21,Wedding gift,-85.00,expense
+2026-03-10,John Lewis refund - faulty item,89.99,refund
+2026-03-16,Zara refund - exchange,55.00,refund
+2026-04-01,Rent,-1350.00,expense
+2026-04-01,Little Stars Nursery,-950.00,expense
+2026-04-02,PureGym membership,-39.99,expense
+2026-04-03,Monthly Oyster card,-160.00,expense
+2026-04-04,Netflix,-15.99,expense
+2026-04-05,EDF Energy,-78.20,expense
+2026-04-06,Spotify Premium,-10.99,expense
+2026-04-04,Tesco Weekly Shop,-88.40,expense
+2026-04-07,Dishoom dinner,-88.00,expense
+2026-04-08,Three Mobile,-32.00,expense
+2026-04-09,Amazon - phone charger,-24.99,expense
