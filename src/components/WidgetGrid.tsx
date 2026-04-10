@@ -5,6 +5,7 @@ import { DragDropProvider } from "@dnd-kit/react";
 import { isSortable } from "@dnd-kit/react/sortable";
 import { useWidgetLayoutContext } from "@/components/WidgetLayoutProvider";
 import { mobileFriendlySensors } from "@/lib/dnd-sensors";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface WidgetGridProps {
   readonly children: ReactNode;
@@ -16,6 +17,7 @@ interface WidgetGridProps {
  */
 export function WidgetGrid({ children }: WidgetGridProps) {
   const { layout, reorder, isEditing } = useWidgetLayoutContext();
+  const isMobile = useIsMobile();
 
   // Map children by their `id` prop
   const childMap = useMemo(() => {
@@ -51,6 +53,16 @@ export function WidgetGrid({ children }: WidgetGridProps) {
     return <>{orderedChildren}</>;
   }
 
+  // Mobile: plain list — reordering uses ▲/▼ buttons inside DashboardWidget
+  if (isMobile) {
+    return (
+      <div className="space-y-6">
+        {orderedChildren}
+      </div>
+    );
+  }
+
+  // Desktop: DnD-powered reordering
   return (
     <DragDropProvider
       sensors={mobileFriendlySensors}

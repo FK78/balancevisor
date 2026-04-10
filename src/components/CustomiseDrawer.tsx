@@ -11,12 +11,13 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Settings2, GripVertical, RotateCcw, Loader2 } from "lucide-react";
+import { Settings2, GripVertical, RotateCcw, Loader2, ChevronUp, ChevronDown } from "lucide-react";
 import { DragDropProvider } from "@dnd-kit/react";
 import { useSortable, isSortable } from "@dnd-kit/react/sortable";
 import { PAGE_WIDGETS } from "@/lib/widget-registry";
 import { useWidgetLayoutContext } from "@/components/WidgetLayoutProvider";
 import { mobileFriendlySensors } from "@/lib/dnd-sensors";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 function SortableItem({
   widgetId,
@@ -50,6 +51,110 @@ function SortableItem({
       <span className="flex-1 text-sm font-medium truncate">{label}</span>
       <Switch checked={visible} onCheckedChange={onToggle} />
     </div>
+  );
+}
+
+function MobileItem({
+  index,
+  total,
+  label,
+  visible,
+  onToggle,
+  onReorder,
+}: {
+  index: number;
+  total: number;
+  label: string;
+  visible: boolean;
+  onToggle: () => void;
+  onReorder: (from: number, to: number) => void;
+}) {
+  return (
+    <div
+      className={`flex items-center gap-3 rounded-lg border border-border/60 bg-card px-3 py-2.5 ${
+        !visible ? "opacity-60" : ""
+      }`}
+    >
+      <div className="flex flex-col gap-0.5">
+        <button
+          disabled={index === 0}
+          onClick={() => onReorder(index, index - 1)}
+          className="text-muted-foreground hover:text-foreground disabled:opacity-30 p-0.5"
+        >
+          <ChevronUp className="h-4 w-4" />
+        </button>
+        <button
+          disabled={index === total - 1}
+          onClick={() => onReorder(index, index + 1)}
+          className="text-muted-foreground hover:text-foreground disabled:opacity-30 p-0.5"
+        >
+          <ChevronDown className="h-4 w-4" />
+        </button>
+      </div>
+      <span className="flex-1 text-sm font-medium truncate">{label}</span>
+      <Switch checked={visible} onCheckedChange={onToggle} />
+    </div>
+  );
+}
+
+function WidgetList({
+  layout,
+  labelMap,
+  reorder,
+  toggleVisibility,
+}: {
+  layout: readonly import("@/lib/widget-registry").WidgetLayoutItem[];
+  labelMap: Map<string, string>;
+  reorder: (from: number, to: number) => void;
+  toggleVisibility: (widgetId: string) => void;
+}) {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return (
+      <div className="space-y-2">
+        {layout.map((item, idx) => (
+          <MobileItem
+            key={item.widgetId}
+            index={idx}
+            total={layout.length}
+            label={labelMap.get(item.widgetId) ?? item.widgetId}
+            visible={item.visible}
+            onToggle={() => toggleVisibility(item.widgetId)}
+            onReorder={reorder}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <DragDropProvider
+      sensors={mobileFriendlySensors}
+      onDragEnd={(event) => {
+        if (event.canceled) return;
+        const { source } = event.operation;
+        if (isSortable(source)) {
+          const { initialIndex, index } = source;
+          if (initialIndex !== index) {
+            reorder(initialIndex, index);
+          }
+        }
+      }}
+    >
+      <div className="space-y-2">
+        {layout.map((item, idx) => (
+          <SortableItem
+            key={item.widgetId}
+            widgetId={item.widgetId}
+            index={idx}
+            label={labelMap.get(item.widgetId) ?? item.widgetId}
+            visible={item.visible}
+            onToggle={() => toggleVisibility(item.widgetId)}
+          />
+        ))}
+      </div>
+    </DragDropProvider>
   );
 }
 
@@ -91,36 +196,16 @@ export function CustomiseDrawer() {
             Customise Layout
           </SheetTitle>
           <SheetDescription>
-            Drag to reorder. Toggle to show or hide widgets.
+            Reorder and toggle widgets to customise your layout.
           </SheetDescription>
         </SheetHeader>
 
-        <DragDropProvider
-          sensors={mobileFriendlySensors}
-          onDragEnd={(event) => {
-            if (event.canceled) return;
-            const { source } = event.operation;
-            if (isSortable(source)) {
-              const { initialIndex, index } = source;
-              if (initialIndex !== index) {
-                reorder(initialIndex, index);
-              }
-            }
-          }}
-        >
-          <div className="space-y-2">
-            {layout.map((item, idx) => (
-              <SortableItem
-                key={item.widgetId}
-                widgetId={item.widgetId}
-                index={idx}
-                label={labelMap.get(item.widgetId) ?? item.widgetId}
-                visible={item.visible}
-                onToggle={() => toggleVisibility(item.widgetId)}
-              />
-            ))}
-          </div>
-        </DragDropProvider>
+        <WidgetList
+          layout={layout}
+          labelMap={labelMap}
+          reorder={reorder}
+          toggleVisibility={toggleVisibility}
+        />
 
         <div className="mt-6 flex items-center gap-2">
           <Button
