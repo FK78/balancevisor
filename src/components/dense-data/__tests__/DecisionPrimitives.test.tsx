@@ -5,6 +5,7 @@ import { render, screen } from "@testing-library/react";
 import { DecisionRow } from "@/components/dense-data/DecisionRow";
 import { DecisionMetricCard } from "@/components/dense-data/DecisionMetricCard";
 import { DecisionEmptyState } from "@/components/dense-data/DecisionEmptyState";
+import { ChartSkeleton } from "@/components/ChartSkeleton";
 
 describe("Decision primitives", () => {
   it("DecisionRow renders signal, context, interpretation, and action", () => {
@@ -94,5 +95,12 @@ describe("Decision primitives", () => {
     expect(
       screen.getByRole("button", { name: "Review categories" }),
     ).toBeInTheDocument();
+  });
+
+  it("ChartSkeleton applies the requested height contract", () => {
+    const { container } = render(<ChartSkeleton height={260} />);
+    const skeletonCard = container.firstElementChild;
+
+    expect(skeletonCard).toHaveStyle("height: 260px");
   });
 });
