@@ -21,17 +21,22 @@ import { ReportsMonthlyCategoryBreakdown } from "@/components/reports/ReportsMon
 import { ReportsTopCategories } from "@/components/reports/ReportsTopCategories";
 import { ReportsSpendingHeatmap } from "@/components/reports/ReportsSpendingHeatmap";
 import { ReportsMoneyFlow } from "@/components/reports/ReportsMoneyFlow";
+import { ReportsTopMerchants } from "@/components/reports/ReportsTopMerchants";
+import { ReportsMerchantChanges } from "@/components/reports/ReportsMerchantChanges";
+import { getTopMerchants, getMerchantMonthOverMonth } from "@/db/queries/merchant-spend";
 
 export default async function ReportsPage() {
   await requireFeature("reports");
   const userId = await getCurrentUserId();
 
-  const [monthlyTrend, monthlyCategorySpend, baseCurrency, serverLayout, dailyTrend] = await Promise.all([
+  const [monthlyTrend, monthlyCategorySpend, baseCurrency, serverLayout, dailyTrend, topMerchants, merchantChanges] = await Promise.all([
     getMonthlyIncomeExpenseTrend(userId, 12),
     getMonthlyCategorySpendTrend(userId, 12),
     getUserBaseCurrency(userId),
     getPageLayout(userId, "reports"),
     getDailyIncomeExpenseTrend(userId, 90),
+    getTopMerchants(userId, 10),
+    getMerchantMonthOverMonth(userId, 5),
   ]);
 
   const headerEl = (
@@ -88,6 +93,14 @@ export default async function ReportsPage() {
 
         <DashboardWidget id="money-flow">
           <ReportsMoneyFlow />
+        </DashboardWidget>
+
+        <DashboardWidget id="top-merchants">
+          <ReportsTopMerchants merchants={topMerchants} currency={baseCurrency} />
+        </DashboardWidget>
+
+        <DashboardWidget id="merchant-changes">
+          <ReportsMerchantChanges changes={merchantChanges} currency={baseCurrency} />
         </DashboardWidget>
       </PageWidgetWrapper>
     </ReportsProvider>

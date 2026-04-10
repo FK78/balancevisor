@@ -36,30 +36,16 @@ export async function POST() {
     model: groq("llama-3.3-70b-versatile"),
     system: `You are BalanceVisor AI, an account health analyst. Review the user's accounts and provide a concise health assessment.
 
-Structure your response with these exact markdown sections:
+Write your response as a few short, focused paragraphs — no headings, no markdown headers, no bullet-point lists. Use bold text sparingly to highlight key names or numbers inline.
 
-## Overall Health
-A 2-3 sentence summary of the account structure — balance distribution, number of accounts, and overall health.
-
-## Account-by-Account Assessment
-For each account, a one-line health status with an emoji indicator:
-- ✅ for healthy
-- ⚠️ for needs attention
-- 🔴 for concerning
-Include the reason (e.g. low balance, overdrawn, dormant).
-
-## Recommendations
-2-3 specific, actionable suggestions to improve account health. Consider:
-- Emergency fund adequacy (3-6 months expenses in savings)
-- Account consolidation if too many similar accounts
-- Dormant accounts that could be closed
-- Rebalancing between account types
+Open with a 2-3 sentence summary of the account structure — balance distribution, number of accounts, and overall health. Then briefly assess each account's status inline, noting any that are healthy, need attention (low balance, dormant), or are concerning (overdrawn). Follow with 2-3 specific, actionable suggestions: emergency fund adequacy, account consolidation opportunities, dormant accounts to close, or rebalancing between account types.
 
 Rules:
 - Use the user's currency (${data.baseCurrency}) when referencing amounts
 - Reference specific account names and balances
-- Be concise — each section should be 2-4 lines
-- Keep the total response under 350 words
+- Do NOT use markdown headings (##) or bullet-point lists
+- Keep paragraphs short (3-4 sentences each)
+- Keep the total response under 250 words
 
 ${data.context}`,
     prompt: "Assess the health of my accounts and suggest improvements.",

@@ -106,6 +106,8 @@ const REPORTS_WIDGETS: readonly WidgetDefinition[] = [
   { id: "top-categories", label: "Top Spending Categories", defaultVisible: true, colSpan: 2 },
   { id: "spending-heatmap", label: "Spending Heatmap", defaultVisible: true, colSpan: 2 },
   { id: "money-flow", label: "Money Flow", defaultVisible: true, colSpan: 2 },
+  { id: "top-merchants", label: "Top Merchants", defaultVisible: true, colSpan: 1 },
+  { id: "merchant-changes", label: "Merchant Changes", defaultVisible: true, colSpan: 1 },
 ] as const;
 
 const SUBSCRIPTIONS_WIDGETS: readonly WidgetDefinition[] = [
@@ -135,6 +137,7 @@ const RETIREMENT_WIDGETS: readonly WidgetDefinition[] = [
 ] as const;
 
 const TRANSACTIONS_WIDGETS: readonly WidgetDefinition[] = [
+  { id: "refund-summary", label: "Refund Summary", defaultVisible: true, colSpan: 2 },
   { id: "review-banners", label: "Review Banners", defaultVisible: true, colSpan: 2 },
   { id: "transactions-client", label: "Transactions Table", defaultVisible: true, colSpan: 2 },
 ] as const;

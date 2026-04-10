@@ -22,6 +22,8 @@ import { requireFeature } from "@/components/FeatureGate";
 import { getPageLayout } from "@/db/queries/dashboard-layouts";
 import { PageWidgetWrapper } from "@/components/PageWidgetWrapper";
 import { DashboardWidget } from "@/components/DashboardWidget";
+import { getRefundSummary } from "@/db/queries/refund-tracking";
+import { RefundSummaryCard } from "@/components/RefundSummaryCard";
 
 const PAGE_SIZE = 10;
 
@@ -127,7 +129,7 @@ export default async function Transactions({
   }
 
   // Detect recurring patterns (only on unfiltered first page)
-  const [recurringCandidates, reviewFlags, serverLayout] = await Promise.all([
+  const [recurringCandidates, reviewFlags, serverLayout, refundSummary] = await Promise.all([
     (!search && !startDate && !endDate && requestedPage === 1)
       ? detectRecurringCandidates(userId)
       : Promise.resolve([]),
@@ -135,10 +137,18 @@ export default async function Transactions({
       ? getPendingReviewFlags(userId)
       : Promise.resolve([]),
     getPageLayout(userId, "transactions"),
+    (!search && !startDate && !endDate && requestedPage === 1)
+      ? getRefundSummary(userId)
+      : Promise.resolve({ totalRefunds: 0, refundCount: 0, recentRefunds: [] }),
   ]);
 
   return (
     <PageWidgetWrapper pageId="transactions" serverLayout={serverLayout}>
+      <DashboardWidget id="refund-summary">
+        {refundSummary.refundCount > 0 && (
+          <RefundSummaryCard summary={refundSummary} currency={baseCurrency} />
+        )}
+      </DashboardWidget>
       <DashboardWidget id="review-banners">
       {(recurringCandidates.length > 0 || reviewFlags.length > 0) && (
         <div className="space-y-4">
