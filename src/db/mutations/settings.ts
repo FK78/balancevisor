@@ -8,6 +8,7 @@ import {
   budgetsTable,
   categoriesTable,
   categorisationRulesTable,
+  merchantMappingsTable,
   goalsTable,
   manualHoldingsTable,
   subscriptionsTable,
@@ -143,6 +144,7 @@ export async function deleteAccount(): Promise<{ success?: boolean; error?: stri
     await tx.delete(subscriptionsTable).where(eq(subscriptionsTable.user_id, userId));
     await tx.delete(goalsTable).where(eq(goalsTable.user_id, userId));
     await tx.delete(categorisationRulesTable).where(eq(categorisationRulesTable.user_id, userId));
+    await tx.delete(merchantMappingsTable).where(eq(merchantMappingsTable.user_id, userId));
     await tx.delete(investmentGroupsTable).where(eq(investmentGroupsTable.user_id, userId));
     await tx.delete(manualHoldingsTable).where(eq(manualHoldingsTable.user_id, userId));
     await tx.delete(brokerConnectionsTable).where(eq(brokerConnectionsTable.user_id, userId));

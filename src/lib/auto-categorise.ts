@@ -7,6 +7,8 @@ import { z } from "zod";
 import { getCategoriesByUser } from "@/db/queries/categories";
 import { isAiEnabled } from "@/db/queries/preferences";
 import { logger } from "@/lib/logger";
+import { normaliseMerchant } from "@/lib/merchant-normalise";
+import { learnMerchantMappingForUser } from "@/db/mutations/merchant-mappings";
 
 const categoriseSchema = z.object({
   category_id: z.string().nullable(),
@@ -252,10 +254,12 @@ Respond with ONLY the JSON array, no other text.`,
 
         const txn = batch[result.index];
 
+        const merchantName = normaliseMerchant(txn.description);
+
         // Update the transaction with the AI-assigned category
         await db
           .update(transactionsTable)
-          .set({ category_id: result.category_id })
+          .set({ category_id: result.category_id, category_source: 'ai', merchant_name: merchantName })
           .where(eq(transactionsTable.id, txn.id));
 
         totalCategorised++;
@@ -276,6 +280,10 @@ Respond with ONLY the JSON array, no other text.`,
                 priority: rulesPriority++,
               });
             }
+          }
+          // Also learn merchant mapping for high-confidence AI matches
+          if (merchantName && result.category_id) {
+            learnMerchantMappingForUser(userId, merchantName, result.category_id, 'ai').catch(() => {});
           }
         }
       }

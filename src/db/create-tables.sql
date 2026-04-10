@@ -148,7 +148,9 @@ CREATE TABLE transactions (
   is_split            BOOLEAN NOT NULL DEFAULT FALSE,
   subscription_id      UUID REFERENCES subscriptions(id) ON DELETE SET NULL,
   linked_debt_id       UUID REFERENCES debts(id) ON DELETE SET NULL,
-  refund_for_transaction_id UUID
+  refund_for_transaction_id UUID,
+  category_source      VARCHAR(20),
+  merchant_name        VARCHAR(255)
 );
 
 CREATE INDEX transactions_user_id_idx         ON transactions (user_id);
@@ -182,6 +184,20 @@ CREATE TABLE categorisation_rules (
 
 CREATE INDEX categorisation_rules_user_id_idx ON categorisation_rules (user_id);
 CREATE UNIQUE INDEX categorisation_rules_user_pattern_idx ON categorisation_rules (user_id, pattern);
+
+-- 10b. merchant_mappings (FK → categories)
+CREATE TABLE merchant_mappings (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id     UUID         NOT NULL,
+  merchant    VARCHAR(255) NOT NULL,
+  category_id UUID REFERENCES categories(id) ON DELETE CASCADE,
+  source      VARCHAR(20)  NOT NULL DEFAULT 'correction',
+  created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX merchant_mappings_user_merchant_idx ON merchant_mappings (user_id, merchant);
+CREATE INDEX merchant_mappings_user_id_idx ON merchant_mappings (user_id);
 
 -- 11. goals (no FK deps)
 CREATE TABLE goals (

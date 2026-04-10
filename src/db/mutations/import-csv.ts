@@ -9,6 +9,8 @@ import { requireOwnership } from '@/lib/ownership';
 import { checkBudgetAlerts } from '@/lib/budget-alerts';
 import { encryptForUser, getUserKey } from '@/lib/encryption';
 import { fetchUserRules, matchAgainstRules } from '@/lib/auto-categorise';
+import { getAllMerchantMappings } from '@/db/queries/merchant-mappings';
+import { normaliseMerchant } from '@/lib/merchant-normalise';
 import { sanitizeString } from '@/lib/sanitize';
 import { isLikelyRefund } from '@/lib/refund-matcher';
 
@@ -186,16 +188,33 @@ export async function importTransactionsFromCSV(
     };
   }
 
-  // Fetch categorisation rules and user encryption key once (not per-row)
-  const [rules, userKey] = await Promise.all([
+  // Fetch categorisation rules, merchant mappings, and user encryption key once
+  const [rules, merchantMappings, userKey] = await Promise.all([
     fetchUserRules(userId),
+    getAllMerchantMappings(userId),
     getUserKey(userId),
   ]);
 
   // Build all insert values in memory
   let totalBalanceDelta = 0;
   const insertValues = validRows.map((row) => {
-    const categoryId = matchAgainstRules(rules, row.description);
+    const merchantName = normaliseMerchant(row.description);
+
+    // Priority: rules → merchant mapping → uncategorised
+    let categoryId = matchAgainstRules(rules, row.description);
+    let categorySource: string | null = categoryId ? 'rule' : null;
+
+    if (!categoryId && merchantName) {
+      const merchantLower = merchantName.toLowerCase();
+      const mapping = merchantMappings.find(
+        (m) => m.merchant.toLowerCase() === merchantLower,
+      );
+      if (mapping?.category_id) {
+        categoryId = mapping.category_id;
+        categorySource = 'merchant';
+      }
+    }
+
     const delta = row.type === 'income' || row.type === 'refund' ? row.amount : -row.amount;
     totalBalanceDelta += delta;
 
@@ -203,6 +222,8 @@ export async function importTransactionsFromCSV(
       user_id: userId,
       account_id: accountId,
       category_id: categoryId,
+      category_source: categorySource,
+      merchant_name: merchantName,
       type: row.type,
       amount: row.amount,
       description: encryptForUser(row.description, userKey),
