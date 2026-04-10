@@ -69,22 +69,21 @@ export async function enableMfa(
     // Generate backup codes if requested or if user doesn't have any
     let backupCodes: string[] = [];
     if (generateNewBackupCodes) {
-      // Delete existing backup codes
-      await db.delete(mfaBackupCodesTable).where(eq(mfaBackupCodesTable.user_id, userId));
-
-      // Generate new backup codes
       backupCodes = await generateBackupCodes();
-      
-      // Hash and store backup codes
+
       const codeHashes = backupCodes.map(code => ({
         user_id: userId,
         code_hash: hashBackupCode(code),
         used: false,
       }));
 
-      if (codeHashes.length > 0) {
-        await db.insert(mfaBackupCodesTable).values(codeHashes);
-      }
+      // Atomic delete + insert to prevent concurrent useBackupCode from racing
+      await db.transaction(async (tx) => {
+        await tx.delete(mfaBackupCodesTable).where(eq(mfaBackupCodesTable.user_id, userId));
+        if (codeHashes.length > 0) {
+          await tx.insert(mfaBackupCodesTable).values(codeHashes);
+        }
+      });
     }
 
     // Update user metadata to indicate MFA is enabled

@@ -4,7 +4,7 @@ import { db } from '@/index';
 import { accountsTable, transactionsTable, transactionSplitsTable } from '@/db/schema';
 import { revalidateDomains } from '@/lib/revalidate';
 import { toDateString } from '@/lib/date';
-import { eq, sql } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { getCurrentUserId, getCurrentUserEmail } from '@/lib/auth';
 import { hasEditAccess } from '@/db/queries/sharing';
 import { checkBudgetAlerts } from '@/lib/budget-alerts';
@@ -384,14 +384,14 @@ export async function quickRecategorise(transactionId: string, categoryId: strin
       merchant_name: transactionsTable.merchant_name,
     })
     .from(transactionsTable)
-    .where(eq(transactionsTable.id, transactionId));
+    .where(and(eq(transactionsTable.id, transactionId), eq(transactionsTable.user_id, userId)));
 
   if (!txn) throw new Error('Transaction not found');
 
   await db
     .update(transactionsTable)
     .set({ category_id: categoryId, category_source: 'manual' })
-    .where(eq(transactionsTable.id, transactionId));
+    .where(and(eq(transactionsTable.id, transactionId), eq(transactionsTable.user_id, userId)));
 
   revalidateDomains('transactions', 'categories');
 

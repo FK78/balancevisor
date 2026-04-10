@@ -1,5 +1,5 @@
 import { db } from "@/index";
-import { categorisationRulesTable, transactionsTable } from "@/db/schema";
+import { categorisationRulesTable, categoriesTable, transactionsTable } from "@/db/schema";
 import { eq, desc, and, isNull, inArray } from "drizzle-orm";
 import { groq } from "@ai-sdk/groq";
 import { generateText } from "ai";
@@ -9,6 +9,7 @@ import { isAiEnabled } from "@/db/queries/preferences";
 import { logger } from "@/lib/logger";
 import { normaliseMerchant } from "@/lib/merchant-normalise";
 import { learnMerchantMappingForUser } from "@/db/mutations/merchant-mappings";
+import { revalidateDomains } from "@/lib/revalidate";
 
 const categoriseSchema = z.object({
   category_id: z.string().nullable(),
@@ -138,28 +139,41 @@ const batchCategoriseSchema = z.array(
     index: z.number(),
     category_id: z.string().nullable(),
     confidence: z.number().min(0).max(1),
+    suggested_category: z.string().nullable().optional(),
   }),
 );
 
 const BATCH_SIZE = 20;
 const HIGH_CONFIDENCE_THRESHOLD = 0.85;
 
+// Deterministic color palette for auto-created categories
+const AUTO_CATEGORY_COLORS = [
+  "#f43f5e", "#8b5cf6", "#0ea5e9", "#f59e0b", "#84cc16",
+  "#06b6d4", "#d946ef", "#64748b", "#e11d48", "#2563eb",
+];
+
+export type BatchAiResult = {
+  categorised: number;
+  categoriesCreated: number;
+};
+
 /**
  * Batch-categorises uncategorised transactions using AI.
  * Groups ~20 descriptions per LLM call.
  * High-confidence matches auto-create categorisation rules for future use.
- * Returns the count of transactions categorised.
+ * When no existing category fits, AI can suggest a new category name which
+ * gets auto-created (full autopilot mode).
  */
 export async function batchAiCategorise(
   userId: string,
   transactionIds?: string[],
-): Promise<number> {
-  if (!process.env.GROQ_API_KEY) return 0;
-  if (!(await isAiEnabled(userId))) return 0;
+): Promise<BatchAiResult> {
+  if (!process.env.GROQ_API_KEY) return { categorised: 0, categoriesCreated: 0 };
+  if (!(await isAiEnabled(userId))) return { categorised: 0, categoriesCreated: 0 };
 
   try {
-    const categories = await getCategoriesByUser(userId);
-    if (categories.length === 0) return 0;
+    let categories = await getCategoriesByUser(userId);
+    if (categories.length === 0) return { categorised: 0, categoriesCreated: 0 };
 
     // Fetch uncategorised transactions
     const conditions = [
@@ -178,7 +192,7 @@ export async function batchAiCategorise(
       .from(transactionsTable)
       .where(and(...conditions));
 
-    if (uncategorised.length === 0) return 0;
+    if (uncategorised.length === 0) return { categorised: 0, categoriesCreated: 0 };
 
     // Decrypt descriptions
     const { decryptForUser, getUserKey } = await import("@/lib/encryption");
@@ -199,7 +213,9 @@ export async function batchAiCategorise(
       : 0;
 
     let totalCategorised = 0;
+    let totalCategoriesCreated = 0;
     let rulesPriority = maxPriority + 1;
+    const createdCategoryNames = new Set<string>();
 
     // Process in batches
     for (let i = 0; i < items.length; i += BATCH_SIZE) {
@@ -221,11 +237,14 @@ ${categoryList}
 
 Return ONLY a JSON array of objects with these exact fields for each transaction:
 - index: the transaction number (0-based)
-- category_id: the id string of the best matching category, or null if none fit
+- category_id: the id string of the best matching category, or null if none fit well
 - confidence: a number between 0 and 1
+- suggested_category: if category_id is null and you can identify a clear spending category (e.g. "Clothing", "Pets", "Education"), provide the name here. Otherwise null.
+
+IMPORTANT: Only suggest a new category when no existing one is a reasonable fit. Keep suggested names short (1-2 words), capitalised, and generic (not merchant-specific).
 
 Respond with ONLY the JSON array, no other text.`,
-        maxOutputTokens: batch.length * 60,
+        maxOutputTokens: batch.length * 80,
       });
 
       const jsonMatch = responseText.match(/\[[\s\S]*\]/);
@@ -240,33 +259,74 @@ Respond with ONLY the JSON array, no other text.`,
       if (!parsed.success) continue;
 
       for (const result of parsed.data) {
-        if (
-          result.category_id === null ||
-          result.confidence < 0.6 ||
-          result.index < 0 ||
-          result.index >= batch.length
-        ) {
-          continue;
-        }
-
-        const valid = categories.some((c) => c.id === result.category_id);
-        if (!valid) continue;
+        if (result.index < 0 || result.index >= batch.length) continue;
+        if (result.confidence < 0.6) continue;
 
         const txn = batch[result.index];
-
         const merchantName = normaliseMerchant(txn.description);
+        let assignedCategoryId: string | null = null;
+
+        if (result.category_id) {
+          // Existing category match
+          const valid = categories.some((c) => c.id === result.category_id);
+          if (!valid) continue;
+          assignedCategoryId = result.category_id;
+        } else if (result.suggested_category) {
+          // AI suggests a new category — auto-create it
+          const suggestedName = result.suggested_category.trim().slice(0, 50);
+          if (!suggestedName || suggestedName.length < 2) continue;
+
+          // Check if already exists (case-insensitive) or was created in this batch
+          const nameLower = suggestedName.toLowerCase();
+          const existing = categories.find(
+            (c) => c.name.toLowerCase() === nameLower,
+          );
+
+          if (existing) {
+            assignedCategoryId = existing.id;
+          } else if (!createdCategoryNames.has(nameLower)) {
+            const colorIdx =
+              (categories.length + totalCategoriesCreated) %
+              AUTO_CATEGORY_COLORS.length;
+            const [newCat] = await db
+              .insert(categoriesTable)
+              .values({
+                user_id: userId,
+                name: suggestedName,
+                color: AUTO_CATEGORY_COLORS[colorIdx],
+              })
+              .returning();
+            if (newCat) {
+              categories = [...categories, newCat];
+              createdCategoryNames.add(nameLower);
+              totalCategoriesCreated++;
+              assignedCategoryId = newCat.id;
+              logger.info(
+                "auto-categorise",
+                `Auto-created category "${suggestedName}" for user ${userId}`,
+              );
+            }
+          } else {
+            // Created earlier in this run — find it
+            const justCreated = categories.find(
+              (c) => c.name.toLowerCase() === nameLower,
+            );
+            if (justCreated) assignedCategoryId = justCreated.id;
+          }
+        }
+
+        if (!assignedCategoryId) continue;
 
         // Update the transaction with the AI-assigned category
         await db
           .update(transactionsTable)
-          .set({ category_id: result.category_id, category_source: 'ai', merchant_name: merchantName })
+          .set({ category_id: assignedCategoryId, category_source: 'ai', merchant_name: merchantName })
           .where(eq(transactionsTable.id, txn.id));
 
         totalCategorised++;
 
         // Auto-create a categorisation rule for high-confidence matches
         if (result.confidence >= HIGH_CONFIDENCE_THRESHOLD && txn.description) {
-          // Extract a simple pattern from the description (first 2-3 words)
           const pattern = extractPattern(txn.description);
           if (pattern) {
             const existsAlready = existingRules.some(
@@ -276,23 +336,26 @@ Respond with ONLY the JSON array, no other text.`,
               await db.insert(categorisationRulesTable).values({
                 user_id: userId,
                 pattern,
-                category_id: result.category_id,
+                category_id: assignedCategoryId,
                 priority: rulesPriority++,
               });
             }
           }
-          // Also learn merchant mapping for high-confidence AI matches
-          if (merchantName && result.category_id) {
-            learnMerchantMappingForUser(userId, merchantName, result.category_id, 'ai').catch(() => {});
+          if (merchantName) {
+            learnMerchantMappingForUser(userId, merchantName, assignedCategoryId, 'ai').catch(() => {});
           }
         }
       }
     }
 
-    return totalCategorised;
+    if (totalCategoriesCreated > 0) {
+      revalidateDomains('categories');
+    }
+
+    return { categorised: totalCategorised, categoriesCreated: totalCategoriesCreated };
   } catch (err) {
     logger.error("auto-categorise", "Batch AI categorisation failed", err);
-    return 0;
+    return { categorised: 0, categoriesCreated: 0 };
   }
 }
 

@@ -8,7 +8,7 @@ import {
   debtsTable,
   debtPaymentsTable,
 } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { revalidateDomains } from '@/lib/revalidate';
 import { getCurrentUserId } from '@/lib/auth';
 
@@ -19,19 +19,20 @@ import { getCurrentUserId } from '@/lib/auth';
 export async function acceptReviewFlag(flagId: string) {
   const userId = await getCurrentUserId();
 
-  const [flag] = await db
-    .select()
-    .from(transactionReviewFlagsTable)
-    .where(
-      and(
-        eq(transactionReviewFlagsTable.id, flagId),
-        eq(transactionReviewFlagsTable.user_id, userId),
-      ),
-    );
-
-  if (!flag) throw new Error('Review flag not found');
-
   await db.transaction(async (tx) => {
+    // Read inside transaction to prevent stale data from concurrent dismiss
+    const [flag] = await tx
+      .select()
+      .from(transactionReviewFlagsTable)
+      .where(
+        and(
+          eq(transactionReviewFlagsTable.id, flagId),
+          eq(transactionReviewFlagsTable.user_id, userId),
+        ),
+      );
+
+    if (!flag) throw new Error('Review flag not found');
+
     // Mark flag resolved
     await tx
       .update(transactionReviewFlagsTable)
@@ -109,19 +110,11 @@ export async function acceptReviewFlag(flagId: string) {
           note: 'Accepted from review flag',
         });
 
-        // Reduce remaining amount
-        const [debt] = await tx
-          .select({ remaining_amount: debtsTable.remaining_amount })
-          .from(debtsTable)
+        // Atomic decrement to prevent lost updates from concurrent payments
+        await tx
+          .update(debtsTable)
+          .set({ remaining_amount: sql`GREATEST(${debtsTable.remaining_amount} - ${txn.amount}, 0)` })
           .where(eq(debtsTable.id, flag.suggested_debt_id));
-
-        if (debt) {
-          const newRemaining = Math.max(debt.remaining_amount - txn.amount, 0);
-          await tx
-            .update(debtsTable)
-            .set({ remaining_amount: newRemaining })
-            .where(eq(debtsTable.id, flag.suggested_debt_id));
-        }
       }
     }
   });

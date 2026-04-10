@@ -2,7 +2,6 @@
 
 import { db } from '@/index';
 import { zakatSettingsTable, zakatCalculationsTable } from '@/db/schema';
-import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getCurrentUserId } from '@/lib/auth';
 import { calculateZakat } from '@/lib/zakat';
@@ -14,26 +13,20 @@ export async function saveZakatSettings(formData: FormData) {
   const nisabType = (formData.get('nisab_type') as string) || 'gold';
   const useLunarCalendar = formData.get('use_lunar_calendar') === 'on';
 
-  const existing = await getZakatSettings(userId);
-
-  if (existing) {
-    await db
-      .update(zakatSettingsTable)
-      .set({
-        anniversary_date: anniversaryDate,
-        nisab_type: nisabType,
-        use_lunar_calendar: useLunarCalendar,
-        updated_at: new Date(),
-      })
-      .where(eq(zakatSettingsTable.user_id, userId));
-  } else {
-    await db.insert(zakatSettingsTable).values({
-      user_id: userId,
+  await db.insert(zakatSettingsTable).values({
+    user_id: userId,
+    anniversary_date: anniversaryDate,
+    nisab_type: nisabType,
+    use_lunar_calendar: useLunarCalendar,
+  }).onConflictDoUpdate({
+    target: zakatSettingsTable.user_id,
+    set: {
       anniversary_date: anniversaryDate,
       nisab_type: nisabType,
       use_lunar_calendar: useLunarCalendar,
-    });
-  }
+      updated_at: new Date(),
+    },
+  });
 
   revalidatePath('/dashboard/zakat');
 }

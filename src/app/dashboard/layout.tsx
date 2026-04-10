@@ -14,6 +14,7 @@ import { InstallPrompt } from "@/components/InstallPrompt";
 import { AiSettingsProvider } from "@/components/AiSettingsProvider";
 import { ChatPanelWrapper as ChatPanel } from "@/components/ChatPanelWrapper";
 import { BankSyncTrigger } from "@/components/BankSyncTrigger";
+import { EnrichmentTrigger } from "@/components/EnrichmentTrigger";
 import { NextFeatureButtonClient } from "@/components/NextFeatureButtonClient";
 import { isAiEnabled, getDisabledFeatures } from "@/db/queries/preferences";
 import { hasTrueLayerConnection } from "@/db/queries/truelayer";
@@ -80,6 +81,7 @@ export default async function DashboardLayout({
       <MobileBottomNav />
       <InstallPrompt />
       <BankSyncTrigger enabled={hasBankConnection} />
+      <EnrichmentTrigger />
       {pendingFeaturesList.length > 0 && (
         <NextFeatureButtonClient pendingFeatures={pendingFeaturesList} />
       )}

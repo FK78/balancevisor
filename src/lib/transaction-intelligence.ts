@@ -375,15 +375,20 @@ async function advanceSubscriptionBillingDate(
 // 5. Full enrichment pipeline
 // ---------------------------------------------------------------------------
 
-export async function enrichTransactions(
-  userId: string,
-  transactionIds?: string[],
-): Promise<{
+export type EnrichmentResult = {
   subscriptions: { linked: number; flagged: number };
   debts: { linked: number; flagged: number };
   recurringDetected: number;
   aiCategorised: number;
-}> {
+  categoriesCreated: number;
+  subscriptionsCreated: number;
+  budgetsCreated: number;
+};
+
+export async function enrichTransactions(
+  userId: string,
+  transactionIds?: string[],
+): Promise<EnrichmentResult> {
   try {
     const [subResult, debtResult, recurringDetected] = await Promise.all([
       matchTransactionsToSubscriptions(userId, transactionIds),
@@ -391,15 +396,22 @@ export async function enrichTransactions(
       detectRecurringPatterns(userId, transactionIds),
     ]);
 
+    // Promote recurring expenses to subscriptions
+    const { promoteRecurringToSubscriptions } = await import("@/lib/subscription-promoter");
+    const promoResult = await promoteRecurringToSubscriptions(userId, transactionIds);
+
     // Batch AI categorisation for remaining uncategorised transactions
     const { batchAiCategorise } = await import("@/lib/auto-categorise");
-    const aiCategorised = await batchAiCategorise(userId, transactionIds);
+    const aiResult = await batchAiCategorise(userId, transactionIds);
 
     return {
       subscriptions: subResult,
       debts: debtResult,
       recurringDetected,
-      aiCategorised,
+      aiCategorised: aiResult.categorised,
+      categoriesCreated: aiResult.categoriesCreated,
+      subscriptionsCreated: promoResult.created,
+      budgetsCreated: 0,
     };
   } catch (err) {
     logger.error("transaction-intelligence", "Enrichment pipeline failed", err);
@@ -408,6 +420,9 @@ export async function enrichTransactions(
       debts: { linked: 0, flagged: 0 },
       recurringDetected: 0,
       aiCategorised: 0,
+      categoriesCreated: 0,
+      subscriptionsCreated: 0,
+      budgetsCreated: 0,
     };
   }
 }
