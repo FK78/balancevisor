@@ -2,6 +2,7 @@ import { PostHog } from "posthog-node";
 
 const noopPostHog = {
   capture() {},
+  captureException() {},
   identify() {},
   shutdown() { return Promise.resolve(); },
   flush() { return Promise.resolve(); },

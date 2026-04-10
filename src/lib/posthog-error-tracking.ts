@@ -28,6 +28,10 @@ function normalizeError(error: unknown): { error: Error; properties?: ExceptionC
 }
 
 export function capturePostHogException(error: unknown, context?: ExceptionContext) {
+  if (typeof window === "undefined" || !posthog.__loaded) {
+    return;
+  }
+
   const normalized = normalizeError(error);
 
   posthog.captureException(normalized.error, {
