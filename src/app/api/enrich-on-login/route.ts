@@ -1,6 +1,6 @@
 import { db } from "@/index";
 import { userPreferencesTable } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, lt, or, isNull } from "drizzle-orm";
 import { getCurrentUserId } from "@/lib/auth";
 import { enrichTransactions } from "@/lib/transaction-intelligence";
 import { autoApplyBudgetSuggestions } from "@/lib/budget-auto-apply";
@@ -10,7 +10,9 @@ const COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
 
 /**
  * On-login enrichment endpoint. Runs the full enrichment + budget auto-apply
- * pipeline with a 1-hour cooldown per user to avoid redundant processing.
+ * pipeline with a cooldown per user to avoid redundant processing.
+ *
+ * Uses an atomic UPDATE … WHERE to prevent concurrent triggers for the same user.
  */
 export async function POST(req: Request) {
   const userId = await getCurrentUserId();
@@ -19,26 +21,36 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}));
     const force = body?.force === true;
 
-    // Check cooldown (skip if force=true from manual trigger)
+    const now = new Date();
+
+    // Atomic cooldown: UPDATE only succeeds if cooldown has elapsed (or forced).
+    // This eliminates the TOCTOU race between checking and setting the timestamp.
     if (!force) {
-      const [prefs] = await db
-        .select({ last_enriched_at: userPreferencesTable.last_enriched_at })
-        .from(userPreferencesTable)
-        .where(eq(userPreferencesTable.user_id, userId));
+      const threshold = new Date(now.getTime() - COOLDOWN_MS);
+      const [claimed] = await db
+        .update(userPreferencesTable)
+        .set({ last_enriched_at: now })
+        .where(
+          and(
+            eq(userPreferencesTable.user_id, userId),
+            or(
+              isNull(userPreferencesTable.last_enriched_at),
+              lt(userPreferencesTable.last_enriched_at, threshold),
+            ),
+          ),
+        )
+        .returning({ user_id: userPreferencesTable.user_id });
 
-      if (prefs?.last_enriched_at) {
-        const elapsed = Date.now() - prefs.last_enriched_at.getTime();
-        if (elapsed < COOLDOWN_MS) {
-          return Response.json({ skipped: true, reason: "cooldown" });
-        }
+      if (!claimed) {
+        return Response.json({ skipped: true, reason: "cooldown" });
       }
+    } else {
+      // Force mode: always update timestamp
+      await db
+        .update(userPreferencesTable)
+        .set({ last_enriched_at: now })
+        .where(eq(userPreferencesTable.user_id, userId));
     }
-
-    // Set timestamp before running to prevent concurrent triggers
-    await db
-      .update(userPreferencesTable)
-      .set({ last_enriched_at: new Date() })
-      .where(eq(userPreferencesTable.user_id, userId));
 
     const enrichment = await enrichTransactions(userId);
     const budgets = await autoApplyBudgetSuggestions(userId);
