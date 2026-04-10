@@ -20,6 +20,7 @@ describe("AccountsPageClient", () => {
           { widgetId: "stats", visible: true, colSpan: 2 },
           { widgetId: "account-cards", visible: true, colSpan: 2 },
           { widgetId: "charts", visible: true, colSpan: 2 },
+          { widgetId: "health-check", visible: true, colSpan: 2 },
         ]}
         header={<div>Accounts Header</div>}
         pendingInvitations={null}
@@ -43,6 +44,7 @@ describe("AccountsPageClient", () => {
     await user.click(screen.getByRole("tab", { name: "Insights" }));
 
     expect(screen.getByText("Charts Widget")).toBeInTheDocument();
+    expect(screen.getByText("Health Check Widget")).toBeInTheDocument();
     expect(screen.queryByText("Account Cards Widget")).not.toBeInTheDocument();
   });
 });

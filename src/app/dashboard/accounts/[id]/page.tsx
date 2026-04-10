@@ -38,6 +38,9 @@ import { AccountFormDialog } from "@/components/AddAccountForm";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 import { ShareDialog } from "@/components/ShareDialog";
 import { TransactionsClient } from "@/components/TransactionsClient";
+import { DecisionMetricCard } from "@/components/dense-data/DecisionMetricCard";
+import { DecisionRow } from "@/components/dense-data/DecisionRow";
+import { buildAccountCardDecision } from "@/components/accounts/account-decision";
 
 const typeConfig: Record<
   string,
@@ -158,6 +161,7 @@ export default async function AccountDetailPage({
   }
 
   const totalPages = Math.max(1, Math.ceil(totalTransactions / PAGE_SIZE));
+  const totalAbsoluteBalance = allAccounts.reduce((sum, item) => sum + Math.abs(item.balance), 0);
 
   if (totalTransactions > 0 && requestedPage > totalPages) {
     const p = new URLSearchParams();
@@ -187,6 +191,13 @@ export default async function AccountDetailPage({
     serializedSplits[txnId] = rows;
   }
 
+  const accountDecision = buildAccountCardDecision(account, {
+    currency: baseCurrency,
+    totalAbsoluteBalance,
+    shareCount: shares.length,
+  });
+  const netFlow = totalIncome - totalExpenses + totalRefunds;
+
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
       {/* Breadcrumb */}
@@ -199,7 +210,7 @@ export default async function AccountDetailPage({
         </Button>
       </div>
 
-      {/* Account header card */}
+      {/* Account decision cockpit */}
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -238,43 +249,50 @@ export default async function AccountDetailPage({
             {!account.isShared && <DeleteAccountButton account={account} />}
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-5 divide-x">
-            <div className="px-4 text-center">
-              <p className="text-xs text-muted-foreground">Balance</p>
-              <p
-                className={`text-lg font-semibold tabular-nums ${
-                  account.balance < 0 ? "text-red-600" : ""
-                }`}
-              >
-                {account.balance < 0 ? "−" : ""}
-                {formatCurrency(account.balance, baseCurrency)}
-              </p>
-            </div>
-            <div className="px-4 text-center">
-              <p className="text-xs text-muted-foreground">Income</p>
-              <p className="text-lg font-semibold tabular-nums text-emerald-600">
-                {formatCurrency(totalIncome, baseCurrency)}
-              </p>
-            </div>
-            <div className="px-4 text-center">
-              <p className="text-xs text-muted-foreground">Spend</p>
-              <p className="text-lg font-semibold tabular-nums text-red-600">
-                {formatCurrency(totalExpenses, baseCurrency)}
-              </p>
-            </div>
-            <div className="px-4 text-center">
-              <p className="text-xs text-muted-foreground">Refunds</p>
-              <p className="text-lg font-semibold tabular-nums text-amber-600">
-                {formatCurrency(totalRefunds, baseCurrency)}
-              </p>
-            </div>
-            <div className="px-4 text-center">
-              <p className="text-xs text-muted-foreground">Net Spend</p>
-              <p className="text-lg font-semibold tabular-nums text-red-600">
-                {formatCurrency(totalExpenses - totalRefunds, baseCurrency)}
-              </p>
-            </div>
+        <CardContent className="space-y-4">
+          <DecisionRow
+            title="Account decision snapshot"
+            amount={accountDecision.amountLabel}
+            amountTone={accountDecision.amountTone}
+            statusLabel={accountDecision.statusLabel}
+            interpretation={accountDecision.interpretation}
+            meta={[
+              accountDecision.typeLabel,
+              accountDecision.transactionsLabel,
+              accountDecision.shareLabel,
+              accountDecision.balanceShareLabel,
+            ]}
+          />
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <DecisionMetricCard
+              eyebrow="Income"
+              title={formatCurrency(totalIncome, baseCurrency)}
+              subtitle="Money in during selected period"
+              interpretation="Use this to verify salary and recurring inflows landed on schedule."
+            />
+            <DecisionMetricCard
+              eyebrow="Spend"
+              title={formatCurrency(totalExpenses, baseCurrency)}
+              subtitle="Outflows during selected period"
+              interpretation="Compare spend against planned monthly thresholds before adding commitments."
+            />
+            <DecisionMetricCard
+              eyebrow="Refunds"
+              title={formatCurrency(totalRefunds, baseCurrency)}
+              subtitle="Recovered spend"
+              interpretation="Refunds offset expenses, but they are less predictable than regular income."
+            />
+            <DecisionMetricCard
+              eyebrow="Net flow"
+              title={`${netFlow < 0 ? "−" : ""}${formatCurrency(Math.abs(netFlow), baseCurrency)}`}
+              subtitle="Income − spend + refunds"
+              interpretation={
+                netFlow >= 0
+                  ? "Positive period cash flow supports savings or debt paydown."
+                  : "Negative period cash flow. Review recent spending pressure."
+              }
+            />
           </div>
         </CardContent>
       </Card>

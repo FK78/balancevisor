@@ -1,14 +1,9 @@
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  CreditCard,
-  PiggyBank,
   TrendingUp,
   Users,
   Wallet,
@@ -19,7 +14,6 @@ import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 import { ConnectBankButton } from "@/components/ConnectBankButton";
 import { ShareDialog } from "@/components/ShareDialog";
 import { PendingInvitations } from "@/components/PendingInvitations";
-import { formatCurrency } from "@/lib/formatCurrency";
 import { getCurrentUserId, getCurrentUserEmail } from "@/lib/auth";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { getSharesByOwner, getPendingInvitations } from "@/db/queries/sharing";
@@ -39,20 +33,12 @@ import Link from "next/link";
 import { requireFeature } from "@/components/FeatureGate";
 import { getPageLayout } from "@/db/queries/dashboard-layouts";
 import { AccountsPageClient } from "@/components/AccountsPageClient";
-
-const typeConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  currentAccount: { label: "Current Account", variant: "secondary" },
-  savings: { label: "Savings", variant: "default" },
-  creditCard: { label: "Credit Card", variant: "destructive" },
-  investment: { label: "Investment", variant: "outline" },
-};
-
-export const typeIcons: Record<string, typeof Wallet> = {
-  currentAccount: Wallet,
-  savings: PiggyBank,
-  creditCard: CreditCard,
-  investment: TrendingUp,
-};
+import { DecisionMetricCard } from "@/components/dense-data/DecisionMetricCard";
+import { AccountCard } from "@/components/AccountCard";
+import {
+  buildAccountSummaryCards,
+  formatAccountTypeLabel,
+} from "@/components/accounts/account-decision";
 
 export default async function Accounts() {
   await requireFeature("accounts");
@@ -102,14 +88,7 @@ export default async function Accounts() {
     }
   }
 
-  const liabilityTypes = new Set(["creditCard"]);
-  const totalAssets = accounts
-    .filter((a) => !liabilityTypes.has(a.type ?? ""))
-    .reduce((sum, a) => sum + a.balance, 0);
-  const totalLiabilities = accounts
-    .filter((a) => liabilityTypes.has(a.type ?? ""))
-    .reduce((sum, a) => sum + Math.abs(a.balance), 0);
-  const totalBalance = totalAssets - totalLiabilities;
+  const summaryCards = buildAccountSummaryCards(accounts, baseCurrency);
   const totalAbsolute = accounts.reduce((sum, a) => sum + Math.abs(a.balance), 0);
 
   const headerEl = (
@@ -129,24 +108,17 @@ export default async function Accounts() {
   ) : null;
 
   const statsEl = (
-    <Card>
-      <CardContent className="grid grid-cols-3 divide-x py-4">
-        <div className="px-4 text-center">
-          <p className="text-xs text-muted-foreground">Net Worth</p>
-          <p className={`text-lg font-semibold tabular-nums ${totalBalance < 0 ? "text-red-600" : ""}`}>
-            {totalBalance < 0 ? "−" : ""}{formatCurrency(totalBalance, baseCurrency)}
-          </p>
-        </div>
-        <div className="px-4 text-center">
-          <p className="text-xs text-muted-foreground">Assets</p>
-          <p className="text-lg font-semibold tabular-nums text-emerald-600">{formatCurrency(totalAssets, baseCurrency)}</p>
-        </div>
-        <div className="px-4 text-center">
-          <p className="text-xs text-muted-foreground">Liabilities</p>
-          <p className="text-lg font-semibold tabular-nums text-red-600">{formatCurrency(totalLiabilities, baseCurrency)}</p>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      {summaryCards.map((card) => (
+        <DecisionMetricCard
+          key={card.id}
+          eyebrow={card.eyebrow}
+          title={card.title}
+          subtitle={card.subtitle}
+          interpretation={card.interpretation}
+        />
+      ))}
+    </div>
   );
 
   const chartsEl = accounts.length > 0 ? (
@@ -167,71 +139,48 @@ export default async function Accounts() {
   ) : (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       {accounts.map((account) => {
-        const config = typeConfig[account.type ?? ""] ?? {
-          label: account.type,
-          variant: "secondary" as const,
-        };
+        const existingShares = accountSharesMap.get(account.id) ?? [];
         return (
-          <Card key={account.id} className="transition-colors">
-            <CardHeader className="flex flex-row items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div className="bg-primary/10 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl">
-                  {(() => { const Icon = typeIcons[account.type ?? ""] ?? Wallet; return <Icon className="text-primary h-5 w-5" />; })()}
-                </div>
-                <div>
-                  <CardTitle className="text-base">
-                    <Link
-                      href={`/dashboard/accounts/${account.id}`}
-                      className="hover:underline"
-                    >
-                      {account.accountName}
-                    </Link>
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    <Link
-                      href={`/dashboard/accounts/${account.id}`}
-                      className="hover:underline"
-                    >
-                      {account.transactions} transactions
-                    </Link>
-                  </CardDescription>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge variant={config.variant}>{config.label}</Badge>
-                {account.isShared && (
-                  <Badge variant="outline" className="gap-1 text-[10px]">
-                    <Users className="h-3 w-3" />
-                    Shared
+          <Card key={account.id} className="overflow-hidden border-border/70">
+            <CardContent className="space-y-3 p-4">
+              <AccountCard
+                account={account}
+                currency={baseCurrency}
+                totalAbsoluteBalance={totalAbsolute}
+                shareCount={existingShares.length}
+              />
+
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-[10px]">
+                    {formatAccountTypeLabel(account.type)}
                   </Badge>
-                )}
-                {!account.isShared && (
-                  <ShareDialog
-                    resourceType="account"
-                    resourceId={account.id}
-                    resourceName={account.accountName}
-                    existingShares={(accountSharesMap.get(account.id) ?? []).map(s => ({
-                      id: s.id,
-                      shared_with_email: s.shared_with_email,
-                      permission: s.permission,
-                      status: s.status,
-                    }))}
-                  />
-                )}
-                {!account.isShared && <AccountFormDialog account={account} />}
-                {!account.isShared && <DeleteAccountButton account={account} />}
+                  {account.isShared ? (
+                    <Badge variant="outline" className="gap-1 text-[10px]">
+                      <Users className="h-3 w-3" />
+                      Shared
+                    </Badge>
+                  ) : null}
+                </div>
+                <div className="flex items-center gap-2">
+                  {!account.isShared && (
+                    <ShareDialog
+                      resourceType="account"
+                      resourceId={account.id}
+                      resourceName={account.accountName}
+                      existingShares={existingShares.map((s) => ({
+                        id: s.id,
+                        shared_with_email: s.shared_with_email,
+                        permission: s.permission,
+                        status: s.status,
+                      }))}
+                    />
+                  )}
+                  {!account.isShared && <AccountFormDialog account={account} />}
+                  {!account.isShared && <DeleteAccountButton account={account} />}
+                </div>
               </div>
-            </CardHeader>
-            <CardContent>
-              <Link
-                href={`/dashboard/accounts/${account.id}`}
-                className={`text-2xl font-bold tabular-nums hover:underline ${account.balance >= 0 ? "text-foreground" : "text-red-600"
-                  }`}
-              >
-                {account.balance < 0 ? "−" : ""}
-                {formatCurrency(account.balance, baseCurrency)}
-              </Link>
-              {/* Linked investments for investment accounts */}
+
               {account.type === "investment" && investmentCountByAccount.has(account.id) && (() => {
                 const info = investmentCountByAccount.get(account.id)!;
                 const parts: string[] = [];
@@ -240,35 +189,13 @@ export default async function Accounts() {
                 return (
                   <Link
                     href="/dashboard/investments"
-                    className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
                   >
                     <TrendingUp className="h-3 w-3" />
                     {parts.join(" · ")}
                   </Link>
                 );
               })()}
-
-              {/* Balance bar relative to total assets */}
-              <div className="mt-3">
-                <div className="bg-muted h-2 w-full overflow-hidden rounded-full">
-                  <div
-                    className={`h-full rounded-full transition-all ${account.balance >= 0 ? "bg-emerald-400" : "bg-red-400"
-                      }`}
-                    style={{
-                      width: `${totalAbsolute > 0 ? Math.min(
-                        (Math.abs(account.balance) / totalAbsolute) * 100,
-                        100
-                      ) : 0}%`,
-                    }}
-                  />
-                </div>
-                <p className="text-muted-foreground mt-1 text-xs">
-                  {totalAbsolute > 0 ? ((Math.abs(account.balance) / totalAbsolute) * 100).toFixed(
-                    1
-                  ) : "0.0"}
-                  % of total
-                </p>
-              </div>
             </CardContent>
           </Card>
         );

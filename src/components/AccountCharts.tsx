@@ -105,6 +105,13 @@ export function AccountCharts({
     },
   } satisfies ChartConfig;
 
+  const topType = typeData[0];
+  const topTypeShare = topType && totalBalanceAbs > 0
+    ? ((topType.total / totalBalanceAbs) * 100).toFixed(1)
+    : "0.0";
+  const topAccount = balanceShareData[0];
+  const topAccountShare = topAccount ? topAccount.share.toFixed(1) : "0.0";
+
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <Card>
@@ -144,6 +151,14 @@ export function AccountCharts({
               <ChartLegend content={<ChartLegendContent nameKey="type" />} />
             </PieChart>
           </ChartContainer>
+          <div className="mt-4 rounded-xl border border-border/70 bg-muted/40 px-3 py-2 text-sm">
+            <p className="font-medium text-foreground">Takeaway</p>
+            <p className="mt-1 text-muted-foreground">
+              {topType
+                ? `${topType.label} leads allocation at ${topTypeShare}% of total tracked balances.`
+                : "Add accounts to reveal allocation concentration by type."}
+            </p>
+          </div>
         </CardContent>
       </Card>
 
@@ -214,6 +229,14 @@ export function AccountCharts({
               />
             </BarChart>
           </ChartContainer>
+          <div className="mt-4 rounded-xl border border-border/70 bg-muted/40 px-3 py-2 text-sm">
+            <p className="font-medium text-foreground">Takeaway</p>
+            <p className="mt-1 text-muted-foreground">
+              {topAccount
+                ? `${topAccount.accountName} contributes ${topAccountShare}% of portfolio exposure.`
+                : "Add accounts to see which balance drives the most portfolio risk."}
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

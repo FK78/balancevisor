@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { HeartPulse, RefreshCw, Loader2 } from "lucide-react";
 import { formatMarkdown } from "@/lib/formatMarkdown";
+import { DecisionEmptyState } from "@/components/dense-data/DecisionEmptyState";
 
 type HealthState = {
   text: string;
@@ -103,8 +104,8 @@ export function AccountHealthCheck() {
               <CardTitle className="text-lg">AI Account Health Check</CardTitle>
               <CardDescription>
                 {state.loading
-                    ? "Analysing your accounts..."
-                    : "Account structure assessment powered by AI"}
+                  ? "Scanning your account setup for decision signals..."
+                  : "Decision-focused account structure assessment powered by AI"}
               </CardDescription>
             </div>
           </div>
@@ -126,11 +127,20 @@ export function AccountHealthCheck() {
       </CardHeader>
       <CardContent>
         {state.error ? (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
-            <p className="text-sm text-destructive">{state.error}</p>
-          </div>
+          <DecisionEmptyState
+            title="Health check unavailable"
+            description={state.error}
+            action={
+              <Button size="sm" variant="outline" onClick={() => fetchHealth()}>
+                Try again
+              </Button>
+            }
+          />
         ) : state.loading && !state.text ? (
-          <div className="space-y-3">
+          <div className="space-y-3 rounded-xl border border-border/70 bg-muted/30 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              Generating health summary
+            </p>
             {[...Array(3)].map((_, i) => (
               <div key={i} className="space-y-2">
                 <div className="h-4 w-1/3 animate-pulse rounded bg-muted" />
@@ -140,10 +150,15 @@ export function AccountHealthCheck() {
             ))}
           </div>
         ) : (
-          <div
-            className="prose prose-sm dark:prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
-            dangerouslySetInnerHTML={{ __html: formatMarkdown(state.text) }}
-          />
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              Decision interpretation
+            </p>
+            <div
+              className="prose prose-sm dark:prose-invert max-w-none rounded-xl border border-border/70 bg-background/80 p-4 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+              dangerouslySetInnerHTML={{ __html: formatMarkdown(state.text) }}
+            />
+          </div>
         )}
       </CardContent>
     </Card>
