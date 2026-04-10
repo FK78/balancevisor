@@ -1,8 +1,8 @@
 "use client";
 
 import { type ReactNode, useState } from "react";
+import { ReadOnlyWidgetGrid } from "@/components/ReadOnlyWidgetGrid";
 import { WidgetLayoutProvider } from "@/components/WidgetLayoutProvider";
-import { WidgetGrid } from "@/components/WidgetGrid";
 import { DashboardWidget } from "@/components/DashboardWidget";
 import { WorkspaceTabs } from "@/components/ui/workspace-tabs";
 import { useWidgetLayoutContext } from "@/components/WidgetLayoutProvider";
@@ -54,7 +54,7 @@ function AccountsPageContent({
   accountCards,
   healthCheck,
 }: Omit<AccountsPageClientProps, "serverLayout">) {
-  const { layout, isEditing } = useWidgetLayoutContext();
+  const { layout } = useWidgetLayoutContext();
   const [activeTab, setActiveTab] = useState<AccountsWorkspaceTab>("summary");
   const groupedLayout = groupAccountsLayoutByTab(layout);
   const activeLayout = groupedLayout[activeTab];
@@ -80,7 +80,6 @@ function AccountsPageContent({
     .map((item) => {
       const content = renderWidget(item.widgetId);
       if (!content) return null;
-      if (!item.visible && !isEditing) return null;
 
       return (
         <DashboardWidget key={item.widgetId} id={item.widgetId}>
@@ -120,7 +119,7 @@ function AccountsPageContent({
             aria-labelledby={`workspace-tab-${tab.value}`}
             hidden={tab.value !== activeTab}
           >
-            {tab.value === activeTab ? <WidgetGrid>{activeWidgets}</WidgetGrid> : null}
+            {tab.value === activeTab ? <ReadOnlyWidgetGrid>{activeWidgets}</ReadOnlyWidgetGrid> : null}
           </div>
         ))}
       </section>

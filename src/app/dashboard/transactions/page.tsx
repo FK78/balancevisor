@@ -65,13 +65,14 @@ export default async function Transactions({
   let dailyCategoryExpenses;
   let baseCurrency;
   let uncategorisedCount: number = 0;
+  const shouldLoadCharts = !search;
 
-  // Shared fetches that are always needed regardless of search
+  // Shared fetches needed for both normal browsing and server-side search.
   const sharedFetches = [
     getAccountsWithDetails(userId),
     getCategoriesByUser(userId),
-    getDailyIncomeExpenseTrend(userId, 90),
-    getDailyExpenseByCategory(userId, 90),
+    shouldLoadCharts ? getDailyIncomeExpenseTrend(userId, 90) : Promise.resolve([]),
+    shouldLoadCharts ? getDailyExpenseByCategory(userId, 90) : Promise.resolve([]),
     getUserBaseCurrency(userId),
     getUncategorisedCount(userId),
   ] as const;

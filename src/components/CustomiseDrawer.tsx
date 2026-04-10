@@ -6,7 +6,6 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -158,7 +157,12 @@ function WidgetList({
   );
 }
 
-export function CustomiseDrawer() {
+interface CustomiseDrawerProps {
+  readonly open: boolean;
+  readonly onOpenChange: (open: boolean) => void;
+}
+
+export function CustomiseDrawer({ open, onOpenChange }: CustomiseDrawerProps) {
   const {
     pageId,
     layout,
@@ -180,15 +184,7 @@ export function CustomiseDrawer() {
   }, [definitions]);
 
   return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8 relative">
-          <Settings2 className="h-4 w-4" />
-          {isCustomised && (
-            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
-          )}
-        </Button>
-      </SheetTrigger>
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-[340px] sm:w-[380px] overflow-y-auto">
         <SheetHeader className="pb-4">
           <SheetTitle className="flex items-center gap-2">

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 import { useWidgetLayout } from "@/hooks/useWidgetLayout";
 import type { DashboardPageId, WidgetLayoutItem } from "@/lib/widget-registry";
 
@@ -12,8 +12,6 @@ interface WidgetLayoutContextValue {
   readonly resetToDefault: () => Promise<void>;
   readonly isCustomised: boolean;
   readonly saving: boolean;
-  readonly isEditing: boolean;
-  readonly setIsEditing: (v: boolean) => void;
 }
 
 const WidgetLayoutContext = createContext<WidgetLayoutContextValue | null>(null);
@@ -29,7 +27,6 @@ export function WidgetLayoutProvider({
 }) {
   const { layout, reorder, toggleVisibility, resetToDefault, isCustomised, saving } =
     useWidgetLayout(pageId, serverLayout);
-  const [isEditing, setIsEditing] = useState(false);
 
   return (
     <WidgetLayoutContext.Provider
@@ -41,8 +38,6 @@ export function WidgetLayoutProvider({
         resetToDefault,
         isCustomised,
         saving,
-        isEditing,
-        setIsEditing,
       }}
     >
       {children}

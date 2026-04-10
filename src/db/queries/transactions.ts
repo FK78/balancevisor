@@ -154,6 +154,46 @@ export type SearchTransactionsResult = {
   totalRefunds: number;
 };
 
+type SearchableTransactionRow = {
+  category?: string | null;
+  description?: string | null;
+  accountName?: string | null;
+  type: 'income' | 'expense' | 'transfer' | 'sale' | 'refund' | null;
+  amount: number;
+};
+
+export async function filterSearchRows<T extends SearchableTransactionRow>(
+  rows: readonly T[],
+  search: string,
+  decryptRows: (rows: T[]) => Promise<T[]>,
+): Promise<T[]> {
+  const needle = search.toLowerCase();
+  const categoryMatches: T[] = [];
+  const rowsNeedingDecryption: T[] = [];
+
+  for (const row of rows) {
+    const category = (row.category ?? '').toLowerCase();
+    if (category.includes(needle)) {
+      categoryMatches.push(row);
+    } else {
+      rowsNeedingDecryption.push(row);
+    }
+  }
+
+  const decryptedRows = rowsNeedingDecryption.length > 0
+    ? await decryptRows(rowsNeedingDecryption)
+    : [];
+
+  const decryptedMatches = decryptedRows.filter((row) => {
+    const desc = (row.description ?? '').toLowerCase();
+    const acct = (row.accountName ?? '').toLowerCase();
+    const cat = (row.category ?? '').toLowerCase();
+    return desc.includes(needle) || acct.includes(needle) || cat.includes(needle);
+  });
+
+  return [...categoryMatches, ...decryptedMatches];
+}
+
 /**
  * Server-side search: first attempts SQL-level filtering on plaintext fields
  * (merchant_name, category name) to avoid decrypting all rows. Falls back to
@@ -213,14 +253,11 @@ export async function searchTransactions(
   const allRows = await fallbackQuery
     .orderBy(desc(transactionsTable.date), desc(transactionsTable.id))
     .limit(MAX_SEARCH_ROWS);
-  const decrypted = await decryptTransactionRows(allRows, userId);
-
-  const filtered = decrypted.filter((row) => {
-    const desc = (row.description ?? '').toLowerCase();
-    const acct = (row.accountName ?? '').toLowerCase();
-    const cat = (row.category ?? '').toLowerCase();
-    return desc.includes(needle) || acct.includes(needle) || cat.includes(needle);
-  });
+  const filtered = await filterSearchRows(
+    allRows,
+    search,
+    (rows) => decryptTransactionRows(rows, userId),
+  );
 
   return buildSearchResult(filtered, safePage, safePageSize);
 }

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import {
   Card,
   CardContent,
@@ -9,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, LayoutGrid, SlidersHorizontal } from "lucide-react";
+import { ArrowRight, LayoutGrid, Loader2, Pencil, Settings2, SlidersHorizontal } from "lucide-react";
 import { QuickAddTransaction } from "@/components/QuickAddTransaction";
 import { DashboardInsights } from "@/components/dashboard/DashboardInsights";
 import { DashboardMonthlyReport } from "@/components/dashboard/DashboardMonthlyReport";
@@ -26,13 +27,11 @@ import { DashboardMilestones } from "@/components/dashboard/DashboardMilestones"
 import { DashboardHealthScore } from "@/components/dashboard/DashboardHealthScore";
 import { DashboardExpenseVelocity } from "@/components/dashboard/DashboardExpenseVelocity";
 import { DashboardBillTimeline } from "@/components/dashboard/DashboardBillTimeline";
-import { WidgetLayoutProvider } from "@/components/WidgetLayoutProvider";
-import { WidgetGrid } from "@/components/WidgetGrid";
-import { DashboardWidget } from "@/components/DashboardWidget";
-import { CustomiseDrawer } from "@/components/CustomiseDrawer";
-import { EditLayoutToggle } from "@/components/EditLayoutToggle";
-import { WorkspaceTabs } from "@/components/ui/workspace-tabs";
 import { DashboardOverviewHero } from "@/components/dashboard/DashboardOverviewHero";
+import { DashboardWidget } from "@/components/DashboardWidget";
+import { ReadOnlyWidgetGrid } from "@/components/ReadOnlyWidgetGrid";
+import { WidgetLayoutProvider } from "@/components/WidgetLayoutProvider";
+import { WorkspaceTabs } from "@/components/ui/workspace-tabs";
 import {
   DASHBOARD_WORKSPACE_TABS,
   type DashboardWorkspaceTab,
@@ -47,9 +46,24 @@ import type { SpendingAnomaly } from "@/lib/spending-anomalies";
 import type { RetirementProjection } from "@/lib/retirement-calculator";
 import type { Milestone } from "@/lib/milestones";
 import type { HealthScoreResult } from "@/lib/financial-health-score";
-import dynamic from "next/dynamic";
 import { ChartSkeleton } from "@/components/ChartSkeleton";
 import { useWidgetLayoutContext } from "@/components/WidgetLayoutProvider";
+
+type WidgetCustomizerModule = typeof import("../WidgetCustomizerClient");
+type ActivationAction = "edit" | "customize";
+
+let widgetCustomizerModulePromise: Promise<WidgetCustomizerModule> | null = null;
+
+function loadWidgetCustomizerModule() {
+  if (!widgetCustomizerModulePromise) {
+    widgetCustomizerModulePromise = import("../WidgetCustomizerClient").catch((error) => {
+      widgetCustomizerModulePromise = null;
+      throw error;
+    });
+  }
+
+  return widgetCustomizerModulePromise;
+}
 
 const CashflowCharts = dynamic(
   () => import("@/components/CashflowCharts").then((mod) => mod.CashflowCharts),
@@ -145,10 +159,45 @@ function DashboardPageContent(props: DashboardPageClientProps) {
     milestones,
     healthScore,
   } = props;
-  const { layout, isEditing } = useWidgetLayoutContext();
+  const { layout, isCustomised } = useWidgetLayoutContext();
   const [activeTab, setActiveTab] = useState<DashboardWorkspaceTab>("overview");
+  const [widgetCustomizerModule, setWidgetCustomizerModule] =
+    useState<WidgetCustomizerModule | null>(null);
+  const [loadingAction, setLoadingAction] = useState<ActivationAction | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [customizationError, setCustomizationError] = useState<string | null>(null);
   const groupedLayout = groupDashboardLayoutByTab(layout);
   const activeLayout = groupedLayout[activeTab];
+
+  async function activateCustomization(action: ActivationAction) {
+    setCustomizationError(null);
+
+    if (widgetCustomizerModule) {
+      if (action === "edit") {
+        setIsEditing(true);
+      } else {
+        setDrawerOpen(true);
+      }
+      return;
+    }
+
+    setLoadingAction(action);
+    try {
+      const loadedModule = await loadWidgetCustomizerModule();
+      setWidgetCustomizerModule(loadedModule);
+
+      if (action === "edit") {
+        setIsEditing(true);
+      } else {
+        setDrawerOpen(true);
+      }
+    } catch {
+      setCustomizationError("Layout controls could not be loaded.");
+    } finally {
+      setLoadingAction(null);
+    }
+  }
 
   function renderWidget(widgetId: string) {
     switch (widgetId) {
@@ -254,7 +303,6 @@ function DashboardPageContent(props: DashboardPageClientProps) {
     .map((item) => {
       const content = renderWidget(item.widgetId);
       if (!content) return null;
-      if (!item.visible && !isEditing) return null;
 
       return (
         <DashboardWidget key={item.widgetId} id={item.widgetId}>
@@ -265,6 +313,8 @@ function DashboardPageContent(props: DashboardPageClientProps) {
     .filter(Boolean);
 
   const activeTabMeta = DASHBOARD_WORKSPACE_TABS.find((tab) => tab.value === activeTab);
+  const WidgetCustomizerControls = widgetCustomizerModule?.WidgetCustomizerControls;
+  const EditableWidgetGrid = widgetCustomizerModule?.EditableWidgetGrid;
 
   return (
     <div className="mx-auto max-w-7xl space-y-5 px-4 py-5 md:space-y-8 md:px-10 md:py-8">
@@ -322,11 +372,54 @@ function DashboardPageContent(props: DashboardPageClientProps) {
                   <LayoutGrid className="h-3.5 w-3.5" />
                   Layout
                 </span>
-                <EditLayoutToggle />
-                <CustomiseDrawer />
+                {WidgetCustomizerControls ? (
+                  <WidgetCustomizerControls
+                    isEditing={isEditing}
+                    setIsEditing={setIsEditing}
+                    drawerOpen={drawerOpen}
+                    setDrawerOpen={setDrawerOpen}
+                  />
+                ) : (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 gap-1.5 text-xs"
+                      disabled={loadingAction !== null}
+                      onClick={() => void activateCustomization("edit")}
+                    >
+                      {loadingAction === "edit" ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Pencil className="h-3.5 w-3.5" />
+                      )}
+                      Edit Layout
+                    </Button>
+                    <Button
+                      aria-label="Customize layout"
+                      variant="ghost"
+                      size="icon"
+                      className="relative h-8 w-8"
+                      disabled={loadingAction !== null}
+                      onClick={() => void activateCustomization("customize")}
+                    >
+                      {loadingAction === "customize" ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Settings2 className="h-4 w-4" />
+                      )}
+                      {isCustomised ? (
+                        <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary" />
+                      ) : null}
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>
+          {customizationError ? (
+            <p className="pt-2 text-xs text-muted-foreground">{customizationError}</p>
+          ) : null}
         </div>
       </div>
 
@@ -337,7 +430,11 @@ function DashboardPageContent(props: DashboardPageClientProps) {
         className="space-y-4"
       >
         {activeWidgets.length > 0 ? (
-          <WidgetGrid>{activeWidgets}</WidgetGrid>
+          EditableWidgetGrid && isEditing ? (
+            <EditableWidgetGrid>{activeWidgets}</EditableWidgetGrid>
+          ) : (
+            <ReadOnlyWidgetGrid>{activeWidgets}</ReadOnlyWidgetGrid>
+          )
         ) : (
           <Card className="workspace-card border border-dashed border-[var(--workspace-card-border)] px-2 py-2 shadow-none">
             <CardContent className="flex flex-col items-center justify-center gap-3 py-10 text-center">

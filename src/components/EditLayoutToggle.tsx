@@ -2,17 +2,19 @@
 
 import { Pencil, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useWidgetLayoutContext } from "@/components/WidgetLayoutProvider";
 
-export function EditLayoutToggle() {
-  const { isEditing, setIsEditing } = useWidgetLayoutContext();
+interface EditLayoutToggleProps {
+  readonly isEditing: boolean;
+  readonly onToggle: () => void;
+}
 
+export function EditLayoutToggle({ isEditing, onToggle }: EditLayoutToggleProps) {
   return (
     <Button
       variant={isEditing ? "default" : "ghost"}
       size="sm"
       className="gap-1.5 h-8 text-xs"
-      onClick={() => setIsEditing(!isEditing)}
+      onClick={onToggle}
     >
       {isEditing ? (
         <>
