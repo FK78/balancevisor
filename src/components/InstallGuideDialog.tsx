@@ -1,0 +1,163 @@
+"use client";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Share, Plus, MoreVertical, Monitor } from "lucide-react";
+
+export type InstallMethod =
+  | "native"
+  | "ios-safari"
+  | "macos-safari"
+  | "android-browser"
+  | "unsupported";
+
+export function detectInstallMethod(): InstallMethod {
+  if (typeof window === "undefined") return "unsupported";
+
+  // Chromium browsers that captured the beforeinstallprompt event
+  if (window.__pwaInstallPrompt) return "native";
+
+  const ua = navigator.userAgent;
+  const isIOS =
+    /iPad|iPhone|iPod/.test(ua) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS/.test(ua);
+
+  if (isIOS && isSafari) return "ios-safari";
+  if (isSafari) return "macos-safari";
+
+  // Firefox / other mobile browsers that don't support beforeinstallprompt
+  if (/Android/.test(ua)) return "android-browser";
+
+  // Chromium but event hasn't fired yet — still treat as native-capable
+  if ("BeforeInstallPromptEvent" in window) return "native";
+
+  return "unsupported";
+}
+
+interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  method: InstallMethod;
+}
+
+export function InstallGuideDialog({ open, onOpenChange, method }: Props) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Install Wealth</DialogTitle>
+          <DialogDescription>
+            Add Wealth to your home screen for quick access and a native app
+            experience.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          {method === "ios-safari" && <IosSafariGuide />}
+          {method === "macos-safari" && <MacosSafariGuide />}
+          {method === "android-browser" && <AndroidBrowserGuide />}
+          {method === "unsupported" && <UnsupportedGuide />}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Done
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function StepRow({
+  step,
+  icon,
+  children,
+}: {
+  step: number;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        {icon}
+      </div>
+      <div className="pt-0.5">
+        <p className="text-sm font-medium">Step {step}</p>
+        <p className="text-sm text-muted-foreground">{children}</p>
+      </div>
+    </div>
+  );
+}
+
+function IosSafariGuide() {
+  return (
+    <>
+      <StepRow step={1} icon={<Share className="h-4 w-4" />}>
+        Tap the <strong>Share</strong> button at the bottom of Safari (the
+        square with an upward arrow).
+      </StepRow>
+      <StepRow step={2} icon={<Plus className="h-4 w-4" />}>
+        Scroll down and tap <strong>Add to Home Screen</strong>.
+      </StepRow>
+      <StepRow step={3} icon={<span className="text-sm font-bold">+</span>}>
+        Tap <strong>Add</strong> in the top-right corner to confirm.
+      </StepRow>
+    </>
+  );
+}
+
+function MacosSafariGuide() {
+  return (
+    <>
+      <StepRow step={1} icon={<Monitor className="h-4 w-4" />}>
+        In the menu bar, click <strong>File</strong>.
+      </StepRow>
+      <StepRow step={2} icon={<Plus className="h-4 w-4" />}>
+        Select <strong>Add to Dock</strong> (Safari 17+).
+      </StepRow>
+      <StepRow step={3} icon={<span className="text-sm font-bold">+</span>}>
+        Click <strong>Add</strong> to confirm. The app will appear in your Dock.
+      </StepRow>
+    </>
+  );
+}
+
+function AndroidBrowserGuide() {
+  return (
+    <>
+      <StepRow step={1} icon={<MoreVertical className="h-4 w-4" />}>
+        Tap the <strong>menu</strong> button (three dots) in the top-right
+        corner.
+      </StepRow>
+      <StepRow step={2} icon={<Plus className="h-4 w-4" />}>
+        Tap <strong>Add to Home screen</strong> or{" "}
+        <strong>Install app</strong>.
+      </StepRow>
+      <StepRow step={3} icon={<span className="text-sm font-bold">+</span>}>
+        Tap <strong>Add</strong> to confirm.
+      </StepRow>
+    </>
+  );
+}
+
+function UnsupportedGuide() {
+  return (
+    <div className="rounded-lg border border-dashed p-4 text-center">
+      <p className="text-sm text-muted-foreground">
+        Your browser doesn&apos;t support installing web apps directly. Try
+        opening Wealth in <strong>Safari</strong> or{" "}
+        <strong>Google Chrome</strong> to install it.
+      </p>
+    </div>
+  );
+}
