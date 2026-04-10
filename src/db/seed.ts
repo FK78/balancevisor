@@ -28,6 +28,7 @@ import {
   userPreferencesTable,
   transactionReviewFlagsTable,
   sharedAccessTable,
+  merchantMappingsTable,
 } from "./schema";
 
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -46,6 +47,7 @@ const db = drizzle(client);
 
 // ── Constants ────────────────────────────────────────────────────────
 const USER_ID = "f02d2f39-74f1-4771-b70c-92d708a83890";
+const MONTHS_OF_DATA = 36; // 3 years of history
 
 function daysAgo(n: number): string {
   const d = new Date();
@@ -63,6 +65,48 @@ function daysFromNow(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() + n);
   return d.toISOString().slice(0, 10);
+}
+
+/** Deterministic pseudo-random (mulberry32) so seed data is reproducible */
+function makeRng(seed: number) {
+  let s = seed;
+  return () => {
+    s |= 0; s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const rng = makeRng(42);
+
+/** Random float in [min, max] */
+function rand(min: number, max: number): number {
+  return +(min + rng() * (max - min)).toFixed(2);
+}
+
+/** Random integer in [min, max] */
+function randInt(min: number, max: number): number {
+  return Math.floor(min + rng() * (max - min + 1));
+}
+
+/** Pick a random item from an array */
+function pick<T>(arr: T[]): T {
+  return arr[Math.floor(rng() * arr.length)];
+}
+
+/** Get a date string for a specific day within a given month offset */
+function dateInMonth(monthOffset: number, day: number): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() - monthOffset);
+  d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
+  return d.toISOString().slice(0, 10);
+}
+
+/** Get the month name for a given month offset (e.g. 0 = current month) */
+function monthName(monthOffset: number): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() - monthOffset);
+  return d.toLocaleString("en-GB", { month: "long", year: "numeric" });
 }
 
 // ── Seed function ────────────────────────────────────────────────────
