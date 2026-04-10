@@ -8,6 +8,10 @@ const NOISE_WORDS = [
   "subscription", "recurring", "autopay", "auto pay",
 ];
 
+const MONTH_NAMES =
+  "january|february|march|april|may|june|july|august|september|october|november|december" +
+  "|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec";
+
 export function normalise(text: string): string {
   let s = text.toLowerCase().trim();
   // Strip common suffixes, domains, punctuation
@@ -15,6 +19,13 @@ export function normalise(text: string): string {
   for (const word of NOISE_WORDS) {
     s = s.replace(new RegExp(`\\b${word}\\b`, "gi"), "");
   }
+  // Strip date-like patterns: "June 2024", "01/06/2024", "2024-06", standalone years
+  s = s.replace(new RegExp(`\\b(${MONTH_NAMES})\\b`, "gi"), "");
+  s = s.replace(/\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b/g, "");
+  s = s.replace(/\b\d{4}[\/\-]\d{1,2}([\/\-]\d{1,2})?\b/g, "");
+  s = s.replace(/\b(20\d{2}|19\d{2})\b/g, "");
+  // Strip standalone day numbers (e.g. "1st", "15th", "23rd")
+  s = s.replace(/\b\d{1,2}(st|nd|rd|th)\b/g, "");
   return s.replace(/\s+/g, " ").trim();
 }
 
@@ -39,8 +50,14 @@ export function fuzzyMatch(txnDesc: string, targetName: string): boolean {
 }
 
 export const AMOUNT_TOLERANCE = 0.05; // 5%
+export const AMOUNT_TOLERANCE_GENEROUS = 0.30; // 30% — for auto-linking (price changes, plan upgrades)
 
 export function amountsMatch(actual: number, expected: number): boolean {
   if (expected === 0) return actual === 0;
   return Math.abs(actual - expected) / expected <= AMOUNT_TOLERANCE;
+}
+
+export function amountsCloseEnough(actual: number, expected: number): boolean {
+  if (expected === 0) return actual === 0;
+  return Math.abs(actual - expected) / expected <= AMOUNT_TOLERANCE_GENEROUS;
 }

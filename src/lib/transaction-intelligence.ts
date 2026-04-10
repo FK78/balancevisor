@@ -6,7 +6,7 @@ import {
   debtPaymentsTable,
   transactionReviewFlagsTable,
 } from "@/db/schema";
-import { eq, and, isNull, inArray } from "drizzle-orm";
+import { eq, and, isNull, inArray, gte } from "drizzle-orm";
 import { decryptForUser, getUserKey } from "@/lib/encryption";
 import { logger } from "@/lib/logger";
 import { revalidateDomains } from "@/lib/revalidate";
@@ -32,7 +32,7 @@ type RawTransaction = {
 // ---------------------------------------------------------------------------
 
 export { normalise, fuzzyMatch, amountsMatch } from "@/lib/matching-utils";
-import { normalise, fuzzyMatch, amountsMatch } from "@/lib/matching-utils";
+import { normalise, fuzzyMatch, amountsMatch, amountsCloseEnough } from "@/lib/matching-utils";
 
 // ---------------------------------------------------------------------------
 // Fetch unlinked transactions for a user (recently imported)
@@ -52,6 +52,11 @@ async function fetchUnlinkedTransactions(
 
   if (transactionIds && transactionIds.length > 0) {
     conditions.push(inArray(transactionsTable.id, transactionIds));
+  } else {
+    // Scope to last 90 days when doing a full scan
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 90);
+    conditions.push(gte(transactionsTable.date, cutoff.toISOString().split("T")[0]));
   }
 
   const rows = await db
@@ -112,8 +117,8 @@ export async function matchTransactionsToSubscriptions(
     for (const sub of subs) {
       if (!fuzzyMatch(txn.description, sub.name)) continue;
 
-      if (amountsMatch(txn.amount, sub.amount)) {
-        // Exact match → auto-link and advance billing
+      if (amountsCloseEnough(txn.amount, sub.amount)) {
+        // Name + amount within 30% → auto-link and advance billing
         await db
           .update(transactionsTable)
           .set({ subscription_id: sub.id })
@@ -122,16 +127,29 @@ export async function matchTransactionsToSubscriptions(
         await advanceSubscriptionBillingDate(sub.id);
         linked++;
       } else {
-        // Name matches but amount differs → flag for review
-        await db.insert(transactionReviewFlagsTable).values({
-          user_id: userId,
-          transaction_id: txn.id,
-          flag_type: "subscription_amount_mismatch",
-          suggested_subscription_id: sub.id,
-          expected_amount: sub.amount,
-          actual_amount: txn.amount,
-        });
-        flagged++;
+        // Name matches but amount differs >30% → flag for review (with dedup)
+        const [existing] = await db
+          .select({ id: transactionReviewFlagsTable.id })
+          .from(transactionReviewFlagsTable)
+          .where(
+            and(
+              eq(transactionReviewFlagsTable.transaction_id, txn.id),
+              eq(transactionReviewFlagsTable.flag_type, "subscription_amount_mismatch"),
+              eq(transactionReviewFlagsTable.is_resolved, false),
+            ),
+          )
+          .limit(1);
+        if (!existing) {
+          await db.insert(transactionReviewFlagsTable).values({
+            user_id: userId,
+            transaction_id: txn.id,
+            flag_type: "subscription_amount_mismatch",
+            suggested_subscription_id: sub.id,
+            expected_amount: sub.amount,
+            actual_amount: txn.amount,
+          });
+          flagged++;
+        }
       }
       break; // Only match first subscription per transaction
     }
@@ -182,12 +200,8 @@ export async function matchTransactionsToDebts(
 
       if (!matchesName && !matchesLender) continue;
 
-      const isConfident =
-        debt.minimum_payment > 0 &&
-        amountsMatch(txn.amount, debt.minimum_payment);
-
-      if (isConfident && txn.account_id) {
-        // Auto-record debt payment
+      if (txn.account_id) {
+        // Auto-link as debt payment on name match
         await db.transaction(async (tx) => {
           await tx
             .update(transactionsTable)
@@ -213,16 +227,29 @@ export async function matchTransactionsToDebts(
         });
         linked++;
       } else {
-        // Uncertain → flag
-        await db.insert(transactionReviewFlagsTable).values({
-          user_id: userId,
-          transaction_id: txn.id,
-          flag_type: "possible_debt_payment",
-          suggested_debt_id: debt.id,
-          expected_amount: debt.minimum_payment,
-          actual_amount: txn.amount,
-        });
-        flagged++;
+        // No account_id → flag for review (with dedup)
+        const [existing] = await db
+          .select({ id: transactionReviewFlagsTable.id })
+          .from(transactionReviewFlagsTable)
+          .where(
+            and(
+              eq(transactionReviewFlagsTable.transaction_id, txn.id),
+              eq(transactionReviewFlagsTable.flag_type, "possible_debt_payment"),
+              eq(transactionReviewFlagsTable.is_resolved, false),
+            ),
+          )
+          .limit(1);
+        if (!existing) {
+          await db.insert(transactionReviewFlagsTable).values({
+            user_id: userId,
+            transaction_id: txn.id,
+            flag_type: "possible_debt_payment",
+            suggested_debt_id: debt.id,
+            expected_amount: debt.minimum_payment,
+            actual_amount: txn.amount,
+          });
+          flagged++;
+        }
       }
       break; // Only match first debt per transaction
     }
