@@ -261,6 +261,16 @@ async function seed() {
     { account_id: acctMap["Amex Gold"], category_id: catMap["Shopping"], type: "expense" as const, amount: 149.99, description: "John Lewis - coat", date: daysAgo(55), is_recurring: false },
     { account_id: acctMap["Monzo Current"], category_id: catMap["Health"], type: "expense" as const, amount: 39.99, description: "PureGym membership", date: daysAgo(32), is_recurring: true, recurring_pattern: "monthly" as const },
     { account_id: acctMap["Monzo Current"], category_id: catMap["Health"], type: "expense" as const, amount: 39.99, description: "PureGym membership", date: daysAgo(62), is_recurring: true, recurring_pattern: "monthly" as const },
+    { account_id: acctMap["Monzo Current"], category_id: catMap["Health"], type: "expense" as const, amount: 39.99, description: "PureGym membership", date: daysAgo(92), is_recurring: true, recurring_pattern: "monthly" as const },
+    { account_id: acctMap["Monzo Current"], category_id: catMap["Health"], type: "expense" as const, amount: 25.00, description: "Boots pharmacy", date: daysAgo(50), is_recurring: false },
+    // Extra historical Shopping (no budget — triggers 'new' suggestion)
+    { account_id: acctMap["Amex Gold"], category_id: catMap["Shopping"], type: "expense" as const, amount: 75.00, description: "ASOS order", date: daysAgo(40), is_recurring: false },
+    { account_id: acctMap["Amex Gold"], category_id: catMap["Shopping"], type: "expense" as const, amount: 120.00, description: "Currys - keyboard", date: daysAgo(70), is_recurring: false },
+    { account_id: acctMap["Amex Gold"], category_id: catMap["Shopping"], type: "expense" as const, amount: 45.00, description: "TK Maxx", date: daysAgo(100), is_recurring: false },
+    // Extra historical Dining Out (triggers 'increase' suggestion — avg > budget)
+    { account_id: acctMap["Amex Gold"], category_id: catMap["Dining Out"], type: "expense" as const, amount: 65.00, description: "Nando's dinner", date: daysAgo(50), is_recurring: false },
+    { account_id: acctMap["Amex Gold"], category_id: catMap["Dining Out"], type: "expense" as const, amount: 110.00, description: "Hawksmoor steak night", date: daysAgo(70), is_recurring: false },
+    { account_id: acctMap["Amex Gold"], category_id: catMap["Dining Out"], type: "expense" as const, amount: 48.00, description: "Pizza Express", date: daysAgo(95), is_recurring: false },
     { account_id: acctMap["Monzo Current"], category_id: catMap["Freelance"], type: "income" as const, amount: 1200, description: "React consulting - TechCorp", date: daysAgo(75), is_recurring: false },
   ];
 
@@ -296,10 +306,8 @@ async function seed() {
     .values([
       { user_id: USER_ID, category_id: catMap["Groceries"], amount: 400, period: "monthly" as const, start_date: monthsAgo(0) },
       { user_id: USER_ID, category_id: catMap["Transport"], amount: 250, period: "monthly" as const, start_date: monthsAgo(0) },
-      { user_id: USER_ID, category_id: catMap["Entertainment"], amount: 200, period: "monthly" as const, start_date: monthsAgo(0) },
-      { user_id: USER_ID, category_id: catMap["Dining Out"], amount: 300, period: "monthly" as const, start_date: monthsAgo(0) },
-      { user_id: USER_ID, category_id: catMap["Shopping"], amount: 200, period: "monthly" as const, start_date: monthsAgo(0) },
-      { user_id: USER_ID, category_id: catMap["Health"], amount: 100, period: "monthly" as const, start_date: monthsAgo(0) },
+      { user_id: USER_ID, category_id: catMap["Entertainment"], amount: 500, period: "monthly" as const, start_date: monthsAgo(0) },
+      { user_id: USER_ID, category_id: catMap["Dining Out"], amount: 150, period: "monthly" as const, start_date: monthsAgo(0) },
       { user_id: USER_ID, category_id: catMap["Bills & Utilities"], amount: 350, period: "weekly" as const, start_date: monthsAgo(0) },
     ])
     .returning();
