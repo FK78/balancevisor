@@ -39,6 +39,7 @@ import {
   zakatCalculationsTable,
   zakatSettingsTable,
   otherAssetsTable,
+  nudgeDismissalsTable,
 } from "@/db/schema";
 
 async function deleteUser(userId: string) {
@@ -116,6 +117,7 @@ async function deleteUser(userId: string) {
     await tx.delete(debtsTable).where(eq(debtsTable.user_id, userId));
     await tx.delete(retirementProfilesTable).where(eq(retirementProfilesTable.user_id, userId));
     await tx.delete(dashboardLayoutsTable).where(eq(dashboardLayoutsTable.user_id, userId));
+    await tx.delete(nudgeDismissalsTable).where(eq(nudgeDismissalsTable.user_id, userId));
     await tx.delete(mfaBackupCodesTable).where(eq(mfaBackupCodesTable.user_id, userId));
 
     // --- Transactions (linked to accounts) ---

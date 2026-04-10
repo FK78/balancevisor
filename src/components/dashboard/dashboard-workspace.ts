@@ -25,6 +25,7 @@ const DASHBOARD_WIDGET_TAB_MAP: Record<string, DashboardWorkspaceTab> = {
   "upcoming-bills": "planning",
   "cashflow-forecast": "planning",
   retirement: "planning",
+  "nudge-feed": "health",
   anomalies: "health",
   "zakat-summary": "health",
   milestones: "health",

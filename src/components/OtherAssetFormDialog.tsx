@@ -13,7 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FormDialog } from "@/components/FormDialog";
-import { addOtherAsset, editOtherAsset, ASSET_TYPES, isZakatableByDefault } from "@/db/mutations/other-assets";
+import { addOtherAsset, editOtherAsset } from "@/db/mutations/other-assets";
+import { ASSET_TYPES, isZakatableByDefault } from "@/lib/other-asset-types";
 
 export type OtherAsset = {
   id: string;

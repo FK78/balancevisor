@@ -97,6 +97,7 @@ describe("DashboardPageClient", () => {
         hasRetirementProfile={false}
         milestones={[]}
         healthScore={{ overall: 72, grade: "B", subScores: [] }}
+        nudges={[]}
       />,
     );
 

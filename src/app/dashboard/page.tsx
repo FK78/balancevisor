@@ -32,6 +32,9 @@ import { detectMilestones } from "@/lib/milestones";
 import { computeHealthScore } from "@/lib/financial-health-score";
 import { getFunnyMilestones } from "@/lib/funny-milestones";
 import { getActiveSubscriptionsTotals } from "@/db/queries/subscriptions";
+import { getSubscriptionHealthReport } from "@/lib/subscription-health";
+import { generateNudges } from "@/lib/nudges";
+import { getDismissedNudgeKeys } from "@/db/queries/nudge-dismissals";
 import { logger } from "@/lib/logger";
 
 export default async function Home() {
@@ -52,6 +55,8 @@ export default async function Home() {
   const retirementProfileP = on("retirement") ? getRetirementProfile(userId) : Promise.resolve(null);
   const debtsSummaryP = getDebtsSummary(userId);
   const subsTotalsP = on("subscriptions") ? getActiveSubscriptionsTotals(userId) : Promise.resolve(null);
+  const subHealthP = on("subscriptions") ? getSubscriptionHealthReport(userId) : Promise.resolve(null);
+  const dismissedP = getDismissedNudgeKeys(userId);
 
   const [
     lastFiveTransactions,
@@ -105,7 +110,7 @@ export default async function Home() {
 
   // Await insights (depends on budgets + goals) alongside the pre-started independent queries.
   // Forecast receives prefetched trend + currency to avoid duplicate DB queries.
-  const [insights, forecast, anomalies, zakatSettings, latestZakatCalc, retirementProfile, debtsSummary, subsTotals] = await Promise.all([
+  const [insights, forecast, anomalies, zakatSettings, latestZakatCalc, retirementProfile, debtsSummary, subsTotals, subHealth, dismissedNudgeKeys] = await Promise.all([
     getDashboardInsights(userId, budgets, goals),
     on("reports") ? getCashflowForecast(userId, { prefetchedTrend: monthlyTrend, prefetchedCurrency: baseCurrency }) : Promise.resolve(null),
     anomaliesP,
@@ -114,6 +119,8 @@ export default async function Home() {
     retirementProfileP,
     debtsSummaryP,
     subsTotalsP,
+    subHealthP,
+    dismissedP,
   ]);
 
   let zakatData: { zakatDue: number; zakatableAmount: number; aboveNisab: boolean; daysUntil: number | null; hasSettings: boolean } | null = null;
@@ -197,6 +204,22 @@ export default async function Home() {
     }
   }
 
+  // Generate smart nudges from all available data
+  const nudges = subHealth
+    ? generateNudges({
+        subscriptionHealth: subHealth,
+        anomalies,
+        budgets,
+        monthlyTrend,
+        goalsProgress: goals.map((g) => ({
+          name: g.name,
+          pct: g.target_amount > 0 ? (g.saved_amount / g.target_amount) * 100 : 0,
+        })),
+        currency: baseCurrency,
+        dismissedNudgeKeys,
+      })
+    : [];
+
   return (
     <DashboardPageClient
       serverLayout={serverLayout}
@@ -232,6 +255,7 @@ export default async function Home() {
       hasRetirementProfile={!!retirementProfile}
       milestones={milestones}
       healthScore={healthScore}
+      nudges={nudges}
     />
   );
 }

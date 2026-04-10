@@ -23,6 +23,9 @@ import { SubscriptionFormDialog } from "@/components/SubscriptionFormDialog";
 import { DeleteSubscriptionButton } from "@/components/DeleteSubscriptionButton";
 import { ToggleSubscriptionButton } from "@/components/ToggleSubscriptionButton";
 import { SubscriptionAIAdvisor } from "@/components/SubscriptionAIAdvisor";
+import { SubscriptionHealthBanner } from "@/components/SubscriptionHealthBanner";
+import { SwitchingAdvisor } from "@/components/SwitchingAdvisor";
+import { getSubscriptionHealthReport } from "@/lib/subscription-health";
 
 const cycleLabels: Record<string, string> = {
   weekly: "Weekly",
@@ -40,13 +43,14 @@ export default async function SubscriptionsPage() {
   await requireFeature("subscriptions");
   const userId = await getCurrentUserId();
 
-  const [subscriptions, totals, categories, accounts, baseCurrency, serverLayout] = await Promise.all([
+  const [subscriptions, totals, categories, accounts, baseCurrency, serverLayout, healthReport] = await Promise.all([
     getSubscriptions(userId),
     getActiveSubscriptionsTotals(userId),
     getCategoriesByUser(userId),
     getAccountsWithDetails(userId),
     getUserBaseCurrency(userId),
     getPageLayout(userId, "subscriptions"),
+    getSubscriptionHealthReport(userId),
   ]);
 
   const activeCount = subscriptions.filter((s) => s.is_active).length;
@@ -92,6 +96,10 @@ export default async function SubscriptionsPage() {
           </div>
         </CardContent>
       </Card>
+      </DashboardWidget>
+
+      <DashboardWidget id="subscription-health">
+        <SubscriptionHealthBanner report={healthReport} currency={baseCurrency} />
       </DashboardWidget>
 
       <DashboardWidget id="subscription-cards">
@@ -238,6 +246,10 @@ export default async function SubscriptionsPage() {
 
       <DashboardWidget id="ai-advisor">
       {activeCount > 0 && <SubscriptionAIAdvisor />}
+      </DashboardWidget>
+
+      <DashboardWidget id="switching-advisor">
+      {activeCount > 0 && <SwitchingAdvisor />}
       </DashboardWidget>
     </PageWidgetWrapper>
   );

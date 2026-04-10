@@ -29,6 +29,7 @@ import {
   otherAssetsTable,
   retirementProfilesTable,
   dashboardLayoutsTable,
+  nudgeDismissalsTable,
   userKeysTable,
 } from '@/db/schema';
 import { EXPORT_VERSION } from '@/lib/types';
@@ -171,9 +172,10 @@ export async function deleteAccount(): Promise<{ success?: boolean; error?: stri
     await tx.delete(accountsTable).where(eq(accountsTable.user_id, userId));
     await tx.delete(truelayerConnectionsTable).where(eq(truelayerConnectionsTable.user_id, userId));
 
-    // --- Retirement, dashboard layouts, and preferences ---
+    // --- Retirement, dashboard layouts, nudge dismissals, and preferences ---
     await tx.delete(retirementProfilesTable).where(eq(retirementProfilesTable.user_id, userId));
     await tx.delete(dashboardLayoutsTable).where(eq(dashboardLayoutsTable.user_id, userId));
+    await tx.delete(nudgeDismissalsTable).where(eq(nudgeDismissalsTable.user_id, userId));
     await tx.delete(userPreferencesTable).where(eq(userPreferencesTable.user_id, userId));
     await tx.delete(userOnboardingTable).where(eq(userOnboardingTable.user_id, userId));
 

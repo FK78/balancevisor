@@ -27,6 +27,7 @@ export type DashboardPageId =
   | "transactions";
 
 const DASHBOARD_WIDGETS: readonly WidgetDefinition[] = [
+  { id: "nudge-feed", label: "Smart Nudges", defaultVisible: true, colSpan: 2 },
   { id: "insights", label: "Insights", defaultVisible: true, colSpan: 2 },
   { id: "monthly-report", label: "AI Monthly Report", defaultVisible: true, colSpan: 2 },
   { id: "net-worth-history", label: "Net Worth History", defaultVisible: true, colSpan: 2 },
@@ -109,8 +110,10 @@ const REPORTS_WIDGETS: readonly WidgetDefinition[] = [
 
 const SUBSCRIPTIONS_WIDGETS: readonly WidgetDefinition[] = [
   { id: "stats", label: "Stats Summary", defaultVisible: true, colSpan: 2 },
+  { id: "subscription-health", label: "Subscription Health", defaultVisible: true, colSpan: 2 },
   { id: "subscription-cards", label: "Subscription Cards", defaultVisible: true, colSpan: 2 },
   { id: "ai-advisor", label: "AI Savings Advisor", defaultVisible: true, colSpan: 2 },
+  { id: "switching-advisor", label: "Bill Switching Advisor", defaultVisible: true, colSpan: 2 },
 ] as const;
 
 const ZAKAT_WIDGETS: readonly WidgetDefinition[] = [

@@ -8,27 +8,8 @@ import { getCurrentUserId } from '@/lib/auth';
 import { requireOwnership } from '@/lib/ownership';
 import { z } from 'zod';
 import { parseFormData, zRequiredString, zNumber, zString, zCheckbox } from '@/lib/form-schema';
+import { ASSET_TYPES } from '@/lib/other-asset-types';
 
-export const ASSET_TYPES = [
-  'gold',
-  'silver',
-  'property',
-  'pension',
-  'vehicle',
-  'collectible',
-  'business',
-  'cash',
-  'other',
-] as const;
-
-export type AssetType = (typeof ASSET_TYPES)[number];
-
-const ZAKATABLE_BY_DEFAULT: ReadonlySet<string> = new Set([
-  'gold',
-  'silver',
-  'cash',
-  'business',
-]);
 
 const otherAssetSchema = z.object({
   name: zRequiredString(),
@@ -41,10 +22,6 @@ const otherAssetSchema = z.object({
 
 function parseOtherAssetForm(formData: FormData) {
   return parseFormData(otherAssetSchema, formData);
-}
-
-export function isZakatableByDefault(assetType: string): boolean {
-  return ZAKATABLE_BY_DEFAULT.has(assetType);
 }
 
 export async function addOtherAsset(formData: FormData) {

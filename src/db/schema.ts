@@ -430,6 +430,16 @@ export const dashboardLayoutsTable = pgTable("dashboard_layouts", {
   uniqueUserPage: uniqueIndex("dashboard_layouts_user_page_idx").on(table.user_id, table.page),
 }]);
 
+export const nudgeDismissalsTable = pgTable("nudge_dismissals", {
+  id: uuid().primaryKey().defaultRandom(),
+  user_id: uuid("user_id").notNull(),
+  nudge_key: varchar("nudge_key", { length: 100 }).notNull(),
+  dismissed_at: timestamp("dismissed_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [{
+  uniqueUserNudge: uniqueIndex("nudge_dismissals_user_nudge_idx").on(table.user_id, table.nudge_key),
+  userIdx: index("nudge_dismissals_user_id_idx").on(table.user_id),
+}]);
+
 export const otherAssetsTable = pgTable("other_assets", {
   id: uuid().primaryKey().defaultRandom(),
   user_id: uuid("user_id").notNull(),

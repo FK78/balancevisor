@@ -27,6 +27,7 @@ import { DashboardMilestones } from "@/components/dashboard/DashboardMilestones"
 import { DashboardHealthScore } from "@/components/dashboard/DashboardHealthScore";
 import { DashboardExpenseVelocity } from "@/components/dashboard/DashboardExpenseVelocity";
 import { DashboardBillTimeline } from "@/components/dashboard/DashboardBillTimeline";
+import { DashboardNudgeFeed } from "@/components/dashboard/DashboardNudgeFeed";
 import { DashboardOverviewHero } from "@/components/dashboard/DashboardOverviewHero";
 import { DashboardWidget } from "@/components/DashboardWidget";
 import { ReadOnlyWidgetGrid } from "@/components/ReadOnlyWidgetGrid";
@@ -49,6 +50,7 @@ import type { SpendingAnomaly } from "@/lib/spending-anomalies";
 import type { RetirementProjection } from "@/lib/retirement-calculator";
 import type { Milestone } from "@/lib/milestones";
 import type { HealthScoreResult } from "@/lib/financial-health-score";
+import type { Nudge } from "@/lib/nudges/types";
 import { ChartSkeleton } from "@/components/ChartSkeleton";
 import { useWidgetLayoutContext } from "@/components/WidgetLayoutProvider";
 
@@ -111,6 +113,7 @@ interface DashboardPageClientProps {
   readonly hasRetirementProfile: boolean;
   readonly milestones: readonly Milestone[];
   readonly healthScore: HealthScoreResult;
+  readonly nudges: readonly Nudge[];
 }
 
 export function DashboardPageClient(props: DashboardPageClientProps) {
@@ -157,6 +160,7 @@ function DashboardPageContent(props: DashboardPageClientProps) {
     hasRetirementProfile,
     milestones,
     healthScore,
+    nudges,
   } = props;
   const { layout, isCustomised } = useWidgetLayoutContext();
   const [activeTab, setActiveTab] = useState<DashboardWorkspaceTab>("overview");
@@ -200,6 +204,8 @@ function DashboardPageContent(props: DashboardPageClientProps) {
 
   function renderWidget(widgetId: string) {
     switch (widgetId) {
+      case "nudge-feed":
+        return nudges.length > 0 ? <DashboardNudgeFeed nudges={nudges} /> : null;
       case "insights":
         return insights.length > 0 ? <DashboardInsights insights={insights} /> : null;
       case "monthly-report":
