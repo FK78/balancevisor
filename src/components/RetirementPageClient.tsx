@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   Target,
   Pencil,
+  Banknote,
 } from "lucide-react";
 import {
   Dialog,
@@ -47,6 +48,7 @@ import { RetirementAIAdvisor } from "@/components/RetirementAIAdvisor";
 import { formatCompactCurrency } from "@/lib/formatCurrency";
 import type { RetirementProfile } from "@/db/queries/retirement";
 import type { RetirementProjection } from "@/lib/retirement-calculator";
+import type { RetirementSuggestions } from "@/lib/retirement-suggestions";
 
 const chartConfig = {
   projectedFund: { label: "Projected Fund", color: "var(--color-chart-1)" },
@@ -57,18 +59,34 @@ interface RetirementPageClientProps {
   readonly profile: RetirementProfile | null;
   readonly projection: RetirementProjection | null;
   readonly baseCurrency: string;
+  readonly suggestions: RetirementSuggestions;
 }
 
 function RetirementProfileForm({
   profile,
   onClose,
   stickyFooter = false,
+  suggestions,
+  baseCurrency,
+  minimal = false,
 }: {
   profile: RetirementProfile | null;
   onClose?: () => void;
   stickyFooter?: boolean;
+  suggestions?: RetirementSuggestions;
+  baseCurrency?: string;
+  minimal?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
+  const fmt = (n: number) =>
+    baseCurrency ? formatCompactCurrency(n, baseCurrency) : String(n);
+
+  const hasData = suggestions?.hasEnoughData ?? false;
+  const spendingDefault =
+    profile?.desired_annual_spending ??
+    (hasData && suggestions!.suggestedAnnualSpending > 0
+      ? suggestions!.suggestedAnnualSpending
+      : "");
 
   return (
     <form
@@ -81,6 +99,29 @@ function RetirementProfileForm({
       }}
       className="space-y-4"
     >
+      {minimal && hasData && suggestions && (
+        <div className="rounded-lg border bg-muted/50 p-4 space-y-2">
+          <p className="text-sm font-medium">Auto-detected from your data</p>
+          <div className="flex flex-wrap gap-3">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+              <Banknote className="h-3.5 w-3.5" />
+              Salary: ~{fmt(suggestions.estimatedAnnualSalary)}/yr
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-chart-4/10 px-3 py-1 text-xs font-medium text-chart-4">
+              Spending: ~{fmt(suggestions.suggestedAnnualSpending)}/yr
+            </span>
+          </div>
+        </div>
+      )}
+
+      {minimal && !hasData && (
+        <div className="rounded-lg border border-dashed p-4">
+          <p className="text-sm text-muted-foreground">
+            Add some transactions to get personalised suggestions.
+          </p>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="current_age">Current Age</Label>
@@ -93,34 +134,6 @@ function RetirementProfileForm({
             required
             defaultValue={profile?.current_age ?? ""}
             placeholder="30"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="target_retirement_age">Target Retirement Age</Label>
-          <Input
-            id="target_retirement_age"
-            name="target_retirement_age"
-            type="number"
-            min={17}
-            max={120}
-            required
-            defaultValue={profile?.target_retirement_age ?? 65}
-            placeholder="65"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="desired_annual_spending">
-            Desired Annual Spending in Retirement
-          </Label>
-          <Input
-            id="desired_annual_spending"
-            name="desired_annual_spending"
-            type="number"
-            min={0}
-            step="100"
-            required
-            defaultValue={profile?.desired_annual_spending ?? ""}
-            placeholder="30000"
           />
         </div>
         <div className="space-y-2">
@@ -137,47 +150,181 @@ function RetirementProfileForm({
             placeholder="10000"
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="expected_investment_return">
-            Expected Return (%)
-          </Label>
-          <Input
-            id="expected_investment_return"
-            name="expected_investment_return"
-            type="number"
-            min={-10}
-            max={30}
-            step="0.1"
-            defaultValue={profile?.expected_investment_return ?? 5.0}
-            placeholder="5.0"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="inflation_rate">Inflation Rate (%)</Label>
-          <Input
-            id="inflation_rate"
-            name="inflation_rate"
-            type="number"
-            min={0}
-            max={20}
-            step="0.1"
-            defaultValue={profile?.inflation_rate ?? 2.5}
-            placeholder="2.5"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="life_expectancy">Life Expectancy</Label>
-          <Input
-            id="life_expectancy"
-            name="life_expectancy"
-            type="number"
-            min={50}
-            max={120}
-            defaultValue={profile?.life_expectancy ?? 90}
-            placeholder="90"
-          />
-        </div>
+        {minimal && !hasData && (
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="desired_annual_spending">
+              Desired Annual Spending in Retirement
+            </Label>
+            <Input
+              id="desired_annual_spending"
+              name="desired_annual_spending"
+              type="number"
+              min={0}
+              step="100"
+              required
+              defaultValue={profile?.desired_annual_spending ?? ""}
+              placeholder="30000"
+            />
+          </div>
+        )}
       </div>
+
+      {minimal ? (
+        <details className="group">
+          <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground transition-colors list-none [&::-webkit-details-marker]:hidden">
+            <span className="group-open:hidden">+</span>
+            <span className="hidden group-open:inline">&minus;</span>
+            {" "}Adjust assumptions
+          </summary>
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {hasData && (
+              <div className="space-y-2">
+                <Label htmlFor="desired_annual_spending">
+                  Desired Annual Spending in Retirement
+                </Label>
+                <Input
+                  id="desired_annual_spending"
+                  name="desired_annual_spending"
+                  type="number"
+                  min={0}
+                  step="100"
+                  required
+                  defaultValue={spendingDefault}
+                  placeholder="30000"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Based on your current spending
+                </p>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="target_retirement_age">Target Retirement Age</Label>
+              <Input
+                id="target_retirement_age"
+                name="target_retirement_age"
+                type="number"
+                min={17}
+                max={120}
+                required
+                defaultValue={profile?.target_retirement_age ?? 65}
+                placeholder="65"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="expected_investment_return">
+                Expected Return (%)
+              </Label>
+              <Input
+                id="expected_investment_return"
+                name="expected_investment_return"
+                type="number"
+                min={-10}
+                max={30}
+                step="0.1"
+                defaultValue={profile?.expected_investment_return ?? 5.0}
+                placeholder="5.0"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="inflation_rate">Inflation Rate (%)</Label>
+              <Input
+                id="inflation_rate"
+                name="inflation_rate"
+                type="number"
+                min={0}
+                max={20}
+                step="0.1"
+                defaultValue={profile?.inflation_rate ?? 2.5}
+                placeholder="2.5"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="life_expectancy">Life Expectancy</Label>
+              <Input
+                id="life_expectancy"
+                name="life_expectancy"
+                type="number"
+                min={50}
+                max={120}
+                defaultValue={profile?.life_expectancy ?? 90}
+                placeholder="90"
+              />
+            </div>
+          </div>
+        </details>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="target_retirement_age">Target Retirement Age</Label>
+            <Input
+              id="target_retirement_age"
+              name="target_retirement_age"
+              type="number"
+              min={17}
+              max={120}
+              required
+              defaultValue={profile?.target_retirement_age ?? 65}
+              placeholder="65"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="desired_annual_spending">
+              Desired Annual Spending in Retirement
+            </Label>
+            <Input
+              id="desired_annual_spending"
+              name="desired_annual_spending"
+              type="number"
+              min={0}
+              step="100"
+              required
+              defaultValue={profile?.desired_annual_spending ?? ""}
+              placeholder="30000"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="expected_investment_return">
+              Expected Return (%)
+            </Label>
+            <Input
+              id="expected_investment_return"
+              name="expected_investment_return"
+              type="number"
+              min={-10}
+              max={30}
+              step="0.1"
+              defaultValue={profile?.expected_investment_return ?? 5.0}
+              placeholder="5.0"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="inflation_rate">Inflation Rate (%)</Label>
+            <Input
+              id="inflation_rate"
+              name="inflation_rate"
+              type="number"
+              min={0}
+              max={20}
+              step="0.1"
+              defaultValue={profile?.inflation_rate ?? 2.5}
+              placeholder="2.5"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="life_expectancy">Life Expectancy</Label>
+            <Input
+              id="life_expectancy"
+              name="life_expectancy"
+              type="number"
+              min={50}
+              max={120}
+              defaultValue={profile?.life_expectancy ?? 90}
+              placeholder="90"
+            />
+          </div>
+        </div>
+      )}
+
       <DialogFooter mobileSticky={stickyFooter} className="pt-2">
         {onClose && (
           <Button type="button" variant="outline" onClick={() => onClose()}>
@@ -185,7 +332,7 @@ function RetirementProfileForm({
           </Button>
         )}
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving..." : profile ? "Update Profile" : "Create Profile"}
+          {isPending ? "Saving..." : profile ? "Update Profile" : "Get Started"}
         </Button>
       </DialogFooter>
     </form>
@@ -414,9 +561,11 @@ function RetirementScenarios({
 function FinancialSnapshot({
   projection,
   baseCurrency,
+  estimatedAnnualSalary,
 }: {
   projection: RetirementProjection;
   baseCurrency: string;
+  estimatedAnnualSalary: number;
 }) {
   const fmt = (n: number) => formatCompactCurrency(n, baseCurrency);
 
@@ -426,7 +575,13 @@ function FinancialSnapshot({
         <CardTitle>Your Financial Snapshot</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+          {estimatedAnnualSalary > 0 && (
+            <div>
+              <p className="text-xs text-muted-foreground">Est. Annual Salary</p>
+              <p className="text-lg font-semibold">{fmt(estimatedAnnualSalary)}</p>
+            </div>
+          )}
           <div>
             <p className="text-xs text-muted-foreground">Net Worth</p>
             <p className="text-lg font-semibold">{fmt(projection.currentNetWorth)}</p>
@@ -449,7 +604,13 @@ function FinancialSnapshot({
   );
 }
 
-function SetupView() {
+function SetupView({
+  suggestions,
+  baseCurrency,
+}: {
+  suggestions: RetirementSuggestions;
+  baseCurrency: string;
+}) {
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-6 md:px-10 md:py-10">
       <div>
@@ -457,20 +618,25 @@ function SetupView() {
           Retirement Planner
         </h1>
         <p className="text-muted-foreground mt-0.5 text-sm">
-          Set up your retirement profile to get started
+          We&apos;ll use your financial data to estimate when you can retire
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Your Retirement Profile</CardTitle>
+          <CardTitle>Quick Setup</CardTitle>
           <CardDescription>
-            Tell us about your retirement goals so we can estimate when you can retire
-            and what changes would help.
+            Just two questions &mdash; we&apos;ll fill in the rest from your actual
+            spending and income.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <RetirementProfileForm profile={null} />
+          <RetirementProfileForm
+            profile={null}
+            suggestions={suggestions}
+            baseCurrency={baseCurrency}
+            minimal
+          />
         </CardContent>
       </Card>
     </div>
@@ -481,11 +647,12 @@ export function RetirementPageClient({
   profile,
   projection,
   baseCurrency,
+  suggestions,
 }: RetirementPageClientProps) {
   const [editOpen, setEditOpen] = useState(false);
 
   if (!profile || !projection) {
-    return <SetupView />;
+    return <SetupView suggestions={suggestions} baseCurrency={baseCurrency} />;
   }
 
   return (
@@ -545,7 +712,11 @@ export function RetirementPageClient({
         </CardContent>
       </Card>
 
-      <FinancialSnapshot projection={projection} baseCurrency={baseCurrency} />
+      <FinancialSnapshot
+        projection={projection}
+        baseCurrency={baseCurrency}
+        estimatedAnnualSalary={suggestions.estimatedAnnualSalary}
+      />
 
       <RetirementProjectionChart projection={projection} baseCurrency={baseCurrency} />
 

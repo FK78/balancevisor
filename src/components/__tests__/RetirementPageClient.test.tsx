@@ -40,11 +40,19 @@ describe("RetirementPageClient", () => {
         profile={null}
         projection={null}
         baseCurrency="USD"
+        suggestions={{
+          estimatedAnnualSalary: 0,
+          suggestedAnnualSpending: 0,
+          suggestedMonthlySavings: 0,
+          avgMonthlyIncome: 0,
+          avgMonthlyExpenses: 0,
+          hasEnoughData: false,
+        }}
       />,
     );
 
     expect(
-      screen.getByRole("button", { name: /create profile/i }).closest("[data-slot='dialog-footer']"),
+      screen.getByRole("button", { name: /get started/i }).closest("[data-slot='dialog-footer']"),
     ).not.toHaveAttribute("data-mobile-sticky");
   });
 });

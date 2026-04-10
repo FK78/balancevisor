@@ -8,26 +8,34 @@ import { getDebtsSummary } from "@/db/queries/debts";
 import { calculateRetirementProjection } from "@/lib/retirement-calculator";
 import { calculateNetWorth } from "@/lib/net-worth";
 import { getCompletedMonths, buildRetirementInputs } from "@/lib/retirement-inputs";
+import { computeRetirementSuggestions } from "@/lib/retirement-suggestions";
 import { RetirementPageClient } from "@/components/RetirementPageClient";
 
 export default async function RetirementPage() {
   const userId = await getCurrentUserId();
 
-  const [profile, baseCurrency] = await Promise.all([
-    getRetirementProfile(userId),
-    getUserBaseCurrency(userId),
-  ]);
+  const [profile, baseCurrency, accounts, investmentValue, trend, debtsSummary] =
+    await Promise.all([
+      getRetirementProfile(userId),
+      getUserBaseCurrency(userId),
+      getAccountsWithDetails(userId),
+      getInvestmentValue(userId),
+      getMonthlyIncomeExpenseTrend(userId, 6),
+      getDebtsSummary(userId),
+    ]);
+
+  const suggestions = computeRetirementSuggestions(trend);
 
   if (!profile) {
-    return <RetirementPageClient profile={null} projection={null} baseCurrency={baseCurrency} />;
+    return (
+      <RetirementPageClient
+        profile={null}
+        projection={null}
+        baseCurrency={baseCurrency}
+        suggestions={suggestions}
+      />
+    );
   }
-
-  const [accounts, investmentValue, trend, debtsSummary] = await Promise.all([
-    getAccountsWithDetails(userId),
-    getInvestmentValue(userId),
-    getMonthlyIncomeExpenseTrend(userId, 6),
-    getDebtsSummary(userId),
-  ]);
 
   const { netWorth } = calculateNetWorth(accounts, investmentValue);
   const completedMonths = getCompletedMonths(trend);
@@ -45,6 +53,7 @@ export default async function RetirementPage() {
       profile={profile}
       projection={projection}
       baseCurrency={baseCurrency}
+      suggestions={suggestions}
     />
   );
 }
