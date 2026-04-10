@@ -442,7 +442,7 @@ export function SettingsClient({
                 Delete Account
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent mobileLayout="full-height" className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Delete your account?</DialogTitle>
                 <DialogDescription>
@@ -462,7 +462,7 @@ export function SettingsClient({
                   placeholder="delete my account"
                 />
               </div>
-              <DialogFooter>
+              <DialogFooter mobileSticky>
                 <Button variant="outline" onClick={() => setDeleteOpen(false)}>
                   Cancel
                 </Button>

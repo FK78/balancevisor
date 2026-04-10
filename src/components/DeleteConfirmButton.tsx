@@ -59,7 +59,12 @@ export function DeleteConfirmButton({
   return (
     <AlertDialog open={confirming} onOpenChange={setConfirming}>
       <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="icon" className={triggerClassName}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={triggerClassName}
+          aria-label={entityName ? `Delete ${entityName}` : "Delete item"}
+        >
           <Trash2 className={triggerIconClassName} />
         </Button>
       </AlertDialogTrigger>

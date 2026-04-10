@@ -27,8 +27,7 @@ describe("DeleteConfirmButton", () => {
 
   it("renders the trigger button", () => {
     render(<DeleteConfirmButton {...defaultProps} />);
-    // The trigger button should be present (trash icon button)
-    const btn = screen.getByRole("button");
+    const btn = screen.getByRole("button", { name: /delete item/i });
     expect(btn).toBeInTheDocument();
   });
 
@@ -36,7 +35,7 @@ describe("DeleteConfirmButton", () => {
     const user = userEvent.setup();
     render(<DeleteConfirmButton {...defaultProps} />);
 
-    await user.click(screen.getByRole("button"));
+    await user.click(screen.getByRole("button", { name: /delete item/i }));
 
     expect(screen.getByText("Delete item?")).toBeInTheDocument();
     expect(screen.getByText("This action cannot be undone.")).toBeInTheDocument();
@@ -44,12 +43,24 @@ describe("DeleteConfirmButton", () => {
     expect(screen.getByRole("button", { name: /delete/i })).toBeInTheDocument();
   });
 
+  it("uses the mobile full-height alert shell", async () => {
+    const user = userEvent.setup();
+    render(<DeleteConfirmButton {...defaultProps} />);
+
+    await user.click(screen.getByRole("button", { name: /delete item/i }));
+
+    expect(screen.getByRole("alertdialog")).toHaveAttribute("data-mobile-layout", "full-height");
+    expect(
+      screen.getByRole("button", { name: /cancel/i }).closest("[data-slot='alert-dialog-footer']"),
+    ).toHaveAttribute("data-mobile-sticky", "true");
+  });
+
   it("calls onDelete and shows success toast when Delete is clicked", async () => {
     const user = userEvent.setup();
     render(<DeleteConfirmButton {...defaultProps} />);
 
     // Open dialog
-    await user.click(screen.getByRole("button"));
+    await user.click(screen.getByRole("button", { name: /delete item/i }));
 
     // Click delete
     await user.click(screen.getByRole("button", { name: /delete/i }));
@@ -66,7 +77,7 @@ describe("DeleteConfirmButton", () => {
 
     render(<DeleteConfirmButton {...failingProps} />);
 
-    await user.click(screen.getByRole("button"));
+    await user.click(screen.getByRole("button", { name: /delete item/i }));
     await user.click(screen.getByRole("button", { name: /delete/i }));
 
     // Wait for the error toast
@@ -78,7 +89,7 @@ describe("DeleteConfirmButton", () => {
     render(<DeleteConfirmButton {...defaultProps} />);
 
     // Open dialog
-    await user.click(screen.getByRole("button"));
+    await user.click(screen.getByRole("button", { name: /delete item/i }));
     expect(screen.getByText("Delete item?")).toBeInTheDocument();
 
     // Click cancel

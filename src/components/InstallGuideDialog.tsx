@@ -51,7 +51,7 @@ interface Props {
 export function InstallGuideDialog({ open, onOpenChange, method }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent mobileLayout="full-height" className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Install Wealth</DialogTitle>
           <DialogDescription>
@@ -67,7 +67,7 @@ export function InstallGuideDialog({ open, onOpenChange, method }: Props) {
           {method === "unsupported" && <UnsupportedGuide />}
         </div>
 
-        <DialogFooter>
+        <DialogFooter mobileSticky>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Done
           </Button>

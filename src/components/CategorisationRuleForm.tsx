@@ -84,7 +84,12 @@ export function CategorisationRuleFormDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {isEdit ? (
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+            aria-label="Edit categorisation rule"
+          >
             <Pencil className="h-3.5 w-3.5" />
           </Button>
         ) : (
@@ -94,7 +99,7 @@ export function CategorisationRuleFormDialog({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent mobileLayout="full-height" className="sm:max-w-md">
         {view === "success" ? (
           <>
             <DialogHeader className="sr-only">
@@ -113,7 +118,7 @@ export function CategorisationRuleFormDialog({
                 </p>
               </div>
             </div>
-            <DialogFooter className="flex gap-2 sm:justify-center">
+            <DialogFooter mobileSticky className="flex gap-2 sm:justify-center">
               {!isEdit && (
                 <Button variant="outline" onClick={handleAddAnother}>
                   <Plus className="mr-1 h-4 w-4" />
@@ -189,7 +194,7 @@ export function CategorisationRuleFormDialog({
                 </p>
               </div>
 
-              <DialogFooter>
+              <DialogFooter mobileSticky>
                 <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
                   Cancel
                 </Button>

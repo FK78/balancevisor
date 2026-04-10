@@ -85,6 +85,7 @@ function CancelRecurringButton({
           variant="ghost"
           size="icon"
           className="h-8 w-8 text-muted-foreground hover:text-destructive"
+          aria-label="Stop recurring transaction"
         >
           <XCircle className="h-4 w-4" />
         </Button>
@@ -138,11 +139,16 @@ function EditRecurringDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          aria-label="Edit recurring schedule"
+        >
           <Pencil className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent mobileLayout="full-height" className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Recurring Schedule</DialogTitle>
           <DialogDescription>
@@ -179,7 +185,7 @@ function EditRecurringDialog({
               required
             />
           </div>
-          <DialogFooter>
+          <DialogFooter mobileSticky>
             <Button
               type="button"
               variant="outline"

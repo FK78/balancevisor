@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { checkMfaStatus, disableMfa, regenerateBackupCodes, getBackupCodes } from '@/db/mutations/mfa';
 import { MFASetupWizard } from '@/components/MFASetupWizard';
@@ -316,7 +316,7 @@ export function MFASettings() {
 
       {/* Disable MFA Dialog */}
       <Dialog open={disableDialogOpen} onOpenChange={setDisableDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent mobileLayout="full-height" className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Disable Two-Factor Authentication</DialogTitle>
             <DialogDescription>
@@ -352,7 +352,7 @@ export function MFASettings() {
               </p>
             </div>
             
-            <div className="flex flex-col gap-3">
+            <DialogFooter mobileSticky className="flex-col gap-3 sm:flex-col sm:justify-stretch">
               <Button 
                 onClick={handleDisableMfa} 
                 disabled={isDisabling || !password.trim()}
@@ -375,14 +375,14 @@ export function MFASettings() {
               >
                 Cancel
               </Button>
-            </div>
+            </DialogFooter>
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Backup Codes Dialog */}
       <Dialog open={backupCodesDialogOpen} onOpenChange={setBackupCodesDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent mobileLayout="full-height" className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Backup Codes</DialogTitle>
             <DialogDescription>
@@ -449,7 +449,7 @@ export function MFASettings() {
               </div>
             )}
             
-            <div className="flex flex-col gap-3">
+            <DialogFooter mobileSticky className="flex-col gap-3 sm:flex-col sm:justify-stretch">
               <Button 
                 onClick={handleRegenerateBackupCodes}
                 disabled={isRegeneratingCodes}
@@ -472,7 +472,7 @@ export function MFASettings() {
               >
                 Close
               </Button>
-            </div>
+            </DialogFooter>
           </div>
         </DialogContent>
       </Dialog>

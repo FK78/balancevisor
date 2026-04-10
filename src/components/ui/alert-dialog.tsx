@@ -57,8 +57,12 @@ function AlertDialogContent({
       <AlertDialogPrimitive.Content
         data-slot="alert-dialog-content"
         data-size={size}
+        data-mobile-layout="full-height"
         className={cn(
-          "bg-card data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 group/alert-dialog-content fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-xl border-0 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] duration-200 data-[size=sm]:max-w-xs data-[size=default]:sm:max-w-lg",
+          "bg-card data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 group/alert-dialog-content fixed inset-x-0 top-0 bottom-0 z-50 grid h-[100dvh] max-h-[100dvh] w-full gap-4 overflow-y-auto rounded-none p-5 shadow-none duration-200",
+          "sm:top-[50%] sm:left-[50%] sm:bottom-auto sm:h-auto sm:max-h-none sm:max-w-[calc(100%-2rem)] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-xl sm:border-0 sm:p-6 sm:shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:sm:shadow-[0_8px_32px_rgba(0,0,0,0.4)]",
+          "sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95",
+          "data-[size=sm]:sm:max-w-xs data-[size=default]:sm:max-w-lg",
           className
         )}
         {...props}
@@ -90,8 +94,9 @@ function AlertDialogFooter({
   return (
     <div
       data-slot="alert-dialog-footer"
+      data-mobile-sticky="true"
       className={cn(
-        "flex flex-col-reverse gap-2 group-data-[size=sm]/alert-dialog-content:grid group-data-[size=sm]/alert-dialog-content:grid-cols-2 sm:flex-row sm:justify-end",
+        "sticky bottom-0 z-10 -mx-5 mt-4 border-t bg-card px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex flex-col-reverse gap-2 group-data-[size=sm]/alert-dialog-content:grid group-data-[size=sm]/alert-dialog-content:grid-cols-2 sm:static sm:mx-0 sm:mt-0 sm:border-0 sm:bg-transparent sm:px-0 sm:pt-0 sm:pb-0 sm:flex-row sm:justify-end",
         className
       )}
       {...props}

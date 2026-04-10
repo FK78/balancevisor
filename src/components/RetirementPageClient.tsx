@@ -22,6 +22,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -61,9 +62,11 @@ interface RetirementPageClientProps {
 function RetirementProfileForm({
   profile,
   onClose,
+  stickyFooter = false,
 }: {
   profile: RetirementProfile | null;
   onClose?: () => void;
+  stickyFooter?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
 
@@ -175,11 +178,16 @@ function RetirementProfileForm({
           />
         </div>
       </div>
-      <div className="flex justify-end gap-2 pt-2">
+      <DialogFooter mobileSticky={stickyFooter} className="pt-2">
+        {onClose && (
+          <Button type="button" variant="outline" onClick={() => onClose()}>
+            Cancel
+          </Button>
+        )}
         <Button type="submit" disabled={isPending}>
           {isPending ? "Saving..." : profile ? "Update Profile" : "Create Profile"}
         </Button>
-      </div>
+      </DialogFooter>
     </form>
   );
 }
@@ -498,13 +506,14 @@ export function RetirementPageClient({
               Edit Profile
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg">
+          <DialogContent mobileLayout="full-height" className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Edit Retirement Profile</DialogTitle>
             </DialogHeader>
             <RetirementProfileForm
               profile={profile}
               onClose={() => setEditOpen(false)}
+              stickyFooter
             />
           </DialogContent>
         </Dialog>

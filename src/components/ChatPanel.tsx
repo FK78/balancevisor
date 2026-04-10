@@ -80,7 +80,8 @@ export function ChatPanel() {
         </Button>
       </DialogTrigger>
       <DialogContent
-        className="flex max-h-[85vh] flex-col gap-0 p-0 sm:max-w-lg"
+        mobileLayout="full-height"
+        className="flex h-full max-h-full flex-col gap-0 p-0 sm:max-w-lg"
         showCloseButton={false}
       >
         {/* Header */}
@@ -122,7 +123,7 @@ export function ChatPanel() {
         <div
           ref={scrollRef}
           className="flex-1 overflow-y-auto px-4 py-4 space-y-4"
-          style={{ minHeight: "300px", maxHeight: "60vh" }}
+          style={{ minHeight: "300px" }}
         >
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-4 py-8">
