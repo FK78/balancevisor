@@ -5,24 +5,27 @@
 -- Should return 0 rows for every table when no user ID is set,
 -- and only the matching user's rows when a user ID is set.
 --
--- Usage:
+-- Works in: Supabase SQL Editor, psql, any Postgres client.
+--
+-- Usage (psql):
 --   psql $DATABASE_URL -f src/db/migrations/verify-rls.sql
 -- ============================================================================
-
--- Reset session
-SELECT set_config('app.current_user_id', '', true);
-
--- ---------------------------------------------------------------------------
--- Test 1: Without user ID set, all RLS-protected tables should return 0 rows
--- ---------------------------------------------------------------------------
-\echo '=== Test 1: No user ID set — all tables should return 0 rows ==='
 
 DO $$
 DECLARE
   tbl TEXT;
   cnt BIGINT;
   all_pass BOOLEAN := true;
+  templates_cnt BIGINT;
 BEGIN
+  -- Reset session variable
+  PERFORM set_config('app.current_user_id', '', true);
+
+  -- -----------------------------------------------------------------------
+  -- Test 1: Without user ID set, all RLS-protected tables should return 0
+  -- -----------------------------------------------------------------------
+  RAISE NOTICE '=== Test 1: No user ID set — all tables should return 0 rows ===';
+
   FOR tbl IN
     SELECT unnest(ARRAY[
       'accounts', 'transactions', 'categories', 'budgets', 'goals',
@@ -46,25 +49,19 @@ BEGIN
   END LOOP;
 
   IF all_pass THEN
-    RAISE NOTICE '✅ All tables correctly return 0 rows without user ID';
+    RAISE NOTICE '--- All tables correctly return 0 rows without user ID ---';
   ELSE
-    RAISE WARNING '❌ Some tables leaked rows without user ID set';
+    RAISE WARNING '--- Some tables leaked rows without user ID set ---';
   END IF;
+
+  -- -----------------------------------------------------------------------
+  -- Test 2: default_category_templates should be readable (no RLS)
+  -- -----------------------------------------------------------------------
+  RAISE NOTICE '=== Test 2: default_category_templates should be readable ===';
+
+  SELECT count(*) FROM default_category_templates INTO templates_cnt;
+  RAISE NOTICE 'default_category_templates: % rows (expected: > 0 if seeded)', templates_cnt;
+
+  RAISE NOTICE '=== RLS verification complete ===';
 END
 $$;
-
--- ---------------------------------------------------------------------------
--- Test 2: default_category_templates should be readable (no RLS)
--- ---------------------------------------------------------------------------
-\echo '=== Test 2: default_category_templates should be readable ==='
-
-DO $$
-DECLARE
-  cnt BIGINT;
-BEGIN
-  SELECT count(*) FROM default_category_templates INTO cnt;
-  RAISE NOTICE 'default_category_templates: % rows (expected: > 0 if seeded)', cnt;
-END
-$$;
-
-\echo '=== RLS verification complete ==='
