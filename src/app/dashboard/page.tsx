@@ -28,6 +28,7 @@ import { getDebtsSummary } from "@/db/queries/debts";
 import { calculateNetWorth } from "@/lib/net-worth";
 import { getCompletedMonths, buildRetirementInputs } from "@/lib/retirement-inputs";
 import { DashboardPageClient } from "@/components/dashboard/DashboardPageClient";
+import { detectMilestones } from "@/lib/milestones";
 
 export default async function Home() {
   const userId = await getCurrentUserId();
@@ -131,6 +132,16 @@ export default async function Home() {
     };
   }
 
+  // Detect shareable milestones from data already fetched
+  const milestones = detectMilestones({
+    netWorthHistory,
+    monthlyTrend,
+    goals: goals.map((g) => ({ id: g.id, name: g.name, target_amount: g.target_amount, saved_amount: g.saved_amount })),
+    debts: debtsSummary.debts.map((d) => ({ id: d.id, name: d.name, original_amount: d.original_amount, remaining_amount: d.remaining_amount })),
+    budgets: budgets.map((b) => ({ id: b.id, spent: b.budgetSpent, limit: b.budgetAmount })),
+    currency: baseCurrency,
+  });
+
   let retirementProjection = null;
   if (on("retirement") && retirementProfile && monthlyTrend.length > 0) {
     const completedMonths = getCompletedMonths(monthlyTrend);
@@ -179,6 +190,7 @@ export default async function Home() {
       lastFiveTransactions={lastFiveTransactions}
       retirementProjection={retirementProjection}
       hasRetirementProfile={!!retirementProfile}
+      milestones={milestones}
     />
   );
 }

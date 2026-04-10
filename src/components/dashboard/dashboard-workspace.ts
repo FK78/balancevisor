@@ -27,6 +27,7 @@ const DASHBOARD_WIDGET_TAB_MAP: Record<string, DashboardWorkspaceTab> = {
   retirement: "planning",
   anomalies: "health",
   "zakat-summary": "health",
+  milestones: "health",
 };
 
 export function getDashboardWorkspaceTab(widgetId: string): DashboardWorkspaceTab {

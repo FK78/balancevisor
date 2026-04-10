@@ -22,6 +22,7 @@ import { DashboardUpcomingBills } from "@/components/dashboard/DashboardUpcoming
 import { DashboardZakatSummary } from "@/components/dashboard/DashboardZakatSummary";
 import { SpendCategoryRow } from "@/components/SpendCategoryRow";
 import { DashboardRetirement } from "@/components/dashboard/DashboardRetirement";
+import { DashboardMilestones } from "@/components/dashboard/DashboardMilestones";
 import { WidgetLayoutProvider } from "@/components/WidgetLayoutProvider";
 import { WidgetGrid } from "@/components/WidgetGrid";
 import { DashboardWidget } from "@/components/DashboardWidget";
@@ -41,6 +42,7 @@ import type { MonthlyCashflowPoint } from "@/db/queries/transactions";
 import type { CashflowForecast } from "@/lib/cashflow-forecast";
 import type { SpendingAnomaly } from "@/lib/spending-anomalies";
 import type { RetirementProjection } from "@/lib/retirement-calculator";
+import type { Milestone } from "@/lib/milestones";
 import dynamic from "next/dynamic";
 import { ChartSkeleton } from "@/components/ChartSkeleton";
 import { useWidgetLayoutContext } from "@/components/WidgetLayoutProvider";
@@ -90,6 +92,7 @@ interface DashboardPageClientProps {
   /* eslint-enable @typescript-eslint/no-explicit-any */
   readonly retirementProjection: RetirementProjection | null;
   readonly hasRetirementProfile: boolean;
+  readonly milestones: readonly Milestone[];
 }
 
 export function DashboardPageClient(props: DashboardPageClientProps) {
@@ -134,6 +137,7 @@ function DashboardPageContent(props: DashboardPageClientProps) {
     lastFiveTransactions,
     retirementProjection,
     hasRetirementProfile,
+    milestones,
   } = props;
   const { layout, isEditing } = useWidgetLayoutContext();
   const [activeTab, setActiveTab] = useState<DashboardWorkspaceTab>("overview");
@@ -220,6 +224,10 @@ function DashboardPageContent(props: DashboardPageClientProps) {
             hasSettings={zakatData.hasSettings}
             baseCurrency={baseCurrency}
           />
+        ) : null;
+      case "milestones":
+        return milestones.length > 0 ? (
+          <DashboardMilestones milestones={milestones} displayName={displayName} />
         ) : null;
       default:
         return null;
