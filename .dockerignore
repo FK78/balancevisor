@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+e2e
+test-data
+*.md
+.env*
+drizzle
+vitest.config.ts
+vitest.setup.ts
+playwright.config.ts
+.claude
