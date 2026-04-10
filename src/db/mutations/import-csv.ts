@@ -19,6 +19,7 @@ type CsvColumnMapping = {
   description: number;
   amount: number;
   type: number | null;       // column index for type, or null if using sign of amount
+  dateFormat?: 'DMY' | 'MDY'; // disambiguates DD/MM/YYYY vs MM/DD/YYYY (default: DMY)
 };
 
 type ImportRow = {
@@ -66,27 +67,28 @@ function parseCSV(text: string): string[][] {
   return lines.map(parseCSVLine);
 }
 
-function normaliseDate(raw: string): string | null {
+function normaliseDate(raw: string, dateFormat: 'DMY' | 'MDY' = 'DMY'): string | null {
   // Try ISO format first: YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
 
-  // DD/MM/YYYY or DD-MM-YYYY
-  const dmyMatch = raw.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})$/);
-  if (dmyMatch) {
-    const [, d, m, y] = dmyMatch;
-    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-  }
+  // Match patterns like 01/02/2024, 1-2-2024, 01.02.2024
+  const parts = raw.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})$/);
+  if (parts) {
+    const [, a, b, y] = parts;
+    const first = parseInt(a, 10);
+    const second = parseInt(b, 10);
 
-  // MM/DD/YYYY
-  const mdyMatch = raw.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})$/);
-  if (mdyMatch) {
-    const [, m, d, y] = mdyMatch;
-    const month = parseInt(m, 10);
-    const day = parseInt(d, 10);
-    if (month > 12 && day <= 12) {
-      // Likely DD/MM/YYYY already handled above
-      return `${y}-${d.padStart(2, '0')}-${m.padStart(2, '0')}`;
+    if (dateFormat === 'MDY') {
+      // Treat as MM/DD/YYYY — but if month > 12, swap to DMY as fallback
+      const month = first > 12 ? second : first;
+      const day = first > 12 ? first : second;
+      return `${y}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     }
+
+    // Default: DMY — treat as DD/MM/YYYY, but if day > 12 and month <= 12, swap as fallback
+    const day = first > 31 ? second : first;
+    const month = first > 31 ? first : second;
+    return `${y}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   }
 
   // Try Date.parse as fallback
@@ -138,7 +140,7 @@ export async function importTransactionsFromCSV(
       continue;
     }
 
-    const date = normaliseDate(rawDate);
+    const date = normaliseDate(rawDate, mapping.dateFormat);
     if (!date) {
       errors.push(`Row ${rowNum}: Could not parse date "${rawDate}".`);
       continue;

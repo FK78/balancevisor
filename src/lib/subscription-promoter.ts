@@ -1,5 +1,5 @@
 import { db } from "@/index";
-import { transactionsTable, subscriptionsTable, categoriesTable } from "@/db/schema";
+import { transactionsTable, subscriptionsTable, categoriesTable, accountsTable } from "@/db/schema";
 import { eq, and, isNull, inArray } from "drizzle-orm";
 import { decryptForUser, getUserKey } from "@/lib/encryption";
 import { normalise, fuzzyMatch } from "@/lib/matching-utils";
@@ -32,6 +32,7 @@ type RecurringTxn = {
   account_id: string | null;
   category_id: string | null;
   recurring_pattern: string | null;
+  currency: string;
 };
 
 const PATTERN_TO_BILLING_CYCLE: Record<string, "weekly" | "monthly" | "quarterly" | "yearly"> = {
@@ -82,8 +83,10 @@ export async function promoteRecurringToSubscriptions(
         account_id: transactionsTable.account_id,
         category_id: transactionsTable.category_id,
         recurring_pattern: transactionsTable.recurring_pattern,
+        currency: accountsTable.currency,
       })
       .from(transactionsTable)
+      .innerJoin(accountsTable, eq(transactionsTable.account_id, accountsTable.id))
       .where(and(...conditions));
 
     const expenses = rows
@@ -183,7 +186,7 @@ export async function promoteRecurringToSubscriptions(
           user_id: userId,
           name: latest.description,
           amount: Math.round(median * 100) / 100,
-          currency: "GBP",
+          currency: latest.currency,
           billing_cycle: billingCycle,
           next_billing_date: nextDate.toISOString().split("T")[0],
           category_id: latest.category_id,

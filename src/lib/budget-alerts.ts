@@ -9,6 +9,7 @@ import {
 import { eq, sum, and, gte, lt, inArray } from 'drizzle-orm';
 import { sendBudgetAlertEmail } from '@/lib/email';
 import { createClient } from '@/lib/supabase/server';
+import { getUserBaseCurrency } from '@/db/queries/onboarding';
 
 /**
  * Atomically create a budget notification only if one with the same
@@ -147,13 +148,18 @@ export async function checkBudgetAlerts(userId: string): Promise<TriggeredAlert[
   const budgets = await getBudgetsWithSpendAndPrefs(userId);
   const triggered: TriggeredAlert[] = [];
 
-  // Pre-fetch user email for potential email alerts
+  // Pre-fetch user email and currency for potential email alerts
   let userEmail: string | undefined;
+  let baseCurrency = 'GBP';
   const needsEmail = budgets.some(b => b.emailAlerts);
   if (needsEmail) {
-    const supabase = await createClient();
+    const [supabase, currency] = await Promise.all([
+      createClient(),
+      getUserBaseCurrency(userId),
+    ]);
     const { data: { user } } = await supabase.auth.getUser();
     userEmail = user?.email ?? undefined;
+    baseCurrency = currency;
   }
 
   const activeBudgetIds = budgets
@@ -189,7 +195,7 @@ export async function checkBudgetAlerts(userId: string): Promise<TriggeredAlert[
               percent,
               b.budgetAmount,
               b.spent,
-              'USD',
+              baseCurrency,
             );
           }
         }
@@ -216,7 +222,7 @@ export async function checkBudgetAlerts(userId: string): Promise<TriggeredAlert[
               percent,
               b.budgetAmount,
               b.spent,
-              'USD',
+              baseCurrency,
             );
           }
         }
