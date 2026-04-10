@@ -7,7 +7,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { DecisionEmptyState } from "@/components/dense-data/DecisionEmptyState";
 import { formatCurrency } from "@/lib/formatCurrency";
+import {
+  getBudgetDecisionSummary,
+  getBudgetRiskScore,
+  getBudgetUsagePercent,
+} from "@/components/dashboard/dashboard-decision";
 
 type Budget = {
   id: string;
@@ -27,47 +33,50 @@ export function DashboardBudgetProgress({
   budgetsAtRisk,
   currency,
 }: DashboardBudgetProgressProps) {
+  const summary = getBudgetDecisionSummary({ budgetsAtRisk, currency });
+  const prioritisedBudgets = [...budgets].sort((left, right) => {
+    const riskDifference = getBudgetRiskScore(right) - getBudgetRiskScore(left);
+    if (riskDifference !== 0) return riskDifference;
+    return left.budgetCategory.localeCompare(right.budgetCategory);
+  });
+
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
             <CardTitle>Budget Progress</CardTitle>
-            <CardDescription>
-              How your budgets are tracking this period.
-            </CardDescription>
+            <CardDescription>{summary.title}</CardDescription>
           </div>
           <Button asChild size="sm" variant="ghost">
-            <Link href="/dashboard/budgets">View all</Link>
+            <Link href="/dashboard/budgets">{summary.actionLabel}</Link>
           </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {budgets.length === 0 ? (
-          <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-6 text-center">
-            <p className="text-sm font-medium text-foreground">
-              No budgets set
-            </p>
-            <p className="text-xs">
-              Create a budget to track your spending limits.
-            </p>
-            <Button asChild size="sm" variant="outline">
-              <Link href="/dashboard/budgets">Set up budgets</Link>
-            </Button>
-          </div>
+          <DecisionEmptyState
+            title="No budgets set"
+            description="Create a budget to track your spending limits."
+            action={
+              <Button asChild size="sm" variant="outline">
+                <Link href="/dashboard/budgets">Set up budgets</Link>
+              </Button>
+            }
+          />
         ) : (
-          budgets.slice(0, 5).map((budget) => {
-            const pct =
-              budget.budgetAmount > 0
-                ? Math.min(
-                    (budget.budgetSpent / budget.budgetAmount) * 100,
-                    100
-                  )
-                : 0;
+          <>
+            <p className="text-sm text-muted-foreground">{summary.summary}</p>
+            {prioritisedBudgets.slice(0, 5).map((budget) => {
+              const pct = Math.min(getBudgetUsagePercent(budget), 100);
             const isOver = budget.budgetSpent > budget.budgetAmount;
             const isWarning = pct >= 80 && !isOver;
             return (
-              <div key={budget.id} className="space-y-1.5">
+              <div
+                key={budget.id}
+                data-testid="budget-progress-row"
+                className="space-y-1.5"
+              >
                 <div className="flex items-center justify-between text-sm">
                   <span className="font-medium">
                     {budget.budgetCategory}
@@ -98,14 +107,9 @@ export function DashboardBudgetProgress({
                   />
                 </div>
               </div>
-            );
-          })
-        )}
-        {budgetsAtRisk.length > 0 && (
-          <p className="text-xs text-amber-600 pt-1 font-medium">
-            {budgetsAtRisk.length} budget
-            {budgetsAtRisk.length > 1 ? "s" : ""} at or over 80% spent
-          </p>
+              );
+            })}
+          </>
         )}
       </CardContent>
     </Card>

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -6,8 +7,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { AlertTriangle, TrendingUp } from "lucide-react";
 import { formatCurrency } from "@/lib/formatCurrency";
+import { getAnomalyDecisionSummary } from "@/components/dashboard/dashboard-decision";
 import type { SpendingAnomaly } from "@/lib/spending-anomalies";
 
 export function DashboardAnomalies({
@@ -19,19 +22,27 @@ export function DashboardAnomalies({
 }) {
   if (anomalies.length === 0) return null;
 
+  const summary = getAnomalyDecisionSummary({ anomalies, currency });
+
   return (
     <Card className="border-amber-500/20">
       <CardHeader className="pb-3">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+            </div>
+            <div>
+              <CardTitle className="text-base">Spending Warnings</CardTitle>
+              <CardDescription className="text-xs">
+                {summary.title}
+              </CardDescription>
+              <p className="mt-2 text-sm text-muted-foreground">{summary.summary}</p>
+            </div>
           </div>
-          <div>
-            <CardTitle className="text-base">Spending Anomalies</CardTitle>
-            <CardDescription className="text-xs">
-              {anomalies.length} categor{anomalies.length !== 1 ? "ies" : "y"} significantly above your usual spend this month
-            </CardDescription>
-          </div>
+          <Button asChild size="sm" variant="ghost">
+            <Link href="/dashboard/categories">{summary.actionLabel}</Link>
+          </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-2.5">
@@ -67,6 +78,12 @@ export function DashboardAnomalies({
                 </span>
               </p>
             </div>
+            <Link
+              href="/dashboard/categories"
+              className="shrink-0 text-xs font-medium text-amber-700 transition-colors hover:text-amber-800"
+            >
+              Review now
+            </Link>
           </div>
         ))}
       </CardContent>

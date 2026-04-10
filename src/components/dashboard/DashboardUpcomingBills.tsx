@@ -2,20 +2,12 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { CalendarDays } from "lucide-react";
 import { formatCurrency } from "@/lib/formatCurrency";
+import {
+  getDaysLabel,
+  getDaysUntil,
+  getUpcomingBillsDecisionSummary,
+} from "@/components/dashboard/dashboard-decision";
 import type { Subscription } from "@/db/queries/subscriptions";
-
-function daysUntil(dateStr: string): number {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const target = new Date(dateStr + "T00:00:00");
-  return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-}
-
-function daysLabel(days: number): string {
-  if (days === 0) return "Today";
-  if (days === 1) return "Tomorrow";
-  return `In ${days} days`;
-}
 
 export function DashboardUpcomingBills({
   renewals,
@@ -27,25 +19,30 @@ export function DashboardUpcomingBills({
   if (renewals.length === 0) return null;
 
   const total = renewals.reduce((s, r) => s + r.amount, 0);
+  const summary = getUpcomingBillsDecisionSummary({ renewals, currency });
 
   return (
     <Card>
       <CardContent className="py-4">
-        <div className="mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CalendarDays className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-semibold">Upcoming Bills</span>
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-semibold">Upcoming Bills</span>
+            </div>
+            <p className="text-base font-semibold tracking-tight">{summary.title}</p>
+            <p className="text-sm text-muted-foreground">{summary.summary}</p>
           </div>
           <Link
             href="/dashboard/subscriptions"
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
-            View all
+            {summary.actionLabel}
           </Link>
         </div>
         <div className="space-y-2">
           {renewals.map((r) => {
-            const days = daysUntil(r.next_billing_date);
+            const days = getDaysUntil(r.next_billing_date);
             return (
               <div
                 key={r.id}
@@ -61,8 +58,14 @@ export function DashboardUpcomingBills({
                   <span className="text-sm truncate">{r.name}</span>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className="text-xs text-muted-foreground">
-                    {daysLabel(days)}
+                  <span
+                    className={`text-xs ${
+                      days <= 0
+                        ? "font-semibold text-rose-600"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {getDaysLabel(days)}
                   </span>
                   <span className="text-sm font-medium tabular-nums">
                     {formatCurrency(r.amount, currency)}
@@ -72,7 +75,7 @@ export function DashboardUpcomingBills({
             );
           })}
         </div>
-        <div className="mt-2 flex justify-end">
+        <div className="mt-3 flex justify-end">
           <span className="text-xs text-muted-foreground">
             Total: <span className="font-medium text-foreground">{formatCurrency(total, currency)}</span>
           </span>

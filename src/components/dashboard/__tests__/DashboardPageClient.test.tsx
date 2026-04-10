@@ -35,7 +35,20 @@ vi.mock("@/components/dashboard/DashboardInsights", () => ({
 }));
 
 vi.mock("@/components/dashboard/DashboardRecentTransactions", () => ({
-  DashboardRecentTransactions: () => <div>Recent Transactions Widget</div>,
+  DashboardRecentTransactions: ({
+    transactions,
+    currency,
+  }: {
+    transactions: Array<{ id: string }>;
+    currency: string;
+  }) => (
+    <div>
+      Recent Transactions Widget
+      <span data-testid="recent-transactions-props">
+        {transactions.length}:{currency}
+      </span>
+    </div>
+  ),
 }));
 
 describe("DashboardPageClient", () => {
@@ -95,6 +108,7 @@ describe("DashboardPageClient", () => {
 
     expect(screen.getByRole("tab", { name: "Activity" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText("Recent Transactions Widget")).toBeInTheDocument();
+    expect(screen.getByTestId("recent-transactions-props")).toHaveTextContent("1:GBP");
     expect(screen.queryByText("Insights Widget")).not.toBeInTheDocument();
   });
 });

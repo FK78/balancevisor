@@ -4,12 +4,14 @@ import Link from "next/link";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Timer, ArrowRight, CheckCircle2, AlertTriangle } from "lucide-react";
 import { formatCompactCurrency } from "@/lib/formatCurrency";
+import { getRetirementTakeaway } from "@/components/dashboard/dashboard-decision";
 import type { RetirementProjection } from "@/lib/retirement-calculator";
 
 interface DashboardRetirementProps {
@@ -54,15 +56,20 @@ export function DashboardRetirement({
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
-              <Timer className="h-4 w-4 text-primary" />
+          <div className="space-y-2">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+                <Timer className="h-4 w-4 text-primary" />
+              </div>
+              <CardTitle className="text-lg">Retirement</CardTitle>
             </div>
-            <CardTitle className="text-lg">Retirement</CardTitle>
+            <CardDescription className="max-w-md text-sm text-muted-foreground">
+              {getRetirementTakeaway(projection, baseCurrency)}
+            </CardDescription>
           </div>
           <Button asChild size="sm" variant="ghost" className="gap-1">
             <Link href="/dashboard/retirement">
-              Details <ArrowRight className="h-3.5 w-3.5" />
+              See retirement plan <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </Button>
         </div>
@@ -83,6 +90,9 @@ export function DashboardRetirement({
             <p className="text-xs text-muted-foreground">
               {projection.yearsToRetirement} years to go
               {projection.canRetireOnTarget ? " — on track" : " — needs attention"}
+            </p>
+            <p className="mt-1 text-xs font-medium text-foreground">
+              Target age {projection.targetRetirementAge}
             </p>
           </div>
         </div>
