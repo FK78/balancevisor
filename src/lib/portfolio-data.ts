@@ -1,4 +1,5 @@
 import { getBrokerConnections, getManualHoldings, getHoldingSales, decryptBrokerCredentials } from "@/db/queries/investments";
+import { updateBrokerSyncStatus } from "@/db/mutations/investments";
 import { getGroupsByUser } from "@/db/queries/investment-groups";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { getQuotes } from "@/lib/yahoo-finance";
@@ -58,13 +59,23 @@ export async function getPortfolioSnapshot(userId: string): Promise<PortfolioSna
     }),
   );
 
-  for (const result of brokerResults) {
+  for (let i = 0; i < brokerResults.length; i++) {
+    const result = brokerResults[i];
+    const conn = brokerConnections[i];
+    const brokerSource = conn.broker as BrokerSource;
+
     if (result.status === "rejected") {
-      logger.error("portfolio-data", "Broker fetch failed", result.reason);
+      const errMsg = result.reason instanceof Error ? result.reason.message : String(result.reason);
+      logger.error("portfolio-data", `${brokerSource} fetch failed`, result.reason);
+      // Fire-and-forget: don't block portfolio render for status tracking
+      updateBrokerSyncStatus(userId, brokerSource, { success: false, error: errMsg }).catch(() => {});
       continue;
     }
+
     const { broker, summary } = result.value;
     brokerCash += summary.cash;
+    // Fire-and-forget: record successful sync
+    updateBrokerSyncStatus(userId, broker, { success: true }).catch(() => {});
 
     for (const pos of summary.positions) {
       holdings.push({

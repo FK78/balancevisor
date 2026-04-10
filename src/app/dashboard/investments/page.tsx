@@ -106,7 +106,17 @@ export default async function InvestmentsPage() {
   // Fetch data from all connected brokers in parallel
   const holdings: NormalisedHolding[] = [];
   let brokerCash = 0;
-  const brokerErrors: string[] = [];
+  const brokerErrors: { broker: string; message: string }[] = [];
+
+  // Surface stale connections that have been failing persistently
+  for (const conn of brokerConnections) {
+    if (conn.consecutive_failures >= 3 && conn.last_error) {
+      brokerErrors.push({
+        broker: BROKER_META[conn.broker as BrokerSource]?.label ?? conn.broker,
+        message: conn.last_error,
+      });
+    }
+  }
 
   const brokerResults = await Promise.allSettled(
     brokerConnections.map(async (conn) => {
@@ -117,12 +127,19 @@ export default async function InvestmentsPage() {
     }),
   );
 
-  for (const result of brokerResults) {
+  for (let i = 0; i < brokerResults.length; i++) {
+    const result = brokerResults[i];
+    const conn = brokerConnections[i];
     if (result.status === "rejected") {
-      brokerErrors.push(`Unable to sync broker data. Try again later or reconnect your account.`);
+      const errMsg = result.reason instanceof Error ? result.reason.message : "Connection failed";
+      const label = BROKER_META[conn.broker as BrokerSource]?.label ?? conn.broker;
+      // Avoid duplicate if already added from persistent failures above
+      if (!brokerErrors.some((e) => e.broker === label)) {
+        brokerErrors.push({ broker: label, message: errMsg });
+      }
       continue;
     }
-    const { conn, summary } = result.value;
+    const { summary } = result.value;
     brokerCash += summary.cash;
     const accountName = conn.account_id
       ? investmentAccounts.find((a) => a.id === conn.account_id)?.accountName ?? null
@@ -231,13 +248,18 @@ export default async function InvestmentsPage() {
       <DashboardWidget id="broker-errors">
       {brokerErrors.length > 0 && (
         <Card className="border-destructive/50 bg-destructive/5">
-          <CardContent className="flex items-center gap-3 py-4">
-            <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
-            <div>
-              <p className="text-sm font-medium text-destructive">Broker sync failed</p>
+          <CardContent className="flex items-start gap-3 py-4">
+            <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-destructive">Broker sync issue</p>
               {brokerErrors.map((err, i) => (
-                <p key={i} className="text-xs text-muted-foreground">{err}</p>
+                <p key={i} className="text-xs text-muted-foreground">
+                  <span className="font-medium">{err.broker}:</span> {err.message}
+                </p>
               ))}
+              <p className="text-xs text-muted-foreground mt-2">
+                Try reconnecting your broker or check that your API key is still valid.
+              </p>
             </div>
           </CardContent>
         </Card>

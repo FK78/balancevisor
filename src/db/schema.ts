@@ -189,6 +189,8 @@ export const brokerConnectionsTable = pgTable("broker_connections", {
   account_id: uuid("account_id").references(() => accountsTable.id, { onDelete: "set null" }),
   connected_at: timestamp("connected_at", { withTimezone: true }).notNull().defaultNow(),
   last_synced_at: timestamp("last_synced_at", { withTimezone: true }),
+  last_error: varchar("last_error", { length: 500 }),
+  consecutive_failures: integer("consecutive_failures").notNull().default(0),
 }, (table) => [{
   uniqueBroker: uniqueIndex("broker_connections_user_broker_idx").on(table.user_id, table.broker),
 }]);

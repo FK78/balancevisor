@@ -41,6 +41,7 @@ export function ConnectBrokerDialog({
   const [selectedBroker, setSelectedBroker] = useState<BrokerMeta | null>(null);
   const [view, setView] = useState<"list" | "form" | "manage" | "success">("list");
   const [isPending, startTransition] = useTransition();
+  const [formError, setFormError] = useState<string | null>(null);
   const router = useRouter();
 
   const connectedSet = new Set(connectedBrokers);
@@ -49,6 +50,7 @@ export function ConnectBrokerDialog({
     if (!nextOpen) {
       setView("list");
       setSelectedBroker(null);
+      setFormError(null);
     }
     setOpen(nextOpen);
   }
@@ -70,6 +72,7 @@ export function ConnectBrokerDialog({
   function handleConnect(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!selectedBroker) return;
+    setFormError(null);
     const formData = new FormData(e.currentTarget);
     formData.set("broker", selectedBroker.source);
     startTransition(async () => {
@@ -78,8 +81,11 @@ export function ConnectBrokerDialog({
         posthog.capture("broker_connected", { broker: selectedBroker.source });
         toast.success(`${selectedBroker.label} connected`);
         setView("success");
-      } catch {
-        toast.error(`Failed to connect ${selectedBroker.label}`);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : `Failed to connect ${selectedBroker.label}`;
+        setFormError(message);
+        toast.error(message);
       }
     });
   }
@@ -205,6 +211,11 @@ export function ConnectBrokerDialog({
                     Link to an investment account to track holdings together.
                   </p>
                 </div>
+              )}
+              {formError && (
+                <p className="text-sm text-destructive font-medium" role="alert">
+                  {formError}
+                </p>
               )}
               <p className="text-xs text-muted-foreground">
                 Get your API credentials from{" "}

@@ -12,6 +12,8 @@ import { getQuote } from "@/lib/yahoo-finance";
 import { requireString, sanitizeNumber, sanitizeEnum, sanitizeUUID } from "@/lib/sanitize";
 import type { BrokerSource, BrokerCredentials } from "@/lib/brokers/types";
 import { BROKER_SOURCES } from "@/lib/brokers/types";
+import { getAdapter } from "@/lib/brokers";
+import { logger } from "@/lib/logger";
 
 function revalidateInvestments() {
   revalidateDomains('investments');
@@ -43,6 +45,19 @@ export async function connectBroker(formData: FormData) {
     environment,
   };
 
+  // Preflight: validate credentials before persisting
+  const adapter = getAdapter(broker);
+  if (adapter.validateCredentials) {
+    const validation = await adapter.validateCredentials(credentials);
+    if (!validation.valid) {
+      logger.warn("connectBroker", `${broker} validation failed`, {
+        code: validation.code,
+        message: validation.message,
+      });
+      throw new Error(validation.message);
+    }
+  }
+
   const userKey = await getUserKey(userId);
   const credentialsEncrypted = encryptForUser(JSON.stringify(credentials), userKey);
 
@@ -66,6 +81,45 @@ export async function connectBroker(formData: FormData) {
     });
 
   revalidateInvestments();
+}
+
+/**
+ * Record a successful or failed sync attempt for a broker connection.
+ * Called from portfolio-data / investment-value after each fetch.
+ */
+export async function updateBrokerSyncStatus(
+  userId: string,
+  broker: BrokerSource,
+  result: { success: true } | { success: false; error: string },
+) {
+  if (result.success) {
+    await db
+      .update(brokerConnectionsTable)
+      .set({
+        last_synced_at: new Date(),
+        last_error: null,
+        consecutive_failures: 0,
+      })
+      .where(
+        and(
+          eq(brokerConnectionsTable.user_id, userId),
+          eq(brokerConnectionsTable.broker, broker),
+        ),
+      );
+  } else {
+    await db
+      .update(brokerConnectionsTable)
+      .set({
+        last_error: result.error.slice(0, 500),
+        consecutive_failures: sql`${brokerConnectionsTable.consecutive_failures} + 1`,
+      })
+      .where(
+        and(
+          eq(brokerConnectionsTable.user_id, userId),
+          eq(brokerConnectionsTable.broker, broker),
+        ),
+      );
+  }
 }
 
 export async function disconnectBroker(formData: FormData) {

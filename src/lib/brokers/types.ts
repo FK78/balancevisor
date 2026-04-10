@@ -67,6 +67,10 @@ export type BrokerSummary = {
 // Adapter interface
 // ---------------------------------------------------------------------------
 
+export type BrokerValidationResult =
+  | { valid: true }
+  | { valid: false; message: string; code: string };
+
 export interface BrokerAdapter {
   readonly source: BrokerSource;
   readonly label: string;
@@ -77,6 +81,9 @@ export interface BrokerAdapter {
 
   /** Fetch account summary including cash + positions. */
   getSummary(creds: BrokerCredentials): Promise<BrokerSummary>;
+
+  /** Optional preflight check — test credentials before saving. */
+  validateCredentials?(creds: BrokerCredentials): Promise<BrokerValidationResult>;
 }
 
 // ---------------------------------------------------------------------------
