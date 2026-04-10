@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowRightLeft, ArrowUpDown, ChevronDown, ChevronRight, RefreshCw, Split } from "lucide-react";
-import { formatCurrency } from "@/lib/formatCurrency";
 import { InlineCategoryPicker } from "@/components/InlineCategoryPicker";
 import { TransactionFormDialog } from "@/components/AddTransactionForm";
 import { DeleteTransactionButton, formatDate, type Transaction } from "./TransactionHelpers";
+import { buildTransactionDecisionState } from "./transaction-decision";
 import type { AccountWithDetails, CategoryWithColor } from "@/lib/types";
 
 interface UseTransactionColumnsArgs {
@@ -123,20 +123,17 @@ export function useTransactionColumns({
       ),
       cell: ({ row }) => {
         const t = row.original;
-        const colorClass =
-          t.type === "income"
-            ? "text-emerald-600"
-            : t.type === "refund"
+        const decision = buildTransactionDecisionState(t, currency);
+        const colorClass = decision.amountTone === "positive"
+          ? "text-emerald-600"
+          : decision.amountTone === "negative"
+            ? "text-red-600"
+            : decision.amountTone === "warning"
               ? "text-amber-600"
-              : t.type === "transfer"
-                ? "text-blue-600"
-                : "text-red-600";
-        const prefix =
-          t.type === "income" ? "+" : t.type === "refund" ? "↩ " : t.type === "transfer" ? "⇄ " : "−";
+              : "text-foreground";
         return (
           <span className={`font-semibold tabular-nums ${colorClass}`}>
-            {prefix}
-            {formatCurrency(t.amount, currency)}
+            {decision.amountLabel}
           </span>
         );
       },
@@ -148,21 +145,22 @@ export function useTransactionColumns({
       header: () => <span className="sr-only">Actions</span>,
       cell: ({ row }) => {
         const t = row.original;
+        const decision = buildTransactionDecisionState(t, currency);
         const transferToName = t.type === "transfer" && t.transfer_account_id
           ? accounts.find((a) => a.id === t.transfer_account_id)?.accountName
           : null;
         return (
           <div className="flex items-center gap-2">
-            {t.type === "transfer" && (
-              <Badge variant="outline" className="gap-1 text-blue-600 border-blue-200">
+            {t.type === "transfer" && decision.statusLabel && (
+              <Badge variant="outline" className="gap-1 text-foreground border-border">
                 <ArrowRightLeft className="h-3 w-3" />
-                {transferToName ? `→ ${transferToName}` : "Transfer"}
+                {transferToName ? `Transfer → ${transferToName}` : decision.statusLabel}
               </Badge>
             )}
-            {t.is_split && (
+            {t.is_split && decision.statusLabel === "Split transaction" && (
               <Badge
                 variant="outline"
-                className="gap-1 cursor-pointer text-violet-600 border-violet-200 hover:bg-violet-50"
+                className="gap-1 cursor-pointer text-foreground border-border hover:bg-secondary/60"
                 onClick={() => {
                   setExpandedSplits((prev) => {
                     const next = new Set(prev);
@@ -173,12 +171,17 @@ export function useTransactionColumns({
                 }}
               >
                 <Split className="h-3 w-3" />
-                Split
+                {decision.statusLabel}
                 {expandedSplits.has(t.id) ? (
                   <ChevronDown className="h-3 w-3" />
                 ) : (
                   <ChevronRight className="h-3 w-3" />
                 )}
+              </Badge>
+            )}
+            {t.type !== "transfer" && !t.is_split && decision.statusLabel && (
+              <Badge variant="outline" className="gap-1 text-amber-700 border-amber-200">
+                {decision.statusLabel}
               </Badge>
             )}
             {t.is_recurring && (

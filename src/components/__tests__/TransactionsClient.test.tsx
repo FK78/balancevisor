@@ -144,4 +144,101 @@ describe("TransactionsClient", () => {
     expect(screen.getByLabelText("From")).toBeInTheDocument();
     expect(screen.getByLabelText("To")).toBeInTheDocument();
   });
+
+  it("shows removable search filter chips and result summary in search workspace", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <TransactionsClient
+        transactions={[
+          {
+            id: "txn_1",
+            accountName: "Main Account",
+            description: "Tesco",
+            category: "Groceries",
+            category_id: "cat_1",
+            category_source: "manual",
+            merchant_name: "Tesco",
+            date: "2026-04-10",
+            amount: 45.2,
+            type: "expense",
+            is_split: false,
+            is_recurring: false,
+            transfer_account_id: null,
+          } as never,
+        ]}
+        accounts={[{ id: "acc_1", accountName: "Main Account" } as never]}
+        categories={[{ id: "cat_1", name: "Groceries" } as never]}
+        currentPage={1}
+        pageSize={10}
+        totalTransactions={1}
+        totalIncome={0}
+        totalExpenses={45.2}
+        totalRefunds={0}
+        startDate="2026-04-01"
+        endDate="2026-04-10"
+        search="tesco"
+        accountId="acc_1"
+        dailyTrend={[]}
+        dailyCategoryExpenses={[]}
+        currency="GBP"
+        splits={{}}
+        uncategorisedCount={0}
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: "Search" }));
+
+    expect(screen.getByText("Showing 1 transaction")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Remove search filter tesco" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Remove account filter Main Account" }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows uncategorised transactions as decision rows in review workspace", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <TransactionsClient
+        transactions={[
+          {
+            id: "txn_1",
+            accountName: "Main Account",
+            description: "Tesco",
+            category: null,
+            category_id: null,
+            category_source: null,
+            merchant_name: "Tesco",
+            date: "2026-04-10",
+            amount: 45.2,
+            type: "expense",
+            is_split: false,
+            is_recurring: false,
+            transfer_account_id: null,
+          } as never,
+        ]}
+        accounts={[{ id: "acc_1", accountName: "Main Account" } as never]}
+        categories={[{ id: "cat_1", name: "Groceries" } as never]}
+        currentPage={1}
+        pageSize={10}
+        totalTransactions={1}
+        totalIncome={0}
+        totalExpenses={45.2}
+        totalRefunds={0}
+        dailyTrend={[]}
+        dailyCategoryExpenses={[]}
+        currency="GBP"
+        splits={{}}
+        uncategorisedCount={1}
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: "Review" }));
+
+    expect(screen.getByRole("heading", { level: 3, name: "Tesco" })).toBeInTheDocument();
+    expect(screen.getByText("Needs review")).toBeInTheDocument();
+  });
 });

@@ -9,6 +9,7 @@ import { QuickAddTransaction } from "@/components/QuickAddTransaction";
 import { useAiEnabled } from "@/components/AiSettingsProvider";
 import { TransferFormDialog } from "@/components/AddTransferForm";
 import { ImportCSVDialog } from "@/components/ImportCSVDialog";
+import { DecisionEmptyState } from "@/components/dense-data/DecisionEmptyState";
 import {
   Table,
   TableBody,
@@ -57,7 +58,8 @@ import type { AccountWithDetails, CategoryWithColor, SplitDetail } from "@/lib/t
 import type { DailyCashflowPoint, DailyCategoryExpensePoint } from "@/db/queries/transactions";
 import dynamic from "next/dynamic";
 import { ChartSkeleton } from "@/components/ChartSkeleton";
-import { BulkCategoriseButton, getPageHref, type Transaction } from "@/components/transactions/TransactionHelpers";
+import { BulkCategoriseButton, DeleteTransactionButton, getPageHref, type Transaction } from "@/components/transactions/TransactionHelpers";
+import { TransactionDecisionRow } from "@/components/transactions/TransactionDecisionRow";
 import { useTransactionColumns } from "@/components/transactions/TransactionColumns";
 import {
   getInitialTransactionsWorkspaceTab,
@@ -144,6 +146,13 @@ export function TransactionsClient({
   const endIndex = totalTransactions > 0
     ? Math.min(resolvedCurrentPage * pageSize, totalTransactions)
     : 0;
+  const activeAccountName = activeAccountId
+    ? accounts.find((account) => account.id === activeAccountId)?.accountName ?? "Selected account"
+    : null;
+  const reviewTransactions = transactions.filter(
+    (transaction) => transaction.type === "expense" && !transaction.category_id,
+  );
+  const searchResultSummary = `Showing ${totalTransactions} transaction${totalTransactions === 1 ? "" : "s"}`;
 
   useEffect(() => {
     if (highlightedIds.size === 0) return;
@@ -278,123 +287,187 @@ export function TransactionsClient({
             </div>
           )}
           {transactions.length === 0 ? (
-            totalTransactions === 0 ? (
-              <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-12 text-center">
-                <Receipt className="h-10 w-10 opacity-40" />
-                <div>
-                  <p className="text-sm font-medium">No transactions yet</p>
-                  <p className="text-xs">
-                    Add your first transaction to start tracking activity.
-                  </p>
-                </div>
-                {canCreateTransaction ? (
-                  <TransactionFormDialog
-                    accounts={accounts}
-                    categories={categories}
-                    onSaved={handleTransactionsAdded}
+            <>
+              <div className="sm:hidden">
+                {totalTransactions === 0 ? (
+                  <DecisionEmptyState
+                    title="No transactions yet"
+                    description="Add your first transaction to start tracking activity."
+                    action={canCreateTransaction ? (
+                      <TransactionFormDialog
+                        accounts={accounts}
+                        categories={categories}
+                        onSaved={handleTransactionsAdded}
+                      />
+                    ) : (
+                      <Button asChild size="sm" variant="outline">
+                        <Link href={accounts.length === 0 ? "/dashboard/accounts" : "/dashboard/categories"}>
+                          {accounts.length === 0 ? "Add an account first" : "Add a category first"}
+                        </Link>
+                      </Button>
+                    )}
                   />
                 ) : (
-                  <Button asChild size="sm" variant="outline">
-                    <Link href={accounts.length === 0 ? "/dashboard/accounts" : "/dashboard/categories"}>
-                      {accounts.length === 0 ? "Add an account first" : "Add a category first"}
-                    </Link>
-                  </Button>
+                  <DecisionEmptyState
+                    title="No transactions on this page"
+                    description="Try going back to an earlier page."
+                    action={(
+                      <Button asChild size="sm" variant="outline">
+                        <Link href={getPageHref(1, undefined, undefined, undefined, activeAccountId)}>Go to first page</Link>
+                      </Button>
+                    )}
+                  />
                 )}
               </div>
-            ) : (
-              <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-12 text-center">
-                <Receipt className="h-10 w-10 opacity-40" />
-                <div>
-                  <p className="text-sm font-medium">No transactions on this page</p>
-                  <p className="text-xs">
-                    Try going back to an earlier page.
-                  </p>
+
+              {totalTransactions === 0 ? (
+                <div className="text-muted-foreground hidden flex-col items-center justify-center gap-3 py-12 text-center sm:flex">
+                  <Receipt className="h-10 w-10 opacity-40" />
+                  <div>
+                    <p className="text-sm font-medium">No transactions yet</p>
+                    <p className="text-xs">
+                      Add your first transaction to start tracking activity.
+                    </p>
+                  </div>
+                  {canCreateTransaction ? (
+                    <TransactionFormDialog
+                      accounts={accounts}
+                      categories={categories}
+                      onSaved={handleTransactionsAdded}
+                    />
+                  ) : (
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={accounts.length === 0 ? "/dashboard/accounts" : "/dashboard/categories"}>
+                        {accounts.length === 0 ? "Add an account first" : "Add a category first"}
+                      </Link>
+                    </Button>
+                  )}
                 </div>
-                <Button asChild size="sm" variant="outline">
-                  <Link href={getPageHref(1, undefined, undefined, undefined, activeAccountId)}>Go to first page</Link>
-                </Button>
-              </div>
-            )
+              ) : (
+                <div className="text-muted-foreground hidden flex-col items-center justify-center gap-3 py-12 text-center sm:flex">
+                  <Receipt className="h-10 w-10 opacity-40" />
+                  <div>
+                    <p className="text-sm font-medium">No transactions on this page</p>
+                    <p className="text-xs">
+                      Try going back to an earlier page.
+                    </p>
+                  </div>
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={getPageHref(1, undefined, undefined, undefined, activeAccountId)}>Go to first page</Link>
+                  </Button>
+                </div>
+              )}
+            </>
           ) : (
             <>
-              <Table>
-                <TableHeader>
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id}>
-                      {headerGroup.headers.map((header) => (
-                        <TableHead
-                          key={header.id}
-                          className={header.column.id === "amount" ? "text-right" : header.column.id === "actions" ? "w-[80px]" : undefined}
-                        >
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                  ))}
-                </TableHeader>
-                <TableBody>
-                  {rows.flatMap((row) => {
-                    const t = row.original;
-                    const txnSplits = splits?.[t.id];
-                    const isExpanded = expandedSplits.has(t.id);
-                    const elements = [
-                      <TableRow
-                        key={row.id}
-                        className={
-                          highlightedIds.has(t.id)
-                            ? "animate-highlight-row"
-                            : ""
-                        }
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell
-                            key={cell.id}
-                            className={cell.column.id === "amount" ? "text-right" : undefined}
+              <div className="space-y-3 sm:hidden">
+                {transactions.map((transaction) => (
+                  <TransactionDecisionRow
+                    key={transaction.id}
+                    transaction={transaction}
+                    currency={currency}
+                    action={transaction.type !== "transfer" ? (
+                      <div className="flex items-center justify-end gap-2">
+                        <TransactionFormDialog
+                          transaction={transaction}
+                          accounts={accounts}
+                          categories={categories}
+                          onSaved={(ids) => {
+                            const [editedId] = ids;
+                            if (editedId !== undefined) {
+                              handleTransactionEdited(editedId);
+                            }
+                          }}
+                        />
+                        <DeleteTransactionButton transaction={transaction} />
+                      </div>
+                    ) : (
+                      <DeleteTransactionButton transaction={transaction} />
+                    )}
+                  />
+                ))}
+              </div>
+
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <TableRow key={headerGroup.id}>
+                        {headerGroup.headers.map((header) => (
+                          <TableHead
+                            key={header.id}
+                            className={header.column.id === "amount" ? "text-right" : header.column.id === "actions" ? "w-[80px]" : undefined}
                           >
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </TableCell>
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                          </TableHead>
                         ))}
-                      </TableRow>,
-                    ];
-                    if (t.is_split && isExpanded && txnSplits && txnSplits.length > 0) {
-                      elements.push(
-                        <TableRow key={`${row.id}-splits`} className="bg-muted/30 hover:bg-muted/40">
-                          <TableCell colSpan={columns.length} className="py-2 px-6">
-                            <div className="space-y-1.5">
-                              <p className="text-xs font-medium text-muted-foreground mb-1">Split breakdown</p>
-                              {txnSplits.map((s: SplitDetail) => (
-                                <div key={s.id} className="flex items-center justify-between text-xs">
-                                  <div className="flex items-center gap-2">
-                                    {s.categoryColor && (
-                                      <span
-                                        className="h-2 w-2 rounded-full"
-                                        style={{ backgroundColor: s.categoryColor }}
-                                      />
-                                    )}
-                                    <span className="font-medium">{s.categoryName ?? "Uncategorised"}</span>
-                                    {s.description && (
-                                      <span className="text-muted-foreground">— {s.description}</span>
-                                    )}
-                                  </div>
-                                  <span className="font-mono tabular-nums font-medium">
-                                    {formatCurrency(s.amount, currency)}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableHeader>
+                  <TableBody>
+                    {rows.flatMap((row) => {
+                      const t = row.original;
+                      const txnSplits = splits?.[t.id];
+                      const isExpanded = expandedSplits.has(t.id);
+                      const elements = [
+                        <TableRow
+                          key={row.id}
+                          className={
+                            highlightedIds.has(t.id)
+                              ? "animate-highlight-row"
+                              : ""
+                          }
+                        >
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell
+                              key={cell.id}
+                              className={cell.column.id === "amount" ? "text-right" : undefined}
+                            >
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </TableCell>
+                          ))}
                         </TableRow>,
-                      );
-                    }
-                    return elements;
-                  })}
-                </TableBody>
-              </Table>
+                      ];
+                      if (t.is_split && isExpanded && txnSplits && txnSplits.length > 0) {
+                        elements.push(
+                          <TableRow key={`${row.id}-splits`} className="bg-muted/30 hover:bg-muted/40">
+                            <TableCell colSpan={columns.length} className="py-2 px-6">
+                              <div className="space-y-1.5">
+                                <p className="text-xs font-medium text-muted-foreground mb-1">Split breakdown</p>
+                                {txnSplits.map((s: SplitDetail) => (
+                                  <div key={s.id} className="flex items-center justify-between text-xs">
+                                    <div className="flex items-center gap-2">
+                                      {s.categoryColor && (
+                                        <span
+                                          className="h-2 w-2 rounded-full"
+                                          style={{ backgroundColor: s.categoryColor }}
+                                        />
+                                      )}
+                                      <span className="font-medium">{s.categoryName ?? "Uncategorised"}</span>
+                                      {s.description && (
+                                        <span className="text-muted-foreground">— {s.description}</span>
+                                      )}
+                                    </div>
+                                    <span className="font-mono tabular-nums font-medium">
+                                      {formatCurrency(s.amount, currency)}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </TableCell>
+                          </TableRow>,
+                        );
+                      }
+                      return elements;
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
               <div className="mt-4 flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
                   <p className="text-muted-foreground text-xs">
@@ -638,11 +711,94 @@ export function TransactionsClient({
                       </div>
                     </form>
 
-                    {isSearchActive && (
-                      <p className="text-sm text-muted-foreground">
-                        Showing results for <span className="font-medium text-foreground">&ldquo;{activeSearch}&rdquo;</span>
-                        {" "}&mdash; {totalTransactions} match{totalTransactions !== 1 ? "es" : ""}
-                      </p>
+                    <p className="text-sm text-muted-foreground">
+                      {searchResultSummary}
+                    </p>
+
+                    {(isSearchActive || isFilterActive) && (
+                      <div className="flex flex-wrap gap-2">
+                        {isSearchActive && activeSearch ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            aria-label={`Remove search filter ${activeSearch}`}
+                            onClick={() => {
+                              setSearchInput("");
+                              router.push(getPageHref(
+                                1,
+                                activeStartDate,
+                                activeEndDate,
+                                undefined,
+                                activeAccountId,
+                              ));
+                            }}
+                          >
+                            Search: {activeSearch}
+                            <X className="ml-1 h-3 w-3" />
+                          </Button>
+                        ) : null}
+                        {isAccountFilterActive && activeAccountName ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            aria-label={`Remove account filter ${activeAccountName}`}
+                            onClick={() => {
+                              router.push(getPageHref(
+                                1,
+                                activeStartDate,
+                                activeEndDate,
+                                activeSearch,
+                                undefined,
+                              ));
+                            }}
+                          >
+                            Account: {activeAccountName}
+                            <X className="ml-1 h-3 w-3" />
+                          </Button>
+                        ) : null}
+                        {activeStartDate ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            aria-label={`Remove start date filter ${activeStartDate}`}
+                            onClick={() => {
+                              router.push(getPageHref(
+                                1,
+                                undefined,
+                                activeEndDate,
+                                activeSearch,
+                                activeAccountId,
+                              ));
+                            }}
+                          >
+                            From: {activeStartDate}
+                            <X className="ml-1 h-3 w-3" />
+                          </Button>
+                        ) : null}
+                        {activeEndDate ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            aria-label={`Remove end date filter ${activeEndDate}`}
+                            onClick={() => {
+                              router.push(getPageHref(
+                                1,
+                                activeStartDate,
+                                undefined,
+                                activeSearch,
+                                activeAccountId,
+                              ));
+                            }}
+                          >
+                            To: {activeEndDate}
+                            <X className="ml-1 h-3 w-3" />
+                          </Button>
+                        ) : null}
+                      </div>
                     )}
 
                     <div className="flex flex-wrap gap-2">
@@ -726,37 +882,67 @@ export function TransactionsClient({
                     </div>
                   </SheetContent>
                 </Sheet>
+
+                {renderTransactionsTable({
+                  title: "Search results",
+                  description: "Review and refine matching transactions.",
+                  showExportControls: false,
+                })}
               </div>
             ) : null}
 
             {tab.value === "review" && activeTab === "review" ? (
-              <Card className="workspace-card border border-[var(--workspace-card-border)] shadow-sm">
-                <CardHeader>
-                  <CardTitle>Transactions to review</CardTitle>
-                  <CardDescription>
-                    Focus on uncategorised activity and clean up your feed in batches.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-foreground">
-                      {(uncategorisedCount ?? 0) > 0
-                        ? `${uncategorisedCount} transactions are ready for categorisation.`
-                        : "Nothing needs review right now."}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Use this queue to quickly move ambiguous transactions out of your main feed.
-                    </p>
-                  </div>
-                  {(uncategorisedCount ?? 0) > 0 ? (
-                    <BulkCategoriseButton count={uncategorisedCount ?? 0} />
+              <div className="space-y-4">
+                <Card className="workspace-card border border-[var(--workspace-card-border)] shadow-sm">
+                  <CardHeader>
+                    <CardTitle>Transactions to review</CardTitle>
+                    <CardDescription>
+                      Focus on uncategorised activity and clean up your feed in batches.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-foreground">
+                        {(uncategorisedCount ?? 0) > 0
+                          ? `${uncategorisedCount} transactions are ready for categorisation.`
+                          : "Nothing needs review right now."}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Use this queue to quickly move ambiguous transactions out of your main feed.
+                      </p>
+                    </div>
+                    {(uncategorisedCount ?? 0) > 0 ? (
+                      <BulkCategoriseButton count={uncategorisedCount ?? 0} />
+                    ) : (
+                      <Button asChild variant="outline">
+                        <Link href="/dashboard/categories">Manage categories</Link>
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <div className="space-y-3 sm:hidden">
+                  {reviewTransactions.length > 0 ? (
+                    reviewTransactions.map((transaction) => (
+                      <TransactionDecisionRow
+                        key={transaction.id}
+                        transaction={transaction}
+                        currency={currency}
+                      />
+                    ))
                   ) : (
-                    <Button asChild variant="outline">
-                      <Link href="/dashboard/categories">Manage categories</Link>
-                    </Button>
+                    <DecisionEmptyState
+                      title="Nothing needs review right now"
+                      description="All visible transactions already have categories."
+                      action={(
+                        <Button asChild size="sm" variant="outline">
+                          <Link href="/dashboard/categories">Manage categories</Link>
+                        </Button>
+                      )}
+                    />
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ) : null}
           </div>
         ))}
