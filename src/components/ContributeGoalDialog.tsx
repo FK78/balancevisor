@@ -47,7 +47,7 @@ export function ContributeGoalDialog({ goalId, goalName }: { goalId: string; goa
           Add Funds
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent mobileLayout="full-height" className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Contribute to {goalName}</DialogTitle>
           <DialogDescription>Add money towards this goal.</DialogDescription>
@@ -66,7 +66,7 @@ export function ContributeGoalDialog({ goalId, goalName }: { goalId: string; goa
               autoFocus
             />
           </div>
-          <DialogFooter>
+          <DialogFooter mobileSticky>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>

@@ -155,7 +155,7 @@ export function AddHoldingDialog({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent mobileLayout="full-height" className="sm:max-w-md">
         {view === "success" ? (
           <>
             <DialogHeader className="sr-only">
@@ -173,7 +173,7 @@ export function AddHoldingDialog({
                 </p>
               </div>
             </div>
-            <DialogFooter className="flex gap-2 sm:justify-center">
+            <DialogFooter mobileSticky className="flex gap-2 sm:justify-center">
               {!isEdit && (
                 <Button variant="outline" onClick={handleAddAnother}>
                   <Plus className="mr-1 h-4 w-4" />
@@ -322,7 +322,7 @@ export function AddHoldingDialog({
               <input type="hidden" name="ticker" value={selectedTicker} />
               <input type="hidden" name="name" value={selectedName} />
 
-              <DialogFooter>
+              <DialogFooter mobileSticky>
                 <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
                   Cancel
                 </Button>

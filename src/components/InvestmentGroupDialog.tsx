@@ -106,7 +106,7 @@ export function InvestmentGroupDialog({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent mobileLayout="full-height" className="sm:max-w-md">
         {view === "success" ? (
           <>
             <DialogHeader className="sr-only">
@@ -127,7 +127,7 @@ export function InvestmentGroupDialog({
                 </p>
               </div>
             </div>
-            <DialogFooter className="flex gap-2 sm:justify-center">
+            <DialogFooter mobileSticky className="flex gap-2 sm:justify-center">
               {!isEdit && (
                 <Button variant="outline" onClick={handleAddAnother}>
                   <Plus className="mr-1 h-4 w-4" />
@@ -207,7 +207,7 @@ export function InvestmentGroupDialog({
                 </div>
               </div>
 
-              <DialogFooter>
+              <DialogFooter mobileSticky>
                 <Button
                   type="button"
                   variant="outline"

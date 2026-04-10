@@ -88,7 +88,7 @@ export function SellHoldingDialog({
           Sell
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent mobileLayout="full-height" className="sm:max-w-md">
         {view === "success" ? (
           <>
             <DialogHeader>
@@ -97,7 +97,7 @@ export function SellHoldingDialog({
                 The sale has been successfully recorded. The holding&apos;s quantity has been updated.
               </DialogDescription>
             </DialogHeader>
-            <DialogFooter className="flex gap-2 sm:justify-center">
+            <DialogFooter mobileSticky className="flex gap-2 sm:justify-center">
               <Button variant="outline" onClick={handleAddAnother}>
                 Sell More
               </Button>
@@ -196,7 +196,7 @@ export function SellHoldingDialog({
                   </span>
                 </div>
               </div>
-              <DialogFooter>
+              <DialogFooter mobileSticky>
                 <Button type="submit" disabled={isPending}>
                   {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Record Sale

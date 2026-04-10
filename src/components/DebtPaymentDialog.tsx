@@ -79,7 +79,7 @@ export function DebtPaymentDialog({
           Make Payment
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent mobileLayout="full-height" className="sm:max-w-sm">
         {view === "success" ? (
           <>
             <DialogHeader className="sr-only">
@@ -94,7 +94,7 @@ export function DebtPaymentDialog({
                 </p>
               </div>
             </div>
-            <DialogFooter className="sm:justify-center">
+            <DialogFooter mobileSticky className="sm:justify-center">
               <Button onClick={() => handleOpenChange(false)}>Done</Button>
             </DialogFooter>
           </>
@@ -157,7 +157,7 @@ export function DebtPaymentDialog({
                   placeholder="e.g. Extra payment this month"
                 />
               </div>
-              <DialogFooter>
+              <DialogFooter mobileSticky>
                 <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
                   Cancel
                 </Button>
