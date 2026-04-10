@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -103,9 +104,8 @@ export function SignUpForm({
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="password">Password</Label>
-                <Input
+                <PasswordInput
                   id="password"
-                  type="password"
                   autoComplete="new-password"
                   placeholder="At least 6 characters"
                   required
@@ -115,9 +115,8 @@ export function SignUpForm({
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="repeat-password">Confirm password</Label>
-                <Input
+                <PasswordInput
                   id="repeat-password"
-                  type="password"
                   autoComplete="new-password"
                   placeholder="Type your password again"
                   required

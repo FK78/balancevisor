@@ -4,7 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { userError } from "@/lib/user-error";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
@@ -86,9 +86,8 @@ export function ChangePasswordForm({ email }: Props) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-2">
         <Label htmlFor="current_password">Current password</Label>
-        <Input
+        <PasswordInput
           id="current_password"
-          type="password"
           autoComplete="current-password"
           placeholder="Enter your current password"
           required
@@ -98,9 +97,8 @@ export function ChangePasswordForm({ email }: Props) {
       </div>
       <div className="grid gap-2">
         <Label htmlFor="new_password">New password</Label>
-        <Input
+        <PasswordInput
           id="new_password"
-          type="password"
           autoComplete="new-password"
           placeholder="At least 6 characters"
           required
@@ -111,9 +109,8 @@ export function ChangePasswordForm({ email }: Props) {
       </div>
       <div className="grid gap-2">
         <Label htmlFor="confirm_new_password">Confirm new password</Label>
-        <Input
+        <PasswordInput
           id="confirm_new_password"
-          type="password"
           autoComplete="new-password"
           placeholder="Type your new password again"
           required
