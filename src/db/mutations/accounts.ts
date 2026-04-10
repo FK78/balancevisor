@@ -46,7 +46,7 @@ export async function editAccount(id: string, formData: FormData) {
     type,
     balance,
     currency: baseCurrency,
-  }).where(eq(accountsTable.id, id));
+  }).where(and(eq(accountsTable.id, id), eq(accountsTable.user_id, userId)));
 
   revalidateDomains('accounts');
 }
@@ -58,7 +58,7 @@ export async function deleteAccount(id: string) {
 
   await db.transaction(async (tx) => {
     await tx.delete(transactionsTable).where(eq(transactionsTable.account_id, id));
-    await tx.delete(accountsTable).where(eq(accountsTable.id, id));
+    await tx.delete(accountsTable).where(and(eq(accountsTable.id, id), eq(accountsTable.user_id, userId)));
   });
 
   revalidateDomains('accounts');

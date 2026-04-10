@@ -128,7 +128,7 @@ export async function importFromTrueLayer() {
   // across all connections and accounts, avoiding an N+1 per transaction.
   const rules = await fetchUserRules(userId);
 
-  let accountsImported = 0;
+  const accountsImported = 0;
   let transactionsImported = 0;
   const importedTransactionIds: string[] = [];
 
@@ -137,16 +137,6 @@ export async function importFromTrueLayer() {
     const tlAccounts = await fetchAccounts(accessToken);
 
     for (const tlAccount of tlAccounts) {
-      const [existing] = await db
-        .select({ id: accountsTable.id })
-        .from(accountsTable)
-        .where(
-          and(
-            eq(accountsTable.user_id, userId),
-            eq(accountsTable.truelayer_id, tlAccount.account_id),
-          ),
-        );
-
       let balance = 0;
       try {
         const balanceData = await fetchBalance(
@@ -160,35 +150,29 @@ export async function importFromTrueLayer() {
         });
       }
 
-      let localAccountId: string;
+      // Upsert: insert or update on conflict (user_id, truelayer_id) to prevent duplicate accounts
+      const [upserted] = await db
+        .insert(accountsTable)
+        .values({
+          user_id: userId,
+          name: encryptForUser(
+            tlAccount.display_name ||
+              `${tlAccount.provider?.display_name ?? "Bank"} Account`,
+            userKey,
+          ),
+          type: mapAccountType(tlAccount.account_type),
+          balance,
+          currency: tlAccount.currency || baseCurrency,
+          truelayer_id: tlAccount.account_id,
+          truelayer_connection_id: connection.id,
+        })
+        .onConflictDoUpdate({
+          target: [accountsTable.user_id, accountsTable.truelayer_id],
+          set: { balance },
+        })
+        .returning({ id: accountsTable.id });
 
-      if (existing) {
-        await db
-          .update(accountsTable)
-          .set({ balance })
-          .where(eq(accountsTable.id, existing.id));
-        localAccountId = existing.id;
-      } else {
-        const [created] = await db
-          .insert(accountsTable)
-          .values({
-            user_id: userId,
-            name: encryptForUser(
-              tlAccount.display_name ||
-                `${tlAccount.provider?.display_name ?? "Bank"} Account`,
-              userKey,
-            ),
-            type: mapAccountType(tlAccount.account_type),
-            balance,
-            currency: tlAccount.currency || baseCurrency,
-            truelayer_id: tlAccount.account_id,
-            truelayer_connection_id: connection.id,
-          })
-          .returning({ id: accountsTable.id });
-
-        localAccountId = created.id;
-        accountsImported++;
-      }
+      const localAccountId = upserted.id;
 
       if (tlAccount.provider?.display_name && !connection.provider_name) {
         await db
@@ -231,18 +215,6 @@ export async function importFromTrueLayer() {
         categories[0];
 
       for (const tlTxn of tlTransactions) {
-        const [existingTxn] = await db
-          .select({ id: transactionsTable.id })
-          .from(transactionsTable)
-          .where(
-            and(
-              eq(transactionsTable.user_id, userId),
-              eq(transactionsTable.truelayer_id, tlTxn.transaction_id),
-            ),
-          );
-
-        if (existingTxn) continue;
-
         const isExpense =
           tlTxn.transaction_type === "DEBIT" || tlTxn.amount < 0;
         const amount = Math.abs(tlTxn.amount);
@@ -265,7 +237,8 @@ export async function importFromTrueLayer() {
         const matchedCategoryId = matchAgainstRules(rules, description);
         const categoryId = matchedCategoryId ?? uncategorised?.id ?? null;
 
-        const [inserted] = await db.insert(transactionsTable).values({
+        // Use onConflictDoNothing to safely skip duplicates during concurrent imports
+        const rows = await db.insert(transactionsTable).values({
           user_id: userId,
           account_id: localAccountId,
           category_id: categoryId,
@@ -276,10 +249,12 @@ export async function importFromTrueLayer() {
           is_recurring: false,
           truelayer_id: tlTxn.transaction_id,
           refund_for_transaction_id: refundForTransactionId,
-        }).returning({ id: transactionsTable.id });
+        }).onConflictDoNothing().returning({ id: transactionsTable.id });
 
-        importedTransactionIds.push(inserted.id);
-        transactionsImported++;
+        if (rows.length > 0) {
+          importedTransactionIds.push(rows[0].id);
+          transactionsImported++;
+        }
       }
     }
   }
@@ -339,6 +314,16 @@ export async function syncBankIfNeeded(): Promise<{
 
   logger.info("truelayer.sync", "Sync needed, starting import", { userId });
 
+  // Optimistic lock: set last_synced_at BEFORE import to prevent concurrent syncs
+  for (const c of connections) {
+    if (!c.last_synced_at || now - c.last_synced_at.getTime() > SYNC_INTERVAL_MS) {
+      await db
+        .update(truelayerConnectionsTable)
+        .set({ last_synced_at: new Date() })
+        .where(eq(truelayerConnectionsTable.id, c.id));
+    }
+  }
+
   try {
     const result = await importFromTrueLayer();
     logger.info("truelayer.sync", "Sync completed", {
@@ -378,39 +363,41 @@ export async function getTrueLayerConnections() {
 export async function disconnectTrueLayer(connectionId: string) {
   const userId = await getCurrentUserId();
 
-  const linkedAccounts = await db
-    .select({ id: accountsTable.id })
-    .from(accountsTable)
-    .where(
-      and(
-        eq(accountsTable.truelayer_connection_id, connectionId),
-        eq(accountsTable.user_id, userId),
-      ),
-    );
+  await db.transaction(async (tx) => {
+    const linkedAccounts = await tx
+      .select({ id: accountsTable.id })
+      .from(accountsTable)
+      .where(
+        and(
+          eq(accountsTable.truelayer_connection_id, connectionId),
+          eq(accountsTable.user_id, userId),
+        ),
+      );
 
-  for (const account of linkedAccounts) {
-    await db
-      .delete(transactionsTable)
-      .where(eq(transactionsTable.account_id, account.id));
-  }
+    for (const account of linkedAccounts) {
+      await tx
+        .delete(transactionsTable)
+        .where(eq(transactionsTable.account_id, account.id));
+    }
 
-  await db
-    .delete(accountsTable)
-    .where(
-      and(
-        eq(accountsTable.truelayer_connection_id, connectionId),
-        eq(accountsTable.user_id, userId),
-      ),
-    );
+    await tx
+      .delete(accountsTable)
+      .where(
+        and(
+          eq(accountsTable.truelayer_connection_id, connectionId),
+          eq(accountsTable.user_id, userId),
+        ),
+      );
 
-  await db
-    .delete(truelayerConnectionsTable)
-    .where(
-      and(
-        eq(truelayerConnectionsTable.id, connectionId),
-        eq(truelayerConnectionsTable.user_id, userId),
-      ),
-    );
+    await tx
+      .delete(truelayerConnectionsTable)
+      .where(
+        and(
+          eq(truelayerConnectionsTable.id, connectionId),
+          eq(truelayerConnectionsTable.user_id, userId),
+        ),
+      );
+  });
 
   revalidateDomains('accounts');
 }

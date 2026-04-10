@@ -47,26 +47,26 @@ async function deleteUser(userId: string) {
     throw new Error(`Invalid UUID: ${userId}`);
   }
 
-  // Pre-fetch IDs needed for cascade deletions
-  const userAccounts = await db
-    .select({ id: accountsTable.id })
-    .from(accountsTable)
-    .where(eq(accountsTable.user_id, userId));
-  const accountIds = userAccounts.map((a) => a.id);
-
-  const userDebts = await db
-    .select({ id: debtsTable.id })
-    .from(debtsTable)
-    .where(eq(debtsTable.user_id, userId));
-  const debtIds = userDebts.map((d) => d.id);
-
-  const userHoldings = await db
-    .select({ id: manualHoldingsTable.id })
-    .from(manualHoldingsTable)
-    .where(eq(manualHoldingsTable.user_id, userId));
-  const holdingIds = userHoldings.map((h) => h.id);
-
   await db.transaction(async (tx) => {
+    // Gather IDs inside the transaction to prevent concurrent inserts from being missed
+    const userAccounts = await tx
+      .select({ id: accountsTable.id })
+      .from(accountsTable)
+      .where(eq(accountsTable.user_id, userId));
+    const accountIds = userAccounts.map((a) => a.id);
+
+    const userDebts = await tx
+      .select({ id: debtsTable.id })
+      .from(debtsTable)
+      .where(eq(debtsTable.user_id, userId));
+    const debtIds = userDebts.map((d) => d.id);
+
+    const userHoldings = await tx
+      .select({ id: manualHoldingsTable.id })
+      .from(manualHoldingsTable)
+      .where(eq(manualHoldingsTable.user_id, userId));
+    const holdingIds = userHoldings.map((h) => h.id);
+
     // --- Leaf / child records first ---
 
     // Transaction review flags

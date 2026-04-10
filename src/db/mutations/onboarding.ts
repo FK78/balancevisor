@@ -52,7 +52,7 @@ async function insertMissingDefaultCategories(userId: string) {
     }));
 
   if (rowsToInsert.length > 0) {
-    await db.insert(categoriesTable).values(rowsToInsert);
+    await db.insert(categoriesTable).values(rowsToInsert).onConflictDoNothing();
   }
 }
 

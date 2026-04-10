@@ -2,7 +2,7 @@
 
 import { db } from '@/index';
 import { goalsTable } from '@/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { revalidateDomains } from '@/lib/revalidate';
 import { getCurrentUserId } from '@/lib/auth';
 import { requireString, sanitizeNumber, sanitizeDate, sanitizeString, sanitizeColor } from '@/lib/sanitize';
@@ -49,7 +49,7 @@ export async function editGoal(id: string, formData: FormData) {
     target_date,
     icon,
     color,
-  }).where(eq(goalsTable.id, id));
+  }).where(and(eq(goalsTable.id, id), eq(goalsTable.user_id, userId)));
   revalidateDomains('goals');
 }
 
@@ -58,7 +58,7 @@ export async function deleteGoal(id: string) {
 
   await requireOwnership(goalsTable, id, userId, 'goal');
 
-  await db.delete(goalsTable).where(eq(goalsTable.id, id));
+  await db.delete(goalsTable).where(and(eq(goalsTable.id, id), eq(goalsTable.user_id, userId)));
   revalidateDomains('goals');
 }
 
@@ -73,6 +73,6 @@ export async function contributeToGoal(id: string, amount: number) {
 
   await db.update(goalsTable).set({
     saved_amount: sql`${goalsTable.saved_amount} + ${amount}`,
-  }).where(eq(goalsTable.id, id));
+  }).where(and(eq(goalsTable.id, id), eq(goalsTable.user_id, userId)));
   revalidateDomains('goals');
 }

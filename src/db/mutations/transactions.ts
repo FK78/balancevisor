@@ -133,13 +133,6 @@ export async function editTransaction(formData: FormData) {
   const canEdit = await hasEditAccess(userId, userEmail, 'account', newAccountId);
   if (!canEdit) throw new Error('You do not have access to this account');
 
-  // Fetch old transaction to reverse its balance effect
-  const [old] = await db.select({
-    type: transactionsTable.type,
-    amount: transactionsTable.amount,
-    account_id: transactionsTable.account_id,
-  }).from(transactionsTable).where(eq(transactionsTable.id, id));
-
   const isRecurring = formData.get('is_recurring') === 'true';
   const recurringPattern = isRecurring
     ? sanitizeEnum(formData.get('recurring_pattern') as string, ['daily', 'weekly', 'biweekly', 'monthly', 'yearly'] as const, 'monthly')
@@ -153,6 +146,13 @@ export async function editTransaction(formData: FormData) {
   const userKey = await getUserKey(userId);
 
   const result = await db.transaction(async (tx) => {
+    // Fetch old transaction inside the transaction to prevent stale-read race
+    const [old] = await tx.select({
+      type: transactionsTable.type,
+      amount: transactionsTable.amount,
+      account_id: transactionsTable.account_id,
+    }).from(transactionsTable).where(eq(transactionsTable.id, id));
+
     const editRefundId = sanitizeUUID(formData.get('refund_for_transaction_id') as string);
     const [updated] = await tx.update(transactionsTable).set({
       type: newType,
@@ -247,33 +247,33 @@ export async function deleteTransaction(id: string) {
   const userId = await getCurrentUserId();
   const userEmail = await getCurrentUserEmail();
 
-  // Fetch transaction along with the owning account to verify access
-  const [txn] = await db.select({
-    type: transactionsTable.type,
-    amount: transactionsTable.amount,
-    account_id: transactionsTable.account_id,
-    transfer_account_id: transactionsTable.transfer_account_id,
-    account_user_id: accountsTable.user_id,
-  }).from(transactionsTable)
-    .leftJoin(accountsTable, eq(accountsTable.id, transactionsTable.account_id))
-    .where(eq(transactionsTable.id, id));
-
-  if (!txn) {
-    throw new Error('Transaction not found');
-  }
-
-  // Verify the user owns the account or has edit access
-  if (txn.account_id) {
-    const canEdit = await hasEditAccess(userId, userEmail, 'account', txn.account_id);
-    if (!canEdit) {
-      throw new Error('You do not have access to this transaction');
-    }
-  }
-
   await db.transaction(async (tx) => {
+    // Fetch transaction inside the transaction to prevent stale-read race
+    const [txn] = await tx.select({
+      type: transactionsTable.type,
+      amount: transactionsTable.amount,
+      account_id: transactionsTable.account_id,
+      transfer_account_id: transactionsTable.transfer_account_id,
+      account_user_id: accountsTable.user_id,
+    }).from(transactionsTable)
+      .leftJoin(accountsTable, eq(accountsTable.id, transactionsTable.account_id))
+      .where(eq(transactionsTable.id, id));
+
+    if (!txn) {
+      throw new Error('Transaction not found');
+    }
+
+    // Verify the user owns the account or has edit access
+    if (txn.account_id) {
+      const canEdit = await hasEditAccess(userId, userEmail, 'account', txn.account_id);
+      if (!canEdit) {
+        throw new Error('You do not have access to this transaction');
+      }
+    }
+
     await tx.delete(transactionsTable).where(eq(transactionsTable.id, id));
 
-    if (txn?.type === 'transfer') {
+    if (txn.type === 'transfer') {
       // Reverse transfer: add back to source, deduct from destination
       if (txn.account_id) {
         await tx.update(accountsTable)
@@ -285,7 +285,7 @@ export async function deleteTransaction(id: string) {
           .set({ balance: sql`${accountsTable.balance} - ${txn.amount}` })
           .where(eq(accountsTable.id, txn.transfer_account_id));
       }
-    } else if (txn?.account_id) {
+    } else if (txn.account_id) {
       await tx.update(accountsTable)
         .set({ balance: sql`${accountsTable.balance} - ${balanceDelta(txn.type, txn.amount)}` })
         .where(eq(accountsTable.id, txn.account_id));

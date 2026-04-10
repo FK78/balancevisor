@@ -42,7 +42,7 @@ export async function editBudget(id: string, formData: FormData) {
     amount,
     period,
     start_date,
-  }).where(eq(budgetsTable.id, id));
+  }).where(and(eq(budgetsTable.id, id), eq(budgetsTable.user_id, userId)));
 
   revalidateDomains('budgets');
 }
@@ -53,7 +53,7 @@ export async function deleteBudget(id: string) {
   await requireOwnership(budgetsTable, id, userId, 'budget');
 
   await db.delete(sharedAccessTable).where(and(eq(sharedAccessTable.resource_type, 'budget'), eq(sharedAccessTable.resource_id, id)));
-  await db.delete(budgetsTable).where(eq(budgetsTable.id, id));
+  await db.delete(budgetsTable).where(and(eq(budgetsTable.id, id), eq(budgetsTable.user_id, userId)));
 
   revalidateDomains('budgets');
 }

@@ -7,9 +7,44 @@ import {
   transactionsTable,
 } from '@/db/schema';
 import { eq, sum, and, gte, lt, inArray } from 'drizzle-orm';
-import { createNotification } from '@/db/mutations/budget-alerts';
 import { sendBudgetAlertEmail } from '@/lib/email';
 import { createClient } from '@/lib/supabase/server';
+
+/**
+ * Atomically create a budget notification only if one with the same
+ * (user, budget, alert_type) doesn't already exist this month.
+ * Returns the new notification ID, or null if it was a duplicate.
+ */
+async function createNotificationIfNotExists(
+  userId: string,
+  budgetId: string,
+  alertType: 'threshold_warning' | 'over_budget',
+  message: string,
+): Promise<{ id: string } | null> {
+  return db.transaction(async (tx) => {
+    const { start } = getMonthRange();
+    const [existing] = await tx.select({ id: budgetNotificationsTable.id })
+      .from(budgetNotificationsTable)
+      .where(and(
+        eq(budgetNotificationsTable.user_id, userId),
+        eq(budgetNotificationsTable.budget_id, budgetId),
+        eq(budgetNotificationsTable.alert_type, alertType),
+        gte(budgetNotificationsTable.created_at, new Date(start)),
+      ))
+      .limit(1);
+
+    if (existing) return null;
+
+    const [row] = await tx.insert(budgetNotificationsTable).values({
+      user_id: userId,
+      budget_id: budgetId,
+      alert_type: alertType,
+      message,
+    }).returning({ id: budgetNotificationsTable.id });
+
+    return row;
+  });
+}
 
 function getMonthRange(monthsAgo = 0) {
   const now = new Date();
@@ -136,50 +171,54 @@ export async function checkBudgetAlerts(userId: string): Promise<TriggeredAlert[
       const already = recentKeys.has(`${b.budgetId}:over_budget`);
       if (!already) {
         const message = `You've exceeded your ${b.categoryName} budget! Spent ${percent.toFixed(0)}% of your ${b.categoryName} budget.`;
-        await createNotification(userId, b.budgetId, 'over_budget', message);
-        triggered.push({
-          budgetId: b.budgetId,
-          alertType: 'over_budget',
-          message,
-          emailAlerts: b.emailAlerts,
-        });
+        const created = await createNotificationIfNotExists(userId, b.budgetId, 'over_budget', message);
+        if (created) {
+          triggered.push({
+            budgetId: b.budgetId,
+            alertType: 'over_budget',
+            message,
+            emailAlerts: b.emailAlerts,
+          });
 
-        if (b.emailAlerts && userEmail) {
-          await sendBudgetAlertEmail(
-            userEmail,
-            `${b.categoryName} budget exceeded`,
-            'over_budget',
-            b.categoryName,
-            percent,
-            b.budgetAmount,
-            b.spent,
-            'USD',
-          );
+          if (b.emailAlerts && userEmail) {
+            await sendBudgetAlertEmail(
+              userEmail,
+              `${b.categoryName} budget exceeded`,
+              'over_budget',
+              b.categoryName,
+              percent,
+              b.budgetAmount,
+              b.spent,
+              'USD',
+            );
+          }
         }
       }
     } else if (percent >= b.threshold) {
       const already = recentKeys.has(`${b.budgetId}:threshold_warning`);
       if (!already) {
         const message = `Heads up — you've used ${percent.toFixed(0)}% of your ${b.categoryName} budget.`;
-        await createNotification(userId, b.budgetId, 'threshold_warning', message);
-        triggered.push({
-          budgetId: b.budgetId,
-          alertType: 'threshold_warning',
-          message,
-          emailAlerts: b.emailAlerts,
-        });
+        const created = await createNotificationIfNotExists(userId, b.budgetId, 'threshold_warning', message);
+        if (created) {
+          triggered.push({
+            budgetId: b.budgetId,
+            alertType: 'threshold_warning',
+            message,
+            emailAlerts: b.emailAlerts,
+          });
 
-        if (b.emailAlerts && userEmail) {
-          await sendBudgetAlertEmail(
-            userEmail,
-            `${b.categoryName} budget at ${percent.toFixed(0)}%`,
-            'threshold_warning',
-            b.categoryName,
-            percent,
-            b.budgetAmount,
-            b.spent,
-            'USD',
-          );
+          if (b.emailAlerts && userEmail) {
+            await sendBudgetAlertEmail(
+              userEmail,
+              `${b.categoryName} budget at ${percent.toFixed(0)}%`,
+              'threshold_warning',
+              b.categoryName,
+              percent,
+              b.budgetAmount,
+              b.spent,
+              'USD',
+            );
+          }
         }
       }
     }
