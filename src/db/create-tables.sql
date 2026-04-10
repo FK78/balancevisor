@@ -222,18 +222,7 @@ CREATE TABLE budget_alert_preferences (
   email_alerts   BOOLEAN NOT NULL DEFAULT FALSE
 );
 
--- 14. trading212_connections (FK → accounts)
-CREATE TABLE trading212_connections (
-  id                   UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id              UUID        NOT NULL UNIQUE,
-  api_key_encrypted    TEXT        NOT NULL,
-  api_secret_encrypted TEXT        NOT NULL DEFAULT '',
-  environment          VARCHAR(10) NOT NULL DEFAULT 'live',
-  account_id           UUID REFERENCES accounts(id) ON DELETE SET NULL,
-  connected_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- 15. broker_connections (FK → accounts)
+-- 14. broker_connections (FK → accounts)
 CREATE TABLE broker_connections (
   id                    UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id               UUID         NOT NULL,

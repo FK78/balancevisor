@@ -109,7 +109,6 @@ async function deleteUser(userId: string) {
     await tx.delete(investmentGroupsTable).where(eq(investmentGroupsTable.user_id, userId));
     await tx.delete(manualHoldingsTable).where(eq(manualHoldingsTable.user_id, userId));
     await tx.delete(brokerConnectionsTable).where(eq(brokerConnectionsTable.user_id, userId));
-    await tx.delete(trading212ConnectionsTable).where(eq(trading212ConnectionsTable.user_id, userId));
     await tx.delete(zakatCalculationsTable).where(eq(zakatCalculationsTable.user_id, userId));
     await tx.delete(zakatSettingsTable).where(eq(zakatSettingsTable.user_id, userId));
     await tx.delete(debtsTable).where(eq(debtsTable.user_id, userId));

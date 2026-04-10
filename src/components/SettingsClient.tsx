@@ -41,6 +41,7 @@ import { toast } from "sonner";
 import { useTheme } from "@/components/ThemeProvider";
 import { toDateString } from "@/lib/date";
 import { MFASettings } from "@/components/MFASettings";
+import { ChangePasswordForm } from "@/components/ChangePasswordForm";
 import { ImportDataDialog } from "@/components/ImportDataDialog";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -418,7 +419,9 @@ export function SettingsClient({
             Manage your account security settings
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
+          <ChangePasswordForm email={email} />
+          <hr className="border-border" />
           <MFASettings />
         </CardContent>
       </Card>

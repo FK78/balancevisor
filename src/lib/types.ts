@@ -20,7 +20,6 @@ import type {
   manualHoldingsTable,
   holdingSalesTable,
   truelayerConnectionsTable,
-  trading212ConnectionsTable,
   brokerConnectionsTable,
   userOnboardingTable,
   budgetAlertPreferencesTable,
@@ -77,9 +76,6 @@ export type NewHoldingSale = InferInsertModel<typeof holdingSalesTable>;
 
 export type TrueLayerConnection = InferSelectModel<typeof truelayerConnectionsTable>;
 export type NewTrueLayerConnection = InferInsertModel<typeof truelayerConnectionsTable>;
-
-export type Trading212Connection = InferSelectModel<typeof trading212ConnectionsTable>;
-export type NewTrading212Connection = InferInsertModel<typeof trading212ConnectionsTable>;
 
 export type BrokerConnection = InferSelectModel<typeof brokerConnectionsTable>;
 export type NewBrokerConnection = InferInsertModel<typeof brokerConnectionsTable>;
