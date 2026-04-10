@@ -8,6 +8,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentUserId } from '@/lib/auth';
 import { DEFAULT_BASE_CURRENCY, normalizeBaseCurrency } from '@/lib/currency';
 import { createUserKey } from '@/lib/encryption';
+import { buildOnboardingHref } from '@/lib/onboarding-flow';
 
 async function upsertOnboardingState(userId: string, updates: Partial<{
   base_currency: string;
@@ -79,8 +80,7 @@ export async function setBaseCurrency(formData: FormData) {
 
   revalidateDomains('onboarding', 'accounts', 'budgets', 'transactions');
   const ai = formData.get('ai_enabled');
-  const aiParam = ai === '0' ? '&ai=0' : '';
-  redirect(`/onboarding?step=accounts${aiParam}`);
+  redirect(buildOnboardingHref('setup', { aiEnabled: ai !== '0' }));
 }
 
 export async function continueFromCategories(formData: FormData) {
@@ -100,12 +100,12 @@ export async function continueFromCategories(formData: FormData) {
 
   revalidateDomains('onboarding');
   const ai = formData.get('ai_enabled');
-  const aiParam = ai === '0' ? '&ai=0' : '';
+  const aiEnabled = ai !== '0';
   if (intent === 'apply') {
-    redirect(`/onboarding?step=categories${aiParam}`);
+    redirect(buildOnboardingHref('setup', { aiEnabled }));
   }
 
-  redirect(`/onboarding?step=features${aiParam}`);
+  redirect(buildOnboardingHref('review', { aiEnabled }));
 }
 
 const FEATURE_ROUTES: Record<string, string> = {

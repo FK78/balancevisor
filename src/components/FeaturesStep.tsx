@@ -1,51 +1,45 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Sparkles } from "lucide-react";
 import { InterestPicker } from "@/components/InterestPicker";
-import { ArrowRight } from "lucide-react";
 
 interface FeaturesStepProps {
   aiEnabled: boolean;
+  selectedFeatures: string[];
+  onChange: (features: string[]) => void;
 }
 
-export function FeaturesStep({ aiEnabled }: FeaturesStepProps) {
-  const router = useRouter();
-  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
-
-  const buildReviewUrl = (features: string[]) => {
-    const params = new URLSearchParams({ step: "review" });
-    if (features.length > 0) params.set("features", features.join(","));
-    if (!aiEnabled) params.set("ai", "0");
-    return `/onboarding?${params.toString()}`;
-  };
-
+export function FeaturesStep({
+  aiEnabled,
+  selectedFeatures,
+  onChange,
+}: FeaturesStepProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>What would you like to set up?</CardTitle>
-        <CardDescription>
-          Select the features you want to configure now. You can skip and add them later.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <InterestPicker
-          selectedFeatures={selectedFeatures}
-          onChange={setSelectedFeatures}
-        />
-
-        <div className="flex gap-2">
-          <Button onClick={() => router.push(buildReviewUrl(selectedFeatures))}>
-            {selectedFeatures.length > 0 ? "Set up selected" : "Continue to review"}
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-          <Button variant="outline" onClick={() => router.push(buildReviewUrl([]))}>
-            Skip for now
-          </Button>
+    <div className="space-y-4">
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--workspace-accent)_18%,white)] text-[var(--workspace-shell)]">
+          <Sparkles className="h-4 w-4" />
         </div>
-      </CardContent>
-    </Card>
+        <div className="space-y-1">
+          <h3 className="text-lg font-semibold tracking-tight text-foreground">
+            What do you want help with next?
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Pick the areas you care about most. We&apos;ll use them to shape your first destination after onboarding.
+          </p>
+        </div>
+      </div>
+
+      {!aiEnabled && (
+        <div className="rounded-2xl border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_34%,white)] p-4 text-sm text-muted-foreground">
+          AI-assisted insights stay off, but you can still choose the areas you want to set up first.
+        </div>
+      )}
+
+      <InterestPicker
+        selectedFeatures={selectedFeatures}
+        onChange={onChange}
+      />
+    </div>
   );
 }

@@ -74,9 +74,16 @@ export function AccountQuickAdd({ currency, onAddAccount, existingAccounts }: Ac
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Quick add common accounts, or create a custom one.
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">
+          Start with a common account template, then add anything custom underneath.
+        </p>
+        {existingAccounts.length > 0 && (
+          <span className="rounded-full bg-[color-mix(in_srgb,var(--workspace-muted-surface)_44%,white)] px-3 py-1 text-xs font-medium text-foreground">
+            {existingAccounts.length} ready
+          </span>
+        )}
+      </div>
 
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -88,15 +95,24 @@ export function AccountQuickAdd({ currency, onAddAccount, existingAccounts }: Ac
               <div
                 key={template.id}
                 className={cn(
-                  "flex flex-col items-center gap-2 rounded-xl border p-4 text-center transition-all duration-200",
+                  "flex flex-col items-center gap-2 rounded-[1.35rem] border p-4 text-center transition-all duration-200",
                   alreadyAdded
-                    ? "opacity-50 bg-muted/50"
+                    ? "border-[var(--workspace-card-border)] bg-muted/50 opacity-55"
                     : isEditing
-                      ? "border-primary/30 bg-primary/5"
-                      : "hover:bg-accent hover:border-primary/30"
+                      ? "border-[var(--workspace-shell)]/30 bg-[color-mix(in_srgb,var(--workspace-shell)_7%,white)] shadow-sm"
+                      : "border-[var(--workspace-card-border)] bg-background hover:border-[var(--workspace-shell)]/22 hover:bg-accent/40"
                 )}
               >
-                <Icon className={cn("h-6 w-6", alreadyAdded ? "text-muted-foreground" : isEditing ? "text-primary" : "text-muted-foreground")} />
+                <div className={cn(
+                  "flex h-11 w-11 items-center justify-center rounded-2xl",
+                  alreadyAdded
+                    ? "bg-muted"
+                    : isEditing
+                      ? "bg-[color-mix(in_srgb,var(--workspace-accent)_18%,white)]"
+                      : "bg-muted/70",
+                )}>
+                  <Icon className={cn("h-5 w-5", alreadyAdded ? "text-muted-foreground" : isEditing ? "text-[var(--workspace-shell)]" : "text-muted-foreground")} />
+                </div>
                 <span className="text-xs font-medium">{template.name}</span>
                 {alreadyAdded ? (
                   <span className="text-[10px] text-muted-foreground">Added</span>
@@ -161,7 +177,7 @@ export function AccountQuickAdd({ currency, onAddAccount, existingAccounts }: Ac
           Add custom account
         </Button>
       ) : (
-        <form onSubmit={handleCustomSubmit} className="space-y-4 rounded-xl bg-muted/30 p-4">
+        <form onSubmit={handleCustomSubmit} className="space-y-4 rounded-[1.5rem] border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_34%,white)] p-4">
           <div className="grid gap-2">
             <Label htmlFor="custom-name">Account Name</Label>
             <Input
@@ -211,16 +227,26 @@ export function AccountQuickAdd({ currency, onAddAccount, existingAccounts }: Ac
       {existingAccounts.length > 0 && (
         <div className="space-y-2">
           <p className="text-sm font-medium">Your accounts</p>
-          <div className="space-y-2">
+          <div className="grid gap-2 sm:grid-cols-2">
             {existingAccounts.map((account) => (
-              <div key={account.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{account.accountName}</span>
-                  <span className="text-xs text-muted-foreground capitalize">({account.type})</span>
+              <div
+                key={account.id}
+                className="rounded-2xl border border-[var(--workspace-card-border)] bg-background p-4 text-sm shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="font-medium text-foreground">{account.accountName}</p>
+                    <p className="text-xs capitalize text-muted-foreground">
+                      {account.type}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-[color-mix(in_srgb,var(--workspace-muted-surface)_44%,white)] px-2.5 py-1 text-[11px] font-medium text-foreground">
+                    Ready
+                  </span>
                 </div>
-                <span className="text-muted-foreground">
+                <p className="mt-4 text-base font-semibold tabular-nums text-foreground">
                   {account.balance.toLocaleString("en-GB", { style: "currency", currency })}
-                </span>
+                </p>
               </div>
             ))}
           </div>

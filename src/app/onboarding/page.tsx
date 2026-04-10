@@ -1,6 +1,4 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { OnboardingCategoryForm } from "@/components/OnboardingCategoryForm";
 import { getCurrentUserId } from "@/lib/auth";
@@ -17,37 +15,20 @@ import { addAccount } from "@/db/mutations/accounts";
 import { addCategory } from "@/db/mutations/categories";
 import {
   continueFromCategories,
+  skipOnboarding,
 } from "@/db/mutations/onboarding";
 import { normalizeBaseCurrency, SUPPORTED_BASE_CURRENCIES } from "@/lib/currency";
 import { OnboardingLayout } from "@/components/OnboardingLayout";
+import { OnboardingSetupStage } from "@/components/OnboardingSetupStage";
 import { AccountQuickAdd } from "@/components/AccountQuickAdd";
 import { CategorySelector } from "@/components/CategorySelector";
-import { FeaturesStep } from "@/components/FeaturesStep";
 import { WelcomeStep } from "@/components/WelcomeStep";
 import { ReviewStep } from "@/components/ReviewStep";
-import { ArrowRight } from "lucide-react";
-
-type Step = "welcome" | "accounts" | "categories" | "features" | "review";
-
-const ALL_STEPS: Step[] = ["welcome", "accounts", "categories", "features", "review"];
-
-const STEP_NAMES: Record<Step, string> = {
-  welcome: "Welcome",
-  accounts: "Accounts",
-  categories: "Categories",
-  features: "Features",
-  review: "Review",
-};
-
-function normalizeStep(value?: string): Step {
-  if (ALL_STEPS.includes(value as Step)) return value as Step;
-  return "welcome";
-}
-
-async function addOnboardingAccount(formData: FormData) {
-  "use server";
-  await addAccount(formData);
-}
+import {
+  buildOnboardingHref,
+  normalizeOnboardingStage,
+  ONBOARDING_STAGE_META,
+} from "@/lib/onboarding-flow";
 
 async function addOnboardingCategory(formData: FormData) {
   "use server";
@@ -57,13 +38,15 @@ async function addOnboardingCategory(formData: FormData) {
 export default async function OnboardingPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ step?: string; ai?: string; features?: string }>;
+  searchParams?: Promise<{ step?: string; stage?: string; ai?: string; features?: string }>;
 }) {
   const userId = await getCurrentUserId();
   const resolvedSearchParams = await searchParams;
-  const step = normalizeStep(resolvedSearchParams?.step);
+  const stage = normalizeOnboardingStage(
+    resolvedSearchParams?.stage,
+    resolvedSearchParams?.step,
+  );
   const aiEnabled = resolvedSearchParams?.ai !== "0";
-  const aiParam = !aiEnabled ? "&ai=0" : "";
 
   const [onboardingState, accounts, categories, budgets, goals, debts, subscriptions, defaultTemplates] =
     await Promise.all([
@@ -83,30 +66,35 @@ export default async function OnboardingPage({
   if (onboardingState?.completed) {
     redirect("/dashboard");
   }
-
-  const defaultCategoryPreference = onboardingState?.use_default_categories ?? false;
   const baseCurrency = normalizeBaseCurrency(onboardingState?.base_currency);
-
-  const currentStepIndex = ALL_STEPS.indexOf(step);
 
   const selectedFeatures = resolvedSearchParams?.features
     ? resolvedSearchParams.features.split(",").filter(Boolean)
     : [];
-
-  const navigateToStep = (targetStep: Step) => {
-    return `/onboarding?step=${targetStep}${aiParam}`;
-  };
+  const stageMeta = ONBOARDING_STAGE_META.find((item) => item.value === stage)!;
+  const canUseTopSkip = stage !== "basics";
+  const skipAction = canUseTopSkip ? (
+    <form
+      action={async () => {
+        "use server";
+        await skipOnboarding(aiEnabled);
+      }}
+    >
+      <Button type="submit" variant="ghost" size="sm">
+        Skip
+      </Button>
+    </form>
+  ) : undefined;
 
   return (
     <OnboardingLayout
-      currentStep={currentStepIndex + 1}
-      totalSteps={ALL_STEPS.length}
-      stepName={STEP_NAMES[step]}
-      skipHref="/dashboard"
-      canSkip={step !== "welcome"}
+      currentStage={stage}
+      stageTitle={stageMeta.title}
+      stageDescription={stageMeta.description}
+      skipAction={skipAction}
+      canSkip={canUseTopSkip}
     >
-      {/* Welcome Step */}
-      {step === "welcome" && (
+      {stage === "basics" && (
         <WelcomeStep
           baseCurrency={baseCurrency}
           supportedCurrencies={SUPPORTED_BASE_CURRENCIES}
@@ -114,22 +102,15 @@ export default async function OnboardingPage({
         />
       )}
 
-      {/* Accounts Step */}
-      {step === "accounts" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Add your accounts</CardTitle>
-            <CardDescription>
-              Add the accounts you want to track. You can always add more later.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <form action={addOnboardingAccount} className="hidden">
-              <input type="hidden" name="name" id="hidden-name" />
-              <input type="hidden" name="type" id="hidden-type" />
-              <input type="hidden" name="balance" id="hidden-balance" />
-            </form>
-
+      {stage === "setup" && (
+        <OnboardingSetupStage
+          aiEnabled={aiEnabled}
+          accountsCount={accounts.length}
+          categoriesCount={categories.length}
+          initialSelectedFeatures={selectedFeatures}
+          backHref={buildOnboardingHref("basics", { aiEnabled })}
+          reviewBaseHref={buildOnboardingHref("review", { aiEnabled })}
+          accountsSection={(
             <AccountQuickAdd
               currency={baseCurrency}
               onAddAccount={async (data) => {
@@ -142,37 +123,9 @@ export default async function OnboardingPage({
               }}
               existingAccounts={accounts}
             />
-
-            <div className="flex gap-2 pt-2">
-              <Button asChild>
-                <Link href={navigateToStep("categories")}>
-                  Continue
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-              {accounts.length === 0 && (
-                <Button asChild variant="outline">
-                  <Link href={navigateToStep("categories")}>
-                    Skip for now
-                  </Link>
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Categories Step */}
-      {step === "categories" && (
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Set up categories</CardTitle>
-              <CardDescription>
-                Categories help you organize and track your spending.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          )}
+          categoriesSection={(
+            <div className="space-y-4">
               <CategorySelector
                 templates={defaultTemplates}
                 existingCategories={categories}
@@ -187,43 +140,13 @@ export default async function OnboardingPage({
                 canAddDefaults={categories.length < defaultTemplates.length}
               />
 
-              <form action={continueFromCategories} className="flex flex-wrap gap-2">
-                <input type="hidden" name="use_default_categories" value={defaultCategoryPreference ? "on" : ""} />
-                {!aiEnabled && <input type="hidden" name="ai_enabled" value="0" />}
-                <Button type="submit" name="intent" value="continue">
-                  Continue
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-                {categories.length === 0 && (
-                  <Button type="submit" name="intent" value="continue" variant="outline">
-                    Skip for now
-                  </Button>
-                )}
-              </form>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Add custom category</CardTitle>
-              <CardDescription>
-                Create your own categories with custom colors and icons.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
               <OnboardingCategoryForm action={addOnboardingCategory} />
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          )}
+        />
       )}
 
-      {/* Features Step */}
-      {step === "features" && (
-        <FeaturesStep aiEnabled={aiEnabled} />
-      )}
-
-      {/* Review Step */}
-      {step === "review" && (
+      {stage === "review" && (
         <ReviewStep
           accountsCount={accounts.length}
           categoriesCount={categories.length}
@@ -233,6 +156,10 @@ export default async function OnboardingPage({
           subscriptionsCount={subscriptions.length}
           selectedFeatures={selectedFeatures}
           aiEnabled={aiEnabled}
+          backHref={buildOnboardingHref("setup", {
+            aiEnabled,
+            features: selectedFeatures,
+          })}
         />
       )}
     </OnboardingLayout>

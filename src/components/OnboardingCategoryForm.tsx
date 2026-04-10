@@ -21,9 +21,16 @@ export function OnboardingCategoryForm({ action }: { action: AddCategoryAction }
   }, [iconSearch]);
 
   return (
-    <form action={action} className="grid gap-4 rounded-xl bg-muted/30 p-4">
+    <form action={action} className="grid gap-4 rounded-[1.5rem] border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_34%,white)] p-4">
       <input type="hidden" name="color" value={selectedColor} />
       <input type="hidden" name="icon" value={selectedIcon ?? ""} />
+
+      <div className="space-y-1">
+        <p className="text-sm font-semibold text-foreground">Add a custom category</p>
+        <p className="text-sm text-muted-foreground">
+          Use this when the default set doesn&apos;t cover how you organise your money.
+        </p>
+      </div>
 
       <div className="grid gap-2">
         <Label htmlFor="category-name">Name</Label>

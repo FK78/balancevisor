@@ -84,10 +84,10 @@ export function InterestPicker({ defaultSelected = [], selectedFeatures: control
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Select what you&apos;d like to set up now. You can always add more later.
+        Select the features you&apos;d like to focus on first. You can always add more later.
       </p>
 
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         {FEATURE_OPTIONS.map((option) => {
           const isSelected = features.includes(option.id);
           const Icon = option.icon;
@@ -96,17 +96,19 @@ export function InterestPicker({ defaultSelected = [], selectedFeatures: control
               key={option.id}
               type="button"
               className={cn(
-                "flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-all duration-200",
+                "flex w-full items-center gap-3 rounded-[1.35rem] border p-4 text-left transition-all duration-200",
                 isSelected
-                  ? "border-primary/30 bg-primary/5"
-                  : "hover:bg-accent hover:border-primary/20"
+                  ? "border-[var(--workspace-shell)]/25 bg-[color-mix(in_srgb,var(--workspace-shell)_8%,white)] shadow-sm"
+                  : "border-[var(--workspace-card-border)] bg-background hover:border-[var(--workspace-shell)]/20 hover:bg-accent/40"
               )}
               onClick={() => toggleFeature(option.id)}
             >
               <div
                 className={cn(
-                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
-                  isSelected ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                  "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
+                  isSelected
+                    ? "bg-[color-mix(in_srgb,var(--workspace-accent)_18%,white)] text-[var(--workspace-shell)]"
+                    : "bg-muted text-muted-foreground"
                 )}
               >
                 <Icon className="h-5 w-5" />
@@ -117,9 +119,9 @@ export function InterestPicker({ defaultSelected = [], selectedFeatures: control
               </div>
               <div
                 className={cn(
-                  "flex h-5 w-5 shrink-0 items-center justify-center rounded-sm border transition-all",
+                  "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-all",
                   isSelected
-                    ? "border-primary bg-primary text-primary-foreground"
+                    ? "border-[var(--workspace-shell)] bg-[var(--workspace-shell)] text-[var(--workspace-shell-foreground)]"
                     : "border-input"
                 )}
               >
