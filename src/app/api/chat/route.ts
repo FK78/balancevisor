@@ -15,6 +15,9 @@ import { getMonthRange } from "@/lib/date";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { rateLimiters } from "@/lib/rate-limiter";
 import { getPostHogClient } from "@/lib/posthog-server";
+import { z } from "zod";
+import { parseJsonBody } from "@/lib/api-errors";
+import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   // Rate limit by user ID (already authenticated)
@@ -35,7 +38,16 @@ export async function POST(req: Request) {
   const posthog = getPostHogClient();
   posthog.capture({ distinctId: userId, event: "ai_chat_used" });
 
-  const { messages } = await req.json();
+  const bodySchema = z.object({
+    messages: z.array(z.object({
+      id: z.string(),
+      role: z.enum(["user", "assistant", "system"]),
+    }).passthrough()).min(1, "At least one message is required"),
+  });
+
+  const body = await parseJsonBody(req, bodySchema);
+  if (body instanceof NextResponse) return body;
+  const messages = body.messages as unknown as UIMessage[];
   const thisMonth = getMonthRange(0);
   const lastMonth = getMonthRange(1);
 

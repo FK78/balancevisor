@@ -5,6 +5,7 @@ import { getCurrentUserId } from "@/lib/auth";
 import { enrichTransactions } from "@/lib/transaction-intelligence";
 import { autoApplyBudgetSuggestions } from "@/lib/budget-auto-apply";
 import { logger } from "@/lib/logger";
+import { z } from "zod";
 
 const COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
 
@@ -18,8 +19,9 @@ export async function POST(req: Request) {
   const userId = await getCurrentUserId();
 
   try {
-    const body = await req.json().catch(() => ({}));
-    const force = body?.force === true;
+    const bodySchema = z.object({ force: z.boolean().optional().default(false) });
+    const raw = await req.json().catch(() => ({}));
+    const { force } = bodySchema.parse(raw);
 
     const now = new Date();
 

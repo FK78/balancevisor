@@ -4,15 +4,23 @@ import { getCurrentUserId } from "@/lib/auth";
 import { guardAiEnabled } from "@/lib/ai-guard";
 import { rateLimiters } from "@/lib/rate-limiter";
 import type { SpendingPattern } from "@/lib/spending-patterns";
+import { z } from "zod";
+import { parseJsonBody } from "@/lib/api-errors";
+import { NextResponse } from "next/server";
 
 // ---------------------------------------------------------------------------
 // AI copy generation for funny milestone cards
 // ---------------------------------------------------------------------------
 
-interface RequestBody {
-  patterns: SpendingPattern[];
-  currency: string;
-}
+const requestBodySchema = z.object({
+  patterns: z.array(z.object({
+    type: z.string(),
+    label: z.string(),
+    total: z.number(),
+    count: z.number(),
+  }).passthrough()).min(1, "At least one pattern is required"),
+  currency: z.string().min(1).max(10).default("GBP"),
+});
 
 interface FunnyCopy {
   title: string;
@@ -35,19 +43,12 @@ export async function POST(req: Request) {
     );
   }
 
-  let body: RequestBody;
-  try {
-    body = await req.json();
-  } catch {
-    return new Response(JSON.stringify({ error: "Invalid request body." }), { status: 400, headers: { "Content-Type": "application/json" } });
-  }
+  const body = await parseJsonBody(req, requestBodySchema);
+  if (body instanceof NextResponse) return body;
 
-  if (!Array.isArray(body.patterns) || body.patterns.length === 0) {
-    return new Response(JSON.stringify({ error: "No patterns provided." }), { status: 400, headers: { "Content-Type": "application/json" } });
-  }
-
-  const patternsJson = JSON.stringify(body.patterns);
-  const currency = body.currency ?? "GBP";
+  const patterns = body.patterns as unknown as SpendingPattern[];
+  const patternsJson = JSON.stringify(patterns);
+  const currency = body.currency;
 
   const { text } = await generateText({
     model: groq("llama-3.3-70b-versatile"),
@@ -76,7 +77,7 @@ Rules:
     const cleaned = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
     parsed = JSON.parse(cleaned);
     if (!Array.isArray(parsed)) throw new Error("Not an array");
-    parsed = parsed.slice(0, body.patterns.length).map((item) => ({
+    parsed = parsed.slice(0, patterns.length).map((item) => ({
       title: String(item.title ?? "").slice(0, 50),
       subtitle: String(item.subtitle ?? "").slice(0, 80),
       stat: String(item.stat ?? "").slice(0, 20),

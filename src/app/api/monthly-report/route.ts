@@ -1,13 +1,15 @@
 import { withAiRoute } from "@/lib/ai-route";
 import { getMonthlyReportData, formatMonthlyReportContext } from "@/lib/monthly-report-data";
 import { rateLimiters } from "@/lib/rate-limiter";
+import { z } from "zod";
 
 export const POST = withAiRoute({
   limiter: rateLimiters.monthlyReport,
   event: "monthly_report_generated",
   buildContext: async (userId, req) => {
-    const body = await req.json().catch(() => ({}));
-    const monthsAgo = Math.max(0, Math.min(11, Math.floor(Number(body?.monthsAgo ?? 1))));
+    const bodySchema = z.object({ monthsAgo: z.number().int().min(0).max(11).default(1) });
+    const raw = await req.json().catch(() => ({}));
+    const { monthsAgo } = bodySchema.parse(raw);
 
     const data = await getMonthlyReportData(userId, monthsAgo);
     const context = formatMonthlyReportContext(data);

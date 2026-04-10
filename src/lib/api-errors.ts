@@ -6,6 +6,7 @@
 
 import { NextResponse } from "next/server";
 import { AppError } from "@/lib/errors";
+import type { ZodType } from "zod";
 
 /**
  * Create a standardized API error response.
@@ -133,4 +134,28 @@ export function handleApiError(error: unknown): NextResponse {
  */
 export function successResponse<T>(data: T, options?: { headers?: Record<string, string> }): NextResponse {
   return NextResponse.json({ success: true, data }, { headers: options?.headers });
+}
+
+/**
+ * Parse and validate a JSON request body against a Zod schema.
+ * Returns the parsed data or a 400 BadRequest response.
+ */
+export async function parseJsonBody<T>(
+  req: Request,
+  schema: ZodType<T>,
+): Promise<T | NextResponse> {
+  let raw: unknown;
+  try {
+    raw = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
+
+  const result = schema.safeParse(raw);
+  if (!result.success) {
+    const issues = result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
+    return badRequest(`Validation failed: ${issues}`);
+  }
+
+  return result.data;
 }

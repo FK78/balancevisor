@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { NextRequest, NextResponse } from "next/server";
 import type { MilestoneKind } from "@/lib/milestones";
+import { z } from "zod";
 
 export const runtime = "edge";
 
@@ -31,15 +32,17 @@ const KIND_LABEL: Record<MilestoneKind, string> = {
 // Handler
 // ---------------------------------------------------------------------------
 
-interface SnapshotBody {
-  kind: MilestoneKind;
-  title: string;
-  subtitle: string;
-  stat: string;
-  detail: string | null;
-  accent: Accent;
-  displayName?: string;
-}
+const snapshotBodySchema = z.object({
+  kind: z.enum(["net_worth_growth", "goal_completed", "debt_paid_off", "savings_streak", "budget_adherence", "funny"]),
+  title: z.string().min(1).max(200),
+  subtitle: z.string().max(200),
+  stat: z.string().max(50),
+  detail: z.string().max(200).nullable(),
+  accent: z.enum(["blue", "emerald", "amber", "violet", "rose"]).default("blue"),
+  displayName: z.string().max(100).optional(),
+});
+
+type SnapshotBody = z.infer<typeof snapshotBodySchema>;
 
 function buildSnapshotElement(body: SnapshotBody) {
   if (body.kind === "funny") return buildFunnySnapshot(body);
@@ -308,17 +311,18 @@ function buildFunnySnapshot(body: SnapshotBody) {
 }
 
 export async function POST(req: NextRequest) {
-  let body: SnapshotBody;
-
+  let raw: unknown;
   try {
-    body = (await req.json()) as SnapshotBody;
+    raw = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  if (!body.kind || !body.title) {
-    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  const result = snapshotBodySchema.safeParse(raw);
+  if (!result.success) {
+    const issues = result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
+    return NextResponse.json({ error: `Validation failed: ${issues}` }, { status: 400 });
   }
 
-  return new ImageResponse(buildSnapshotElement(body), { width: 800, height: 450 });
+  return new ImageResponse(buildSnapshotElement(result.data), { width: 800, height: 450 });
 }
