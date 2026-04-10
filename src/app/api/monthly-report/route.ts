@@ -1,37 +1,19 @@
-import { groq } from "@ai-sdk/groq";
-import { streamText } from "ai";
-import { getCurrentUserId } from "@/lib/auth";
-import { guardAiEnabled } from "@/lib/ai-guard";
+import { withAiRoute } from "@/lib/ai-route";
 import { getMonthlyReportData, formatMonthlyReportContext } from "@/lib/monthly-report-data";
 import { rateLimiters } from "@/lib/rate-limiter";
-import { getPostHogClient } from "@/lib/posthog-server";
 
-export async function POST(req: Request) {
-  const userId = await getCurrentUserId();
+export const POST = withAiRoute({
+  limiter: rateLimiters.monthlyReport,
+  event: "monthly_report_generated",
+  buildContext: async (userId, req) => {
+    const body = await req.json().catch(() => ({}));
+    const monthsAgo = Math.max(0, Math.min(11, Math.floor(Number(body?.monthsAgo ?? 1))));
 
-  const aiBlocked = await guardAiEnabled();
-  if (aiBlocked) return aiBlocked;
+    const data = await getMonthlyReportData(userId, monthsAgo);
+    const context = formatMonthlyReportContext(data);
 
-  const rateLimitResult = rateLimiters.monthlyReport.consume(`monthly-report:${userId}`);
-  if (!rateLimitResult.allowed) {
-    return new Response(
-      JSON.stringify({ error: "Too many requests. Please wait before generating another report." }),
-      { status: 429, headers: { "Content-Type": "application/json", "Retry-After": String(rateLimitResult.retryAfter) } },
-    );
-  }
-
-  const body = await req.json().catch(() => ({}));
-  const monthsAgo = Math.max(0, Math.min(11, Math.floor(Number(body?.monthsAgo ?? 1))));
-
-  const posthog = getPostHogClient();
-  posthog.capture({ distinctId: userId, event: "monthly_report_generated", properties: { months_ago: monthsAgo } });
-
-  const data = await getMonthlyReportData(userId, monthsAgo);
-  const context = formatMonthlyReportContext(data);
-
-  const result = streamText({
-    model: groq("llama-3.3-70b-versatile"),
-    system: `You are BalanceVisor AI, an expert personal finance analyst. You have the user's complete financial data for ${data.monthLabel} below. Write a personalised monthly financial report.
+    return {
+      system: `You are BalanceVisor AI, an expert personal finance analyst. You have the user's complete financial data for ${data.monthLabel} below. Write a personalised monthly financial report.
 
 Structure your response with these exact markdown sections:
 
@@ -62,9 +44,8 @@ Rules:
 - Do NOT use generic advice — tailor everything to this specific data
 
 ${context}`,
-    prompt: `Generate my ${data.monthLabel} financial report.`,
-    maxOutputTokens: 1200,
-  });
-
-  return result.toTextStreamResponse();
-}
+      prompt: `Generate my ${data.monthLabel} financial report.`,
+      maxOutputTokens: 1200,
+    };
+  },
+});
