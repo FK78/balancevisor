@@ -15,6 +15,7 @@ import { GoalFormDialog } from "@/components/GoalFormDialog";
 import { ContributeGoalDialog } from "@/components/ContributeGoalDialog";
 import { DeleteGoalButton } from "@/components/DeleteGoalButton";
 import { Trophy } from "lucide-react";
+import { ShareAchievementButton } from "@/components/ShareAchievementButton";
 import { requireFeature } from "@/components/FeatureGate";
 import { getPageLayout } from "@/db/queries/dashboard-layouts";
 import { PageWidgetWrapper } from "@/components/PageWidgetWrapper";
@@ -194,9 +195,22 @@ export default async function GoalsPage() {
                   )}
 
                   {isComplete && (
-                    <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-600">
-                      <Trophy className="h-4 w-4" />
-                      Goal reached!
+                    <div className="flex items-center justify-between rounded-xl bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-600">
+                      <div className="flex items-center gap-2">
+                        <Trophy className="h-4 w-4" />
+                        Goal reached!
+                      </div>
+                      <ShareAchievementButton
+                        milestone={{
+                          kind: "goal_completed",
+                          title: `${goal.name} ✓`,
+                          subtitle: "Savings goal reached",
+                          stat: "100%",
+                          detail: `Target: ${formatCurrency(goal.target_amount, baseCurrency)}`,
+                          accent: "emerald",
+                          achievedAt: new Date().toISOString().split("T")[0],
+                        }}
+                      />
                     </div>
                   )}
                 </CardContent>

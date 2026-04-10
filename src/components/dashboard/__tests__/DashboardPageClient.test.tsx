@@ -82,6 +82,8 @@ describe("DashboardPageClient", () => {
         lastFiveTransactions={[{ id: "txn_1" } as never]}
         retirementProjection={null}
         hasRetirementProfile={false}
+        milestones={[]}
+        healthScore={{ overall: 72, grade: "B", subScores: [] }}
       />,
     );
 

@@ -3,6 +3,7 @@ import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import {
   getMonthlyIncomeExpenseTrend,
   getMonthlyCategorySpendTrend,
+  getDailyIncomeExpenseTrend,
 } from "@/db/queries/transactions";
 import { MonthlyAIReport } from "@/components/MonthlyAIReport";
 import { requireFeature } from "@/components/FeatureGate";
@@ -18,16 +19,19 @@ import { ReportsNetSavingsTrend } from "@/components/reports/ReportsNetSavingsTr
 import { ReportsCategoryPie } from "@/components/reports/ReportsCategoryPie";
 import { ReportsMonthlyCategoryBreakdown } from "@/components/reports/ReportsMonthlyCategoryBreakdown";
 import { ReportsTopCategories } from "@/components/reports/ReportsTopCategories";
+import { ReportsSpendingHeatmap } from "@/components/reports/ReportsSpendingHeatmap";
+import { ReportsMoneyFlow } from "@/components/reports/ReportsMoneyFlow";
 
 export default async function ReportsPage() {
   await requireFeature("reports");
   const userId = await getCurrentUserId();
 
-  const [monthlyTrend, monthlyCategorySpend, baseCurrency, serverLayout] = await Promise.all([
+  const [monthlyTrend, monthlyCategorySpend, baseCurrency, serverLayout, dailyTrend] = await Promise.all([
     getMonthlyIncomeExpenseTrend(userId, 12),
     getMonthlyCategorySpendTrend(userId, 12),
     getUserBaseCurrency(userId),
     getPageLayout(userId, "reports"),
+    getDailyIncomeExpenseTrend(userId, 90),
   ]);
 
   const headerEl = (
@@ -76,6 +80,14 @@ export default async function ReportsPage() {
 
         <DashboardWidget id="top-categories">
           <ReportsTopCategories />
+        </DashboardWidget>
+
+        <DashboardWidget id="spending-heatmap">
+          <ReportsSpendingHeatmap dailyTrend={dailyTrend} currency={baseCurrency} />
+        </DashboardWidget>
+
+        <DashboardWidget id="money-flow">
+          <ReportsMoneyFlow />
         </DashboardWidget>
       </PageWidgetWrapper>
     </ReportsProvider>

@@ -1,7 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
-import { toPng } from "html-to-image";
+import { useState, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -28,29 +27,43 @@ export function ShareSnapshotDialog({
   milestone,
   displayName,
 }: ShareSnapshotDialogProps) {
-  const cardRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const generateImage = useCallback(async () => {
-    if (!cardRef.current) return null;
-
-    return toPng(cardRef.current, {
-      pixelRatio: 2,
-      cacheBust: true,
+  const generateImage = useCallback(async (): Promise<Blob | null> => {
+    const res = await fetch("/api/snapshot", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        kind: milestone.kind,
+        title: milestone.title,
+        subtitle: milestone.subtitle,
+        stat: milestone.stat,
+        detail: milestone.detail,
+        accent: milestone.accent,
+        displayName,
+      }),
     });
-  }, []);
+
+    if (!res.ok) return null;
+    return res.blob();
+  }, [milestone, displayName]);
 
   const handleDownload = useCallback(async () => {
     setDownloading(true);
     try {
-      const dataUrl = await generateImage();
-      if (!dataUrl) return;
+      const blob = await generateImage();
+      if (!blob) {
+        toast.error("Failed to generate image");
+        return;
+      }
 
+      const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.download = `wealth-${milestone.kind}-${Date.now()}.png`;
-      link.href = dataUrl;
+      link.href = url;
       link.click();
+      URL.revokeObjectURL(url);
       toast.success("Image downloaded");
     } catch {
       toast.error("Failed to generate image");
@@ -61,11 +74,12 @@ export function ShareSnapshotDialog({
 
   const handleCopy = useCallback(async () => {
     try {
-      const dataUrl = await generateImage();
-      if (!dataUrl) return;
+      const blob = await generateImage();
+      if (!blob) {
+        toast.error("Failed to generate image");
+        return;
+      }
 
-      const res = await fetch(dataUrl);
-      const blob = await res.blob();
       await navigator.clipboard.write([
         new ClipboardItem({ "image/png": blob }),
       ]);
@@ -90,7 +104,6 @@ export function ShareSnapshotDialog({
         {/* Preview */}
         <div className="flex justify-center overflow-hidden rounded-xl bg-muted/30 p-4">
           <ShareSnapshotCard
-            ref={cardRef}
             milestone={milestone}
             displayName={displayName}
           />

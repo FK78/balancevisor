@@ -29,6 +29,7 @@ import { calculateNetWorth } from "@/lib/net-worth";
 import { getCompletedMonths, buildRetirementInputs } from "@/lib/retirement-inputs";
 import { DashboardPageClient } from "@/components/dashboard/DashboardPageClient";
 import { detectMilestones } from "@/lib/milestones";
+import { computeHealthScore } from "@/lib/financial-health-score";
 
 export default async function Home() {
   const userId = await getCurrentUserId();
@@ -142,6 +143,31 @@ export default async function Home() {
     currency: baseCurrency,
   });
 
+  // Compute financial health score from data already fetched
+  const avgMonthlyExpense = monthlyTrend.length > 0
+    ? monthlyTrend.reduce((s, m) => s + m.expenses, 0) / monthlyTrend.length
+    : 0;
+  const savingsRate = monthlyTrend.length > 0 && monthlyTrend.reduce((s, m) => s + m.income, 0) > 0
+    ? ((monthlyTrend.reduce((s, m) => s + m.income, 0) - monthlyTrend.reduce((s, m) => s + m.expenses, 0)) / monthlyTrend.reduce((s, m) => s + m.income, 0)) * 100
+    : 0;
+  const nwFirst = netWorthHistory.length > 0 ? netWorthHistory[0].net_worth : 0;
+  const nwLast = netWorthHistory.length > 0 ? netWorthHistory[netWorthHistory.length - 1].net_worth : 0;
+
+  // Emergency fund: sum of completed goals named "emergency" (case-insensitive)
+  const emergencyGoals = goals.filter((g) => /emergency/i.test(g.name));
+  const emergencyFundSaved = emergencyGoals.reduce((s, g) => s + g.saved_amount, 0);
+
+  const healthScore = computeHealthScore({
+    savingsRate,
+    netWorthPrevious: nwFirst,
+    netWorthCurrent: nwLast,
+    totalLiabilities,
+    totalAssets,
+    budgets: budgets.map((b) => ({ spent: b.budgetSpent, limit: b.budgetAmount })),
+    emergencyFundSaved,
+    monthlyExpenses: avgMonthlyExpense,
+  });
+
   let retirementProjection = null;
   if (on("retirement") && retirementProfile && monthlyTrend.length > 0) {
     const completedMonths = getCompletedMonths(monthlyTrend);
@@ -191,6 +217,7 @@ export default async function Home() {
       retirementProjection={retirementProjection}
       hasRetirementProfile={!!retirementProfile}
       milestones={milestones}
+      healthScore={healthScore}
     />
   );
 }

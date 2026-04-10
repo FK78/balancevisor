@@ -16,6 +16,7 @@ import { DeleteConfirmButton } from "@/components/DeleteConfirmButton";
 import { deleteDebt } from "@/db/mutations/debts";
 import { Badge } from "@/components/ui/badge";
 import { CreditCard, CheckCircle2, TrendingDown, Percent } from "lucide-react";
+import { ShareAchievementButton } from "@/components/ShareAchievementButton";
 import { DebtAIAdvisor } from "@/components/DebtAIAdvisor";
 import { requireFeature } from "@/components/FeatureGate";
 import { getPageLayout } from "@/db/queries/dashboard-layouts";
@@ -244,9 +245,22 @@ export default async function DebtsPage() {
                   )}
 
                   {isPaidOff && (
-                    <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-600">
-                      <CheckCircle2 className="h-4 w-4" />
-                      Debt free!
+                    <div className="flex items-center justify-between rounded-xl bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-600">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4" />
+                        Debt free!
+                      </div>
+                      <ShareAchievementButton
+                        milestone={{
+                          kind: "debt_paid_off",
+                          title: `${debt.name}: Paid Off`,
+                          subtitle: "Debt cleared",
+                          stat: formatCurrency(debt.original_amount, baseCurrency),
+                          detail: null,
+                          accent: "amber",
+                          achievedAt: new Date().toISOString().split("T")[0],
+                        }}
+                      />
                     </div>
                   )}
                 </CardContent>

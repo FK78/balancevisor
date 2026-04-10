@@ -1,6 +1,5 @@
 "use client";
 
-import { forwardRef } from "react";
 import {
   TrendingUp,
   Trophy,
@@ -70,62 +69,59 @@ interface ShareSnapshotCardProps {
   readonly displayName?: string;
 }
 
-export const ShareSnapshotCard = forwardRef<HTMLDivElement, ShareSnapshotCardProps>(
-  function ShareSnapshotCard({ milestone, displayName }, ref) {
-    const accent = ACCENT_CONFIG[milestone.accent];
-    const Icon = KIND_ICON[milestone.kind];
-    const label = KIND_LABEL[milestone.kind];
+export function ShareSnapshotCard({ milestone, displayName }: ShareSnapshotCardProps) {
+  const accent = ACCENT_CONFIG[milestone.accent];
+  const Icon = KIND_ICON[milestone.kind];
+  const label = KIND_LABEL[milestone.kind];
 
-    const dateLabel = new Date().toLocaleDateString("en-GB", {
-      month: "long",
-      year: "numeric",
-    });
+  const dateLabel = new Date().toLocaleDateString("en-GB", {
+    month: "long",
+    year: "numeric",
+  });
 
-    return (
+  return (
+    <div
+      className={`relative w-[400px] overflow-hidden rounded-2xl bg-gradient-to-br ${accent.gradient} p-6 text-white`}
+      style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
+    >
+      {/* Glow blob */}
       <div
-        ref={ref}
-        className={`relative w-[400px] overflow-hidden rounded-2xl bg-gradient-to-br ${accent.gradient} p-6 text-white`}
-        style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
-      >
-        {/* Glow blob */}
-        <div
-          className={`pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full ${accent.glow} blur-2xl`}
-        />
+        className={`pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full ${accent.glow} blur-2xl`}
+      />
 
-        <div className="relative">
-          {/* Badge row */}
-          <div className="mb-4 flex items-center gap-2">
-            <Icon className="h-5 w-5 opacity-80" />
-            <span
-              className={`rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider ${accent.badge}`}
-            >
-              {label}
-            </span>
+      <div className="relative">
+        {/* Badge row */}
+        <div className="mb-4 flex items-center gap-2">
+          <Icon className="h-5 w-5 opacity-80" />
+          <span
+            className={`rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider ${accent.badge}`}
+          >
+            {label}
+          </span>
+        </div>
+
+        {/* Title */}
+        <h3 className="text-xl font-bold leading-tight">{milestone.title}</h3>
+        <p className="mt-1 text-sm text-white/60">{milestone.subtitle}</p>
+
+        {/* Detail */}
+        {milestone.detail && (
+          <p className="mt-3 text-sm text-white/50">{milestone.detail}</p>
+        )}
+
+        {/* Branding footer */}
+        <div className="mt-6 flex items-center gap-3 border-t border-white/10 pt-4">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-violet-500 text-xs font-bold">
+            W
           </div>
-
-          {/* Title */}
-          <h3 className="text-xl font-bold leading-tight">{milestone.title}</h3>
-          <p className="mt-1 text-sm text-white/60">{milestone.subtitle}</p>
-
-          {/* Detail */}
-          {milestone.detail && (
-            <p className="mt-3 text-sm text-white/50">{milestone.detail}</p>
-          )}
-
-          {/* Branding footer */}
-          <div className="mt-6 flex items-center gap-3 border-t border-white/10 pt-4">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-violet-500 text-xs font-bold">
-              W
-            </div>
-            <div>
-              <span className="text-xs font-medium text-white/70">
-                {displayName ? `${displayName} · ` : ""}Tracked with Wealth
-              </span>
-              <span className="block text-[10px] text-white/40">{dateLabel}</span>
-            </div>
+          <div>
+            <span className="text-xs font-medium text-white/70">
+              {displayName ? `${displayName} · ` : ""}Tracked with Wealth
+            </span>
+            <span className="block text-[10px] text-white/40">{dateLabel}</span>
           </div>
         </div>
       </div>
-    );
-  },
-);
+    </div>
+  );
+}

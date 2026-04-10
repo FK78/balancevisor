@@ -23,6 +23,9 @@ import { DashboardZakatSummary } from "@/components/dashboard/DashboardZakatSumm
 import { SpendCategoryRow } from "@/components/SpendCategoryRow";
 import { DashboardRetirement } from "@/components/dashboard/DashboardRetirement";
 import { DashboardMilestones } from "@/components/dashboard/DashboardMilestones";
+import { DashboardHealthScore } from "@/components/dashboard/DashboardHealthScore";
+import { DashboardExpenseVelocity } from "@/components/dashboard/DashboardExpenseVelocity";
+import { DashboardBillTimeline } from "@/components/dashboard/DashboardBillTimeline";
 import { WidgetLayoutProvider } from "@/components/WidgetLayoutProvider";
 import { WidgetGrid } from "@/components/WidgetGrid";
 import { DashboardWidget } from "@/components/DashboardWidget";
@@ -43,6 +46,7 @@ import type { CashflowForecast } from "@/lib/cashflow-forecast";
 import type { SpendingAnomaly } from "@/lib/spending-anomalies";
 import type { RetirementProjection } from "@/lib/retirement-calculator";
 import type { Milestone } from "@/lib/milestones";
+import type { HealthScoreResult } from "@/lib/financial-health-score";
 import dynamic from "next/dynamic";
 import { ChartSkeleton } from "@/components/ChartSkeleton";
 import { useWidgetLayoutContext } from "@/components/WidgetLayoutProvider";
@@ -93,6 +97,7 @@ interface DashboardPageClientProps {
   readonly retirementProjection: RetirementProjection | null;
   readonly hasRetirementProfile: boolean;
   readonly milestones: readonly Milestone[];
+  readonly healthScore: HealthScoreResult;
 }
 
 export function DashboardPageClient(props: DashboardPageClientProps) {
@@ -138,6 +143,7 @@ function DashboardPageContent(props: DashboardPageClientProps) {
     retirementProjection,
     hasRetirementProfile,
     milestones,
+    healthScore,
   } = props;
   const { layout, isEditing } = useWidgetLayoutContext();
   const [activeTab, setActiveTab] = useState<DashboardWorkspaceTab>("overview");
@@ -228,6 +234,16 @@ function DashboardPageContent(props: DashboardPageClientProps) {
       case "milestones":
         return milestones.length > 0 ? (
           <DashboardMilestones milestones={milestones} displayName={displayName} />
+        ) : null;
+      case "health-score":
+        return <DashboardHealthScore healthScore={healthScore} />;
+      case "expense-velocity":
+        return reportsEnabled && forecast ? (
+          <DashboardExpenseVelocity forecast={forecast} />
+        ) : null;
+      case "bill-timeline":
+        return subscriptionsEnabled && upcomingRenewals.length > 0 ? (
+          <DashboardBillTimeline renewals={upcomingRenewals} currency={baseCurrency} />
         ) : null;
       default:
         return null;

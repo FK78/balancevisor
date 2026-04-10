@@ -41,6 +41,9 @@ const DASHBOARD_WIDGETS: readonly WidgetDefinition[] = [
   { id: "zakat-summary", label: "Zakat Summary", defaultVisible: true, colSpan: 1 },
   { id: "retirement", label: "Retirement Planner", defaultVisible: true, colSpan: 1 },
   { id: "milestones", label: "Milestones & Sharing", defaultVisible: true, colSpan: 2 },
+  { id: "health-score", label: "Financial Health Score", defaultVisible: true, colSpan: 1 },
+  { id: "expense-velocity", label: "Expense Velocity", defaultVisible: true, colSpan: 1 },
+  { id: "bill-timeline", label: "Bill Timeline", defaultVisible: true, colSpan: 2 },
 ] as const;
 
 const ACCOUNTS_WIDGETS: readonly WidgetDefinition[] = [
@@ -100,6 +103,8 @@ const REPORTS_WIDGETS: readonly WidgetDefinition[] = [
   { id: "spending-by-category", label: "Spending by Category", defaultVisible: true, colSpan: 1 },
   { id: "monthly-category-breakdown", label: "Monthly Category Breakdown", defaultVisible: true, colSpan: 2 },
   { id: "top-categories", label: "Top Spending Categories", defaultVisible: true, colSpan: 2 },
+  { id: "spending-heatmap", label: "Spending Heatmap", defaultVisible: true, colSpan: 2 },
+  { id: "money-flow", label: "Money Flow", defaultVisible: true, colSpan: 2 },
 ] as const;
 
 const SUBSCRIPTIONS_WIDGETS: readonly WidgetDefinition[] = [
