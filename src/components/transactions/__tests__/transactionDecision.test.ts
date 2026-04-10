@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { buildTransactionDecisionState } from "@/components/transactions/transaction-decision";
 import type { Transaction } from "@/components/transactions/TransactionHelpers";
@@ -68,5 +68,27 @@ describe("buildTransactionDecisionState", () => {
     expect(state.statusLabel).toBeUndefined();
     expect(state.interpretation).toBeUndefined();
     expect(state.amountLabel).toContain("−");
+  });
+
+  it("keeps date-only values on the intended calendar day across timezones", async () => {
+    const previousTz = process.env.TZ;
+
+    try {
+      process.env.TZ = "America/Los_Angeles";
+      vi.resetModules();
+      const { buildTransactionDecisionState: buildStateInUsTz } = await import(
+        "@/components/transactions/transaction-decision"
+      );
+
+      const state = buildStateInUsTz(
+        makeTransaction({ date: "2026-04-10" }),
+        "GBP",
+      );
+
+      expect(state.meta).toContain("10 Apr 2026");
+    } finally {
+      process.env.TZ = previousTz;
+      vi.resetModules();
+    }
   });
 });

@@ -60,6 +60,7 @@ import dynamic from "next/dynamic";
 import { ChartSkeleton } from "@/components/ChartSkeleton";
 import { BulkCategoriseButton, DeleteTransactionButton, getPageHref, type Transaction } from "@/components/transactions/TransactionHelpers";
 import { TransactionDecisionRow } from "@/components/transactions/TransactionDecisionRow";
+import { buildTransactionDecisionState } from "@/components/transactions/transaction-decision";
 import { useTransactionColumns } from "@/components/transactions/TransactionColumns";
 import {
   getInitialTransactionsWorkspaceTab,
@@ -150,8 +151,9 @@ export function TransactionsClient({
     ? accounts.find((account) => account.id === activeAccountId)?.accountName ?? "Selected account"
     : null;
   const reviewTransactions = transactions.filter(
-    (transaction) => transaction.type === "expense" && !transaction.category_id,
+    (transaction) => buildTransactionDecisionState(transaction, currency).statusLabel === "Needs review",
   );
+  const hasReviewItemsOutsideCurrentQueue = (uncategorisedCount ?? 0) > 0 && reviewTransactions.length === 0;
   const searchResultSummary = `Showing ${totalTransactions} transaction${totalTransactions === 1 ? "" : "s"}`;
 
   useEffect(() => {
@@ -930,6 +932,18 @@ export function TransactionsClient({
                         currency={currency}
                       />
                     ))
+                  ) : hasReviewItemsOutsideCurrentQueue ? (
+                    <DecisionEmptyState
+                      title="Review items exist outside this page"
+                      description="There are uncategorised transactions not shown in this page's review queue. Open the first page to continue reviewing."
+                      action={(
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={getPageHref(1, activeStartDate, activeEndDate, activeSearch, activeAccountId)}>
+                            Open first page
+                          </Link>
+                        </Button>
+                      )}
+                    />
                   ) : (
                     <DecisionEmptyState
                       title="Nothing needs review right now"

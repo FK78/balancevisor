@@ -14,10 +14,31 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
   year: "numeric",
 });
+const dateOnlyFormatter = new Intl.DateTimeFormat("en-GB", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  timeZone: "UTC",
+});
+const dateOnlyPattern = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 function formatDecisionDate(date: string | null) {
   if (!date) return "Date unknown";
-  return dateFormatter.format(new Date(date));
+
+  const dateOnlyMatch = dateOnlyPattern.exec(date);
+  if (dateOnlyMatch) {
+    const [, yearRaw, monthRaw, dayRaw] = dateOnlyMatch;
+    const year = Number(yearRaw);
+    const month = Number(monthRaw);
+    const day = Number(dayRaw);
+    return dateOnlyFormatter.format(new Date(Date.UTC(year, month - 1, day)));
+  }
+
+  const parsedDate = new Date(date);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "Date unknown";
+  }
+  return dateFormatter.format(parsedDate);
 }
 
 export function buildTransactionDecisionState(
