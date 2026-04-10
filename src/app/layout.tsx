@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { QueryProvider } from "@/components/QueryProvider";
 import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
+import { PullToRefresh } from "@/components/PullToRefresh";
 import { Toaster } from "sonner";
 
 const dmSans = DM_Sans({
@@ -57,6 +58,7 @@ export default function RootLayout({
           </QueryProvider>
         </ThemeProvider>
         <Toaster richColors closeButton position="bottom-right" className="!bottom-20 md:!bottom-4" />
+        <PullToRefresh />
         <ServiceWorkerRegistrar />
       </body>
     </html>
