@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import {
   Card,
@@ -8,8 +11,9 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Repeat, ArrowRight, Calendar } from "lucide-react";
+import { Repeat, ArrowRight, Calendar, Check, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/formatCurrency";
+import { confirmRecurringCandidate } from "@/db/mutations/recurring";
 import type { RecurringCandidate } from "@/lib/recurring-detection";
 
 const patternLabels: Record<string, string> = {
@@ -19,13 +23,58 @@ const patternLabels: Record<string, string> = {
   yearly: "Yearly",
 };
 
+function ConfirmCandidateButton({
+  candidate,
+  onConfirmed,
+}: {
+  candidate: RecurringCandidate;
+  onConfirmed: (id: string) => void;
+}) {
+  const [isPending, startTransition] = useTransition();
+
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      className="h-7 gap-1 text-xs border-sky-200 text-sky-700 hover:bg-sky-50"
+      disabled={isPending}
+      onClick={() => {
+        startTransition(async () => {
+          await confirmRecurringCandidate(
+            candidate.latestTransactionId,
+            candidate.suggestedPattern,
+          );
+          onConfirmed(candidate.latestTransactionId);
+        });
+      }}
+    >
+      {isPending ? (
+        <Loader2 className="h-3 w-3 animate-spin" />
+      ) : (
+        <Check className="h-3 w-3" />
+      )}
+      Confirm
+    </Button>
+  );
+}
+
 export function RecurringDetectionBanner({
-  candidates,
+  candidates: initialCandidates,
   currency,
 }: {
   candidates: RecurringCandidate[];
   currency: string;
 }) {
+  const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
+
+  const candidates = initialCandidates.filter(
+    (c) => !confirmed.has(c.latestTransactionId),
+  );
+
+  function handleConfirmed(id: string) {
+    setConfirmed((prev) => new Set(prev).add(id));
+  }
+
   if (candidates.length === 0) return null;
 
   return (
@@ -77,6 +126,7 @@ export function RecurringDetectionBanner({
                 {c.type === "income" ? "+" : ""}
                 {formatCurrency(c.amount, currency)}
               </span>
+              <ConfirmCandidateButton candidate={c} onConfirmed={handleConfirmed} />
             </div>
           </div>
         ))}
