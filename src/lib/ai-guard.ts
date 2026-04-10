@@ -2,13 +2,21 @@ import { getCurrentUserId } from "@/lib/auth";
 import { isAiEnabled } from "@/db/queries/preferences";
 
 /**
- * Checks whether AI features are enabled for the current user.
- * Returns a 403 Response if disabled, or null if enabled.
+ * Checks whether AI features are enabled for the current user
+ * AND that the server has a valid GROQ_API_KEY configured.
+ * Returns a 403/503 Response if blocked, or null if everything is OK.
  * Usage in API routes:
  *   const blocked = await guardAiEnabled();
  *   if (blocked) return blocked;
  */
 export async function guardAiEnabled(): Promise<Response | null> {
+  if (!process.env.GROQ_API_KEY) {
+    return new Response(
+      JSON.stringify({ error: "AI is temporarily unavailable — API key not configured." }),
+      { status: 503, headers: { "Content-Type": "application/json" } },
+    );
+  }
+
   const userId = await getCurrentUserId();
   const enabled = await isAiEnabled(userId);
 
