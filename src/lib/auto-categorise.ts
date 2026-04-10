@@ -271,7 +271,10 @@ Respond with ONLY the JSON array, no other text.`,
           const valid = categories.some((c) => c.id === result.category_id);
           if (!valid) continue;
           assignedCategoryId = result.category_id;
-        } else if (result.suggested_category) {
+        } else if (
+          result.suggested_category &&
+          result.confidence >= HIGH_CONFIDENCE_THRESHOLD
+        ) {
           // AI suggests a new category — auto-create it
           const suggestedName = result.suggested_category.trim().slice(0, 50);
           if (!suggestedName || suggestedName.length < 2) continue;

@@ -1,10 +1,22 @@
 import { db } from "@/index";
-import { transactionsTable, subscriptionsTable } from "@/db/schema";
+import { transactionsTable, subscriptionsTable, categoriesTable } from "@/db/schema";
 import { eq, and, isNull, inArray } from "drizzle-orm";
 import { decryptForUser, getUserKey } from "@/lib/encryption";
 import { normalise, fuzzyMatch } from "@/lib/matching-utils";
 import { logger } from "@/lib/logger";
 import { revalidateDomains } from "@/lib/revalidate";
+
+// Categories that represent variable spending / income — never promote to subscriptions
+const BLOCKED_CATEGORY_NAMES = new Set([
+  "groceries",
+  "dining out",
+  "shopping",
+  "transport",
+  "health",
+  "salary",
+  "freelance",
+  "investments",
+]);
 
 export type PromotionResult = {
   created: number;
@@ -83,6 +95,13 @@ export async function promoteRecurringToSubscriptions(
 
     if (expenses.length === 0) return { created: 0, linked: 0 };
 
+    // Build category ID → name lookup for blocklist checks
+    const allCats = await db
+      .select({ id: categoriesTable.id, name: categoriesTable.name })
+      .from(categoriesTable)
+      .where(eq(categoriesTable.user_id, userId));
+    const catNameById = new Map(allCats.map((c) => [c.id, c.name]));
+
     // Fetch existing subscriptions to avoid duplicates
     const existingSubs = await db
       .select({
@@ -111,7 +130,7 @@ export async function promoteRecurringToSubscriptions(
     let linked = 0;
 
     for (const [, group] of groups) {
-      if (group.length < 2) continue;
+      if (group.length < 3) continue;
 
       // Use the latest transaction as the representative
       const sorted = [...group].sort((a, b) =>
@@ -119,13 +138,19 @@ export async function promoteRecurringToSubscriptions(
       );
       const latest = sorted[sorted.length - 1];
 
-      // Check amounts are consistent (within ±15% of median)
+      // Check amounts are consistent (within ±5% of median — real subscriptions are near-exact)
       const amounts = group.map((t) => t.amount).sort((a, b) => a - b);
       const median = amounts[Math.floor(amounts.length / 2)];
       const consistent = amounts.every(
-        (a) => Math.abs(a - median) / Math.max(median, 0.01) <= 0.15,
+        (a) => Math.abs(a - median) / Math.max(median, 0.01) <= 0.05,
       );
       if (!consistent) continue;
+
+      // Skip categories that are never subscription-like
+      const catName = latest.category_id
+        ? catNameById.get(latest.category_id)
+        : null;
+      if (catName && BLOCKED_CATEGORY_NAMES.has(catName.toLowerCase())) continue;
 
       // Check no existing subscription already matches
       const alreadyExists = existingSubs.some(
@@ -137,6 +162,9 @@ export async function promoteRecurringToSubscriptions(
 
       const pattern = latest.recurring_pattern ?? "monthly";
       const billingCycle = PATTERN_TO_BILLING_CYCLE[pattern] ?? "monthly";
+
+      // Only promote monthly or yearly — weekly/biweekly payments are rarely subscriptions
+      if (billingCycle !== "monthly" && billingCycle !== "yearly") continue;
 
       // Compute next billing date
       const nextDate = new Date(
