@@ -8,8 +8,14 @@ import {
   Target,
   Laugh,
   Sparkles,
+  Coffee,
+  ShoppingBag,
+  ArrowRightLeft,
+  PartyPopper,
+  Layers,
+  Coins,
 } from "lucide-react";
-import type { Milestone, MilestoneKind } from "@/lib/milestones";
+import type { Milestone, MilestoneKind, FunnyPatternType } from "@/lib/milestones";
 
 // ---------------------------------------------------------------------------
 // Accent config per milestone kind
@@ -53,6 +59,16 @@ const KIND_ICON: Record<MilestoneKind, typeof TrendingUp> = {
   savings_streak: Flame,
   budget_adherence: Target,
   funny: Laugh,
+};
+
+const FUNNY_ICON: Record<FunnyPatternType, typeof Laugh> = {
+  top_merchant: ShoppingBag,
+  biggest_spender: ShoppingBag,
+  category_flip: ArrowRightLeft,
+  weekend_warrior: PartyPopper,
+  sub_collector: Layers,
+  coffee_addict: Coffee,
+  micro_spender: Coins,
 };
 
 const KIND_LABEL: Record<MilestoneKind, string> = {
@@ -147,6 +163,8 @@ function FunnyShareCard({
   readonly displayName?: string;
   readonly dateLabel: string;
 }) {
+  const PatternIcon = milestone.funnyPattern ? FUNNY_ICON[milestone.funnyPattern] : Laugh;
+
   return (
     <div
       className="relative w-[400px] overflow-hidden rounded-2xl bg-gradient-to-br from-[#4a1225] via-[#1a0a14] to-[#2d1040] p-6 text-white"
@@ -159,7 +177,7 @@ function FunnyShareCard({
       <div className="relative">
         {/* Badge row */}
         <div className="mb-3 flex items-center gap-2">
-          <Laugh className="h-5 w-5 text-rose-400" />
+          <PatternIcon className="h-5 w-5 text-rose-400" />
           <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/15 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider text-rose-400">
             <Sparkles className="h-3 w-3" />
             Fun Fact

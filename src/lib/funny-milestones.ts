@@ -1,6 +1,6 @@
 import { groq } from "@ai-sdk/groq";
 import { generateText } from "ai";
-import type { Milestone } from "@/lib/milestones";
+import type { Milestone, FunnyPatternType } from "@/lib/milestones";
 import { getRecentTransactionsForPatterns } from "@/db/queries/transactions";
 import { detectSpendingPatterns, type SubscriptionInput } from "@/lib/spending-patterns";
 import { getCachedFunnyMilestones, setCachedFunnyMilestones } from "@/lib/funny-milestones-cache";
@@ -60,9 +60,9 @@ export async function getFunnyMilestones(
     return [];
   }
 
-  // 6. Map to Milestone[]
+  // 6. Map to Milestone[] — pair each copy with its source pattern type
   const now = new Date().toISOString().split("T")[0];
-  const milestones: Milestone[] = copies.map((copy) => ({
+  const milestones: Milestone[] = copies.map((copy, i) => ({
     kind: "funny" as const,
     title: copy.title,
     subtitle: copy.subtitle,
@@ -70,6 +70,7 @@ export async function getFunnyMilestones(
     detail: copy.detail,
     accent: "rose" as const,
     achievedAt: now,
+    funnyPattern: (patterns[i]?.type ?? "top_merchant") as FunnyPatternType,
   }));
 
   // 7. Cache and return

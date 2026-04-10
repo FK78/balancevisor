@@ -19,9 +19,15 @@ import {
   Award,
   Laugh,
   Sparkles,
+  Coffee,
+  ShoppingBag,
+  ArrowRightLeft,
+  PartyPopper,
+  Layers,
+  Coins,
 } from "lucide-react";
 import { ShareSnapshotDialog } from "@/components/ShareSnapshotDialog";
-import type { Milestone, MilestoneKind } from "@/lib/milestones";
+import type { Milestone, MilestoneKind, FunnyPatternType } from "@/lib/milestones";
 
 // ---------------------------------------------------------------------------
 // Config
@@ -34,6 +40,16 @@ const KIND_ICON: Record<MilestoneKind, typeof TrendingUp> = {
   savings_streak: Flame,
   budget_adherence: Target,
   funny: Laugh,
+};
+
+const FUNNY_ICON: Record<FunnyPatternType, typeof Laugh> = {
+  top_merchant: ShoppingBag,
+  biggest_spender: ShoppingBag,
+  category_flip: ArrowRightLeft,
+  weekend_warrior: PartyPopper,
+  sub_collector: Layers,
+  coffee_addict: Coffee,
+  micro_spender: Coins,
 };
 
 const ACCENT_BG: Record<Milestone["accent"], string> = {
@@ -108,6 +124,8 @@ function FunnyMilestoneCard({
   readonly milestone: Milestone;
   readonly onShare: () => void;
 }) {
+  const PatternIcon = milestone.funnyPattern ? FUNNY_ICON[milestone.funnyPattern] : Laugh;
+
   return (
     <div className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-rose-500/10 via-amber-500/5 to-violet-500/10 p-[1px] transition-shadow duration-200 hover:shadow-md hover:shadow-rose-500/5 dark:from-rose-500/20 dark:via-amber-500/10 dark:to-violet-500/20">
       <div className="relative overflow-hidden rounded-[11px] bg-background px-4 py-3.5">
@@ -117,7 +135,7 @@ function FunnyMilestoneCard({
         <div className="relative flex items-start gap-3">
           {/* Icon with gradient ring */}
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500/15 to-amber-500/15 ring-1 ring-rose-500/20">
-            <Laugh className="h-5 w-5 text-rose-500 dark:text-rose-400" />
+            <PatternIcon className="h-5 w-5 text-rose-500 dark:text-rose-400" />
           </div>
 
           <div className="flex-1 min-w-0">

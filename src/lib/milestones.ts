@@ -13,6 +13,15 @@ export type MilestoneKind =
   | "budget_adherence"
   | "funny";
 
+export type FunnyPatternType =
+  | "top_merchant"
+  | "biggest_spender"
+  | "category_flip"
+  | "weekend_warrior"
+  | "sub_collector"
+  | "coffee_addict"
+  | "micro_spender";
+
 export interface Milestone {
   readonly kind: MilestoneKind;
   readonly title: string;
@@ -25,6 +34,8 @@ export interface Milestone {
   readonly accent: "blue" | "emerald" | "amber" | "violet" | "rose";
   /** ISO date string of when the milestone was achieved (best guess) */
   readonly achievedAt: string;
+  /** Spending-pattern type — only present for kind="funny" */
+  readonly funnyPattern?: FunnyPatternType;
 }
 
 // ---------------------------------------------------------------------------
