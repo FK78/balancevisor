@@ -18,7 +18,8 @@
     "test:intelligence": "npx tsx src/lib/transaction-intelligence.test.ts",
     "db:push": "npx drizzle-kit push",
     "db:seed": "npx tsx src/db/seed.ts",
-    "db:reset": "npx tsx src/db/seed.ts"
+    "db:reset": "npx tsx src/db/seed.ts",
+    "db:delete-user": "npx tsx src/db/delete-user.ts"
   },
   "dependencies": {
     "@ai-sdk/groq": "^3.0.26",
