@@ -90,46 +90,48 @@ export async function updateBrokerTokens(
   tokens: { accessToken: string; refreshToken: string; tokenExpiresAt: string },
 ) {
   const userKey = await getUserKey(userId);
-
-  // Fetch existing credentials to merge
-  const [existing] = await db
-    .select({ credentials_encrypted: brokerConnectionsTable.credentials_encrypted })
-    .from(brokerConnectionsTable)
-    .where(
-      and(
-        eq(brokerConnectionsTable.user_id, userId),
-        eq(brokerConnectionsTable.broker, broker),
-      ),
-    );
-
-  if (!existing) {
-    throw new Error(`No ${broker} connection found for user ${userId}`);
-  }
-
   const { decryptForUser } = await import("@/lib/encryption");
-  const currentCreds: BrokerCredentials = JSON.parse(
-    decryptForUser(existing.credentials_encrypted, userKey),
-  );
 
-  const updatedCreds: BrokerCredentials = {
-    ...currentCreds,
-    ...tokens,
-  };
+  await db.transaction(async (tx) => {
+    // Fetch existing credentials inside the transaction to prevent concurrent overwrites
+    const [existing] = await tx
+      .select({ credentials_encrypted: brokerConnectionsTable.credentials_encrypted })
+      .from(brokerConnectionsTable)
+      .where(
+        and(
+          eq(brokerConnectionsTable.user_id, userId),
+          eq(brokerConnectionsTable.broker, broker),
+        ),
+      );
 
-  const credentialsEncrypted = encryptForUser(JSON.stringify(updatedCreds), userKey);
+    if (!existing) {
+      throw new Error(`No ${broker} connection found for user ${userId}`);
+    }
 
-  await db
-    .update(brokerConnectionsTable)
-    .set({
-      credentials_encrypted: credentialsEncrypted,
-      last_synced_at: new Date(),
-    })
-    .where(
-      and(
-        eq(brokerConnectionsTable.user_id, userId),
-        eq(brokerConnectionsTable.broker, broker),
-      ),
+    const currentCreds: BrokerCredentials = JSON.parse(
+      decryptForUser(existing.credentials_encrypted, userKey),
     );
+
+    const updatedCreds: BrokerCredentials = {
+      ...currentCreds,
+      ...tokens,
+    };
+
+    const credentialsEncrypted = encryptForUser(JSON.stringify(updatedCreds), userKey);
+
+    await tx
+      .update(brokerConnectionsTable)
+      .set({
+        credentials_encrypted: credentialsEncrypted,
+        last_synced_at: new Date(),
+      })
+      .where(
+        and(
+          eq(brokerConnectionsTable.user_id, userId),
+          eq(brokerConnectionsTable.broker, broker),
+        ),
+      );
+  });
 }
 
 export async function addManualHolding(formData: FormData) {
@@ -265,29 +267,29 @@ export async function recordHoldingSale(formData: FormData) {
   const cashAccountId = sanitizeUUID(formData.get("cash_account_id") as string);
   const notes = (formData.get("notes") as string) || null;
 
-  // Fetch holding
-  const [holding] = await db
-    .select()
-    .from(manualHoldingsTable)
-    .where(
-      and(
-        eq(manualHoldingsTable.id, holdingId),
-        eq(manualHoldingsTable.user_id, userId),
-      ),
-    );
-
-  if (!holding) throw new Error("Holding not found");
-  if (quantity > holding.quantity) throw new Error("Quantity exceeds current holding");
-
-  const totalAmount = quantity * pricePerUnit;
-  const realizedGain = (pricePerUnit - holding.average_price) * quantity;
-
   await db.transaction(async (tx) => {
-    // Update holding quantity (reduce)
+    // Fetch holding inside the transaction to prevent stale-read race
+    const [holding] = await tx
+      .select()
+      .from(manualHoldingsTable)
+      .where(
+        and(
+          eq(manualHoldingsTable.id, holdingId),
+          eq(manualHoldingsTable.user_id, userId),
+        ),
+      );
+
+    if (!holding) throw new Error("Holding not found");
+    if (quantity > holding.quantity) throw new Error("Quantity exceeds current holding");
+
+    const totalAmount = quantity * pricePerUnit;
+    const realizedGain = (pricePerUnit - holding.average_price) * quantity;
+
+    // Atomic quantity decrement to prevent overselling
     await tx
       .update(manualHoldingsTable)
       .set({
-        quantity: holding.quantity - quantity,
+        quantity: sql`GREATEST(${manualHoldingsTable.quantity} - ${quantity}, 0)`,
       })
       .where(eq(manualHoldingsTable.id, holdingId));
 

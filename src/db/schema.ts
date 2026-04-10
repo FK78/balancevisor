@@ -1,4 +1,5 @@
 import { boolean, date, integer, jsonb, numeric, pgEnum, pgTable, timestamp, varchar, uuid, text, uniqueIndex, index } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const accountTypeEnum = pgEnum("account_type", ["currentAccount", "savings", "creditCard", "investment"]);
 export const periodEnum = pgEnum("period", ["monthly", "weekly"]);
@@ -46,6 +47,7 @@ export const accountsTable = pgTable("accounts", {
   truelayer_connection_id: uuid("truelayer_connection_id").references(() => truelayerConnectionsTable.id),
 }, (table) => [{
   userIdx: index("accounts_user_id_idx").on(table.user_id),
+  truelayerIdx: uniqueIndex("accounts_truelayer_id_idx").on(table.user_id, table.truelayer_id).where(sql`${table.truelayer_id} IS NOT NULL`),
 }]);
 
 export const categoriesTable = pgTable("categories", {
@@ -83,6 +85,7 @@ export const transactionsTable = pgTable("transactions", {
   categoryIdx: index("transactions_category_id_idx").on(table.category_id),
   dateIdx: index("transactions_date_idx").on(table.date),
   accountDateIdx: index("transactions_account_id_date_idx").on(table.account_id, table.date),
+  truelayerIdx: uniqueIndex("transactions_truelayer_id_idx").on(table.user_id, table.truelayer_id).where(sql`${table.truelayer_id} IS NOT NULL`),
 }]);
 
 export const budgetsTable = pgTable("budgets", {
@@ -160,7 +163,7 @@ export const budgetAlertPreferencesTable = pgTable("budget_alert_preferences", {
     browser_alerts: boolean("browser_alerts").notNull().default(true),
     email_alerts: boolean("email_alerts").notNull().default(false),
 }, (table) => [{
-    userBudgetIdx: index("budget_alert_prefs_user_budget_idx").on(table.user_id, table.budget_id),
+    userBudgetIdx: uniqueIndex("budget_alert_prefs_user_budget_idx").on(table.user_id, table.budget_id),
 }])
 
 export const brokerConnectionsTable = pgTable("broker_connections", {

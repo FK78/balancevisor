@@ -14,28 +14,16 @@ export async function upsertAlertPreferences(
 ) {
   const userId = await getCurrentUserId();
 
-  const [existing] = await db.select()
-    .from(budgetAlertPreferencesTable)
-    .where(
-      and(
-        eq(budgetAlertPreferencesTable.budget_id, budgetId),
-        eq(budgetAlertPreferencesTable.user_id, userId),
-      )
-    );
-
-  if (existing) {
-    await db.update(budgetAlertPreferencesTable)
-      .set({ threshold, browser_alerts: browserAlerts, email_alerts: emailAlerts })
-      .where(eq(budgetAlertPreferencesTable.id, existing.id));
-  } else {
-    await db.insert(budgetAlertPreferencesTable).values({
-      budget_id: budgetId,
-      user_id: userId,
-      threshold,
-      browser_alerts: browserAlerts,
-      email_alerts: emailAlerts,
-    });
-  }
+  await db.insert(budgetAlertPreferencesTable).values({
+    budget_id: budgetId,
+    user_id: userId,
+    threshold,
+    browser_alerts: browserAlerts,
+    email_alerts: emailAlerts,
+  }).onConflictDoUpdate({
+    target: [budgetAlertPreferencesTable.user_id, budgetAlertPreferencesTable.budget_id],
+    set: { threshold, browser_alerts: browserAlerts, email_alerts: emailAlerts },
+  });
 
   revalidateDomains('budgets');
 }

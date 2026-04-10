@@ -58,7 +58,7 @@ export async function editDebt(id: string, formData: FormData) {
     due_date,
     lender,
     color,
-  }).where(eq(debtsTable.id, id));
+  }).where(and(eq(debtsTable.id, id), eq(debtsTable.user_id, userId)));
 
   revalidateDomains('debts');
 }
@@ -85,20 +85,17 @@ export async function recordDebtPayment(debtId: string, amount: number, date: st
       note: note || null,
     });
 
-    // Reduce remaining amount
+    // Fetch debt name for the transaction description
     const [debt] = await tx.select({
-      remaining_amount: debtsTable.remaining_amount,
       name: debtsTable.name,
     })
       .from(debtsTable)
       .where(eq(debtsTable.id, debtId));
 
-    if (debt) {
-      const newRemaining = Math.max(debt.remaining_amount - amount, 0);
-      await tx.update(debtsTable).set({
-        remaining_amount: newRemaining,
-      }).where(eq(debtsTable.id, debtId));
-    }
+    // Atomic decrement: prevents lost updates from concurrent payments
+    await tx.update(debtsTable).set({
+      remaining_amount: sql`GREATEST(${debtsTable.remaining_amount} - ${amount}, 0)`,
+    }).where(eq(debtsTable.id, debtId));
 
     await createTransaction({
       type: 'expense',
