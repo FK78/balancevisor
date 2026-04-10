@@ -9,6 +9,7 @@ import {
   Users,
 } from "lucide-react";
 import { getBudgets, getSharedBudgets, getAvgMonthlySpendByCategory } from "@/db/queries/budgets";
+import { getMonthlyCategorySpendTrend } from "@/db/queries/transactions";
 import { getSmartBudgetSuggestions } from "@/lib/budget-suggestions";
 import { getCategoriesByUser } from "@/db/queries/categories";
 import { formatCurrency } from "@/lib/formatCurrency";
@@ -23,9 +24,10 @@ import { Button } from "@/components/ui/button";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import dynamic from "next/dynamic";
 
+import { ChartSkeleton } from "@/components/ChartSkeleton";
 const BudgetCharts = dynamic(
   () => import("@/components/BudgetCharts").then((mod) => mod.BudgetCharts),
-  { loading: () => <div className="min-h-[300px]" /> }
+  { loading: () => <ChartSkeleton height={300} /> }
 );
 import { BudgetAlertSettings } from "@/components/BudgetAlertSettings";
 import { getAlertPreferencesByUser } from "@/db/queries/budget-alerts";
@@ -40,7 +42,7 @@ export default async function Budgets() {
   const userId = await getCurrentUserId();
   const email = await getCurrentUserEmail();
   
-  const [ownedBudgets, sharedBudgetRows, categories, baseCurrency, alertPrefs, allShares, pendingInvitations, avgSpend, serverLayout] = await Promise.all([
+  const [ownedBudgets, sharedBudgetRows, categories, baseCurrency, alertPrefs, allShares, pendingInvitations, avgSpend, serverLayout, categoryTrend] = await Promise.all([
     getBudgets(userId),
     getSharedBudgets(userId, email),
     getCategoriesByUser(userId),
@@ -50,6 +52,7 @@ export default async function Budgets() {
     getPendingInvitations(userId, email),
     getAvgMonthlySpendByCategory(userId),
     getPageLayout(userId, "budgets"),
+    getMonthlyCategorySpendTrend(userId, 6),
   ]);
 
   const budgets = [...ownedBudgets, ...sharedBudgetRows];
@@ -65,7 +68,7 @@ export default async function Budgets() {
 
   const alertPrefsMap = new Map(alertPrefs.map(p => [p.budget_id, p]));
 
-  const budgetSuggestions = await getSmartBudgetSuggestions(userId, ownedBudgets);
+  const budgetSuggestions = await getSmartBudgetSuggestions(userId, ownedBudgets, categoryTrend);
 
   const totalBudget = budgets.reduce((sum, b) => sum + b.budgetAmount, 0);
   const totalSpent = budgets.reduce((sum, b) => sum + b.budgetSpent, 0);

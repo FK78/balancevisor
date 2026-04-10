@@ -24,6 +24,7 @@ import {
   Folder,
 } from "lucide-react";
 import dynamic from "next/dynamic";
+import { ChartSkeleton } from "@/components/ChartSkeleton";
 import { getCurrentUserId } from "@/lib/auth";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { getBrokerConnections, getManualHoldings, getHoldingSales, decryptBrokerCredentials } from "@/db/queries/investments";
@@ -46,7 +47,7 @@ import { PortfolioAIAnalysis } from "@/components/PortfolioAIAnalysis";
 const InvestmentCharts = dynamic<{ holdings: NormalisedHolding[]; currency: string }>(
   () => import("@/components/InvestmentCharts").then(mod => mod.InvestmentCharts),
   {
-    loading: () => <div className="min-h-[260px] w-full flex items-center justify-center">Loading charts...</div>,
+    loading: () => <ChartSkeleton height={260} />,
   }
 );
 

@@ -35,14 +35,15 @@ import type { CashflowForecast } from "@/lib/cashflow-forecast";
 import type { SpendingAnomaly } from "@/lib/spending-anomalies";
 import type { RetirementProjection } from "@/lib/retirement-calculator";
 import dynamic from "next/dynamic";
+import { ChartSkeleton } from "@/components/ChartSkeleton";
 
 const CashflowCharts = dynamic(
   () => import("@/components/CashflowCharts").then((mod) => mod.CashflowCharts),
-  { loading: () => <div className="min-h-[300px]" /> }
+  { loading: () => <ChartSkeleton height={300} /> }
 );
 const NetWorthChart = dynamic(
   () => import("@/components/NetWorthChart").then((mod) => mod.NetWorthChart),
-  { loading: () => <div className="min-h-[260px]" /> }
+  { loading: () => <ChartSkeleton height={260} /> }
 );
 
 interface DashboardPageClientProps {

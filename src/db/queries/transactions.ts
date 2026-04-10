@@ -155,9 +155,9 @@ export type SearchTransactionsResult = {
 };
 
 /**
- * Server-side search: fetches all transactions (with optional date range),
- * decrypts descriptions/account names, filters by search term, and returns
- * a paginated slice plus totals. Used only when a search query is present.
+ * Server-side search: first attempts SQL-level filtering on plaintext fields
+ * (merchant_name, category name) to avoid decrypting all rows. Falls back to
+ * full decrypt + JS filter only when needed (encrypted description/account name match).
  */
 export async function searchTransactions(
   userId: string,
@@ -172,7 +172,10 @@ export async function searchTransactions(
   const safePageSize = Number.isFinite(pageSize) && pageSize > 0 ? Math.floor(pageSize) : 10;
 
   const MAX_SEARCH_ROWS = 1000;
-  let query = baseTransactionsQuery(userId);
+  const needle = search.toLowerCase();
+  const sqlPattern = `%${needle}%`;
+
+  // Build date filters
   let effectiveStartDate = startDate;
   const effectiveEndDate = endDate;
   if (!startDate && !endDate) {
@@ -180,16 +183,38 @@ export async function searchTransactions(
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
     effectiveStartDate = ninetyDaysAgo.toISOString().split('T')[0];
   }
-  if (effectiveStartDate) query = query.where(gte(transactionsTable.date, effectiveStartDate));
-  if (effectiveEndDate) query = query.where(lte(transactionsTable.date, effectiveEndDate));
-  if (accountId) query = query.where(eq(transactionsTable.account_id, accountId));
 
-  const allRows = await query
+  // Phase 1: SQL-level search on plaintext fields (merchant_name, category name)
+  let sqlQuery = baseTransactionsQuery(userId);
+  if (effectiveStartDate) sqlQuery = sqlQuery.where(gte(transactionsTable.date, effectiveStartDate));
+  if (effectiveEndDate) sqlQuery = sqlQuery.where(lte(transactionsTable.date, effectiveEndDate));
+  if (accountId) sqlQuery = sqlQuery.where(eq(transactionsTable.account_id, accountId));
+
+  sqlQuery = sqlQuery.where(
+    sql`(lower(${transactionsTable.merchant_name}) LIKE ${sqlPattern} OR lower(${categoriesTable.name}) LIKE ${sqlPattern})`
+  );
+
+  const sqlMatched = await sqlQuery
+    .orderBy(desc(transactionsTable.date), desc(transactionsTable.id))
+    .limit(MAX_SEARCH_ROWS);
+
+  // If we found enough results via SQL, decrypt only those and return
+  if (sqlMatched.length > 0) {
+    const decrypted = await decryptTransactionRows(sqlMatched, userId);
+    return buildSearchResult(decrypted, safePage, safePageSize);
+  }
+
+  // Phase 2: Fallback — fetch all rows and search encrypted fields too
+  let fallbackQuery = baseTransactionsQuery(userId);
+  if (effectiveStartDate) fallbackQuery = fallbackQuery.where(gte(transactionsTable.date, effectiveStartDate));
+  if (effectiveEndDate) fallbackQuery = fallbackQuery.where(lte(transactionsTable.date, effectiveEndDate));
+  if (accountId) fallbackQuery = fallbackQuery.where(eq(transactionsTable.account_id, accountId));
+
+  const allRows = await fallbackQuery
     .orderBy(desc(transactionsTable.date), desc(transactionsTable.id))
     .limit(MAX_SEARCH_ROWS);
   const decrypted = await decryptTransactionRows(allRows, userId);
 
-  const needle = search.toLowerCase();
   const filtered = decrypted.filter((row) => {
     const desc = (row.description ?? '').toLowerCase();
     const acct = (row.accountName ?? '').toLowerCase();
@@ -197,6 +222,14 @@ export async function searchTransactions(
     return desc.includes(needle) || acct.includes(needle) || cat.includes(needle);
   });
 
+  return buildSearchResult(filtered, safePage, safePageSize);
+}
+
+function buildSearchResult(
+  filtered: Awaited<ReturnType<typeof baseTransactionsQuery>>,
+  page: number,
+  pageSize: number,
+): SearchTransactionsResult {
   const totalCount = filtered.length;
   const totalIncome = filtered
     .filter((r) => r.type === 'income')
@@ -208,8 +241,8 @@ export async function searchTransactions(
     .filter((r) => r.type === 'refund')
     .reduce((s, r) => s + r.amount, 0);
 
-  const offset = (safePage - 1) * safePageSize;
-  const transactions = filtered.slice(offset, offset + safePageSize);
+  const offset = (page - 1) * pageSize;
+  const transactions = filtered.slice(offset, offset + pageSize);
 
   return { transactions, totalCount, totalIncome, totalExpenses, totalRefunds };
 }

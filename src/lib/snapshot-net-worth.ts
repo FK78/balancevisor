@@ -4,11 +4,20 @@ import { eq, and } from 'drizzle-orm';
 import { getInvestmentValue } from '@/lib/investment-value';
 import { logger } from '@/lib/logger';
 
+interface SnapshotOptions {
+  prefetchedInvestmentValue?: number;
+  prefetchedAccounts?: ReadonlyArray<{ type: string | null; balance: number }>;
+}
+
 /**
  * Record today's net worth snapshot if one doesn't already exist.
  * Called on dashboard load — idempotent per user per day.
+ *
+ * Accepts optional prefetched accounts and investment value to
+ * avoid redundant DB / external API queries when the caller
+ * already has this data.
  */
-export async function snapshotNetWorthIfNeeded(userId: string, prefetchedInvestmentValue?: number): Promise<void> {
+export async function snapshotNetWorthIfNeeded(userId: string, opts: SnapshotOptions = {}): Promise<void> {
   const today = new Date().toISOString().split('T')[0];
 
   // Check if today's snapshot already exists
@@ -25,8 +34,8 @@ export async function snapshotNetWorthIfNeeded(userId: string, prefetchedInvestm
 
   if (existing) return;
 
-  // Compute current net worth
-  const accounts = await db
+  // Use prefetched accounts or fetch from DB
+  const accounts = opts.prefetchedAccounts ?? await db
     .select({ type: accountsTable.type, balance: accountsTable.balance })
     .from(accountsTable)
     .where(eq(accountsTable.user_id, userId));
@@ -40,8 +49,8 @@ export async function snapshotNetWorthIfNeeded(userId: string, prefetchedInvestm
     .reduce((sum, a) => sum + Math.abs(a.balance), 0);
 
   let investmentValue = 0;
-  if (prefetchedInvestmentValue !== undefined) {
-    investmentValue = prefetchedInvestmentValue;
+  if (opts.prefetchedInvestmentValue !== undefined) {
+    investmentValue = opts.prefetchedInvestmentValue;
   } else {
     try {
       investmentValue = await getInvestmentValue(userId);

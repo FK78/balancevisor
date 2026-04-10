@@ -1,4 +1,4 @@
-import { getMonthlyCategorySpendTrend } from "@/db/queries/transactions";
+import { getMonthlyCategorySpendTrend, type MonthlyCategorySpendPoint } from "@/db/queries/transactions";
 import { getMonthKey } from "@/lib/date";
 
 export type SpendingAnomaly = {
@@ -12,14 +12,18 @@ export type SpendingAnomaly = {
   increaseAmount: number;
 };
 
+interface AnomalyOptions {
+  prefetchedCategoryTrend?: MonthlyCategorySpendPoint[];
+}
+
 /**
  * Detects categories where current-month spending is significantly above
  * the 3-month rolling average of completed months.
  * Returns anomalies sorted by pctAbove descending, capped at 5.
  */
-export async function getSpendingAnomalies(userId: string): Promise<SpendingAnomaly[]> {
+export async function getSpendingAnomalies(userId: string, opts: AnomalyOptions = {}): Promise<SpendingAnomaly[]> {
   // Fetch 4 months so we get current + 3 completed
-  const trend = await getMonthlyCategorySpendTrend(userId, 4);
+  const trend = opts.prefetchedCategoryTrend ?? await getMonthlyCategorySpendTrend(userId, 4);
   const currentMonthKey = getMonthKey(new Date());
 
   // Separate current month from history

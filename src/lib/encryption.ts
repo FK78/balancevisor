@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 import { eq } from "drizzle-orm";
 import { userKeysTable } from "@/db/schema";
@@ -149,8 +150,11 @@ export function isEncrypted(value: string): boolean {
 /**
  * Get or create a per-user encryption key.
  * Returns the plaintext key (cached in memory).
+ *
+ * Wrapped with React.cache() to deduplicate within a single
+ * server render or server-action invocation (request-scoped, no TTL).
  */
-export async function getUserKey(userId: string): Promise<Buffer> {
+export const getUserKey = cache(async (userId: string): Promise<Buffer> => {
   const [row] = await db
     .select({
       encrypted_key: userKeysTable.encrypted_key,
@@ -177,7 +181,7 @@ export async function getUserKey(userId: string): Promise<Buffer> {
 
   const userKeyHex = decrypt(row.encrypted_key);
   return Buffer.from(userKeyHex, "hex");
-}
+});
 
 /**
  * Generate and store a new per-user encryption key.

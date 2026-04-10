@@ -47,12 +47,17 @@ export type CashflowForecast = {
   recentMonths: Array<{ month: string; income: number; expenses: number; net: number }>;
 };
 
-export async function getCashflowForecast(userId: string): Promise<CashflowForecast> {
+interface ForecastOptions {
+  prefetchedTrend?: Awaited<ReturnType<typeof getMonthlyIncomeExpenseTrend>>;
+  prefetchedCurrency?: string;
+}
+
+export async function getCashflowForecast(userId: string, opts: ForecastOptions = {}): Promise<CashflowForecast> {
   const [trend, recurring, subscriptions, baseCurrency] = await Promise.all([
-    getMonthlyIncomeExpenseTrend(userId, 6),
+    opts.prefetchedTrend ?? getMonthlyIncomeExpenseTrend(userId, 6),
     getRecurringTransactions(userId),
     getActiveSubscriptionsTotals(userId),
-    getUserBaseCurrency(userId),
+    opts.prefetchedCurrency ?? getUserBaseCurrency(userId),
   ]);
 
   const now = new Date();

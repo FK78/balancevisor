@@ -42,20 +42,44 @@ const DOMAIN_PATHS: Record<Domain, readonly string[]> = {
   retirement: ["/dashboard/retirement"],
 };
 
+/** Domains whose mutations affect data displayed on the main dashboard page. */
+const DASHBOARD_AFFECTING: ReadonlySet<Domain> = new Set<Domain>([
+  "accounts",
+  "transactions",
+  "budgets",
+  "categories",
+  "subscriptions",
+  "investments",
+  "goals",
+  "reports",
+  "debts",
+  "zakat",
+  "retirement",
+]);
+
 /**
- * Revalidate all paths associated with the given domains, plus `/dashboard`.
+ * Revalidate all paths associated with the given domains.
+ * Also revalidates `/dashboard` when at least one domain affects the dashboard.
  *
  * @example
  *   revalidateDomains("accounts");                     // accounts + dashboard
- *   revalidateDomains("debts", "transactions", "accounts"); // all three + dashboard
+ *   revalidateDomains("settings");                     // settings only (no dashboard)
  */
 export function revalidateDomains(...domains: Domain[]): void {
-  const paths = new Set<string>(["/dashboard"]);
+  const paths = new Set<string>();
 
+  let affectsDashboard = false;
   for (const domain of domains) {
     for (const path of DOMAIN_PATHS[domain]) {
       paths.add(path);
     }
+    if (DASHBOARD_AFFECTING.has(domain)) {
+      affectsDashboard = true;
+    }
+  }
+
+  if (affectsDashboard) {
+    paths.add("/dashboard");
   }
 
   for (const path of paths) {

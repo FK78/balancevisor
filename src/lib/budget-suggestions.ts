@@ -1,4 +1,4 @@
-import { getMonthlyCategorySpendTrend } from "@/db/queries/transactions";
+import { getMonthlyCategorySpendTrend, type MonthlyCategorySpendPoint } from "@/db/queries/transactions";
 import { getMonthKey } from "@/lib/date";
 
 export type BudgetSuggestionType = "new" | "increase" | "decrease";
@@ -32,8 +32,9 @@ type ExistingBudget = {
 export async function getSmartBudgetSuggestions(
   userId: string,
   existingBudgets: ExistingBudget[],
+  prefetchedCategoryTrend?: MonthlyCategorySpendPoint[],
 ): Promise<BudgetSuggestion[]> {
-  const categoryTrend = await getMonthlyCategorySpendTrend(userId, 6);
+  const categoryTrend = prefetchedCategoryTrend ?? await getMonthlyCategorySpendTrend(userId, 6);
 
   const currentMonthKey = getMonthKey(new Date());
 

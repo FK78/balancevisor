@@ -38,6 +38,15 @@ export default async function Home() {
   const disabledFeatures = await getDisabledFeatures(userId);
   const on = (id: FeatureId) => checkFeature(id, disabledFeatures);
 
+  // Start independent queries that don't need results from the main batch.
+  // These run in parallel with the first Promise.all and are awaited later.
+  // Note: forecast is started after the main batch to reuse prefetched trend + currency.
+  const anomaliesP = on("reports") ? getSpendingAnomalies(userId) : Promise.resolve([]);
+  const zakatSettingsP = on("zakat") ? getZakatSettings(userId) : Promise.resolve(null);
+  const latestZakatCalcP = on("zakat") ? getLatestZakatCalculation(userId) : Promise.resolve(null);
+  const retirementProfileP = on("retirement") ? getRetirementProfile(userId) : Promise.resolve(null);
+  const debtsSummaryP = getDebtsSummary(userId);
+
   const [
     lastFiveTransactions,
     accounts,
@@ -72,7 +81,7 @@ export default async function Home() {
 
   // Fire-and-forget: snapshot uses the already-fetched investmentValue to avoid duplicate API calls
   if (on("accounts")) {
-    snapshotNetWorthIfNeeded(userId, investmentValue).catch(() => {});
+    snapshotNetWorthIfNeeded(userId, { prefetchedInvestmentValue: investmentValue, prefetchedAccounts: accounts }).catch(() => {});
   }
 
   const { totalAssets, totalLiabilities, netWorth } = calculateNetWorth(accounts, investmentValue);
@@ -88,14 +97,16 @@ export default async function Home() {
     return pct >= 80;
   });
 
+  // Await insights (depends on budgets + goals) alongside the pre-started independent queries.
+  // Forecast receives prefetched trend + currency to avoid duplicate DB queries.
   const [insights, forecast, anomalies, zakatSettings, latestZakatCalc, retirementProfile, debtsSummary] = await Promise.all([
     getDashboardInsights(userId, budgets, goals),
-    on("reports") ? getCashflowForecast(userId) : Promise.resolve(null),
-    on("reports") ? getSpendingAnomalies(userId) : Promise.resolve([]),
-    on("zakat") ? getZakatSettings(userId) : Promise.resolve(null),
-    on("zakat") ? getLatestZakatCalculation(userId) : Promise.resolve(null),
-    on("retirement") ? getRetirementProfile(userId) : Promise.resolve(null),
-    getDebtsSummary(userId),
+    on("reports") ? getCashflowForecast(userId, { prefetchedTrend: monthlyTrend, prefetchedCurrency: baseCurrency }) : Promise.resolve(null),
+    anomaliesP,
+    zakatSettingsP,
+    latestZakatCalcP,
+    retirementProfileP,
+    debtsSummaryP,
   ]);
 
   let zakatData: { zakatDue: number; zakatableAmount: number; aboveNisab: boolean; daysUntil: number | null; hasSettings: boolean } | null = null;

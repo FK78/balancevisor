@@ -25,9 +25,10 @@ import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { getSharesByOwner, getPendingInvitations } from "@/db/queries/sharing";
 import dynamic from "next/dynamic";
 
+import { ChartSkeleton } from "@/components/ChartSkeleton";
 const AccountCharts = dynamic(
   () => import("@/components/AccountCharts").then((mod) => mod.AccountCharts),
-  { loading: () => <div className="min-h-[300px]" /> }
+  { loading: () => <ChartSkeleton height={300} /> }
 );
 import { AccountHealthCheck } from "@/components/AccountHealthCheck";
 import { getTrueLayerConnections } from "@/db/mutations/truelayer";
@@ -59,7 +60,7 @@ export default async function Accounts() {
 
   const email = await getCurrentUserEmail();
 
-  const [ownedAccounts, sharedAccounts, baseCurrency, truelayerConnections, manualHoldings, brokerConnections, pendingInvitationsData, serverLayout] = await Promise.all([
+  const [ownedAccounts, sharedAccounts, baseCurrency, truelayerConnections, manualHoldings, brokerConnections, pendingInvitationsData, serverLayout, allShares] = await Promise.all([
     getAccountsWithDetails(userId),
     getSharedAccounts(userId, email),
     getUserBaseCurrency(userId),
@@ -68,9 +69,8 @@ export default async function Accounts() {
     getBrokerConnections(userId),
     getPendingInvitations(userId, email),
     getPageLayout(userId, "accounts"),
+    getSharesByOwner(userId),
   ]);
-
-  const allShares = await getSharesByOwner(userId);
 
   const accounts = [...ownedAccounts, ...sharedAccounts];
   const accountPendingInvitations = pendingInvitationsData.filter(i => i.resource_type === "account");

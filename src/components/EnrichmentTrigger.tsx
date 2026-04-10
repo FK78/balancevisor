@@ -47,17 +47,26 @@ export function EnrichmentTrigger() {
       .catch(() => null);
   }, []);
 
-  // Auto-trigger on mount + interval
+  // Auto-trigger on mount; only start repeating interval if initial call ran
   useEffect(() => {
     if (mounted.current) return;
     mounted.current = true;
 
-    const initial = setTimeout(() => runEnrichment(false), 5000);
-    const interval = setInterval(() => runEnrichment(false), INTERVAL_MS);
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const initial = setTimeout(() => {
+      runEnrichment(false).then((result) => {
+        // Only set up the repeating interval if the initial call wasn't skipped
+        // (i.e. the cooldown hadn't expired yet — no point polling again soon)
+        if (result && !result.skipped) {
+          interval = setInterval(() => runEnrichment(false), INTERVAL_MS);
+        }
+      });
+    }, 5000);
 
     return () => {
       clearTimeout(initial);
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
     };
   }, [runEnrichment]);
 

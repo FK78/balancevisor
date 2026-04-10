@@ -21,9 +21,10 @@ import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { Tags, Wand2 } from "lucide-react";
 import dynamic from "next/dynamic";
 
+import { ChartSkeleton } from "@/components/ChartSkeleton";
 const CategoryCharts = dynamic(
   () => import("@/components/CategoryCharts").then((mod) => mod.CategoryCharts),
-  { loading: () => <div className="min-h-[300px]" /> }
+  { loading: () => <ChartSkeleton height={300} /> }
 );
 
 import { requireFeature } from "@/components/FeatureGate";
