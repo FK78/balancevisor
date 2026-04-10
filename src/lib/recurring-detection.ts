@@ -15,6 +15,8 @@ export type RecurringCandidate = {
   suggestedPattern: "weekly" | "biweekly" | "monthly" | "yearly";
   /** Most recent occurrence date */
   lastDate: string;
+  /** ID of the most recent matching transaction */
+  latestTransactionId: string;
 };
 
 /**
@@ -28,6 +30,7 @@ export async function detectRecurringCandidates(userId: string): Promise<Recurri
 
   const rows = await db
     .select({
+      id: transactionsTable.id,
       description: transactionsTable.description,
       amount: transactionsTable.amount,
       type: transactionsTable.type,
@@ -51,6 +54,7 @@ export async function detectRecurringCandidates(userId: string): Promise<Recurri
   const txns = rows
     .filter((r) => r.description && r.date && (r.type === "income" || r.type === "expense"))
     .map((r) => ({
+      id: r.id,
       description: decryptForUser(r.description!, userKey),
       amount: r.amount,
       type: r.type as "income" | "expense",
@@ -60,19 +64,19 @@ export async function detectRecurringCandidates(userId: string): Promise<Recurri
   // Group by normalized description key
   const groups = new Map<
     string,
-    { description: string; type: "income" | "expense"; entries: { amount: number; date: string }[] }
+    { description: string; type: "income" | "expense"; entries: { id: string; amount: number; date: string }[] }
   >();
 
   for (const txn of txns) {
     const key = normalizeDescription(txn.description) + "|" + txn.type;
     const existing = groups.get(key);
     if (existing) {
-      existing.entries.push({ amount: txn.amount, date: txn.date });
+      existing.entries.push({ id: txn.id, amount: txn.amount, date: txn.date });
     } else {
       groups.set(key, {
         description: txn.description,
         type: txn.type,
-        entries: [{ amount: txn.amount, date: txn.date }],
+        entries: [{ id: txn.id, amount: txn.amount, date: txn.date }],
       });
     }
   }
@@ -108,6 +112,7 @@ export async function detectRecurringCandidates(userId: string): Promise<Recurri
     const pattern = inferPattern(avgDays);
     if (!pattern) continue;
 
+    const sortedByDate = [...group.entries].sort((a, b) => a.date.localeCompare(b.date));
     candidates.push({
       description: group.description,
       amount: Math.round(median * 100) / 100,
@@ -115,7 +120,8 @@ export async function detectRecurringCandidates(userId: string): Promise<Recurri
       occurrences: group.entries.length,
       avgDaysBetween: Math.round(avgDays),
       suggestedPattern: pattern,
-      lastDate: group.entries.map((e) => e.date).sort().pop()!,
+      lastDate: sortedByDate[sortedByDate.length - 1].date,
+      latestTransactionId: sortedByDate[sortedByDate.length - 1].id,
     });
   }
 

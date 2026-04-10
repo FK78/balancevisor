@@ -6,6 +6,69 @@ import { revalidateDomains } from '@/lib/revalidate';
 import { eq, and } from 'drizzle-orm';
 import { getCurrentUserId } from '@/lib/auth';
 import { requireString, sanitizeEnum, sanitizeDate } from '@/lib/sanitize';
+import { toDateString } from '@/lib/date';
+
+type RecurringPattern = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
+
+const VALID_PATTERNS: readonly RecurringPattern[] = ['daily', 'weekly', 'biweekly', 'monthly', 'yearly'] as const;
+
+function computeNextRecurringDate(dateStr: string, pattern: RecurringPattern): string {
+  const d = new Date(dateStr + 'T00:00:00');
+  switch (pattern) {
+    case 'daily': d.setDate(d.getDate() + 1); break;
+    case 'weekly': d.setDate(d.getDate() + 7); break;
+    case 'biweekly': d.setDate(d.getDate() + 14); break;
+    case 'monthly': d.setMonth(d.getMonth() + 1); break;
+    case 'yearly': d.setFullYear(d.getFullYear() + 1); break;
+  }
+  return toDateString(d);
+}
+
+/**
+ * Confirm a detected recurring candidate — marks the transaction as recurring,
+ * sets its pattern, and computes the next occurrence date.
+ */
+export async function confirmRecurringCandidate(
+  transactionId: string,
+  pattern: string,
+) {
+  const userId = await getCurrentUserId();
+
+  if (!VALID_PATTERNS.includes(pattern as RecurringPattern)) {
+    throw new Error('Invalid recurring pattern');
+  }
+  const validPattern = pattern as RecurringPattern;
+
+  const [txn] = await db
+    .select({
+      date: transactionsTable.date,
+      is_recurring: transactionsTable.is_recurring,
+    })
+    .from(transactionsTable)
+    .where(
+      and(
+        eq(transactionsTable.id, transactionId),
+        eq(transactionsTable.user_id, userId),
+      )
+    );
+
+  if (!txn) throw new Error('Transaction not found');
+  if (txn.is_recurring) throw new Error('Transaction is already recurring');
+
+  const baseDate = txn.date ?? toDateString(new Date());
+  const nextDate = computeNextRecurringDate(baseDate, validPattern);
+
+  await db
+    .update(transactionsTable)
+    .set({
+      is_recurring: true,
+      recurring_pattern: validPattern as typeof transactionsTable.$inferInsert['recurring_pattern'],
+      next_recurring_date: nextDate,
+    })
+    .where(eq(transactionsTable.id, transactionId));
+
+  revalidateDomains('recurring', 'transactions');
+}
 
 /**
  * Stop a recurring transaction — sets is_recurring to false and clears

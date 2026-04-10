@@ -7,6 +7,7 @@ import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { getRecurringTransactionsSummary } from "@/db/queries/recurring";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { RecurringClient } from "@/components/RecurringClient";
+import { detectRecurringCandidates } from "@/lib/recurring-detection";
 import { requireFeature } from "@/components/FeatureGate";
 import { getPageLayout } from "@/db/queries/dashboard-layouts";
 import { PageWidgetWrapper } from "@/components/PageWidgetWrapper";
@@ -16,10 +17,11 @@ export default async function RecurringPage() {
   await requireFeature("recurring");
   const userId = await getCurrentUserId();
 
-  const [summary, baseCurrency, serverLayout] = await Promise.all([
+  const [summary, baseCurrency, serverLayout, candidates] = await Promise.all([
     getRecurringTransactionsSummary(userId),
     getUserBaseCurrency(userId),
     getPageLayout(userId, "recurring"),
+    detectRecurringCandidates(userId),
   ]);
 
   const {
@@ -69,6 +71,7 @@ export default async function RecurringPage() {
       <DashboardWidget id="recurring-list">
       <RecurringClient
         recurring={recurring}
+        candidates={candidates}
         currency={baseCurrency}
       />
       </DashboardWidget>

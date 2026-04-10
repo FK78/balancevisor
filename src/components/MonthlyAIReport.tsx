@@ -24,7 +24,6 @@ type ReportState = {
   text: string;
   loading: boolean;
   error: string | null;
-  cached: boolean;
 };
 
 function getMonthOptions(): Array<{ label: string; value: string; monthsAgo: number }> {
@@ -46,23 +45,22 @@ export function MonthlyAIReport() {
     text: "",
     loading: true,
     error: null,
-    cached: false,
   });
   const abortRef = useRef<AbortController | null>(null);
   const hasFetched = useRef(false);
 
-  const fetchReport = useCallback(async (monthsAgo: string, refresh: boolean) => {
+  const fetchReport = useCallback(async (monthsAgo: string) => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
 
-    setState({ text: "", loading: true, error: null, cached: false });
+    setState({ text: "", loading: true, error: null });
 
     try {
       const res = await fetch("/api/monthly-report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ monthsAgo: Number(monthsAgo), refresh }),
+        body: JSON.stringify({ monthsAgo: Number(monthsAgo) }),
         signal: controller.signal,
       });
 
@@ -75,7 +73,7 @@ export function MonthlyAIReport() {
 
       if (contentType.includes("application/json")) {
         const data = await res.json();
-        setState({ text: data.report, loading: false, error: null, cached: data.cached ?? false });
+        setState({ text: data.report, loading: false, error: null });
         return;
       }
 
@@ -92,7 +90,7 @@ export function MonthlyAIReport() {
         setState((prev) => ({ ...prev, text: accumulated }));
       }
 
-      setState({ text: accumulated, loading: false, error: null, cached: false });
+      setState({ text: accumulated, loading: false, error: null });
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
       setState((prev) => ({
@@ -106,12 +104,12 @@ export function MonthlyAIReport() {
   useEffect(() => {
     if (hasFetched.current) return;
     hasFetched.current = true;
-    fetchReport(selectedMonth, false);
+    fetchReport(selectedMonth);
   }, [fetchReport, selectedMonth]);
 
   const handleMonthChange = (value: string) => {
     setSelectedMonth(value);
-    fetchReport(value, false);
+    fetchReport(value);
   };
 
   useEffect(() => {
@@ -133,9 +131,7 @@ export function MonthlyAIReport() {
             <div>
               <CardTitle className="text-lg">AI Monthly Report</CardTitle>
               <CardDescription>
-                {state.cached
-                  ? "Cached report — click refresh for latest"
-                  : state.loading
+                {state.loading
                     ? `Generating report for ${currentLabel}...`
                     : "Personalised financial summary powered by AI"}
               </CardDescription>
@@ -158,7 +154,7 @@ export function MonthlyAIReport() {
               size="sm"
               variant="outline"
               disabled={state.loading}
-              onClick={() => fetchReport(selectedMonth, true)}
+              onClick={() => fetchReport(selectedMonth)}
               className="gap-1.5"
             >
               {state.loading ? (

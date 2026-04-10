@@ -17,7 +17,6 @@ type AnalysisState = {
   text: string;
   loading: boolean;
   error: string | null;
-  cached: boolean;
 };
 
 export function PortfolioAIAnalysis() {
@@ -26,23 +25,20 @@ export function PortfolioAIAnalysis() {
     text: "",
     loading: true,
     error: null,
-    cached: false,
   });
   const abortRef = useRef<AbortController | null>(null);
   const hasFetched = useRef(false);
 
-  const fetchAnalysis = useCallback(async (refresh: boolean) => {
+  const fetchAnalysis = useCallback(async () => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
 
-    setState({ text: "", loading: true, error: null, cached: false });
+    setState({ text: "", loading: true, error: null });
 
     try {
       const res = await fetch("/api/portfolio-analysis", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh }),
         signal: controller.signal,
       });
 
@@ -53,14 +49,12 @@ export function PortfolioAIAnalysis() {
 
       const contentType = res.headers.get("content-type") ?? "";
 
-      // Cached response comes as JSON
       if (contentType.includes("application/json")) {
         const data = await res.json();
-        setState({ text: data.analysis, loading: false, error: null, cached: data.cached ?? false });
+        setState({ text: data.analysis, loading: false, error: null });
         return;
       }
 
-      // Streamed response
       const reader = res.body?.getReader();
       if (!reader) throw new Error("No response body");
 
@@ -74,7 +68,7 @@ export function PortfolioAIAnalysis() {
         setState((prev) => ({ ...prev, text: accumulated }));
       }
 
-      setState({ text: accumulated, loading: false, error: null, cached: false });
+      setState({ text: accumulated, loading: false, error: null });
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
       setState((prev) => ({
@@ -88,7 +82,7 @@ export function PortfolioAIAnalysis() {
   useEffect(() => {
     if (hasFetched.current) return;
     hasFetched.current = true;
-    fetchAnalysis(false);
+    fetchAnalysis();
   }, [fetchAnalysis]);
 
   useEffect(() => {
@@ -108,9 +102,7 @@ export function PortfolioAIAnalysis() {
             <div>
               <CardTitle className="text-lg">AI Portfolio Analysis</CardTitle>
               <CardDescription>
-                {state.cached
-                  ? "Cached insight — click refresh for latest"
-                  : state.loading
+                {state.loading
                     ? "Analysing your portfolio..."
                     : "Personalised insights powered by AI"}
               </CardDescription>
@@ -120,7 +112,7 @@ export function PortfolioAIAnalysis() {
             size="sm"
             variant="outline"
             disabled={state.loading}
-            onClick={() => fetchAnalysis(true)}
+            onClick={() => fetchAnalysis()}
             className="gap-1.5"
           >
             {state.loading ? (

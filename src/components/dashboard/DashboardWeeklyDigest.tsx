@@ -16,7 +16,6 @@ type DigestState = {
   text: string;
   loading: boolean;
   error: string | null;
-  cached: boolean;
 };
 
 export function DashboardWeeklyDigest() {
@@ -25,23 +24,20 @@ export function DashboardWeeklyDigest() {
     text: "",
     loading: true,
     error: null,
-    cached: false,
   });
   const abortRef = useRef<AbortController | null>(null);
   const hasFetched = useRef(false);
 
-  const fetchDigest = useCallback(async (refresh: boolean) => {
+  const fetchDigest = useCallback(async () => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
 
-    setState({ text: "", loading: true, error: null, cached: false });
+    setState({ text: "", loading: true, error: null });
 
     try {
       const res = await fetch("/api/weekly-digest", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh }),
         signal: controller.signal,
       });
 
@@ -54,7 +50,7 @@ export function DashboardWeeklyDigest() {
 
       if (contentType.includes("application/json")) {
         const data = await res.json();
-        setState({ text: data.digest, loading: false, error: null, cached: data.cached ?? false });
+        setState({ text: data.digest, loading: false, error: null });
         return;
       }
 
@@ -71,7 +67,7 @@ export function DashboardWeeklyDigest() {
         setState((prev) => ({ ...prev, text: accumulated }));
       }
 
-      setState({ text: accumulated, loading: false, error: null, cached: false });
+      setState({ text: accumulated, loading: false, error: null });
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
       setState((prev) => ({
@@ -85,7 +81,7 @@ export function DashboardWeeklyDigest() {
   useEffect(() => {
     if (!inView || hasFetched.current) return;
     hasFetched.current = true;
-    fetchDigest(false);
+    fetchDigest();
   }, [inView, fetchDigest]);
 
   useEffect(() => {
@@ -103,9 +99,7 @@ export function DashboardWeeklyDigest() {
             <div>
               <CardTitle className="text-base">Weekly Digest</CardTitle>
               <CardDescription className="text-xs">
-                {state.cached
-                  ? "Cached — click refresh for latest"
-                  : state.loading
+                {state.loading
                     ? "Summarising your week..."
                     : "Your last 7 days at a glance"}
               </CardDescription>
@@ -115,7 +109,7 @@ export function DashboardWeeklyDigest() {
             size="sm"
             variant="ghost"
             disabled={state.loading}
-            onClick={() => fetchDigest(true)}
+            onClick={() => fetchDigest()}
             className="h-8 w-8 p-0"
           >
             {state.loading ? (

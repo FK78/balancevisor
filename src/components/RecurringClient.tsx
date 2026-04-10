@@ -52,18 +52,22 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   CalendarClock,
+  Check,
   Loader2,
   Pencil,
   Repeat,
+  Sparkles,
   XCircle,
 } from "lucide-react";
-import { cancelRecurring, updateRecurringPattern } from "@/db/mutations/recurring";
+import { cancelRecurring, confirmRecurringCandidate, updateRecurringPattern } from "@/db/mutations/recurring";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { recurringPatternLabels as patternLabels } from "@/lib/labels";
 import type { RecurringTransaction } from "@/db/queries/recurring";
+import type { RecurringCandidate } from "@/lib/recurring-detection";
 
 type Props = {
   recurring: RecurringTransaction[];
+  candidates?: RecurringCandidate[];
   currency: string;
 };
 
@@ -194,8 +198,128 @@ function EditRecurringDialog({
   );
 }
 
+function ConfirmCandidateBtn({
+  candidate,
+  onConfirmed,
+}: {
+  candidate: RecurringCandidate;
+  onConfirmed: (id: string) => void;
+}) {
+  const [isPending, startTransition] = useTransition();
+
+  return (
+    <Button
+      size="sm"
+      className="h-7 gap-1 text-xs"
+      disabled={isPending}
+      onClick={() => {
+        startTransition(async () => {
+          await confirmRecurringCandidate(
+            candidate.latestTransactionId,
+            candidate.suggestedPattern,
+          );
+          onConfirmed(candidate.latestTransactionId);
+        });
+      }}
+    >
+      {isPending ? (
+        <Loader2 className="h-3 w-3 animate-spin" />
+      ) : (
+        <Check className="h-3 w-3" />
+      )}
+      Confirm
+    </Button>
+  );
+}
+
+function SuggestedRecurringCard({
+  candidates: initialCandidates,
+  currency,
+}: {
+  candidates: RecurringCandidate[];
+  currency: string;
+}) {
+  const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
+
+  const candidates = initialCandidates.filter(
+    (c) => !confirmed.has(c.latestTransactionId),
+  );
+
+  function handleConfirmed(id: string) {
+    setConfirmed((prev) => new Set(prev).add(id));
+  }
+
+  if (candidates.length === 0) return null;
+
+  return (
+    <Card className="border-sky-500/20">
+      <CardHeader>
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/10">
+            <Sparkles className="h-4 w-4 text-sky-600" />
+          </div>
+          <div>
+            <CardTitle className="text-base">Suggested Recurring</CardTitle>
+            <CardDescription className="text-xs">
+              We detected {candidates.length} transaction{candidates.length !== 1 ? "s" : ""} that look like recurring payments. Confirm to start tracking them.
+            </CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {candidates.map((c) => (
+          <div
+            key={c.latestTransactionId}
+            className="flex items-center justify-between gap-3 rounded-lg border border-border/50 px-3 py-2.5"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
+                  c.type === "income"
+                    ? "bg-emerald-100 dark:bg-emerald-900/30"
+                    : "bg-red-100 dark:bg-red-900/30"
+                }`}
+              >
+                {c.type === "income" ? (
+                  <ArrowDownLeft className="h-3.5 w-3.5 text-emerald-600" />
+                ) : (
+                  <ArrowUpRight className="h-3.5 w-3.5 text-red-600" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{c.description}</p>
+                <p className="text-xs text-muted-foreground">
+                  {c.occurrences} times · ~{c.avgDaysBetween} days apart
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Badge
+                variant="outline"
+                className="text-[10px] border-sky-200 text-sky-600 bg-sky-500/5"
+              >
+                {patternLabels[c.suggestedPattern] ?? c.suggestedPattern}
+              </Badge>
+              <span
+                className={`text-sm font-semibold tabular-nums ${
+                  c.type === "income" ? "text-emerald-600" : "text-red-600"
+                }`}
+              >
+                {c.type === "income" ? "+" : "−"}
+                {formatCurrency(c.amount, currency)}
+              </span>
+              <ConfirmCandidateBtn candidate={c} onConfirmed={handleConfirmed} />
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function RecurringClient({
   recurring,
+  candidates = [],
   currency,
 }: Props) {
   const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
@@ -207,7 +331,7 @@ export function RecurringClient({
 
   const today = toDateString(new Date());
 
-  if (recurring.length === 0) {
+  if (recurring.length === 0 && candidates.length === 0) {
     return (
       <Card>
         <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
@@ -224,6 +348,12 @@ export function RecurringClient({
 
   return (
     <div className="space-y-6">
+      {candidates.length > 0 && (
+        <SuggestedRecurringCard candidates={candidates} currency={currency} />
+      )}
+
+      {recurring.length === 0 ? null : (
+      <>
       {/* Filter tabs */}
       <div className="flex gap-2">
         {(["all", "income", "expense"] as const).map((f) => (
@@ -484,6 +614,8 @@ export function RecurringClient({
           );
         })}
       </div>
+      </>
+      )}
     </div>
   );
 }

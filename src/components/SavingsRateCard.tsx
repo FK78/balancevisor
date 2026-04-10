@@ -24,7 +24,6 @@ type TipsState = {
   text: string;
   loading: boolean;
   error: string | null;
-  cached: boolean;
 };
 
 const chartConfig = {
@@ -40,23 +39,20 @@ export function SavingsRateCard({
     text: "",
     loading: true,
     error: null,
-    cached: false,
   });
   const abortRef = useRef<AbortController | null>(null);
   const hasFetched = useRef(false);
 
-  const fetchTips = useCallback(async (refresh: boolean) => {
+  const fetchTips = useCallback(async () => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
 
-    setTips({ text: "", loading: true, error: null, cached: false });
+    setTips({ text: "", loading: true, error: null });
 
     try {
       const res = await fetch("/api/savings-tips", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh }),
         signal: controller.signal,
       });
 
@@ -69,7 +65,7 @@ export function SavingsRateCard({
 
       if (contentType.includes("application/json")) {
         const data = await res.json();
-        setTips({ text: data.tips, loading: false, error: null, cached: data.cached ?? false });
+        setTips({ text: data.tips, loading: false, error: null });
         return;
       }
 
@@ -86,7 +82,7 @@ export function SavingsRateCard({
         setTips((prev) => ({ ...prev, text: accumulated }));
       }
 
-      setTips({ text: accumulated, loading: false, error: null, cached: false });
+      setTips({ text: accumulated, loading: false, error: null });
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
       setTips((prev) => ({
@@ -100,7 +96,7 @@ export function SavingsRateCard({
   useEffect(() => {
     if (hasFetched.current) return;
     hasFetched.current = true;
-    fetchTips(false);
+    fetchTips();
   }, [fetchTips]);
 
   useEffect(() => {
@@ -176,7 +172,7 @@ export function SavingsRateCard({
               size="sm"
               variant="ghost"
               disabled={tips.loading}
-              onClick={() => fetchTips(true)}
+              onClick={() => fetchTips()}
               className="h-7 w-7 p-0"
             >
               {tips.loading ? (

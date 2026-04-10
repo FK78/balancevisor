@@ -27,7 +27,7 @@ export async function POST() {
 
   if (snapshot.holdings.length === 0) {
     return new Response(
-      JSON.stringify({ analysis: "No holdings found. Add investments to get AI analysis.", cached: false }),
+      JSON.stringify({ analysis: "No holdings found. Add investments to get AI analysis." }),
       { headers: { "Content-Type": "application/json" } },
     );
   }
