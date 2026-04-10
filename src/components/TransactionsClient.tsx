@@ -153,6 +153,7 @@ export function TransactionsClient({
   const reviewTransactions = transactions.filter(
     (transaction) => buildTransactionDecisionState(transaction, currency).statusLabel === "Needs review",
   );
+  const reviewQueueCount = reviewTransactions.length;
   const hasReviewItemsOutsideCurrentQueue = (uncategorisedCount ?? 0) > 0 && reviewTransactions.length === 0;
   const searchResultSummary = `Showing ${totalTransactions} transaction${totalTransactions === 1 ? "" : "s"}`;
 
@@ -905,16 +906,28 @@ export function TransactionsClient({
                   <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1">
                       <p className="text-sm font-medium text-foreground">
-                        {(uncategorisedCount ?? 0) > 0
-                          ? `${uncategorisedCount} transactions are ready for categorisation.`
-                          : "Nothing needs review right now."}
+                        {reviewQueueCount > 0
+                          ? `${reviewQueueCount} transactions are ready for categorisation.`
+                          : hasReviewItemsOutsideCurrentQueue
+                            ? "Uncategorised transactions exist outside this review queue."
+                            : "Nothing needs review right now."}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        Use this queue to quickly move ambiguous transactions out of your main feed.
+                        {reviewQueueCount > 0
+                          ? "Use this queue to quickly move ambiguous transactions out of your main feed."
+                          : hasReviewItemsOutsideCurrentQueue
+                            ? "Some uncategorised items are on another page or excluded by the review queue rules."
+                            : "Use this queue to quickly move ambiguous transactions out of your main feed."}
                       </p>
                     </div>
-                    {(uncategorisedCount ?? 0) > 0 ? (
-                      <BulkCategoriseButton count={uncategorisedCount ?? 0} />
+                    {reviewQueueCount > 0 ? (
+                      <BulkCategoriseButton count={reviewQueueCount} />
+                    ) : hasReviewItemsOutsideCurrentQueue ? (
+                      <Button asChild variant="outline">
+                        <Link href={getPageHref(1, activeStartDate, activeEndDate, activeSearch, activeAccountId)}>
+                          Open first page
+                        </Link>
+                      </Button>
                     ) : (
                       <Button asChild variant="outline">
                         <Link href="/dashboard/categories">Manage categories</Link>

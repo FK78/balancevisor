@@ -112,7 +112,8 @@ describe("TransactionsClient", () => {
     await user.click(screen.getByRole("tab", { name: "Review" }));
 
     expect(screen.getByText("Transactions to review")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /categorise 2/i })).toBeInTheDocument();
+    expect(screen.getByText(/uncategorised transactions exist outside this review queue/i)).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /open first page/i }).length).toBeGreaterThan(0);
   });
 
   it("opens the filter sheet from the search workspace", async () => {
@@ -283,6 +284,9 @@ describe("TransactionsClient", () => {
     await user.click(screen.getByRole("tab", { name: "Review" }));
 
     expect(screen.getByText(/review items exist outside this page/i)).toBeInTheDocument();
+    expect(screen.getByText(/uncategorised transactions exist outside this review queue/i)).toBeInTheDocument();
+    expect(screen.queryByText(/ready for categorisation/i)).not.toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /open first page/i }).length).toBeGreaterThan(0);
     expect(screen.queryByText("Nothing needs review right now")).not.toBeInTheDocument();
   });
 
