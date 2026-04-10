@@ -48,20 +48,20 @@ export default async function DashboardLayout({
   return (
     <AiSettingsProvider aiEnabled={aiEnabled}>
     <FeatureFlagsProvider disabledFeatures={disabledFeatures}>
-    <div className="min-h-screen bg-background">
-      <nav className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl" style={{ borderBottom: '0.5px solid var(--border)' }}>
-        <div className="mx-auto flex h-11 max-w-7xl items-center justify-between gap-4 px-4 md:h-12 md:gap-6 md:px-10">
-          <div className="flex items-center gap-6">
+    <div className="dashboard-shell-bg min-h-screen bg-background">
+      <nav className="sticky top-0 z-50 border-b border-border/70 bg-background/88 backdrop-blur-xl">
+        <div className="mx-auto flex min-h-14 max-w-7xl items-center justify-between gap-4 px-4 md:min-h-16 md:gap-6 md:px-10">
+          <div className="flex items-center gap-3 md:gap-6">
             <Link
               href="/dashboard"
-              className="flex items-center gap-2.5 text-lg font-bold tracking-tight"
+              className="flex items-center gap-2.5 rounded-full px-1 py-1 text-lg font-bold tracking-tight"
             >
               <Image src="/logo.svg" alt="Wealth logo" width={30} height={30} />
               <span className="hidden sm:inline">Wealth</span>
             </Link>
             <DashboardNav />
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             <EnrichmentTrigger />
             <ChatPanel />
             <ThemeToggle />
@@ -76,7 +76,7 @@ export default async function DashboardLayout({
           </div>
         </div>
       </nav>
-      <div className="pb-20 md:pb-0">
+      <div className="pb-24 md:pb-0">
         {children}
       </div>
       <MobileBottomNav />

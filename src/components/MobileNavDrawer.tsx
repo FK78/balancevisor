@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/sheet";
 import { useFeatureFlags } from "@/components/FeatureFlagsProvider";
 import type { FeatureId } from "@/lib/features";
+import { cn } from "@/lib/utils";
 
 interface DrawerItem {
   href: string;
@@ -89,9 +90,11 @@ export function MobileNavDrawer({
               <SheetClose key={item.href} asChild>
                 <Link
                   href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 transition-colors active:bg-secondary ${
-                    !isLast ? "border-b border-border/60" : ""
-                  }`}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 transition-colors active:bg-secondary",
+                    !isLast && "border-b border-border/60",
+                  )}
                 >
                   <div
                     className={`flex h-7 w-7 items-center justify-center rounded-md ${

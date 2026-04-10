@@ -81,6 +81,12 @@
   --sidebar-accent-foreground: #000000;
   --sidebar-border: rgba(60, 60, 67, 0.12);
   --sidebar-ring: #007AFF;
+  --workspace-shell: #24342B;
+  --workspace-shell-foreground: #F7F3EA;
+  --workspace-accent: #C79A2B;
+  --workspace-muted-surface: #F5F1E6;
+  --workspace-blue: #E7EEF8;
+  --workspace-card-border: rgba(36, 52, 43, 0.08);
 }
 
 /* ── Dark: Apple Dark Mode ── */
@@ -116,6 +122,12 @@
   --sidebar-accent-foreground: #FFFFFF;
   --sidebar-border: rgba(255, 255, 255, 0.1);
   --sidebar-ring: #0A84FF;
+  --workspace-shell: #172019;
+  --workspace-shell-foreground: #F8F5EE;
+  --workspace-accent: #D1A642;
+  --workspace-muted-surface: #202A23;
+  --workspace-blue: #1B2737;
+  --workspace-card-border: rgba(255, 255, 255, 0.08);
 }
 
 @layer base {
@@ -205,6 +217,17 @@
   animation: shimmer 1.5s ease-in-out infinite;
 }
 
+@keyframes workspace-tab-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ── Gradient text utility (Apple style: solid primary) ── */
 .gradient-text {
   color: var(--primary);
@@ -230,6 +253,61 @@ html {
 /* ── Tap highlight removal for iOS ── */
 * {
   -webkit-tap-highlight-color: transparent;
+}
+
+@layer utilities {
+  .dashboard-shell-bg {
+    background-image:
+      radial-gradient(circle at top, color-mix(in srgb, var(--workspace-muted-surface) 84%, transparent) 0%, transparent 42%),
+      linear-gradient(180deg, color-mix(in srgb, var(--workspace-blue) 38%, transparent) 0%, transparent 34%);
+  }
+
+  .workspace-surface {
+    background: color-mix(in srgb, var(--card) 88%, var(--workspace-muted-surface) 12%);
+  }
+
+  .workspace-card {
+    background: color-mix(in srgb, var(--card) 92%, var(--workspace-muted-surface) 8%);
+  }
+
+  .workspace-hero {
+    background:
+      radial-gradient(circle at top right, color-mix(in srgb, white 12%, transparent) 0%, transparent 38%),
+      linear-gradient(135deg, var(--workspace-shell) 0%, color-mix(in srgb, var(--workspace-shell) 78%, black) 100%);
+    color: var(--workspace-shell-foreground);
+    box-shadow: 0 20px 48px rgba(36, 52, 43, 0.18);
+  }
+
+  .workspace-hero-panel {
+    background: color-mix(in srgb, white 10%, transparent);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .workspace-accent-chip {
+    background: color-mix(in srgb, var(--workspace-accent) 18%, white 8%);
+    color: color-mix(in srgb, var(--workspace-accent) 80%, black);
+  }
+
+  .workspace-primary-action {
+    background: var(--workspace-shell);
+    color: var(--workspace-shell-foreground);
+  }
+
+  .workspace-primary-action:hover {
+    background: color-mix(in srgb, var(--workspace-shell) 88%, black);
+  }
+
+  .workspace-tablist-scroll {
+    scrollbar-width: none;
+  }
+
+  .workspace-tablist-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  [role="tabpanel"] {
+    animation: workspace-tab-enter 0.25s ease-out;
+  }
 }
 
 .input-no-spinner::-webkit-outer-spin-button,
