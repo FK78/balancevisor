@@ -10,6 +10,7 @@ import { DashboardUpcomingBills } from "@/components/dashboard/DashboardUpcoming
 import {
   getAnomalyDecisionSummary,
   getBudgetDecisionSummary,
+  getDaysLabel,
   getRetirementTakeaway,
   getUpcomingBillsDecisionSummary,
 } from "@/components/dashboard/dashboard-decision";
@@ -46,12 +47,14 @@ function makeTransaction(
   } as TransactionWithDetails;
 }
 
-function makeBudget(overrides: Partial<{
-  id: string;
-  budgetCategory: string;
-  budgetAmount: number;
-  budgetSpent: number;
-}> = {}) {
+function makeBudget(
+  overrides: Partial<{
+    id: string;
+    budgetCategory: string;
+    budgetAmount: number;
+    budgetSpent: number;
+  }> = {},
+) {
   return {
     id: "budget_1",
     budgetCategory: "Groceries",
@@ -122,8 +125,16 @@ describe("dashboard-decision helpers", () => {
     expect(
       getBudgetDecisionSummary({
         budgetsAtRisk: [
-          makeBudget({ budgetCategory: "Travel", budgetAmount: 300, budgetSpent: 360 }),
-          makeBudget({ budgetCategory: "Dining", budgetAmount: 200, budgetSpent: 170 }),
+          makeBudget({
+            budgetCategory: "Travel",
+            budgetAmount: 300,
+            budgetSpent: 360,
+          }),
+          makeBudget({
+            budgetCategory: "Dining",
+            budgetAmount: 200,
+            budgetSpent: 170,
+          }),
         ],
         currency: "GBP",
       }),
@@ -152,7 +163,8 @@ describe("dashboard-decision helpers", () => {
       }),
     ).toEqual({
       title: "2 spending warnings to review",
-      summary: "Travel is £170.00 above usual spend this month. Dining is £120.00 above usual.",
+      summary:
+        "Travel is £170.00 above usual spend this month. Dining is £120.00 above usual.",
       actionLabel: "Review unusual spend",
     });
   });
@@ -179,6 +191,30 @@ describe("dashboard-decision helpers", () => {
     });
   });
 
+  it("labels overdue bills as overdue in helper copy", () => {
+    expect(getDaysLabel(-2)).toBe("2 days overdue");
+
+    expect(
+      getUpcomingBillsDecisionSummary({
+        renewals: [
+          makeRenewal({
+            id: "sub_overdue",
+            name: "Internet",
+            amount: 45,
+            next_billing_date: "2026-04-08",
+          }),
+        ],
+        currency: "GBP",
+        now: new Date("2026-04-10T09:00:00.000Z"),
+      }),
+    ).toEqual({
+      title: "£45.00 due across 1 bill",
+      summary:
+        "Internet is 2 days overdue. Make sure enough cash is available before it lands.",
+      actionLabel: "Review upcoming bills",
+    });
+  });
+
   it("turns retirement projections into a plain-language takeaway", () => {
     expect(getRetirementTakeaway(makeProjection(), "GBP")).toBe(
       "On track for age 64, about 1 year ahead of your target.",
@@ -195,7 +231,9 @@ describe("dashboard-decision helpers", () => {
         }),
         "GBP",
       ),
-    ).toBe("Off track by about 4 years. Closing a £110K gap would get you back toward target.");
+    ).toBe(
+      "Off track by about 4 years. Closing a £110K gap would get you back toward target.",
+    );
   });
 });
 
@@ -209,14 +247,28 @@ describe("Dashboard decision widgets", () => {
       <DashboardRecentTransactions
         currency="GBP"
         transactions={[
-          makeTransaction({ id: "txn_1", description: "Tesco", category: null, category_id: null }),
-          makeTransaction({ id: "txn_2", description: "Savings transfer", type: "transfer", amount: 300, category: null, category_id: null }),
+          makeTransaction({
+            id: "txn_1",
+            description: "Tesco",
+            category: null,
+            category_id: null,
+          }),
+          makeTransaction({
+            id: "txn_2",
+            description: "Savings transfer",
+            type: "transfer",
+            amount: 300,
+            category: null,
+            category_id: null,
+          }),
         ]}
       />,
     );
 
     expect(screen.getByText("Transaction Watchlist")).toBeInTheDocument();
-    expect(screen.getByText("Recent items that may need your attention first.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Recent items that may need your attention first."),
+    ).toBeInTheDocument();
     expect(screen.getByText("Needs review")).toBeInTheDocument();
     expect(screen.getByText("Transfer")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open transactions" })).toHaveAttribute(
@@ -230,19 +282,46 @@ describe("Dashboard decision widgets", () => {
       <DashboardBudgetProgress
         currency="GBP"
         budgets={[
-          makeBudget({ id: "budget_safe", budgetCategory: "Utilities", budgetAmount: 400, budgetSpent: 120 }),
-          makeBudget({ id: "budget_warn", budgetCategory: "Dining", budgetAmount: 200, budgetSpent: 170 }),
-          makeBudget({ id: "budget_over", budgetCategory: "Travel", budgetAmount: 300, budgetSpent: 360 }),
+          makeBudget({
+            id: "budget_safe",
+            budgetCategory: "Utilities",
+            budgetAmount: 400,
+            budgetSpent: 120,
+          }),
+          makeBudget({
+            id: "budget_warn",
+            budgetCategory: "Dining",
+            budgetAmount: 200,
+            budgetSpent: 170,
+          }),
+          makeBudget({
+            id: "budget_over",
+            budgetCategory: "Travel",
+            budgetAmount: 300,
+            budgetSpent: 360,
+          }),
         ]}
         budgetsAtRisk={[
-          makeBudget({ id: "budget_warn", budgetCategory: "Dining", budgetAmount: 200, budgetSpent: 170 }),
-          makeBudget({ id: "budget_over", budgetCategory: "Travel", budgetAmount: 300, budgetSpent: 360 }),
+          makeBudget({
+            id: "budget_warn",
+            budgetCategory: "Dining",
+            budgetAmount: 200,
+            budgetSpent: 170,
+          }),
+          makeBudget({
+            id: "budget_over",
+            budgetCategory: "Travel",
+            budgetAmount: 300,
+            budgetSpent: 360,
+          }),
         ]}
       />,
     );
 
     expect(screen.getByText("2 budgets need attention")).toBeInTheDocument();
-    expect(screen.getByText("Travel is over by £60.00. Dining is at 85% of budget.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Travel is over by £60.00. Dining is at 85% of budget."),
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Review budget limits" })).toHaveAttribute(
       "href",
       "/dashboard/budgets",
@@ -254,11 +333,45 @@ describe("Dashboard decision widgets", () => {
     expect(within(budgetRows[2]).getByText("Utilities")).toBeInTheDocument();
   });
 
+  it("does not mark a 79.5% budget as warning just because display copy rounds up", () => {
+    render(
+      <DashboardBudgetProgress
+        currency="GBP"
+        budgets={[
+          makeBudget({
+            id: "budget_borderline",
+            budgetCategory: "Groceries",
+            budgetAmount: 200,
+            budgetSpent: 159,
+          }),
+        ]}
+        budgetsAtRisk={[]}
+      />,
+    );
+
+    expect(screen.getByText("Budgets are tracking to plan")).toBeInTheDocument();
+    expect(
+      screen.getByText("No categories are close to their spending limit right now."),
+    ).toBeInTheDocument();
+
+    const amountLabel = screen.getByText("£159.00 / £200.00");
+    expect(amountLabel.className).toContain("text-muted-foreground");
+    expect(amountLabel.className).not.toContain("text-amber-600");
+  });
+
   it("turns anomalies into review-oriented warnings", () => {
     render(
       <DashboardAnomalies
         currency="GBP"
         anomalies={[
+          makeAnomaly({
+            category: "Streaming",
+            color: "#22c55e",
+            currentSpend: 90,
+            avgSpend: 30,
+            pctAbove: 200,
+            increaseAmount: 60,
+          }),
           makeAnomaly({
             category: "Travel",
             color: "#3b82f6",
@@ -272,13 +385,20 @@ describe("Dashboard decision widgets", () => {
       />,
     );
 
-    expect(screen.getByText("2 spending warnings to review")).toBeInTheDocument();
-    expect(screen.getByText("Travel is £170.00 above usual spend this month. Dining is £120.00 above usual.")).toBeInTheDocument();
+    expect(screen.getByText("3 spending warnings to review")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Travel is £170.00 above usual spend this month. Dining is £120.00 above usual.",
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Review unusual spend" })).toHaveAttribute(
       "href",
       "/dashboard/categories",
     );
-    expect(screen.getAllByText("Review now")).toHaveLength(2);
+    expect(screen.getAllByText("Review now")).toHaveLength(3);
+
+    const anomalyRows = screen.getAllByTestId("anomaly-row");
+    expect(within(anomalyRows[0]).getByText("Travel")).toBeInTheDocument();
   });
 
   it("highlights upcoming bills with exposure and urgency first", () => {
@@ -289,14 +409,21 @@ describe("Dashboard decision widgets", () => {
       <DashboardUpcomingBills
         currency="GBP"
         renewals={[
-          makeRenewal({ id: "sub_2", name: "Rent", amount: 950, next_billing_date: "2026-04-10" }),
+          makeRenewal({
+            id: "sub_2",
+            name: "Rent",
+            amount: 950,
+            next_billing_date: "2026-04-10",
+          }),
           makeRenewal(),
         ]}
       />,
     );
 
     expect(screen.getByText("£968.99 due across 2 bills")).toBeInTheDocument();
-    expect(screen.getByText("Rent is due today and Netflix follows tomorrow.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Rent is due today and Netflix follows tomorrow."),
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Review upcoming bills" })).toHaveAttribute(
       "href",
       "/dashboard/subscriptions",
@@ -305,16 +432,39 @@ describe("Dashboard decision widgets", () => {
     expect(screen.getByText("Tomorrow")).toBeInTheDocument();
   });
 
-  it("adds a plain-language retirement takeaway before detailed figures", () => {
+  it("shows overdue renewals as overdue in the widget", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-10T09:00:00.000Z"));
+
     render(
-      <DashboardRetirement
-        projection={makeProjection()}
-        hasProfile
-        baseCurrency="GBP"
+      <DashboardUpcomingBills
+        currency="GBP"
+        renewals={[
+          makeRenewal({
+            id: "sub_overdue",
+            name: "Internet",
+            amount: 45,
+            next_billing_date: "2026-04-08",
+          }),
+          makeRenewal(),
+        ]}
       />,
     );
 
-    expect(screen.getByText("On track for age 64, about 1 year ahead of your target.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Internet is 2 days overdue and Netflix follows tomorrow."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("2 days overdue")).toBeInTheDocument();
+  });
+
+  it("adds a plain-language retirement takeaway before detailed figures", () => {
+    render(
+      <DashboardRetirement projection={makeProjection()} hasProfile baseCurrency="GBP" />,
+    );
+
+    expect(
+      screen.getByText("On track for age 64, about 1 year ahead of your target."),
+    ).toBeInTheDocument();
     expect(screen.getByText("Target age 65")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "See retirement plan" })).toHaveAttribute(
       "href",

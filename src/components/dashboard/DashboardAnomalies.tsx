@@ -10,7 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, TrendingUp } from "lucide-react";
 import { formatCurrency } from "@/lib/formatCurrency";
-import { getAnomalyDecisionSummary } from "@/components/dashboard/dashboard-decision";
+import {
+  getAnomalyDecisionSummary,
+  getPrioritisedAnomalies,
+} from "@/components/dashboard/dashboard-decision";
 import type { SpendingAnomaly } from "@/lib/spending-anomalies";
 
 export function DashboardAnomalies({
@@ -23,6 +26,7 @@ export function DashboardAnomalies({
   if (anomalies.length === 0) return null;
 
   const summary = getAnomalyDecisionSummary({ anomalies, currency });
+  const prioritisedAnomalies = getPrioritisedAnomalies(anomalies);
 
   return (
     <Card className="border-amber-500/20">
@@ -46,9 +50,10 @@ export function DashboardAnomalies({
         </div>
       </CardHeader>
       <CardContent className="space-y-2.5">
-        {anomalies.map((a) => (
+        {prioritisedAnomalies.map((a) => (
           <div
             key={a.category}
+            data-testid="anomaly-row"
             className="flex items-center gap-3 rounded-lg bg-secondary/40 px-3 py-2.5"
           >
             <div

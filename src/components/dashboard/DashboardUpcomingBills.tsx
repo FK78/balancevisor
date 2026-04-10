@@ -43,6 +43,7 @@ export function DashboardUpcomingBills({
         <div className="space-y-2">
           {renewals.map((r) => {
             const days = getDaysUntil(r.next_billing_date);
+            const isUrgent = days <= 0;
             return (
               <div
                 key={r.id}
@@ -60,7 +61,7 @@ export function DashboardUpcomingBills({
                 <div className="flex items-center gap-3 shrink-0">
                   <span
                     className={`text-xs ${
-                      days <= 0
+                      isUrgent
                         ? "font-semibold text-rose-600"
                         : "text-muted-foreground"
                     }`}

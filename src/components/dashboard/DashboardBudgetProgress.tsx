@@ -13,6 +13,7 @@ import {
   getBudgetDecisionSummary,
   getBudgetRiskScore,
   getBudgetUsagePercent,
+  getBudgetUsagePercentRaw,
 } from "@/components/dashboard/dashboard-decision";
 
 type Budget = {
@@ -69,44 +70,45 @@ export function DashboardBudgetProgress({
             <p className="text-sm text-muted-foreground">{summary.summary}</p>
             {prioritisedBudgets.slice(0, 5).map((budget) => {
               const pct = Math.min(getBudgetUsagePercent(budget), 100);
-            const isOver = budget.budgetSpent > budget.budgetAmount;
-            const isWarning = pct >= 80 && !isOver;
-            return (
-              <div
-                key={budget.id}
-                data-testid="budget-progress-row"
-                className="space-y-1.5"
-              >
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium">
-                    {budget.budgetCategory}
-                  </span>
-                  <span
-                    className={`text-xs tabular-nums ${
-                      isOver
-                        ? "text-red-600 font-semibold"
-                        : isWarning
-                        ? "text-amber-600"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    {formatCurrency(budget.budgetSpent, currency)} /{" "}
-                    {formatCurrency(budget.budgetAmount, currency)}
-                  </span>
+              const pctRaw = getBudgetUsagePercentRaw(budget);
+              const isOver = budget.budgetSpent > budget.budgetAmount;
+              const isWarning = pctRaw >= 80 && !isOver;
+              return (
+                <div
+                  key={budget.id}
+                  data-testid="budget-progress-row"
+                  className="space-y-1.5"
+                >
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium">
+                      {budget.budgetCategory}
+                    </span>
+                    <span
+                      className={`text-xs tabular-nums ${
+                        isOver
+                          ? "text-red-600 font-semibold"
+                          : isWarning
+                            ? "text-amber-600"
+                            : "text-muted-foreground"
+                      }`}
+                    >
+                      {formatCurrency(budget.budgetSpent, currency)} /{" "}
+                      {formatCurrency(budget.budgetAmount, currency)}
+                    </span>
+                  </div>
+                  <div className="bg-muted h-2.5 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        isOver
+                          ? "bg-red-400"
+                          : isWarning
+                            ? "bg-amber-400"
+                            : "bg-emerald-400"
+                      }`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="bg-muted h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${
-                      isOver
-                        ? "bg-red-400"
-                        : isWarning
-                        ? "bg-amber-400"
-                        : "bg-emerald-400"
-                    }`}
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-              </div>
               );
             })}
           </>

@@ -15,8 +15,12 @@ type RenewalLike = {
 };
 
 export function getBudgetUsagePercent(budget: BudgetLike) {
+  return Math.round(getBudgetUsagePercentRaw(budget));
+}
+
+export function getBudgetUsagePercentRaw(budget: BudgetLike) {
   if (budget.budgetAmount <= 0) return 0;
-  return Math.round((budget.budgetSpent / budget.budgetAmount) * 100);
+  return (budget.budgetSpent / budget.budgetAmount) * 100;
 }
 
 export function getBudgetRiskScore(budget: BudgetLike) {
@@ -75,9 +79,7 @@ export function getAnomalyDecisionSummary({
   anomalies: SpendingAnomaly[];
   currency: string;
 }) {
-  const sorted = [...anomalies].sort(
-    (left, right) => right.increaseAmount - left.increaseAmount,
-  );
+  const sorted = getPrioritisedAnomalies(anomalies);
   const [primary, secondary] = sorted;
 
   if (!primary) {
@@ -106,6 +108,14 @@ export function getAnomalyDecisionSummary({
   };
 }
 
+export function getPrioritisedAnomalies(anomalies: SpendingAnomaly[]) {
+  return [...anomalies].sort((left, right) => {
+    const increaseDifference = right.increaseAmount - left.increaseAmount;
+    if (increaseDifference !== 0) return increaseDifference;
+    return right.pctAbove - left.pctAbove;
+  });
+}
+
 export function getDaysUntil(targetDate: string, now: Date = new Date()) {
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
@@ -115,7 +125,8 @@ export function getDaysUntil(targetDate: string, now: Date = new Date()) {
 }
 
 export function getDaysLabel(days: number) {
-  if (days <= 0) return "Due today";
+  if (days < 0) return `${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"} overdue`;
+  if (days === 0) return "Due today";
   if (days === 1) return "Tomorrow";
   return `In ${days} days`;
 }
@@ -145,7 +156,9 @@ export function getUpcomingBillsDecisionSummary({
 
   const primaryDays = getDaysUntil(primary.next_billing_date, now);
   const primarySummary =
-    primaryDays <= 0
+    primaryDays < 0
+      ? `${primary.name} is ${getDaysLabel(primaryDays)}`
+      : primaryDays === 0
       ? `${primary.name} is due today`
       : `${primary.name} is due ${getDaysLabel(primaryDays).toLowerCase()}`;
 
