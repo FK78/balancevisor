@@ -4,13 +4,17 @@ import { eq } from "drizzle-orm";
 import { getInvestmentValue } from "@/lib/investment-value";
 import { fetchGoldPrice, fetchSilverPrice, calculateNisabValue } from "@/lib/nisab-prices";
 import { getUserKey, decryptForUser } from "@/lib/encryption";
+import { getZakatableOtherAssets } from "@/db/queries/other-assets";
 
 // Zakat rate: 2.5% of net zakatable wealth
 const ZAKAT_RATE = 0.025;
 
+const METAL_TYPES = new Set(["gold", "silver"]);
+
 export type ZakatBreakdown = {
   cashAndSavings: number;
   investmentValue: number;
+  otherAssetsValue: number;
   totalAssets: number;
   totalLiabilities: number;
   debtDeductions: number;
@@ -20,6 +24,7 @@ export type ZakatBreakdown = {
   aboveNisab: boolean;
   accounts: { name: string; type: string | null; balance: number }[];
   debts: { name: string; remainingAmount: number }[];
+  otherAssets: { name: string; assetType: string; value: number }[];
 };
 
 export async function getNisabValue(
@@ -34,7 +39,7 @@ export async function getNisabValue(
 
 export async function calculateZakat(
   userId: string,
-  nisabType: string = "gold"
+  nisabType: string = "gold",
 ): Promise<ZakatBreakdown> {
   // 0. Get user encryption key for decrypting account names
   const userKey = await getUserKey(userId);
@@ -79,6 +84,28 @@ export async function calculateZakat(
     /* skip if fetch fails */
   }
 
+  // 4b. Zakatable other assets (gold, silver, business, cash, etc.)
+  const zakatableAssets = await getZakatableOtherAssets(userId);
+
+  // For gold/silver with weight_grams, compute value from live prices
+  const [goldPrice, silverPrice] = await Promise.all([
+    fetchGoldPrice(),
+    fetchSilverPrice(),
+  ]);
+
+  const valuedOtherAssets = zakatableAssets.map((asset) => {
+    let computedValue = asset.value;
+    if (METAL_TYPES.has(asset.asset_type) && asset.weight_grams != null && asset.weight_grams > 0) {
+      const pricePerGram = asset.asset_type === "silver"
+        ? silverPrice.pricePerGram
+        : goldPrice.pricePerGram;
+      computedValue = asset.weight_grams * pricePerGram;
+    }
+    return { name: asset.name, assetType: asset.asset_type, value: computedValue };
+  });
+
+  const otherAssetsValue = valuedOtherAssets.reduce((sum, a) => sum + a.value, 0);
+
   // 5. Debt deductions — short-term debts that are due within the next 12 months
   // For simplicity we deduct all active debt remaining amounts
   const debtDeductions = activeDebts.reduce(
@@ -87,7 +114,7 @@ export async function calculateZakat(
   );
 
   // 6. Calculate totals
-  const totalAssets = cashAndSavings + investmentVal;
+  const totalAssets = cashAndSavings + investmentVal + otherAssetsValue;
   const totalLiabilities = accountLiabilities + debtDeductions;
   const zakatableAmount = Math.max(totalAssets - totalLiabilities, 0);
 
@@ -101,6 +128,7 @@ export async function calculateZakat(
   return {
     cashAndSavings,
     investmentValue: investmentVal,
+    otherAssetsValue,
     totalAssets,
     totalLiabilities: accountLiabilities,
     debtDeductions,
@@ -117,5 +145,6 @@ export async function calculateZakat(
       name: d.name,
       remainingAmount: d.remaining_amount,
     })),
+    otherAssets: valuedOtherAssets,
   };
 }

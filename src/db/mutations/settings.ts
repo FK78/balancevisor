@@ -26,6 +26,7 @@ import {
   userPreferencesTable,
   zakatSettingsTable,
   zakatCalculationsTable,
+  otherAssetsTable,
   retirementProfilesTable,
   dashboardLayoutsTable,
   userKeysTable,
@@ -154,6 +155,7 @@ export async function deleteAccount(): Promise<{ success?: boolean; error?: stri
     await tx.delete(brokerConnectionsTable).where(eq(brokerConnectionsTable.user_id, userId));
     await tx.delete(zakatCalculationsTable).where(eq(zakatCalculationsTable.user_id, userId));
     await tx.delete(zakatSettingsTable).where(eq(zakatSettingsTable.user_id, userId));
+    await tx.delete(otherAssetsTable).where(eq(otherAssetsTable.user_id, userId));
     await tx.delete(debtsTable).where(eq(debtsTable.user_id, userId));
 
     // --- Transactions (linked to accounts) ---

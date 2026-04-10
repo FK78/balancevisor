@@ -11,9 +11,9 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Repeat, ArrowRight, Calendar, Check, Loader2 } from "lucide-react";
+import { Repeat, ArrowRight, Calendar, Check, Loader2, XCircle } from "lucide-react";
 import { formatCurrency } from "@/lib/formatCurrency";
-import { confirmRecurringCandidate } from "@/db/mutations/recurring";
+import { confirmRecurringCandidate, dismissRecurringCandidate } from "@/db/mutations/recurring";
 import type { RecurringCandidate } from "@/lib/recurring-detection";
 
 const patternLabels: Record<string, string> = {
@@ -25,10 +25,10 @@ const patternLabels: Record<string, string> = {
 
 function ConfirmCandidateButton({
   candidate,
-  onConfirmed,
+  onHidden,
 }: {
   candidate: RecurringCandidate;
-  onConfirmed: (id: string) => void;
+  onHidden: (id: string) => void;
 }) {
   const [isPending, startTransition] = useTransition();
 
@@ -44,7 +44,7 @@ function ConfirmCandidateButton({
             candidate.latestTransactionId,
             candidate.suggestedPattern,
           );
-          onConfirmed(candidate.latestTransactionId);
+          onHidden(candidate.latestTransactionId);
         });
       }}
     >
@@ -58,6 +58,38 @@ function ConfirmCandidateButton({
   );
 }
 
+function DismissCandidateButton({
+  candidate,
+  onHidden,
+}: {
+  candidate: RecurringCandidate;
+  onHidden: (id: string) => void;
+}) {
+  const [isPending, startTransition] = useTransition();
+
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+      disabled={isPending}
+      aria-label="Dismiss suggestion"
+      onClick={() => {
+        startTransition(async () => {
+          await dismissRecurringCandidate(candidate.latestTransactionId);
+          onHidden(candidate.latestTransactionId);
+        });
+      }}
+    >
+      {isPending ? (
+        <Loader2 className="h-3 w-3 animate-spin" />
+      ) : (
+        <XCircle className="h-3.5 w-3.5" />
+      )}
+    </Button>
+  );
+}
+
 export function RecurringDetectionBanner({
   candidates: initialCandidates,
   currency,
@@ -65,14 +97,14 @@ export function RecurringDetectionBanner({
   candidates: RecurringCandidate[];
   currency: string;
 }) {
-  const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
 
   const candidates = initialCandidates.filter(
-    (c) => !confirmed.has(c.latestTransactionId),
+    (c) => !hidden.has(c.latestTransactionId),
   );
 
-  function handleConfirmed(id: string) {
-    setConfirmed((prev) => new Set(prev).add(id));
+  function handleHidden(id: string) {
+    setHidden((prev) => new Set(prev).add(id));
   }
 
   if (candidates.length === 0) return null;
@@ -126,7 +158,8 @@ export function RecurringDetectionBanner({
                 {c.type === "income" ? "+" : ""}
                 {formatCurrency(c.amount, currency)}
               </span>
-              <ConfirmCandidateButton candidate={c} onConfirmed={handleConfirmed} />
+              <DismissCandidateButton candidate={c} onHidden={handleHidden} />
+              <ConfirmCandidateButton candidate={c} onHidden={handleHidden} />
             </div>
           </div>
         ))}

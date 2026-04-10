@@ -2,6 +2,7 @@ import { db } from '@/index';
 import { transactionsTable, categoriesTable, accountsTable } from '@/db/schema';
 import { and, eq, isNotNull, desc } from 'drizzle-orm';
 import { decryptForUser, getUserKey } from '@/lib/encryption';
+import { normalise } from '@/lib/matching-utils';
 
 export type RecurringTransaction = {
   id: string;
@@ -58,7 +59,7 @@ export async function getRecurringTransactions(userId: string): Promise<Recurrin
   // recurring charge so the summary totals are correct.
   const seen = new Map<string, RecurringTransaction>();
   for (const row of decrypted) {
-    const key = dedupeKey(row.description) + '|' + (row.type ?? '');
+    const key = normalise(row.description) + '|' + (row.type ?? '');
     const existing = seen.get(key);
     if (
       !existing ||
@@ -71,13 +72,8 @@ export async function getRecurringTransactions(userId: string): Promise<Recurrin
   return Array.from(seen.values());
 }
 
-function dedupeKey(description: string): string {
-  return description
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+// dedupeKey replaced by normalise() from @/lib/matching-utils for consistency
+// with the detection and generation layers.
 
 export async function getRecurringTransactionsSummary(userId: string) {
   const recurring = await getRecurringTransactions(userId);

@@ -366,6 +366,7 @@ export const zakatCalculationsTable = pgTable("zakat_calculations", {
   total_assets: numeric("total_assets", { mode: "number" }).notNull(),
   cash_and_savings: numeric("cash_and_savings", { mode: "number" }).notNull().default(0),
   investment_value: numeric("investment_value", { mode: "number" }).notNull().default(0),
+  other_assets_value: numeric("other_assets_value", { mode: "number" }).notNull().default(0),
   total_liabilities: numeric("total_liabilities", { mode: "number" }).notNull().default(0),
   debt_deductions: numeric("debt_deductions", { mode: "number" }).notNull().default(0),
   zakatable_amount: numeric("zakatable_amount", { mode: "number" }).notNull(),
@@ -427,4 +428,19 @@ export const dashboardLayoutsTable = pgTable("dashboard_layouts", {
   updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [{
   uniqueUserPage: uniqueIndex("dashboard_layouts_user_page_idx").on(table.user_id, table.page),
+}]);
+
+export const otherAssetsTable = pgTable("other_assets", {
+  id: uuid().primaryKey().defaultRandom(),
+  user_id: uuid("user_id").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  asset_type: varchar("asset_type", { length: 30 }).notNull(),
+  value: numeric("value", { mode: "number" }).notNull().default(0),
+  weight_grams: numeric("weight_grams", { mode: "number" }),
+  is_zakatable: boolean("is_zakatable").notNull().default(false),
+  notes: text("notes"),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [{
+  userIdx: index("other_assets_user_id_idx").on(table.user_id),
 }]);

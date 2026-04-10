@@ -38,6 +38,7 @@ import {
   userPreferencesTable,
   zakatCalculationsTable,
   zakatSettingsTable,
+  otherAssetsTable,
 } from "@/db/schema";
 
 async function deleteUser(userId: string) {
@@ -111,6 +112,7 @@ async function deleteUser(userId: string) {
     await tx.delete(brokerConnectionsTable).where(eq(brokerConnectionsTable.user_id, userId));
     await tx.delete(zakatCalculationsTable).where(eq(zakatCalculationsTable.user_id, userId));
     await tx.delete(zakatSettingsTable).where(eq(zakatSettingsTable.user_id, userId));
+    await tx.delete(otherAssetsTable).where(eq(otherAssetsTable.user_id, userId));
     await tx.delete(debtsTable).where(eq(debtsTable.user_id, userId));
     await tx.delete(retirementProfilesTable).where(eq(retirementProfilesTable.user_id, userId));
     await tx.delete(dashboardLayoutsTable).where(eq(dashboardLayoutsTable.user_id, userId));

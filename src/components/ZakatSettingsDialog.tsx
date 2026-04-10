@@ -35,8 +35,8 @@ export function ZakatSettingsDialog({ settings, baseCurrency = "GBP" }: { settin
   const [view, setView] = useState<"form" | "success">("form");
   const [isPending, startTransition] = useTransition();
   const [nisabPrices, setNisabPrices] = useState<{
-    gold: { nisabValue: number; lastUpdated: string | null };
-    silver: { nisabValue: number; lastUpdated: string | null };
+    gold: { pricePerGram: number; nisabValue: number; lastUpdated: string | null };
+    silver: { pricePerGram: number; nisabValue: number; lastUpdated: string | null };
   } | null>(null);
 
   useEffect(() => {

@@ -21,6 +21,7 @@ interface AccountsPageClientProps {
   readonly charts: ReactNode;
   readonly accountCards: ReactNode;
   readonly healthCheck: ReactNode;
+  readonly otherAssets: ReactNode;
 }
 
 export function AccountsPageClient({
@@ -31,6 +32,7 @@ export function AccountsPageClient({
   charts,
   accountCards,
   healthCheck,
+  otherAssets,
 }: AccountsPageClientProps) {
   return (
     <WidgetLayoutProvider pageId="accounts" serverLayout={serverLayout}>
@@ -41,6 +43,7 @@ export function AccountsPageClient({
         charts={charts}
         accountCards={accountCards}
         healthCheck={healthCheck}
+        otherAssets={otherAssets}
       />
     </WidgetLayoutProvider>
   );
@@ -53,6 +56,7 @@ function AccountsPageContent({
   charts,
   accountCards,
   healthCheck,
+  otherAssets,
 }: Omit<AccountsPageClientProps, "serverLayout">) {
   const { layout } = useWidgetLayoutContext();
   const [activeTab, setActiveTab] = useState<AccountsWorkspaceTab>("summary");
@@ -123,6 +127,7 @@ function AccountsPageContent({
           </div>
         ))}
       </section>
+      {otherAssets}
     </div>
   );
 }

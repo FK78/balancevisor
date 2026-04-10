@@ -2,11 +2,13 @@ import { db } from '@/index';
 import { netWorthSnapshotsTable, accountsTable } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { getInvestmentValue } from '@/lib/investment-value';
+import { getOtherAssetsTotalValue } from '@/db/queries/other-assets';
 import { logger } from '@/lib/logger';
 
 interface SnapshotOptions {
   prefetchedInvestmentValue?: number;
   prefetchedAccounts?: ReadonlyArray<{ type: string | null; balance: number }>;
+  prefetchedOtherAssetsValue?: number;
 }
 
 /**
@@ -59,7 +61,18 @@ export async function snapshotNetWorthIfNeeded(userId: string, opts: SnapshotOpt
     }
   }
 
-  const netWorth = totalAssets - totalLiabilities + investmentValue;
+  let otherAssetsValue = 0;
+  if (opts.prefetchedOtherAssetsValue !== undefined) {
+    otherAssetsValue = opts.prefetchedOtherAssetsValue;
+  } else {
+    try {
+      otherAssetsValue = await getOtherAssetsTotalValue(userId);
+    } catch (err) {
+      logger.error("snapshot-net-worth", "Other assets fetch failed, using 0", err);
+    }
+  }
+
+  const netWorth = totalAssets - totalLiabilities + investmentValue + otherAssetsValue;
 
   // Insert snapshot (ON CONFLICT DO NOTHING for race safety)
   await db

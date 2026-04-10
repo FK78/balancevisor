@@ -276,6 +276,18 @@ export default async function ZakatPage() {
                         </span>
                       </div>
                     )}
+                    {latest.other_assets_value > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-yellow-400" />
+                          <span>Other Assets</span>
+                          <Badge variant="outline" className="text-xs">Zakatable</Badge>
+                        </div>
+                        <span className="tabular-nums font-medium">
+                          {formatCurrency(latest.other_assets_value, baseCurrency)}
+                        </span>
+                      </div>
+                    )}
                     <div className="border-t pt-2 flex items-center justify-between text-sm font-semibold">
                       <span>Total Assets</span>
                       <span className="tabular-nums text-emerald-600">
@@ -350,7 +362,7 @@ export default async function ZakatPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2 lg:grid-cols-5">
                 <div className="rounded-xl bg-muted/50 p-3 text-center">
                   <p className="text-xs text-muted-foreground mb-1">Cash &amp; Savings</p>
                   <p className="font-bold tabular-nums">{formatCurrency(latest.cash_and_savings, baseCurrency)}</p>
@@ -358,6 +370,10 @@ export default async function ZakatPage() {
                 <div className="rounded-xl bg-muted/50 p-3 text-center">
                   <p className="text-xs text-muted-foreground mb-1">+ Investments</p>
                   <p className="font-bold tabular-nums">{formatCurrency(latest.investment_value, baseCurrency)}</p>
+                </div>
+                <div className="rounded-xl bg-muted/50 p-3 text-center">
+                  <p className="text-xs text-muted-foreground mb-1">+ Other Assets</p>
+                  <p className="font-bold tabular-nums">{formatCurrency(latest.other_assets_value, baseCurrency)}</p>
                 </div>
                 <div className="rounded-xl bg-muted/50 p-3 text-center">
                   <p className="text-xs text-muted-foreground mb-1">− Deductions</p>

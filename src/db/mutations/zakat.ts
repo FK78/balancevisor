@@ -51,6 +51,7 @@ export async function triggerZakatCalculation(isAuto = false) {
     total_assets: breakdown.totalAssets,
     cash_and_savings: breakdown.cashAndSavings,
     investment_value: breakdown.investmentValue,
+    other_assets_value: breakdown.otherAssetsValue,
     total_liabilities: breakdown.totalLiabilities,
     debt_deductions: breakdown.debtDeductions,
     zakatable_amount: breakdown.zakatableAmount,
@@ -59,6 +60,7 @@ export async function triggerZakatCalculation(isAuto = false) {
     breakdown_json: {
       accounts: breakdown.accounts,
       debts: breakdown.debts,
+      otherAssets: breakdown.otherAssets,
     },
   });
 

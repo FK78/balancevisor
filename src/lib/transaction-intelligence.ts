@@ -7,6 +7,13 @@ import {
   transactionReviewFlagsTable,
 } from "@/db/schema";
 import { eq, and, isNull, inArray, gte } from "drizzle-orm";
+import {
+  inferRecurringPattern,
+  computeNextRecurringDate,
+  isAmountConsistent,
+  MIN_RECURRING_OCCURRENCES,
+  type RecurringPattern,
+} from "@/lib/recurring-utils";
 import { decryptForUser, getUserKey } from "@/lib/encryption";
 import { logger } from "@/lib/logger";
 import { revalidateDomains } from "@/lib/revalidate";
@@ -285,13 +292,16 @@ export async function detectRecurringPatterns(
   let detected = 0;
 
   for (const [, group] of groups) {
-    if (group.length < 2) continue;
+    if (group.length < MIN_RECURRING_OCCURRENCES) continue;
 
     // Sort by date
     const dated = group
       .filter((t) => t.date)
       .sort((a, b) => a.date!.localeCompare(b.date!));
-    if (dated.length < 2) continue;
+    if (dated.length < MIN_RECURRING_OCCURRENCES) continue;
+
+    // Amount consistency — skip groups with wildly varying amounts
+    if (!isAmountConsistent(dated.map((t) => t.amount))) continue;
 
     // Calculate average interval in days
     const intervals: number[] = [];
@@ -304,24 +314,39 @@ export async function detectRecurringPatterns(
     }
 
     const avg = intervals.reduce((s, v) => s + v, 0) / intervals.length;
-    const pattern = inferPattern(avg);
+    const pattern = inferRecurringPattern(avg);
     if (!pattern) continue;
 
-    // Compute next recurring date from the latest transaction
+    // Only mark the LATEST transaction as the recurring "source".
+    // Previous code marked ALL historical transactions, which caused
+    // duplicate generation and wildly inflated summary numbers.
     const latest = dated[dated.length - 1];
-    const nextDate = computeNextDate(latest.date!, pattern);
+    const nextDate = computeNextRecurringDate(latest.date!, pattern);
 
-    const ids = group.map((t) => t.id);
     await db
       .update(transactionsTable)
       .set({
         is_recurring: true,
-        recurring_pattern: pattern,
+        recurring_pattern: pattern as typeof transactionsTable.$inferInsert["recurring_pattern"],
         next_recurring_date: nextDate,
       })
-      .where(inArray(transactionsTable.id, ids));
+      .where(eq(transactionsTable.id, latest.id));
 
-    detected += ids.length;
+    // Mark older transactions in this group as "acknowledged" so they don't
+    // appear as false-positive candidates in detectRecurringCandidates().
+    // Setting is_recurring=true with pattern=null excludes them from:
+    //  - candidate detection (requires is_recurring=false)
+    //  - recurring list (requires recurring_pattern IS NOT NULL)
+    //  - generation engine (requires recurring_pattern IS NOT NULL)
+    const otherIds = group.filter((t) => t.id !== latest.id).map((t) => t.id);
+    if (otherIds.length > 0) {
+      await db
+        .update(transactionsTable)
+        .set({ is_recurring: true, recurring_pattern: null, next_recurring_date: null })
+        .where(inArray(transactionsTable.id, otherIds));
+    }
+
+    detected += 1;
   }
 
   if (detected > 0) {
@@ -331,38 +356,7 @@ export async function detectRecurringPatterns(
   return detected;
 }
 
-function inferPattern(
-  avgDays: number,
-): "daily" | "weekly" | "biweekly" | "monthly" | "yearly" | null {
-  if (avgDays <= 2) return "daily";
-  if (avgDays >= 5 && avgDays <= 10) return "weekly";
-  if (avgDays >= 12 && avgDays <= 18) return "biweekly";
-  if (avgDays >= 25 && avgDays <= 35) return "monthly";
-  if (avgDays >= 340 && avgDays <= 395) return "yearly";
-  return null;
-}
-
-function computeNextDate(lastDate: string, pattern: string): string {
-  const d = new Date(lastDate + "T00:00:00");
-  switch (pattern) {
-    case "daily":
-      d.setDate(d.getDate() + 1);
-      break;
-    case "weekly":
-      d.setDate(d.getDate() + 7);
-      break;
-    case "biweekly":
-      d.setDate(d.getDate() + 14);
-      break;
-    case "monthly":
-      d.setMonth(d.getMonth() + 1);
-      break;
-    case "yearly":
-      d.setFullYear(d.getFullYear() + 1);
-      break;
-  }
-  return d.toISOString().split("T")[0];
-}
+// inferPattern and computeNextDate are now shared via @/lib/recurring-utils
 
 // ---------------------------------------------------------------------------
 // 4. Advance subscription billing date

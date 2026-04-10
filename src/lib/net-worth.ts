@@ -19,12 +19,13 @@ export interface NetWorthBreakdown {
 }
 
 /**
- * Calculate net worth from a list of accounts and an investment value.
+ * Calculate net worth from a list of accounts, investment value, and other assets.
  * Credit-card accounts are treated as liabilities; everything else is an asset.
  */
 export function calculateNetWorth(
   accounts: readonly AccountLike[],
   investmentValue: number,
+  otherAssetsValue: number = 0,
 ): NetWorthBreakdown {
   const totalAssets = accounts
     .filter((a) => !LIABILITY_TYPES.has(a.type ?? ""))
@@ -37,6 +38,6 @@ export function calculateNetWorth(
   return {
     totalAssets,
     totalLiabilities,
-    netWorth: totalAssets - totalLiabilities + investmentValue,
+    netWorth: totalAssets - totalLiabilities + investmentValue + otherAssetsValue,
   };
 }

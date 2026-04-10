@@ -8,6 +8,11 @@ import { getCurrentUserId } from '@/lib/auth';
 import { z } from 'zod';
 import { parseFormData, zRequiredString, zEnum, zDate } from '@/lib/form-schema';
 import { toDateString } from '@/lib/date';
+import {
+  computeNextRecurringDate,
+  VALID_RECURRING_PATTERNS,
+  type RecurringPattern,
+} from '@/lib/recurring-utils';
 
 const recurringSchema = z.object({
   id: zRequiredString(),
@@ -15,21 +20,7 @@ const recurringSchema = z.object({
   next_recurring_date: zDate(),
 });
 
-type RecurringPattern = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
-
-const VALID_PATTERNS: readonly RecurringPattern[] = ['daily', 'weekly', 'biweekly', 'monthly', 'yearly'] as const;
-
-function computeNextRecurringDate(dateStr: string, pattern: RecurringPattern): string {
-  const d = new Date(dateStr + 'T00:00:00');
-  switch (pattern) {
-    case 'daily': d.setDate(d.getDate() + 1); break;
-    case 'weekly': d.setDate(d.getDate() + 7); break;
-    case 'biweekly': d.setDate(d.getDate() + 14); break;
-    case 'monthly': d.setMonth(d.getMonth() + 1); break;
-    case 'yearly': d.setFullYear(d.getFullYear() + 1); break;
-  }
-  return toDateString(d);
-}
+// RecurringPattern, VALID_RECURRING_PATTERNS, computeNextRecurringDate imported from @/lib/recurring-utils
 
 /**
  * Confirm a detected recurring candidate — marks the transaction as recurring,
@@ -41,7 +32,7 @@ export async function confirmRecurringCandidate(
 ) {
   const userId = await getCurrentUserId();
 
-  if (!VALID_PATTERNS.includes(pattern as RecurringPattern)) {
+  if (!VALID_RECURRING_PATTERNS.includes(pattern as RecurringPattern)) {
     throw new Error('Invalid recurring pattern');
   }
   const validPattern = pattern as RecurringPattern;

@@ -3,6 +3,12 @@ import { transactionsTable } from "@/db/schema";
 import { and, eq, gte, desc } from "drizzle-orm";
 import { decryptForUser, getUserKey } from "@/lib/encryption";
 import { getMonthRange } from "@/lib/date";
+import {
+  inferRecurringPattern,
+  MIN_RECURRING_OCCURRENCES,
+  isAmountConsistent,
+} from "@/lib/recurring-utils";
+import { normalise } from "@/lib/matching-utils";
 
 export type RecurringCandidate = {
   description: string;
@@ -68,7 +74,7 @@ export async function detectRecurringCandidates(userId: string): Promise<Recurri
   >();
 
   for (const txn of txns) {
-    const key = normalizeDescription(txn.description) + "|" + txn.type;
+    const key = normalise(txn.description) + "|" + txn.type;
     const existing = groups.get(key);
     if (existing) {
       existing.entries.push({ id: txn.id, amount: txn.amount, date: txn.date });
@@ -84,16 +90,12 @@ export async function detectRecurringCandidates(userId: string): Promise<Recurri
   const candidates: RecurringCandidate[] = [];
 
   for (const [, group] of groups) {
-    // Need at least 2 occurrences to detect a pattern
-    if (group.entries.length < 2) continue;
+    if (group.entries.length < MIN_RECURRING_OCCURRENCES) continue;
 
     // Check amount consistency (all within ±15% of median)
     const amounts = group.entries.map((e) => e.amount).sort((a, b) => a - b);
     const median = amounts[Math.floor(amounts.length / 2)];
-    const consistent = amounts.every(
-      (a) => Math.abs(a - median) / median <= 0.15,
-    );
-    if (!consistent) continue;
+    if (!isAmountConsistent(amounts)) continue;
 
     // Compute intervals between occurrences
     const dates = group.entries
@@ -109,7 +111,7 @@ export async function detectRecurringCandidates(userId: string): Promise<Recurri
     const avgDays = intervals.reduce((s, d) => s + d, 0) / intervals.length;
 
     // Determine pattern from average interval
-    const pattern = inferPattern(avgDays);
+    const pattern = inferRecurringPattern(avgDays);
     if (!pattern) continue;
 
     const sortedByDate = [...group.entries].sort((a, b) => a.date.localeCompare(b.date));
@@ -119,7 +121,7 @@ export async function detectRecurringCandidates(userId: string): Promise<Recurri
       type: group.type,
       occurrences: group.entries.length,
       avgDaysBetween: Math.round(avgDays),
-      suggestedPattern: pattern,
+      suggestedPattern: pattern as RecurringCandidate["suggestedPattern"],
       lastDate: sortedByDate[sortedByDate.length - 1].date,
       latestTransactionId: sortedByDate[sortedByDate.length - 1].id,
     });
@@ -130,18 +132,4 @@ export async function detectRecurringCandidates(userId: string): Promise<Recurri
   return candidates.slice(0, 8);
 }
 
-function normalizeDescription(desc: string): string {
-  return desc
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function inferPattern(avgDays: number): RecurringCandidate["suggestedPattern"] | null {
-  if (avgDays >= 5 && avgDays <= 9) return "weekly";
-  if (avgDays >= 12 && avgDays <= 18) return "biweekly";
-  if (avgDays >= 25 && avgDays <= 35) return "monthly";
-  if (avgDays >= 340 && avgDays <= 395) return "yearly";
-  return null;
-}
+// normalizeDescription and inferPattern are now shared via @/lib/recurring-utils

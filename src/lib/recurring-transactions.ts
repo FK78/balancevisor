@@ -1,30 +1,10 @@
 import { db } from '@/index';
 import { transactionsTable, accountsTable } from '@/db/schema';
-import { eq, and, lte, isNotNull, sql } from 'drizzle-orm';
-
-type RecurringPattern = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
-
-function advanceDate(dateStr: string, pattern: RecurringPattern): string {
-  const d = new Date(dateStr + 'T00:00:00');
-  switch (pattern) {
-    case 'daily':
-      d.setDate(d.getDate() + 1);
-      break;
-    case 'weekly':
-      d.setDate(d.getDate() + 7);
-      break;
-    case 'biweekly':
-      d.setDate(d.getDate() + 14);
-      break;
-    case 'monthly':
-      d.setMonth(d.getMonth() + 1);
-      break;
-    case 'yearly':
-      d.setFullYear(d.getFullYear() + 1);
-      break;
-  }
-  return d.toISOString().split('T')[0];
-}
+import { eq, and, lte, isNotNull, sql, inArray } from 'drizzle-orm';
+import { decryptForUser, getUserKey } from '@/lib/encryption';
+import { computeNextRecurringDate, type RecurringPattern } from '@/lib/recurring-utils';
+import { normalise } from '@/lib/matching-utils';
+import { logger } from '@/lib/logger';
 
 function balanceDelta(type: 'income' | 'expense' | 'transfer' | 'sale' | 'refund', amount: number) {
   if (type === 'transfer') return 0;
@@ -63,9 +43,42 @@ export async function generateDueRecurringTransactions(userId: string): Promise<
       )
     );
 
-  let generated = 0;
+  if (dueRecurring.length === 0) return 0;
+
+  // ---------------------------------------------------------------------------
+  // Deduplicate: the old enrichment pipeline marked ALL historical transactions
+  // for the same charge as recurring.  We only want to generate from one source
+  // per unique charge.  Decrypt descriptions to group, keep the latest per key.
+  // ---------------------------------------------------------------------------
+  const userKey = await getUserKey(userId);
+  const seen = new Map<string, typeof dueRecurring[number]>();
+  const duplicateIds: string[] = [];
 
   for (const src of dueRecurring) {
+    if (!src.recurring_pattern || !src.next_recurring_date) continue;
+    const desc = src.description ? decryptForUser(src.description, userKey) : '';
+    const key = normalise(desc) + '|' + src.type;
+    const existing = seen.get(key);
+    if (!existing || (src.next_recurring_date > (existing.next_recurring_date ?? ''))) {
+      if (existing) duplicateIds.push(existing.id);
+      seen.set(key, src);
+    } else {
+      duplicateIds.push(src.id);
+    }
+  }
+
+  // Self-heal: unmark duplicate sources so they stop being picked up
+  if (duplicateIds.length > 0) {
+    logger.info('recurring-gen', `Unmarking ${duplicateIds.length} duplicate recurring sources`);
+    await db.update(transactionsTable)
+      .set({ is_recurring: false, recurring_pattern: null, next_recurring_date: null })
+      .where(inArray(transactionsTable.id, duplicateIds));
+  }
+
+  const sources = Array.from(seen.values());
+  let generated = 0;
+
+  for (const src of sources) {
     if (!src.recurring_pattern || !src.next_recurring_date) continue;
 
     // Wrap in a transaction to prevent duplicate generation when two
@@ -105,7 +118,7 @@ export async function generateDueRecurringTransactions(userId: string): Promise<
         }
 
         generated++;
-        nextDate = advanceDate(nextDate, src.recurring_pattern as RecurringPattern);
+        nextDate = computeNextRecurringDate(nextDate, src.recurring_pattern as RecurringPattern);
       }
 
       // Advance the source transaction's next_recurring_date atomically.
