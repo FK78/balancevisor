@@ -9,7 +9,8 @@ import { getCurrentUserId } from "@/lib/auth";
 import { toDateString } from "@/lib/date";
 import { encryptForUser, getUserKey } from "@/lib/encryption";
 import { getQuote } from "@/lib/yahoo-finance";
-import { requireString, sanitizeNumber, sanitizeEnum, sanitizeUUID } from "@/lib/sanitize";
+import { z } from 'zod';
+import { parseFormData, zRequiredString, zNumber, zEnum, zUUID, zString, zOptionalNumber } from '@/lib/form-schema';
 import type { BrokerSource, BrokerCredentials } from "@/lib/brokers/types";
 import { BROKER_SOURCES } from "@/lib/brokers/types";
 import { getAdapter } from "@/lib/brokers";
@@ -23,21 +24,22 @@ function revalidateInvestments() {
 // Generic broker connection mutations
 // ---------------------------------------------------------------------------
 
+const connectBrokerSchema = z.object({
+  broker: zEnum(BROKER_SOURCES, 'trading212'),
+  apiKey: zRequiredString(),
+  apiSecret: zRequiredString(),
+  environment: zEnum(['live', 'demo', 'paper'] as const, 'live'),
+  account_id: zUUID(),
+});
+
 export async function connectBroker(formData: FormData) {
   const userId = await getCurrentUserId();
-  const broker = sanitizeEnum(
-    formData.get("broker") as string,
-    BROKER_SOURCES,
-    "trading212",
-  ) as BrokerSource;
-  const apiKey = requireString(formData.get("apiKey") as string, "API key");
-  const apiSecret = requireString(formData.get("apiSecret") as string, "API secret");
-  const environment = sanitizeEnum(
-    formData.get("environment") as string,
-    ["live", "demo", "paper"] as const,
-    "live",
-  );
-  const accountId = sanitizeUUID(formData.get("account_id") as string);
+  const data = parseFormData(connectBrokerSchema, formData);
+  const broker = data.broker as BrokerSource;
+  const apiKey = data.apiKey;
+  const apiSecret = data.apiSecret;
+  const environment = data.environment;
+  const accountId = data.account_id;
 
   const credentials: BrokerCredentials = {
     apiKey,
@@ -124,7 +126,8 @@ export async function updateBrokerSyncStatus(
 
 export async function disconnectBroker(formData: FormData) {
   const userId = await getCurrentUserId();
-  const broker = requireString(formData.get("broker") as string, "Broker") as BrokerSource;
+  const { broker: brokerRaw } = parseFormData(z.object({ broker: zRequiredString() }), formData);
+  const broker = brokerRaw as BrokerSource;
 
   await db
     .delete(brokerConnectionsTable)
@@ -188,19 +191,32 @@ export async function updateBrokerTokens(
   });
 }
 
+const holdingSchema = z.object({
+  investment_type: zEnum(['stock', 'real_estate', 'private_equity', 'other'] as const, 'stock'),
+  ticker: zString(20).transform((v) => v?.trim() ?? ''),
+  name: zRequiredString(),
+  quantity: zNumber({ min: 0.0001 }),
+  averagePrice: zNumber({ min: 0 }),
+  currency: zEnum(['GBP', 'USD', 'EUR'] as const, 'GBP'),
+  account_id: zUUID(),
+  group_id: zUUID(),
+  estimated_return_percent: zOptionalNumber(),
+  notes: zString(500),
+});
+
 export async function addManualHolding(formData: FormData) {
   const userId = await getCurrentUserId();
-  const investmentType = sanitizeEnum(formData.get("investment_type") as string, ["stock", "real_estate", "private_equity", "other"] as const, "stock");
-  const tickerRaw = (formData.get("ticker") as string)?.trim() || "";
-  const name = requireString(formData.get("name") as string, "Holding name");
-  const quantity = sanitizeNumber(formData.get("quantity") as string, "Quantity", { required: true, min: 0.0001 });
-  const averagePrice = sanitizeNumber(formData.get("averagePrice") as string, "Average price", { required: true, min: 0 });
-  const currency = sanitizeEnum(formData.get("currency") as string, ["GBP", "USD", "EUR"] as const, "GBP");
-  const accountId = sanitizeUUID(formData.get("account_id") as string);
-  const groupId = sanitizeUUID(formData.get("group_id") as string);
-  const estimatedReturnPercentRaw = (formData.get("estimated_return_percent") as string)?.trim();
-  const estimatedReturnPercent = estimatedReturnPercentRaw ? sanitizeNumber(estimatedReturnPercentRaw, "Estimated return percent", { required: false }) : null;
-  const notes = (formData.get("notes") as string)?.trim() || null;
+  const data = parseFormData(holdingSchema, formData);
+  const investmentType = data.investment_type;
+  const tickerRaw = data.ticker ?? '';
+  const name = data.name;
+  const quantity = data.quantity;
+  const averagePrice = data.averagePrice;
+  const currency = data.currency;
+  const accountId = data.account_id;
+  const groupId = data.group_id;
+  const estimatedReturnPercent = data.estimated_return_percent;
+  const notes = data.notes;
 
   let ticker: string | null = null;
   let quote = null;
@@ -254,15 +270,15 @@ export async function editManualHolding(id: string, formData: FormData) {
   }
   
   const investmentType = existing[0].investment_type;
-  const tickerRaw = (formData.get("ticker") as string)?.trim() || "";
-  const name = requireString(formData.get("name") as string, "Holding name");
-  const quantity = sanitizeNumber(formData.get("quantity") as string, "Quantity", { required: true, min: 0.0001 });
-  const averagePrice = sanitizeNumber(formData.get("averagePrice") as string, "Average price", { required: true, min: 0 });
-  const accountId = sanitizeUUID(formData.get("account_id") as string);
-  const groupId = sanitizeUUID(formData.get("group_id") as string);
-  const estimatedReturnPercentRaw = (formData.get("estimated_return_percent") as string)?.trim();
-  const estimatedReturnPercent = estimatedReturnPercentRaw ? sanitizeNumber(estimatedReturnPercentRaw, "Estimated return percent", { required: false }) : null;
-  const notes = (formData.get("notes") as string)?.trim() || null;
+  const editData = parseFormData(holdingSchema.omit({ investment_type: true, currency: true }), formData);
+  const tickerRaw = editData.ticker ?? '';
+  const name = editData.name;
+  const quantity = editData.quantity;
+  const averagePrice = editData.averagePrice;
+  const accountId = editData.account_id;
+  const groupId = editData.group_id;
+  const estimatedReturnPercent = editData.estimated_return_percent;
+  const notes = editData.notes;
 
   let ticker: string | null = null;
   if (investmentType === "stock") {
@@ -311,15 +327,21 @@ export async function deleteManualHolding(id: string) {
 
 export async function recordHoldingSale(formData: FormData) {
   const userId = await getCurrentUserId();
-  const holdingId = sanitizeUUID(formData.get("holding_id") as string);
-  if (!holdingId) throw new Error("Missing holding ID");
-
-  const quantity = sanitizeNumber(formData.get("quantity") as string, "Quantity");
-  const pricePerUnit = sanitizeNumber(formData.get("price_per_unit") as string, "Price per unit");
-  const dateRaw = formData.get("date") as string;
-  const date = dateRaw ? new Date(dateRaw) : new Date();
-  const cashAccountId = sanitizeUUID(formData.get("cash_account_id") as string);
-  const notes = (formData.get("notes") as string) || null;
+  const saleSchema = z.object({
+    holding_id: z.string().uuid('Missing holding ID'),
+    quantity: zNumber({ min: 0.0001 }),
+    price_per_unit: zNumber({ min: 0 }),
+    date: zString().transform((v) => v ? new Date(v) : new Date()),
+    cash_account_id: zUUID(),
+    notes: zString(500),
+  });
+  const saleData = parseFormData(saleSchema, formData);
+  const holdingId = saleData.holding_id;
+  const quantity = saleData.quantity;
+  const pricePerUnit = saleData.price_per_unit;
+  const date = saleData.date ?? new Date();
+  const cashAccountId = saleData.cash_account_id;
+  const notes = saleData.notes;
 
   await db.transaction(async (tx) => {
     // Fetch holding inside the transaction to prevent stale-read race

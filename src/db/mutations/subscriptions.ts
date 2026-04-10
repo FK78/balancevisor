@@ -7,21 +7,37 @@ import { revalidateDomains } from '@/lib/revalidate';
 import { getCurrentUserId } from '@/lib/auth';
 import { createTransaction } from '@/db/mutations/transactions';
 import { checkBudgetAlerts } from '@/lib/budget-alerts';
-import { requireString, sanitizeNumber, sanitizeEnum, requireDate, sanitizeUUID, sanitizeURL, sanitizeString, sanitizeColor } from '@/lib/sanitize';
+import { z } from 'zod';
+import { parseFormData, zRequiredString, zNumber, zEnum, zRequiredDate, zUUID, zURL, zString, zColor } from '@/lib/form-schema';
+
+const subscriptionSchema = z.object({
+  name: zRequiredString(),
+  amount: zNumber({ min: 0.01 }),
+  account_id: zRequiredString(),
+  category_id: zUUID(),
+  next_billing_date: zRequiredDate(),
+  currency: zEnum(['GBP', 'USD', 'EUR'] as const, 'GBP'),
+  billing_cycle: zEnum(['weekly', 'monthly', 'quarterly', 'yearly'] as const, 'monthly'),
+  url: zURL(),
+  notes: zString(500),
+  color: zColor(),
+  icon: zString(50),
+});
 
 function parseSubscriptionForm(formData: FormData) {
+  const data = parseFormData(subscriptionSchema, formData);
   return {
-    name: requireString(formData.get('name') as string, 'Subscription name'),
-    amount: sanitizeNumber(formData.get('amount') as string, 'Amount', { required: true, min: 0.01 }),
-    accountId: requireString(formData.get('account_id') as string, 'Account'),
-    categoryId: sanitizeUUID(formData.get('category_id') as string),
-    nextBillingDate: requireDate(formData.get('next_billing_date') as string, 'Next billing date'),
-    currency: sanitizeEnum(formData.get('currency') as string, ['GBP', 'USD', 'EUR'] as const, 'GBP'),
-    billing_cycle: sanitizeEnum(formData.get('billing_cycle') as string, ['weekly', 'monthly', 'quarterly', 'yearly'] as const, 'monthly'),
-    url: sanitizeURL(formData.get('url') as string),
-    notes: sanitizeString(formData.get('notes') as string, 500),
-    color: sanitizeColor(formData.get('color') as string),
-    icon: sanitizeString(formData.get('icon') as string, 50),
+    name: data.name,
+    amount: data.amount,
+    accountId: data.account_id,
+    categoryId: data.category_id,
+    nextBillingDate: data.next_billing_date,
+    currency: data.currency,
+    billing_cycle: data.billing_cycle,
+    url: data.url,
+    notes: data.notes,
+    color: data.color,
+    icon: data.icon,
   };
 }
 

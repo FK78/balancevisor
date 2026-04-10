@@ -5,14 +5,19 @@ import { categoriesTable } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { revalidateDomains } from '@/lib/revalidate';
 import { getCurrentUserId } from '@/lib/auth';
-import { requireString, sanitizeColor, sanitizeString } from '@/lib/sanitize';
+import { z } from 'zod';
+import { parseFormData, zRequiredString, zString, zColor } from '@/lib/form-schema';
+
+const categorySchema = z.object({
+  name: zRequiredString(),
+  color: zColor(),
+  icon: zString(50),
+});
 
 export async function addCategory(formData: FormData) {
   const userId = await getCurrentUserId();
 
-  const name = requireString(formData.get('name') as string, 'Category name');
-  const color = sanitizeColor(formData.get('color') as string);
-  const icon = sanitizeString(formData.get('icon') as string, 50);
+  const { name, color, icon } = parseFormData(categorySchema, formData);
 
   const [result] = await db.insert(categoriesTable).values({
     user_id: userId,
@@ -26,9 +31,7 @@ export async function addCategory(formData: FormData) {
 
 export async function editCategory(id: string, formData: FormData) {
   const userId = await getCurrentUserId();
-  const name = requireString(formData.get('name') as string, 'Category name');
-  const color = sanitizeColor(formData.get('color') as string);
-  const icon = sanitizeString(formData.get('icon') as string, 50);
+  const { name, color, icon } = parseFormData(categorySchema, formData);
 
   await db.update(categoriesTable).set({
     name,

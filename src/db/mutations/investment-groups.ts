@@ -5,7 +5,14 @@ import { investmentGroupsTable, manualHoldingsTable } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidateDomains } from "@/lib/revalidate";
 import { getCurrentUserId } from "@/lib/auth";
-import { requireString, sanitizeColor, sanitizeUUID } from "@/lib/sanitize";
+import { z } from 'zod';
+import { parseFormData, zRequiredString, zColor, zUUID } from '@/lib/form-schema';
+
+const groupSchema = z.object({
+  name: zRequiredString(),
+  account_id: zUUID(),
+  color: zColor(),
+});
 
 function revalidate() {
   revalidateDomains('investments', 'accounts');
@@ -13,9 +20,7 @@ function revalidate() {
 
 export async function addInvestmentGroup(formData: FormData) {
   const userId = await getCurrentUserId();
-  const name = requireString(formData.get("name") as string, "Group name");
-  const accountId = sanitizeUUID(formData.get("account_id") as string);
-  const color = sanitizeColor(formData.get("color") as string);
+  const { name, account_id: accountId, color } = parseFormData(groupSchema, formData);
 
   const [result] = await db
     .insert(investmentGroupsTable)
@@ -33,10 +38,8 @@ export async function addInvestmentGroup(formData: FormData) {
 
 export async function editInvestmentGroup(formData: FormData) {
   const userId = await getCurrentUserId();
-  const groupId = requireString(formData.get("id") as string, "Group ID");
-  const name = requireString(formData.get("name") as string, "Group name");
-  const color = sanitizeColor(formData.get("color") as string);
-  const accountId = sanitizeUUID(formData.get("account_id") as string);
+  const editSchema = groupSchema.extend({ id: zRequiredString() });
+  const { id: groupId, name, color, account_id: accountId } = parseFormData(editSchema, formData);
 
   await db
     .update(investmentGroupsTable)

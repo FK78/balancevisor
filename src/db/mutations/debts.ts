@@ -7,20 +7,23 @@ import { revalidateDomains } from '@/lib/revalidate';
 import { getCurrentUserId } from '@/lib/auth';
 import { createTransaction } from '@/db/mutations/transactions';
 import { checkBudgetAlerts } from '@/lib/budget-alerts';
-import { requireString, sanitizeNumber, sanitizeDate, sanitizeString, sanitizeColor } from '@/lib/sanitize';
+import { z } from 'zod';
+import { parseFormData, zRequiredString, zNumber, zDate, zString, zColor } from '@/lib/form-schema';
 import { requireOwnership } from '@/lib/ownership';
 
+const debtSchema = z.object({
+  name: zRequiredString(),
+  original_amount: zNumber({ min: 0.01 }),
+  remaining_amount: zNumber({ min: 0 }),
+  interest_rate: zNumber({ min: 0, max: 100 }),
+  minimum_payment: zNumber({ min: 0 }),
+  due_date: zDate(),
+  lender: zString(),
+  color: zColor('#6366f1'),
+});
+
 function parseDebtForm(formData: FormData) {
-  return {
-    name: requireString(formData.get('name') as string, 'Debt name'),
-    original_amount: sanitizeNumber(formData.get('original_amount') as string, 'Original amount', { required: true, min: 0.01 }),
-    remaining_amount: sanitizeNumber(formData.get('remaining_amount') as string, 'Remaining amount', { required: true, min: 0 }),
-    interest_rate: sanitizeNumber(formData.get('interest_rate') as string, 'Interest rate', { min: 0, max: 100 }),
-    minimum_payment: sanitizeNumber(formData.get('minimum_payment') as string, 'Minimum payment', { min: 0 }),
-    due_date: sanitizeDate(formData.get('due_date') as string),
-    lender: sanitizeString(formData.get('lender') as string),
-    color: sanitizeColor(formData.get('color') as string, '#6366f1'),
-  };
+  return parseFormData(debtSchema, formData);
 }
 
 export async function addDebt(formData: FormData) {

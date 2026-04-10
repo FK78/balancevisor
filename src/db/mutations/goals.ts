@@ -5,18 +5,21 @@ import { goalsTable } from '@/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { revalidateDomains } from '@/lib/revalidate';
 import { getCurrentUserId } from '@/lib/auth';
-import { requireString, sanitizeNumber, sanitizeDate, sanitizeString, sanitizeColor } from '@/lib/sanitize';
+import { z } from 'zod';
+import { parseFormData, zRequiredString, zNumber, zDate, zString, zColor } from '@/lib/form-schema';
 import { requireOwnership } from '@/lib/ownership';
 
+const goalSchema = z.object({
+  name: zRequiredString(),
+  target_amount: zNumber({ min: 0.01 }),
+  saved_amount: zNumber({ min: 0 }),
+  target_date: zDate(),
+  icon: zString(50),
+  color: zColor(),
+});
+
 function parseGoalForm(formData: FormData) {
-  return {
-    name: requireString(formData.get('name') as string, 'Goal name'),
-    target_amount: sanitizeNumber(formData.get('target_amount') as string, 'Target amount', { required: true, min: 0.01 }),
-    saved_amount: sanitizeNumber(formData.get('saved_amount') as string, 'Saved amount'),
-    target_date: sanitizeDate(formData.get('target_date') as string),
-    icon: sanitizeString(formData.get('icon') as string, 50),
-    color: sanitizeColor(formData.get('color') as string),
-  };
+  return parseFormData(goalSchema, formData);
 }
 
 export async function addGoal(formData: FormData) {

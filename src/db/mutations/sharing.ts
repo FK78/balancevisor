@@ -6,7 +6,15 @@ import { eq, and } from "drizzle-orm";
 import { revalidateDomains } from "@/lib/revalidate";
 import { getCurrentUserId, getCurrentUserEmail } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { requireString, sanitizeEnum } from "@/lib/sanitize";
+import { z } from 'zod';
+import { parseFormData, zRequiredString, zEnum } from '@/lib/form-schema';
+
+const shareSchema = z.object({
+  email: zRequiredString().transform((v) => v.toLowerCase()),
+  resource_type: zEnum(['account', 'budget'] as const, 'account'),
+  resource_id: zRequiredString(),
+  permission: zEnum(['view', 'edit'] as const, 'edit'),
+});
 
 /**
  * Look up a Supabase user ID by email. Returns null if not found.
@@ -21,18 +29,7 @@ async function getUserIdByEmail(email: string): Promise<string | null> {
 
 export async function shareResource(formData: FormData) {
   const userId = await getCurrentUserId();
-  const email = requireString(formData.get("email") as string, "Email").toLowerCase();
-  const resourceType = sanitizeEnum(
-    formData.get("resource_type") as string,
-    ["account", "budget"] as const,
-    "account",
-  );
-  const resourceId = requireString(formData.get("resource_id") as string, "Resource ID");
-  const permission = sanitizeEnum(
-    formData.get("permission") as string,
-    ["view", "edit"] as const,
-    "edit",
-  );
+  const { email, resource_type: resourceType, resource_id: resourceId, permission } = parseFormData(shareSchema, formData);
 
   // Prevent sharing with yourself
   const currentEmail = await getCurrentUserEmail();

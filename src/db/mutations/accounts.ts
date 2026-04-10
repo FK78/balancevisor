@@ -1,13 +1,14 @@
 'use server';
 
 import { db } from '@/index';
-import { accountsTable, transactionsTable, sharedAccessTable } from '@/db/schema';
+import { accountsTable, transactionsTable } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { revalidateDomains } from '@/lib/revalidate';
 import { getCurrentUserId } from '@/lib/auth';
 import { getUserBaseCurrency } from '@/db/queries/onboarding';
 import { encryptForUser, getUserKey } from '@/lib/encryption';
-import { requireString, sanitizeNumber, sanitizeEnum } from '@/lib/sanitize';
+import { z } from 'zod';
+import { parseFormData, zRequiredString, zNumber, zEnum } from '@/lib/form-schema';
 import { requireOwnership } from '@/lib/ownership';
 
 export async function addAccount(formData: FormData) {
@@ -15,9 +16,12 @@ export async function addAccount(formData: FormData) {
   const baseCurrency = await getUserBaseCurrency(userId);
   const userKey = await getUserKey(userId);
 
-  const name = requireString(formData.get('name') as string, 'Account name');
-  const type = sanitizeEnum(formData.get('type') as string, ['currentAccount', 'savings', 'creditCard', 'investment'] as const, 'currentAccount');
-  const balance = sanitizeNumber(formData.get('balance') as string, 'Balance');
+  const accountSchema = z.object({
+    name: zRequiredString(),
+    type: zEnum(['currentAccount', 'savings', 'creditCard', 'investment'] as const, 'currentAccount'),
+    balance: zNumber(),
+  });
+  const { name, type, balance } = parseFormData(accountSchema, formData);
 
   const [result] = await db.insert(accountsTable).values({
     user_id: userId,
@@ -37,9 +41,12 @@ export async function editAccount(id: string, formData: FormData) {
 
   await requireOwnership(accountsTable, id, userId, 'account');
 
-  const name = requireString(formData.get('name') as string, 'Account name');
-  const type = sanitizeEnum(formData.get('type') as string, ['currentAccount', 'savings', 'creditCard', 'investment'] as const, 'currentAccount');
-  const balance = sanitizeNumber(formData.get('balance') as string, 'Balance');
+  const accountSchema = z.object({
+    name: zRequiredString(),
+    type: zEnum(['currentAccount', 'savings', 'creditCard', 'investment'] as const, 'currentAccount'),
+    balance: zNumber(),
+  });
+  const { name, type, balance } = parseFormData(accountSchema, formData);
 
   await db.update(accountsTable).set({
     name: encryptForUser(name, userKey),

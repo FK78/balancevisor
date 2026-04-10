@@ -5,14 +5,19 @@ import { categorisationRulesTable } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { revalidateDomains } from '@/lib/revalidate';
 import { getCurrentUserId } from '@/lib/auth';
-import { requireString, requireUUID, sanitizeNumber } from '@/lib/sanitize';
+import { z } from 'zod';
+import { parseFormData, zRequiredString, zRequiredUUID, zNumber } from '@/lib/form-schema';
+
+const ruleSchema = z.object({
+  pattern: zRequiredString(),
+  category_id: zRequiredUUID(),
+  priority: zNumber(),
+});
 
 export async function addCategorisationRule(formData: FormData) {
   const userId = await getCurrentUserId();
 
-  const pattern = requireString(formData.get('pattern') as string, 'Pattern');
-  const category_id = requireUUID(formData.get('category_id') as string, 'Category');
-  const priority = sanitizeNumber(formData.get('priority') as string, 'Priority');
+  const { pattern, category_id, priority } = parseFormData(ruleSchema, formData);
 
   await db.insert(categorisationRulesTable).values({
     user_id: userId,
@@ -26,9 +31,7 @@ export async function addCategorisationRule(formData: FormData) {
 
 export async function editCategorisationRule(id: string, formData: FormData) {
   const userId = await getCurrentUserId();
-  const pattern = requireString(formData.get('pattern') as string, 'Pattern');
-  const category_id = requireUUID(formData.get('category_id') as string, 'Category');
-  const priority = sanitizeNumber(formData.get('priority') as string, 'Priority');
+  const { pattern, category_id, priority } = parseFormData(ruleSchema, formData);
 
   await db.update(categorisationRulesTable).set({
     pattern,

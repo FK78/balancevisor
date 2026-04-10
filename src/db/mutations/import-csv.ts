@@ -11,8 +11,12 @@ import { encryptForUser, getUserKey } from '@/lib/encryption';
 import { fetchUserRules, matchAgainstRules } from '@/lib/auto-categorise';
 import { getAllMerchantMappings } from '@/db/queries/merchant-mappings';
 import { normaliseMerchant } from '@/lib/merchant-normalise';
-import { sanitizeString } from '@/lib/sanitize';
 import { isLikelyRefund } from '@/lib/refund-matcher';
+
+// Inline HTML stripping for CSV descriptions (matches sanitize.ts behavior)
+function stripHtml(raw: string, maxLength = 255): string {
+  return raw.replace(/<[^>]*>/g, '').replace(/&[a-z]+;/gi, '').trim().slice(0, maxLength);
+}
 
 type CsvColumnMapping = {
   date: number;
@@ -186,7 +190,7 @@ export async function importTransactionsFromCSV(
 
     validRows.push({
       date,
-      description: sanitizeString(rawDesc, 255) ?? rawDesc.substring(0, 255),
+      description: stripHtml(rawDesc, 255) || rawDesc.substring(0, 255),
       amount: Math.abs(amount),
       type,
     });

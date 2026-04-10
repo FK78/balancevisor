@@ -38,11 +38,15 @@ import { getCurrentUserId } from '@/lib/auth';
 import { decryptForUser, getUserKey } from '@/lib/encryption';
 import { createClient } from '@/lib/supabase/server';
 import { normalizeBaseCurrency } from '@/lib/currency';
-import { sanitizeString } from '@/lib/sanitize';
+import { z } from 'zod';
+import { parseFormData, zRequiredString } from '@/lib/form-schema';
 
 export async function updateDisplayName(formData: FormData) {
   const supabase = await createClient();
-  const displayName = sanitizeString(formData.get('display_name') as string, 100);
+  const { display_name: displayName } = parseFormData(
+    z.object({ display_name: zRequiredString(100) }),
+    formData,
+  );
 
   if (!displayName) return { error: 'Display name is required.' };
 

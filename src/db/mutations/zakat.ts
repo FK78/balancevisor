@@ -6,13 +6,18 @@ import { revalidatePath } from 'next/cache';
 import { getCurrentUserId } from '@/lib/auth';
 import { calculateZakat } from '@/lib/zakat';
 import { getZakatSettings } from '@/db/queries/zakat';
-import { requireDate, sanitizeEnum, formString } from '@/lib/sanitize';
+import { z } from 'zod';
+import { parseFormData, zRequiredDate, zEnum, zCheckbox } from '@/lib/form-schema';
+
+const zakatSettingsSchema = z.object({
+  anniversary_date: zRequiredDate(),
+  nisab_type: zEnum(['gold', 'silver'] as const, 'gold'),
+  use_lunar_calendar: zCheckbox(),
+});
 
 export async function saveZakatSettings(formData: FormData) {
   const userId = await getCurrentUserId();
-  const anniversaryDate = requireDate(formString(formData, 'anniversary_date'), 'Anniversary date');
-  const nisabType = sanitizeEnum(formString(formData, 'nisab_type'), ['gold', 'silver'] as const, 'gold');
-  const useLunarCalendar = formData.get('use_lunar_calendar') === 'on';
+  const { anniversary_date: anniversaryDate, nisab_type: nisabType, use_lunar_calendar: useLunarCalendar } = parseFormData(zakatSettingsSchema, formData);
 
   await db.insert(zakatSettingsTable).values({
     user_id: userId,

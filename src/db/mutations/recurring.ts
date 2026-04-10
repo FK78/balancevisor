@@ -5,8 +5,15 @@ import { transactionsTable } from '@/db/schema';
 import { revalidateDomains } from '@/lib/revalidate';
 import { eq, and } from 'drizzle-orm';
 import { getCurrentUserId } from '@/lib/auth';
-import { requireString, sanitizeEnum, sanitizeDate } from '@/lib/sanitize';
+import { z } from 'zod';
+import { parseFormData, zRequiredString, zEnum, zDate } from '@/lib/form-schema';
 import { toDateString } from '@/lib/date';
+
+const recurringSchema = z.object({
+  id: zRequiredString(),
+  recurring_pattern: zEnum(['daily', 'weekly', 'biweekly', 'monthly', 'yearly'] as const, 'monthly'),
+  next_recurring_date: zDate(),
+});
 
 type RecurringPattern = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
 
@@ -108,9 +115,7 @@ export async function cancelRecurring(transactionId: string) {
  */
 export async function updateRecurringPattern(formData: FormData) {
   const userId = await getCurrentUserId();
-  const transactionId = requireString(formData.get('id') as string, 'Transaction ID');
-  const pattern = sanitizeEnum(formData.get('recurring_pattern') as string, ['daily', 'weekly', 'biweekly', 'monthly', 'yearly'] as const, 'monthly');
-  const nextDate = sanitizeDate(formData.get('next_recurring_date') as string);
+  const { id: transactionId, recurring_pattern: pattern, next_recurring_date: nextDate } = parseFormData(recurringSchema, formData);
 
   // Verify ownership
   const [txn] = await db

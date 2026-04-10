@@ -65,7 +65,7 @@ These security controls were reviewed and found to be well-implemented:
 - **CSRF protection** — OAuth state parameter validated against secure httpOnly cookie in TrueLayer callback
 - **GDPR-compliant deletion** — Full cascade delete in transaction with Supabase auth user removal
 - **Service worker security** — Explicitly excludes `/auth/`, `/api/`, `/dashboard` from caching
-- **Input sanitisation library** — `src/lib/sanitize.ts` provides comprehensive validation for strings, numbers, UUIDs, dates, URLs, enums
+- **Input validation library** — `src/lib/form-schema.ts` provides Zod-based validation for all FormData inputs (strings, numbers, UUIDs, dates, URLs, enums) with XSS stripping
 - **MFA implementation** — TOTP with backup codes, timing-safe comparison, rate limiting on attempts
 - **Cron endpoint security** — `/api/cron/*` endpoints secured with `CRON_SECRET` header validation
 - **`dangerouslySetInnerHTML` in layout** — Static inline script for theme detection; no dynamic content injection risk

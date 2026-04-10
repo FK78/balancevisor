@@ -5,16 +5,21 @@ import { budgetsTable, sharedAccessTable } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { revalidateDomains } from '@/lib/revalidate';
 import { getCurrentUserId } from '@/lib/auth';
-import { requireUUID, sanitizeNumber, sanitizeEnum, requireDate } from '@/lib/sanitize';
+import { z } from 'zod';
+import { parseFormData, zRequiredUUID, zNumber, zEnum, zRequiredDate } from '@/lib/form-schema';
 import { requireOwnership } from '@/lib/ownership';
+
+const budgetSchema = z.object({
+  category_id: zRequiredUUID(),
+  amount: zNumber({ min: 0.01 }),
+  period: zEnum(['monthly', 'weekly'] as const, 'monthly'),
+  start_date: zRequiredDate(),
+});
 
 export async function addBudget(formData: FormData) {
   const userId = await getCurrentUserId();
 
-  const category_id = requireUUID(formData.get('category_id') as string, 'Category');
-  const amount = sanitizeNumber(formData.get('amount') as string, 'Amount', { required: true, min: 0.01 });
-  const period = sanitizeEnum(formData.get('period') as string, ['monthly', 'weekly'] as const, 'monthly');
-  const start_date = requireDate(formData.get('start_date') as string, 'Start date');
+  const { category_id, amount, period, start_date } = parseFormData(budgetSchema, formData);
 
   const [result] = await db.insert(budgetsTable).values({
     user_id: userId,
@@ -32,10 +37,7 @@ export async function editBudget(id: string, formData: FormData) {
 
   await requireOwnership(budgetsTable, id, userId, 'budget');
 
-  const category_id = requireUUID(formData.get('category_id') as string, 'Category');
-  const amount = sanitizeNumber(formData.get('amount') as string, 'Amount', { required: true, min: 0.01 });
-  const period = sanitizeEnum(formData.get('period') as string, ['monthly', 'weekly'] as const, 'monthly');
-  const start_date = requireDate(formData.get('start_date') as string, 'Start date');
+  const { category_id, amount, period, start_date } = parseFormData(budgetSchema, formData);
 
   await db.update(budgetsTable).set({
     category_id,
@@ -56,8 +58,8 @@ export async function applyBudgetSuggestion(
   const userId = await getCurrentUserId();
 
   if (type === 'new') {
-    const validCategoryId = requireUUID(categoryId, 'Category');
-    const amount = sanitizeNumber(String(suggestedAmount), 'Amount', { required: true, min: 0.01 });
+    const validCategoryId = z.string().uuid().parse(categoryId);
+    const amount = z.number().min(0.01).parse(suggestedAmount);
     const start_date = new Date().toISOString().split('T')[0];
 
     await db.insert(budgetsTable).values({
@@ -70,7 +72,7 @@ export async function applyBudgetSuggestion(
   } else {
     if (!budgetId) throw new Error('Budget ID is required for adjustments');
     await requireOwnership(budgetsTable, budgetId, userId, 'budget');
-    const amount = sanitizeNumber(String(suggestedAmount), 'Amount', { required: true, min: 0.01 });
+    const amount = z.number().min(0.01).parse(suggestedAmount);
 
     await db.update(budgetsTable).set({ amount }).where(
       and(eq(budgetsTable.id, budgetId), eq(budgetsTable.user_id, userId)),
