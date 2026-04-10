@@ -30,25 +30,30 @@ export function DecisionRow({
   action,
   className,
 }: DecisionRowProps) {
+  const cleanMeta = meta
+    .filter((item): item is string => Boolean(item && item.trim()))
+    .map((item) => item.trim());
+  const cleanStatusLabel = statusLabel?.trim();
+
   return (
     <article className={cn("decision-row", className)}>
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
-          <h3 className="decision-eyebrow text-[0.72rem]">{title}</h3>
-          <p className={cn("decision-amount", amountToneClassMap[amountTone])}>
-            {amount}
-          </p>
+          {cleanStatusLabel ? (
+            <p className="decision-eyebrow">{cleanStatusLabel}</p>
+          ) : null}
+          <h3 className="text-base font-semibold tracking-tight text-foreground sm:text-lg">
+            {title}
+          </h3>
         </div>
-        {statusLabel ? (
-          <span className="rounded-full border border-border/70 px-2 py-1 text-[0.65rem] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-            {statusLabel}
-          </span>
-        ) : null}
+        <p className={cn("decision-amount text-right", amountToneClassMap[amountTone])}>
+          {amount}
+        </p>
       </header>
 
-      {meta.length > 0 ? (
+      {cleanMeta.length > 0 ? (
         <ul className="decision-meta">
-          {meta.map((item, index) => (
+          {cleanMeta.map((item, index) => (
             <li key={`${item}-${index}`}>{item}</li>
           ))}
         </ul>

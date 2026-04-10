@@ -12,13 +12,23 @@ describe("Decision primitives", () => {
       <DecisionRow
         title="Emergency fund progress"
         amount="$12,400"
+        statusLabel="On track"
         meta={["Target: $15,000", "83% funded"]}
         interpretation="You are close to your 6-month reserve target."
         action={<button type="button">Top up fund</button>}
       />,
     );
 
-    expect(screen.getByText("Emergency fund progress")).toBeInTheDocument();
+    const title = screen.getByRole("heading", {
+      level: 3,
+      name: "Emergency fund progress",
+    });
+    expect(title).toBeInTheDocument();
+    expect(title).not.toHaveClass("decision-eyebrow");
+
+    const statusLabel = screen.getByText("On track");
+    expect(statusLabel).toBeInTheDocument();
+    expect(statusLabel).toHaveClass("decision-eyebrow");
     expect(screen.getByText("$12,400")).toBeInTheDocument();
     expect(screen.getByText("Target: $15,000")).toBeInTheDocument();
     expect(screen.getByText("83% funded")).toBeInTheDocument();
@@ -28,6 +38,20 @@ describe("Decision primitives", () => {
     expect(
       screen.getByRole("button", { name: "Top up fund" }),
     ).toBeInTheDocument();
+  });
+
+  it("DecisionRow filters falsy or blank meta entries", () => {
+    render(
+      <DecisionRow
+        title="Liquidity buffer"
+        amount="$7,200"
+        meta={["", "   ", "Covers 2.8 months", "\t"]}
+      />,
+    );
+
+    const items = screen.getAllByRole("listitem");
+    expect(items).toHaveLength(1);
+    expect(screen.getByText("Covers 2.8 months")).toBeInTheDocument();
   });
 
   it("DecisionMetricCard renders interpretation and action", () => {
