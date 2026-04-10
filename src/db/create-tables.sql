@@ -417,6 +417,7 @@ CREATE TABLE user_preferences (
   user_id            UUID PRIMARY KEY,
   ai_enabled         BOOLEAN     NOT NULL DEFAULT TRUE,
   disabled_features  TEXT,
+  last_enriched_at   TIMESTAMPTZ,
   updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
