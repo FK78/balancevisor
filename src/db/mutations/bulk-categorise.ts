@@ -2,7 +2,7 @@
 
 import { db } from '@/index';
 import { transactionsTable } from '@/db/schema';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, inArray } from 'drizzle-orm';
 import { getCurrentUserId } from '@/lib/auth';
 import { fetchUserRules, matchAgainstRules } from '@/lib/auto-categorise';
 import { getAllMerchantMappings } from '@/db/queries/merchant-mappings';
@@ -46,6 +46,10 @@ export async function bulkAutoCategorise(): Promise<BulkCategoriseResult> {
       ),
     );
 
+  // Classify all transactions in memory first
+  type CatKey = `${string}|${string}`;
+  const categorisedGroups = new Map<CatKey, string[]>();
+  const merchantBackfillIds: string[] = [];
   let categorised = 0;
 
   for (const txn of uncategorised) {
@@ -69,19 +73,43 @@ export async function bulkAutoCategorise(): Promise<BulkCategoriseResult> {
     }
 
     if (categoryId) {
-      await db
-        .update(transactionsTable)
-        .set({ category_id: categoryId, category_source: categorySource, merchant_name: merchantName })
-        .where(eq(transactionsTable.id, txn.id));
+      const key: CatKey = `${categoryId}|${categorySource}`;
+      const group = categorisedGroups.get(key) ?? [];
+      group.push(txn.id);
+      categorisedGroups.set(key, group);
       categorised++;
     } else if (merchantName) {
-      // Backfill merchant_name even if no category match
-      await db
-        .update(transactionsTable)
-        .set({ merchant_name: merchantName })
-        .where(eq(transactionsTable.id, txn.id));
+      merchantBackfillIds.push(txn.id);
     }
   }
+
+  // Batch update: one UPDATE per category group
+  await db.transaction(async (tx) => {
+    for (const [key, ids] of categorisedGroups) {
+      const [categoryId, categorySource] = key.split('|');
+      await tx
+        .update(transactionsTable)
+        .set({ category_id: categoryId, category_source: categorySource })
+        .where(inArray(transactionsTable.id, ids));
+    }
+
+    // Batch backfill merchant_name for uncategorised txns
+    if (merchantBackfillIds.length > 0) {
+      // merchant_name varies per txn so we must update individually,
+      // but we wrap in the same transaction to reduce round trips
+      for (const txn of uncategorised) {
+        if (!merchantBackfillIds.includes(txn.id)) continue;
+        const description = txn.description ? decryptForUser(txn.description, userKey) : '';
+        const merchantName = normaliseMerchant(description);
+        if (merchantName) {
+          await tx
+            .update(transactionsTable)
+            .set({ merchant_name: merchantName })
+            .where(eq(transactionsTable.id, txn.id));
+        }
+      }
+    }
+  });
 
   if (categorised > 0) {
     revalidateDomains('transactions', 'categories');

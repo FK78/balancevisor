@@ -129,19 +129,24 @@ export async function promoteRecurringToSubscriptions(
       groups.set(key, group);
     }
 
-    let created = 0;
-    let linked = 0;
+    // Pre-filter eligible groups before entering the transaction
+    type EligibleGroup = {
+      latest: RecurringTxn;
+      median: number;
+      billingCycle: "monthly" | "yearly";
+      nextDate: Date;
+      ids: string[];
+    };
+    const eligible: EligibleGroup[] = [];
 
     for (const [, group] of groups) {
       if (group.length < 3) continue;
 
-      // Use the latest transaction as the representative
       const sorted = [...group].sort((a, b) =>
         (a.date ?? "").localeCompare(b.date ?? ""),
       );
       const latest = sorted[sorted.length - 1];
 
-      // Check amounts are consistent (within ±5% of median — real subscriptions are near-exact)
       const amounts = group.map((t) => t.amount).sort((a, b) => a - b);
       const median = amounts[Math.floor(amounts.length / 2)];
       const consistent = amounts.every(
@@ -149,13 +154,11 @@ export async function promoteRecurringToSubscriptions(
       );
       if (!consistent) continue;
 
-      // Skip categories that are never subscription-like
       const catName = latest.category_id
         ? catNameById.get(latest.category_id)
         : null;
       if (catName && BLOCKED_CATEGORY_NAMES.has(catName.toLowerCase())) continue;
 
-      // Check no existing subscription already matches
       const alreadyExists = existingSubs.some(
         (s) =>
           fuzzyMatch(latest.description, s.name) &&
@@ -166,10 +169,8 @@ export async function promoteRecurringToSubscriptions(
       const pattern = latest.recurring_pattern ?? "monthly";
       const billingCycle = PATTERN_TO_BILLING_CYCLE[pattern] ?? "monthly";
 
-      // Only promote monthly or yearly — weekly/biweekly payments are rarely subscriptions
       if (billingCycle !== "monthly" && billingCycle !== "yearly") continue;
 
-      // Compute next billing date
       const nextDate = new Date(
         (latest.date ?? new Date().toISOString().split("T")[0]) + "T00:00:00",
       );
@@ -179,38 +180,47 @@ export async function promoteRecurringToSubscriptions(
       const accountId = latest.account_id;
       if (!accountId) continue;
 
-      // Create the subscription
-      const [newSub] = await db
-        .insert(subscriptionsTable)
-        .values({
-          user_id: userId,
-          name: latest.description,
-          amount: Math.round(median * 100) / 100,
-          currency: latest.currency,
-          billing_cycle: billingCycle,
-          next_billing_date: nextDate.toISOString().split("T")[0],
-          category_id: latest.category_id,
-          account_id: accountId,
-        })
-        .returning({ id: subscriptionsTable.id });
-
-      if (!newSub) continue;
-
-      // Link all matching transactions to the new subscription
-      const ids = group.map((t) => t.id);
-      await db
-        .update(transactionsTable)
-        .set({ subscription_id: newSub.id })
-        .where(inArray(transactionsTable.id, ids));
-
-      created++;
-      linked += ids.length;
-
-      logger.info(
-        "subscription-promoter",
-        `Auto-created subscription "${latest.description}" (${billingCycle}, £${median}) from ${ids.length} recurring txns`,
-      );
+      eligible.push({ latest, median, billingCycle, nextDate, ids: group.map((t) => t.id) });
     }
+
+    if (eligible.length === 0) return { created: 0, linked: 0 };
+
+    // Batch all inserts + updates in a single transaction
+    let created = 0;
+    let linked = 0;
+
+    await db.transaction(async (tx) => {
+      for (const { latest, median, billingCycle, nextDate, ids } of eligible) {
+        const [newSub] = await tx
+          .insert(subscriptionsTable)
+          .values({
+            user_id: userId,
+            name: latest.description,
+            amount: Math.round(median * 100) / 100,
+            currency: latest.currency,
+            billing_cycle: billingCycle,
+            next_billing_date: nextDate.toISOString().split("T")[0],
+            category_id: latest.category_id,
+            account_id: latest.account_id!,
+          })
+          .returning({ id: subscriptionsTable.id });
+
+        if (!newSub) continue;
+
+        await tx
+          .update(transactionsTable)
+          .set({ subscription_id: newSub.id })
+          .where(inArray(transactionsTable.id, ids));
+
+        created++;
+        linked += ids.length;
+
+        logger.info(
+          "subscription-promoter",
+          `Auto-created subscription "${latest.description}" (${billingCycle}, £${median}) from ${ids.length} recurring txns`,
+        );
+      }
+    });
 
     if (created > 0) {
       revalidateDomains("subscriptions", "transactions");

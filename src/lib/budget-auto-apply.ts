@@ -29,29 +29,28 @@ export async function autoApplyBudgetSuggestions(
     if (newSuggestions.length === 0) return { budgetsCreated: 0 };
 
     const today = new Date().toISOString().split("T")[0];
-    let budgetsCreated = 0;
 
-    for (const suggestion of newSuggestions) {
-      await db.insert(budgetsTable).values({
+    // Batch insert all new budgets in one query
+    await db.insert(budgetsTable).values(
+      newSuggestions.map((s) => ({
         user_id: userId,
-        category_id: suggestion.categoryId,
-        amount: suggestion.suggestedAmount,
-        period: "monthly",
+        category_id: s.categoryId,
+        amount: s.suggestedAmount,
+        period: "monthly" as const,
         start_date: today,
-      });
-      budgetsCreated++;
+      })),
+    );
 
+    for (const s of newSuggestions) {
       logger.info(
         "budget-auto-apply",
-        `Auto-created £${suggestion.suggestedAmount}/mo budget for "${suggestion.categoryName}" (avg spend: £${suggestion.avgMonthlySpend})`,
+        `Auto-created £${s.suggestedAmount}/mo budget for "${s.categoryName}" (avg spend: £${s.avgMonthlySpend})`,
       );
     }
 
-    if (budgetsCreated > 0) {
-      revalidateDomains("budgets");
-    }
+    revalidateDomains("budgets");
 
-    return { budgetsCreated };
+    return { budgetsCreated: newSuggestions.length };
   } catch (err) {
     logger.error("budget-auto-apply", "Auto-apply failed", err);
     return { budgetsCreated: 0 };

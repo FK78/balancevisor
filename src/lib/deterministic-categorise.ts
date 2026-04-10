@@ -54,6 +54,11 @@ export async function applyDeterministicCategorisation(
   if (uncategorised.length === 0) return { categorised: 0 };
 
   const userKey = await getUserKey(userId);
+
+  // Classify all in memory, then batch-update
+  type CatKey = `${string}|${string}`;
+  const categorisedGroups = new Map<CatKey, string[]>();
+  const merchantBackfills: Array<{ id: string; merchantName: string }> = [];
   let categorised = 0;
 
   for (const txn of uncategorised) {
@@ -79,23 +84,33 @@ export async function applyDeterministicCategorisation(
     }
 
     if (categoryId) {
-      await db
-        .update(transactionsTable)
-        .set({
-          category_id: categoryId,
-          category_source: categorySource,
-          merchant_name: merchantName,
-        })
-        .where(eq(transactionsTable.id, txn.id));
+      const key: CatKey = `${categoryId}|${categorySource}`;
+      const group = categorisedGroups.get(key) ?? [];
+      group.push(txn.id);
+      categorisedGroups.set(key, group);
       categorised++;
     } else if (merchantName) {
-      // Backfill merchant_name even without a category match
-      await db
-        .update(transactionsTable)
-        .set({ merchant_name: merchantName })
-        .where(eq(transactionsTable.id, txn.id));
+      merchantBackfills.push({ id: txn.id, merchantName });
     }
   }
+
+  // Batch update in a single transaction
+  await db.transaction(async (tx) => {
+    for (const [key, ids] of categorisedGroups) {
+      const [categoryId, categorySource] = key.split("|");
+      await tx
+        .update(transactionsTable)
+        .set({ category_id: categoryId, category_source: categorySource })
+        .where(inArray(transactionsTable.id, ids));
+    }
+
+    for (const { id, merchantName } of merchantBackfills) {
+      await tx
+        .update(transactionsTable)
+        .set({ merchant_name: merchantName })
+        .where(eq(transactionsTable.id, id));
+    }
+  });
 
   if (categorised > 0) {
     logger.info(
