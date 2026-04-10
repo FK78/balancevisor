@@ -115,13 +115,10 @@ async function seed() {
 
   // ── Cleanup existing data (FK-safe order) ─────────────────────
   console.log("  🗑  Clearing existing data for user...");
-  await db.execute(sql`
-    DELETE FROM transaction_review_flags WHERE user_id = ${USER_ID}
-  `);
+  await db.execute(sql`DELETE FROM transaction_review_flags WHERE user_id = ${USER_ID}`);
   await db.execute(sql`
     DELETE FROM shared_access
-    WHERE owner_id = ${USER_ID}
-       OR shared_with_email = 'dev@balancevisor.local'
+    WHERE owner_id = ${USER_ID} OR shared_with_email = 'dev@balancevisor.local'
   `);
   await db.delete(dashboardLayoutsTable).where(eq(dashboardLayoutsTable.user_id, USER_ID));
   await db.delete(userPreferencesTable).where(eq(userPreferencesTable.user_id, USER_ID));
@@ -135,22 +132,16 @@ async function seed() {
   await db.delete(investmentGroupsTable).where(eq(investmentGroupsTable.user_id, USER_ID));
   await db.delete(netWorthSnapshotsTable).where(eq(netWorthSnapshotsTable.user_id, USER_ID));
   await db.delete(subscriptionsTable).where(eq(subscriptionsTable.user_id, USER_ID));
-  // Delete splits for transactions owned by user's accounts
+  await db.delete(merchantMappingsTable).where(eq(merchantMappingsTable.user_id, USER_ID));
   await db.execute(sql`
     DELETE FROM transaction_splits WHERE transaction_id IN (
-      SELECT t.id FROM transactions t
-      JOIN accounts a ON t.account_id = a.id
-      WHERE a.user_id = ${USER_ID}
+      SELECT t.id FROM transactions t JOIN accounts a ON t.account_id = a.id WHERE a.user_id = ${USER_ID}
     )
   `);
   await db.execute(sql`
-    DELETE FROM transactions WHERE account_id IN (
-      SELECT id FROM accounts WHERE user_id = ${USER_ID}
-    )
+    DELETE FROM transactions WHERE account_id IN (SELECT id FROM accounts WHERE user_id = ${USER_ID})
   `);
-  await db.delete(debtPaymentsTable).where(
-    sql`debt_id IN (SELECT id FROM debts WHERE user_id = ${USER_ID})`
-  );
+  await db.delete(debtPaymentsTable).where(sql`debt_id IN (SELECT id FROM debts WHERE user_id = ${USER_ID})`);
   await db.delete(debtsTable).where(eq(debtsTable.user_id, USER_ID));
   await db.delete(budgetsTable).where(eq(budgetsTable.user_id, USER_ID));
   await db.delete(categorisationRulesTable).where(eq(categorisationRulesTable.user_id, USER_ID));
@@ -162,20 +153,27 @@ async function seed() {
   console.log("  ✓ cleanup done");
 
   // ── Default category templates ───────────────────────────────────
+  const CATEGORY_DEFS = [
+    { name: "Groceries", color: "#22c55e", icon: "ShoppingCart" },
+    { name: "Transport", color: "#3b82f6", icon: "Car" },
+    { name: "Entertainment", color: "#a855f7", icon: "Tv" },
+    { name: "Dining Out", color: "#f97316", icon: "UtensilsCrossed" },
+    { name: "Bills & Utilities", color: "#ef4444", icon: "Zap" },
+    { name: "Health", color: "#14b8a6", icon: "Heart" },
+    { name: "Shopping", color: "#ec4899", icon: "ShoppingBag" },
+    { name: "Salary", color: "#10b981", icon: "Banknote" },
+    { name: "Freelance", color: "#06b6d4", icon: "Laptop" },
+    { name: "Investments", color: "#6366f1", icon: "TrendingUp" },
+    { name: "Education", color: "#8b5cf6", icon: "GraduationCap" },
+    { name: "Gifts & Charity", color: "#f43f5e", icon: "Gift" },
+    { name: "Personal Care", color: "#d946ef", icon: "Sparkles" },
+    { name: "Insurance", color: "#0ea5e9", icon: "ShieldCheck" },
+    { name: "Childcare", color: "#fb923c", icon: "Baby" },
+  ];
+
   const categoryTemplates = await db
     .insert(defaultCategoryTemplatesTable)
-    .values([
-      { name: "Groceries", color: "#22c55e", icon: "ShoppingCart", sort_order: 1 },
-      { name: "Transport", color: "#3b82f6", icon: "Car", sort_order: 2 },
-      { name: "Entertainment", color: "#a855f7", icon: "Tv", sort_order: 3 },
-      { name: "Dining Out", color: "#f97316", icon: "UtensilsCrossed", sort_order: 4 },
-      { name: "Bills & Utilities", color: "#ef4444", icon: "Zap", sort_order: 5 },
-      { name: "Health", color: "#14b8a6", icon: "Heart", sort_order: 6 },
-      { name: "Shopping", color: "#ec4899", icon: "ShoppingBag", sort_order: 7 },
-      { name: "Salary", color: "#10b981", icon: "Banknote", sort_order: 8 },
-      { name: "Freelance", color: "#06b6d4", icon: "Laptop", sort_order: 9 },
-      { name: "Investments", color: "#6366f1", icon: "TrendingUp", sort_order: 10 },
-    ])
+    .values(CATEGORY_DEFS.map((c, i) => ({ ...c, sort_order: i + 1 })))
     .returning();
   console.log(`  ✓ ${categoryTemplates.length} default category templates`);
 
@@ -192,169 +190,474 @@ async function seed() {
   // ── Categories ───────────────────────────────────────────────────
   const categories = await db
     .insert(categoriesTable)
-    .values([
-      { user_id: USER_ID, name: "Groceries", color: "#22c55e", icon: "ShoppingCart" },
-      { user_id: USER_ID, name: "Transport", color: "#3b82f6", icon: "Car" },
-      { user_id: USER_ID, name: "Entertainment", color: "#a855f7", icon: "Tv" },
-      { user_id: USER_ID, name: "Dining Out", color: "#f97316", icon: "UtensilsCrossed" },
-      { user_id: USER_ID, name: "Bills & Utilities", color: "#ef4444", icon: "Zap" },
-      { user_id: USER_ID, name: "Health", color: "#14b8a6", icon: "Heart" },
-      { user_id: USER_ID, name: "Shopping", color: "#ec4899", icon: "ShoppingBag" },
-      { user_id: USER_ID, name: "Salary", color: "#10b981", icon: "Banknote" },
-      { user_id: USER_ID, name: "Freelance", color: "#06b6d4", icon: "Laptop" },
-      { user_id: USER_ID, name: "Investments", color: "#6366f1", icon: "TrendingUp" },
-    ])
+    .values(CATEGORY_DEFS.map((c) => ({ user_id: USER_ID, ...c })))
     .returning();
   console.log(`  ✓ ${categories.length} categories`);
 
   const catMap = Object.fromEntries(categories.map((c) => [c.name, c.id]));
 
-  // ── Accounts ─────────────────────────────────────────────────────
+  // ── Accounts (8 accounts, multi-currency) ─────────────────────────
   const accounts = await db
     .insert(accountsTable)
     .values([
-      { user_id: USER_ID, name: "Monzo Current", type: "currentAccount" as const, balance: 2450.83, currency: "GBP" },
-      { user_id: USER_ID, name: "Chase Saver", type: "savings" as const, balance: 12500.0, currency: "GBP" },
-      { user_id: USER_ID, name: "Amex Gold", type: "creditCard" as const, balance: -743.21, currency: "GBP" },
-      { user_id: USER_ID, name: "Vanguard ISA", type: "investment" as const, balance: 34200.0, currency: "GBP" },
-      { user_id: USER_ID, name: "Starling Joint", type: "currentAccount" as const, balance: 1820.55, currency: "GBP" },
+      { user_id: USER_ID, name: "Monzo Current", type: "currentAccount" as const, balance: 3285.47, currency: "GBP" },
+      { user_id: USER_ID, name: "Chase Saver", type: "savings" as const, balance: 18750.0, currency: "GBP" },
+      { user_id: USER_ID, name: "Amex Gold", type: "creditCard" as const, balance: -1243.67, currency: "GBP" },
+      { user_id: USER_ID, name: "Vanguard ISA", type: "investment" as const, balance: 52800.0, currency: "GBP" },
+      { user_id: USER_ID, name: "Starling Joint", type: "currentAccount" as const, balance: 2120.33, currency: "GBP" },
+      { user_id: USER_ID, name: "Wise EUR", type: "currentAccount" as const, balance: 1450.0, currency: "EUR" },
+      { user_id: USER_ID, name: "Wise USD", type: "currentAccount" as const, balance: 2200.0, currency: "USD" },
+      { user_id: USER_ID, name: "Marcus Savings", type: "savings" as const, balance: 8500.0, currency: "GBP" },
     ])
     .returning();
   console.log(`  ✓ ${accounts.length} accounts`);
 
   const acctMap = Object.fromEntries(accounts.map((a) => [a.name, a.id]));
 
-  // ── Transactions ─────────────────────────────────────────────────
-  const txValues = [
-    // Salary
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Salary"], type: "income" as const, amount: 3800, description: "Monthly Salary - April", date: daysAgo(2), is_recurring: true, recurring_pattern: "monthly" as const, next_recurring_date: daysFromNow(28) },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Salary"], type: "income" as const, amount: 3800, description: "Monthly Salary - March", date: daysAgo(32), is_recurring: true, recurring_pattern: "monthly" as const },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Salary"], type: "income" as const, amount: 3800, description: "Monthly Salary - February", date: daysAgo(60), is_recurring: true, recurring_pattern: "monthly" as const },
-    // Freelance
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Freelance"], type: "income" as const, amount: 750, description: "Web design project - ClientCo", date: daysAgo(10), is_recurring: false },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Freelance"], type: "income" as const, amount: 500, description: "Logo design - BrandX", date: daysAgo(45), is_recurring: false },
-    // Groceries
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Groceries"], type: "expense" as const, amount: 67.42, description: "Tesco Weekly Shop", date: daysAgo(1), is_recurring: false },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Groceries"], type: "expense" as const, amount: 52.18, description: "Sainsbury's", date: daysAgo(5), is_recurring: false },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Groceries"], type: "expense" as const, amount: 23.99, description: "Aldi top-up shop", date: daysAgo(8), is_recurring: false },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Groceries"], type: "expense" as const, amount: 89.34, description: "Ocado delivery", date: daysAgo(15), is_recurring: false },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Groceries"], type: "expense" as const, amount: 45.60, description: "M&S Food Hall", date: daysAgo(22), is_recurring: false },
-    // Transport
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Transport"], type: "expense" as const, amount: 160, description: "Monthly Oyster card", date: daysAgo(3), is_recurring: true, recurring_pattern: "monthly" as const, next_recurring_date: daysFromNow(27) },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Transport"], type: "expense" as const, amount: 45.00, description: "Uber to Heathrow", date: daysAgo(12), is_recurring: false },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Transport"], type: "expense" as const, amount: 65.50, description: "Train to Manchester", date: daysAgo(20), is_recurring: false },
-    // Entertainment
-    { account_id: acctMap["Amex Gold"], category_id: catMap["Entertainment"], type: "expense" as const, amount: 15.99, description: "Netflix", date: daysAgo(4), is_recurring: true, recurring_pattern: "monthly" as const, next_recurring_date: daysFromNow(26) },
-    { account_id: acctMap["Amex Gold"], category_id: catMap["Entertainment"], type: "expense" as const, amount: 10.99, description: "Spotify Premium", date: daysAgo(6), is_recurring: true, recurring_pattern: "monthly" as const, next_recurring_date: daysFromNow(24) },
-    { account_id: acctMap["Amex Gold"], category_id: catMap["Entertainment"], type: "expense" as const, amount: 42.50, description: "Vue Cinema - 2 tickets", date: daysAgo(9), is_recurring: false },
-    { account_id: acctMap["Amex Gold"], category_id: catMap["Entertainment"], type: "expense" as const, amount: 89.00, description: "Concert tickets - O2", date: daysAgo(18), is_recurring: false },
-    // Dining Out
-    { account_id: acctMap["Amex Gold"], category_id: catMap["Dining Out"], type: "expense" as const, amount: 78.50, description: "Dishoom - dinner", date: daysAgo(3), is_recurring: false },
-    { account_id: acctMap["Amex Gold"], category_id: catMap["Dining Out"], type: "expense" as const, amount: 34.20, description: "Pret A Manger - lunch x3", date: daysAgo(7), is_recurring: false },
-    { account_id: acctMap["Amex Gold"], category_id: catMap["Dining Out"], type: "expense" as const, amount: 125.00, description: "Birthday dinner - Nobu", date: daysAgo(14), is_recurring: false },
-    { account_id: acctMap["Amex Gold"], category_id: catMap["Dining Out"], type: "expense" as const, amount: 22.80, description: "Five Guys", date: daysAgo(21), is_recurring: false },
-    // Bills & Utilities
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Bills & Utilities"], type: "expense" as const, amount: 1200, description: "Rent - April", date: daysAgo(1), is_recurring: true, recurring_pattern: "monthly" as const, next_recurring_date: daysFromNow(29) },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Bills & Utilities"], type: "expense" as const, amount: 85.00, description: "EDF Energy", date: daysAgo(5), is_recurring: true, recurring_pattern: "monthly" as const, next_recurring_date: daysFromNow(25) },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Bills & Utilities"], type: "expense" as const, amount: 32.00, description: "Three Mobile", date: daysAgo(7), is_recurring: true, recurring_pattern: "monthly" as const, next_recurring_date: daysFromNow(23) },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Bills & Utilities"], type: "expense" as const, amount: 55.00, description: "Sky Broadband", date: daysAgo(10), is_recurring: true, recurring_pattern: "monthly" as const, next_recurring_date: daysFromNow(20) },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Bills & Utilities"], type: "expense" as const, amount: 28.50, description: "Thames Water", date: daysAgo(12), is_recurring: true, recurring_pattern: "monthly" as const, next_recurring_date: daysFromNow(18) },
-    // Health
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Health"], type: "expense" as const, amount: 39.99, description: "PureGym membership", date: daysAgo(2), is_recurring: true, recurring_pattern: "monthly" as const, next_recurring_date: daysFromNow(28) },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Health"], type: "expense" as const, amount: 12.50, description: "Boots pharmacy", date: daysAgo(11), is_recurring: false },
-    // Shopping
-    { account_id: acctMap["Amex Gold"], category_id: catMap["Shopping"], type: "expense" as const, amount: 59.99, description: "Amazon - headphones", date: daysAgo(6), is_recurring: false },
-    { account_id: acctMap["Amex Gold"], category_id: catMap["Shopping"], type: "expense" as const, amount: 89.00, description: "Uniqlo - jacket", date: daysAgo(16), is_recurring: false },
-    { account_id: acctMap["Amex Gold"], category_id: catMap["Shopping"], type: "expense" as const, amount: 24.99, description: "WHSmith - books", date: daysAgo(25), is_recurring: false },
-    // Transfers
-    { account_id: acctMap["Monzo Current"], type: "transfer" as const, amount: 500, description: "Monthly savings transfer", date: daysAgo(2), is_recurring: true, recurring_pattern: "monthly" as const, next_recurring_date: daysFromNow(28), transfer_account_id: acctMap["Chase Saver"] },
-    { account_id: acctMap["Monzo Current"], type: "transfer" as const, amount: 500, description: "Savings transfer - March", date: daysAgo(32), is_recurring: true, recurring_pattern: "monthly" as const, transfer_account_id: acctMap["Chase Saver"] },
-    // Investment
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Investments"], type: "transfer" as const, amount: 300, description: "ISA contribution", date: daysAgo(2), is_recurring: true, recurring_pattern: "monthly" as const, next_recurring_date: daysFromNow(28), transfer_account_id: acctMap["Vanguard ISA"] },
-    // Joint account
-    { account_id: acctMap["Starling Joint"], category_id: catMap["Groceries"], type: "expense" as const, amount: 112.30, description: "Costco bulk shop", date: daysAgo(4), is_recurring: false },
-    { account_id: acctMap["Starling Joint"], category_id: catMap["Bills & Utilities"], type: "expense" as const, amount: 14.99, description: "Council tax share", date: daysAgo(6), is_recurring: true, recurring_pattern: "monthly" as const, next_recurring_date: daysFromNow(24) },
-    // A split transaction
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Groceries"], type: "expense" as const, amount: 156.80, description: "Big Tesco shop (split)", date: daysAgo(13), is_recurring: false, is_split: true },
-    // Weekly recurring
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Dining Out"], type: "expense" as const, amount: 4.50, description: "Pret coffee", date: daysAgo(0), is_recurring: true, recurring_pattern: "weekly" as const, next_recurring_date: daysFromNow(7) },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Dining Out"], type: "expense" as const, amount: 4.50, description: "Pret coffee", date: daysAgo(7), is_recurring: true, recurring_pattern: "weekly" as const },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Dining Out"], type: "expense" as const, amount: 4.50, description: "Pret coffee", date: daysAgo(14), is_recurring: true, recurring_pattern: "weekly" as const },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Dining Out"], type: "expense" as const, amount: 4.50, description: "Pret coffee", date: daysAgo(21), is_recurring: true, recurring_pattern: "weekly" as const },
-    // Yearly recurring
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Bills & Utilities"], type: "expense" as const, amount: 420.00, description: "Car Insurance - Admiral", date: daysAgo(45), is_recurring: true, recurring_pattern: "yearly" as const, next_recurring_date: daysFromNow(320) },
-    // Refund transactions
-    { account_id: acctMap["Amex Gold"], category_id: catMap["Shopping"], type: "refund" as const, amount: 59.99, description: "Amazon refund - headphones returned", date: daysAgo(2), is_recurring: false },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Transport"], type: "refund" as const, amount: 45.00, description: "Uber refund - cancelled ride", date: daysAgo(10), is_recurring: false },
-    // Sale transaction (investment sale proceeds)
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Investments"], type: "sale" as const, amount: 851.25, description: "Sold 5x AAPL shares", date: daysAgo(30), is_recurring: false },
-    // Older month transactions for richer report charts
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Salary"], type: "income" as const, amount: 3800, description: "Monthly Salary - January", date: daysAgo(90), is_recurring: true, recurring_pattern: "monthly" as const },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Salary"], type: "income" as const, amount: 3800, description: "Monthly Salary - December", date: daysAgo(120), is_recurring: true, recurring_pattern: "monthly" as const },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Salary"], type: "income" as const, amount: 3650, description: "Monthly Salary - November", date: daysAgo(150), is_recurring: true, recurring_pattern: "monthly" as const },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Groceries"], type: "expense" as const, amount: 312.40, description: "Tesco monthly shop", date: daysAgo(90), is_recurring: false },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Groceries"], type: "expense" as const, amount: 278.15, description: "Tesco monthly shop", date: daysAgo(120), is_recurring: false },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Groceries"], type: "expense" as const, amount: 295.60, description: "Tesco monthly shop", date: daysAgo(150), is_recurring: false },
-    { account_id: acctMap["Amex Gold"], category_id: catMap["Entertainment"], type: "expense" as const, amount: 15.99, description: "Netflix", date: daysAgo(34), is_recurring: true, recurring_pattern: "monthly" as const },
-    { account_id: acctMap["Amex Gold"], category_id: catMap["Entertainment"], type: "expense" as const, amount: 15.99, description: "Netflix", date: daysAgo(64), is_recurring: true, recurring_pattern: "monthly" as const },
-    { account_id: acctMap["Amex Gold"], category_id: catMap["Entertainment"], type: "expense" as const, amount: 15.99, description: "Netflix", date: daysAgo(94), is_recurring: true, recurring_pattern: "monthly" as const },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Bills & Utilities"], type: "expense" as const, amount: 1200, description: "Rent - March", date: daysAgo(31), is_recurring: true, recurring_pattern: "monthly" as const },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Bills & Utilities"], type: "expense" as const, amount: 1200, description: "Rent - February", date: daysAgo(59), is_recurring: true, recurring_pattern: "monthly" as const },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Bills & Utilities"], type: "expense" as const, amount: 1200, description: "Rent - January", date: daysAgo(90), is_recurring: true, recurring_pattern: "monthly" as const },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Transport"], type: "expense" as const, amount: 160, description: "Oyster card - March", date: daysAgo(33), is_recurring: true, recurring_pattern: "monthly" as const },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Transport"], type: "expense" as const, amount: 160, description: "Oyster card - February", date: daysAgo(61), is_recurring: true, recurring_pattern: "monthly" as const },
-    { account_id: acctMap["Amex Gold"], category_id: catMap["Dining Out"], type: "expense" as const, amount: 95.00, description: "Wagamama - team lunch", date: daysAgo(40), is_recurring: false },
-    { account_id: acctMap["Amex Gold"], category_id: catMap["Shopping"], type: "expense" as const, amount: 149.99, description: "John Lewis - coat", date: daysAgo(55), is_recurring: false },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Health"], type: "expense" as const, amount: 39.99, description: "PureGym membership", date: daysAgo(32), is_recurring: true, recurring_pattern: "monthly" as const },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Health"], type: "expense" as const, amount: 39.99, description: "PureGym membership", date: daysAgo(62), is_recurring: true, recurring_pattern: "monthly" as const },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Health"], type: "expense" as const, amount: 39.99, description: "PureGym membership", date: daysAgo(92), is_recurring: true, recurring_pattern: "monthly" as const },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Health"], type: "expense" as const, amount: 25.00, description: "Boots pharmacy", date: daysAgo(50), is_recurring: false },
-    // Extra historical Shopping (no budget — triggers 'new' suggestion)
-    { account_id: acctMap["Amex Gold"], category_id: catMap["Shopping"], type: "expense" as const, amount: 75.00, description: "ASOS order", date: daysAgo(40), is_recurring: false },
-    { account_id: acctMap["Amex Gold"], category_id: catMap["Shopping"], type: "expense" as const, amount: 120.00, description: "Currys - keyboard", date: daysAgo(70), is_recurring: false },
-    { account_id: acctMap["Amex Gold"], category_id: catMap["Shopping"], type: "expense" as const, amount: 45.00, description: "TK Maxx", date: daysAgo(100), is_recurring: false },
-    // Extra historical Dining Out (triggers 'increase' suggestion — avg > budget)
-    { account_id: acctMap["Amex Gold"], category_id: catMap["Dining Out"], type: "expense" as const, amount: 65.00, description: "Nando's dinner", date: daysAgo(50), is_recurring: false },
-    { account_id: acctMap["Amex Gold"], category_id: catMap["Dining Out"], type: "expense" as const, amount: 110.00, description: "Hawksmoor steak night", date: daysAgo(70), is_recurring: false },
-    { account_id: acctMap["Amex Gold"], category_id: catMap["Dining Out"], type: "expense" as const, amount: 48.00, description: "Pizza Express", date: daysAgo(95), is_recurring: false },
-    { account_id: acctMap["Monzo Current"], category_id: catMap["Freelance"], type: "income" as const, amount: 1200, description: "React consulting - TechCorp", date: daysAgo(75), is_recurring: false },
+  // ── Transactions (3 years, programmatically generated) ─────────────
+  type TxInput = {
+    account_id: string;
+    category_id?: string;
+    type: "income" | "expense" | "transfer" | "sale" | "refund";
+    amount: number;
+    description: string;
+    date: string;
+    is_recurring: boolean;
+    recurring_pattern?: "daily" | "weekly" | "biweekly" | "monthly" | "yearly";
+    next_recurring_date?: string;
+    transfer_account_id?: string;
+    is_split?: boolean;
+    merchant_name?: string;
+    category_source?: string;
+  };
+  const txValues: TxInput[] = [];
+
+  const groceryMerchants = ["Tesco", "Sainsbury's", "Aldi", "Lidl", "Ocado", "M&S Food", "Waitrose", "Asda", "Morrisons", "Co-op"];
+  const diningMerchants = ["Pret A Manger", "Dishoom", "Wagamama", "Nando's", "Five Guys", "Pizza Express", "Hawksmoor", "Nobu", "Leon", "Itsu", "Franco Manca", "Honest Burgers", "Byron Burger", "Chipotle", "GBK"];
+  const shoppingMerchants = ["Amazon", "ASOS", "Uniqlo", "John Lewis", "Currys", "TK Maxx", "WHSmith", "Argos", "Zara", "H&M", "IKEA", "Boots", "Superdrug"];
+  const entertainmentItems = ["Vue Cinema tickets", "Concert tickets", "Theatre tickets", "Comedy show", "Bowling", "Escape room", "Museum entry", "Art exhibition", "Gig tickets"];
+  const transportItems = ["Uber ride", "Bolt ride", "Train to Manchester", "Train to Birmingham", "Train to Bristol", "Uber to Heathrow", "Uber to Gatwick", "National Express coach", "Lime scooter"];
+  const healthItems = ["Boots pharmacy", "Superdrug", "Holland & Barrett", "Dentist appointment", "Optician appointment", "Physiotherapy session"];
+  const educationItems = ["Udemy course", "Coursera subscription", "O'Reilly Books", "Pluralsight", "AWS certification exam", "Conference ticket", "Technical book"];
+  const giftItems = ["Birthday present", "Wedding gift", "Charity donation - UNICEF", "Charity donation - Macmillan", "Christmas presents", "Baby shower gift", "Housewarming gift", "JustGiving donation"];
+  const personalCareItems = ["Haircut - barber", "Skincare products", "Dry cleaning", "Laundry service", "Perfume"];
+  const freelanceClients = ["Web design - ClientCo", "Logo design - BrandX", "React consulting - TechCorp", "UI audit - StartupY", "Shopify store - LocalBiz", "WordPress site - CafeZ", "App design - FinCo", "Landing page - SaaSX"];
+  const insuranceItems = ["Car Insurance - Admiral", "Home Contents Insurance", "Life Insurance premium", "Travel Insurance - annual", "Pet Insurance"];
+
+  // Salary got a raise 18 months ago (3500→3800) and another 6 months ago (3800→4200)
+  for (let m = MONTHS_OF_DATA - 1; m >= 0; m--) {
+    const isCurrentMonth = m === 0;
+    const salaryAmount = m >= 18 ? 3500 : m >= 6 ? 3800 : 4200;
+
+    // ─── INCOME: Salary (25th of each month) ───
+    txValues.push({
+      account_id: acctMap["Monzo Current"], category_id: catMap["Salary"], type: "income",
+      amount: salaryAmount, description: `Monthly Salary - ${monthName(m)}`,
+      date: dateInMonth(m, 25), is_recurring: true, recurring_pattern: "monthly",
+      ...(isCurrentMonth ? { next_recurring_date: daysFromNow(25) } : {}),
+      merchant_name: "Acme Corp Ltd", category_source: "rule",
+    });
+
+    // ─── INCOME: Freelance (sporadic, ~60% of months) ───
+    if (rng() < 0.6) {
+      txValues.push({
+        account_id: acctMap["Monzo Current"], category_id: catMap["Freelance"], type: "income",
+        amount: rand(300, 2500), description: pick(freelanceClients),
+        date: dateInMonth(m, randInt(5, 20)), is_recurring: false,
+        category_source: "ai",
+      });
+    }
+    // Second freelance gig ~25% of months
+    if (rng() < 0.25) {
+      txValues.push({
+        account_id: acctMap["Monzo Current"], category_id: catMap["Freelance"], type: "income",
+        amount: rand(200, 1500), description: pick(freelanceClients),
+        date: dateInMonth(m, randInt(10, 28)), is_recurring: false,
+        category_source: "ai",
+      });
+    }
+
+    // ─── EXPENSE: Rent (1st of month) ───
+    const rentAmount = m >= 24 ? 1100 : m >= 12 ? 1200 : 1350;
+    txValues.push({
+      account_id: acctMap["Monzo Current"], category_id: catMap["Bills & Utilities"], type: "expense",
+      amount: rentAmount, description: `Rent - ${monthName(m)}`,
+      date: dateInMonth(m, 1), is_recurring: true, recurring_pattern: "monthly",
+      ...(isCurrentMonth ? { next_recurring_date: daysFromNow(29) } : {}),
+      merchant_name: "Landlord - OpenRent", category_source: "rule",
+    });
+
+    // ─── EXPENSE: Energy bill (5th) ───
+    txValues.push({
+      account_id: acctMap["Monzo Current"], category_id: catMap["Bills & Utilities"], type: "expense",
+      amount: rand(65, 130), description: "EDF Energy",
+      date: dateInMonth(m, 5), is_recurring: true, recurring_pattern: "monthly",
+      ...(isCurrentMonth ? { next_recurring_date: daysFromNow(25) } : {}),
+      merchant_name: "EDF Energy", category_source: "rule",
+    });
+
+    // ─── EXPENSE: Mobile phone (8th) ───
+    txValues.push({
+      account_id: acctMap["Monzo Current"], category_id: catMap["Bills & Utilities"], type: "expense",
+      amount: m >= 12 ? 28 : 32, description: "Three Mobile",
+      date: dateInMonth(m, 8), is_recurring: true, recurring_pattern: "monthly",
+      ...(isCurrentMonth ? { next_recurring_date: daysFromNow(23) } : {}),
+      merchant_name: "Three Mobile", category_source: "rule",
+    });
+
+    // ─── EXPENSE: Broadband (10th) ───
+    txValues.push({
+      account_id: acctMap["Monzo Current"], category_id: catMap["Bills & Utilities"], type: "expense",
+      amount: 55, description: "Sky Broadband",
+      date: dateInMonth(m, 10), is_recurring: true, recurring_pattern: "monthly",
+      ...(isCurrentMonth ? { next_recurring_date: daysFromNow(20) } : {}),
+      merchant_name: "Sky Broadband", category_source: "rule",
+    });
+
+    // ─── EXPENSE: Water (12th) ───
+    txValues.push({
+      account_id: acctMap["Monzo Current"], category_id: catMap["Bills & Utilities"], type: "expense",
+      amount: rand(25, 35), description: "Thames Water",
+      date: dateInMonth(m, 12), is_recurring: true, recurring_pattern: "monthly",
+      ...(isCurrentMonth ? { next_recurring_date: daysFromNow(18) } : {}),
+      merchant_name: "Thames Water", category_source: "rule",
+    });
+
+    // ─── EXPENSE: Council tax (joint, 15th) ───
+    txValues.push({
+      account_id: acctMap["Starling Joint"], category_id: catMap["Bills & Utilities"], type: "expense",
+      amount: m >= 12 ? 162 : 175, description: "Council Tax",
+      date: dateInMonth(m, 15), is_recurring: true, recurring_pattern: "monthly",
+      ...(isCurrentMonth ? { next_recurring_date: daysFromNow(15) } : {}),
+      merchant_name: "Council Tax", category_source: "rule",
+    });
+
+    // ─── EXPENSE: Oyster/transport card (3rd) ───
+    txValues.push({
+      account_id: acctMap["Monzo Current"], category_id: catMap["Transport"], type: "expense",
+      amount: m >= 18 ? 145 : 160, description: "Monthly Oyster card",
+      date: dateInMonth(m, 3), is_recurring: true, recurring_pattern: "monthly",
+      ...(isCurrentMonth ? { next_recurring_date: daysFromNow(27) } : {}),
+      merchant_name: "TfL", category_source: "rule",
+    });
+
+    // ─── EXPENSE: Gym (2nd) ───
+    txValues.push({
+      account_id: acctMap["Monzo Current"], category_id: catMap["Health"], type: "expense",
+      amount: m >= 24 ? 29.99 : 39.99, description: "PureGym membership",
+      date: dateInMonth(m, 2), is_recurring: true, recurring_pattern: "monthly",
+      ...(isCurrentMonth ? { next_recurring_date: daysFromNow(28) } : {}),
+      merchant_name: "PureGym", category_source: "rule",
+    });
+
+    // ─── EXPENSE: Netflix (4th, on Amex) ───
+    txValues.push({
+      account_id: acctMap["Amex Gold"], category_id: catMap["Entertainment"], type: "expense",
+      amount: m >= 18 ? 13.99 : 15.99, description: "Netflix",
+      date: dateInMonth(m, 4), is_recurring: true, recurring_pattern: "monthly",
+      ...(isCurrentMonth ? { next_recurring_date: daysFromNow(26) } : {}),
+      merchant_name: "Netflix", category_source: "rule",
+    });
+
+    // ─── EXPENSE: Spotify (6th, on Amex) ───
+    txValues.push({
+      account_id: acctMap["Amex Gold"], category_id: catMap["Entertainment"], type: "expense",
+      amount: 10.99, description: "Spotify Premium",
+      date: dateInMonth(m, 6), is_recurring: true, recurring_pattern: "monthly",
+      ...(isCurrentMonth ? { next_recurring_date: daysFromNow(24) } : {}),
+      merchant_name: "Spotify", category_source: "rule",
+    });
+
+    // ─── EXPENSE: Groceries (4-6 trips per month) ───
+    const groceryTrips = randInt(4, 6);
+    for (let g = 0; g < groceryTrips; g++) {
+      const merchant = pick(groceryMerchants);
+      const acct = rng() < 0.7 ? "Monzo Current" : "Starling Joint";
+      txValues.push({
+        account_id: acctMap[acct], category_id: catMap["Groceries"], type: "expense",
+        amount: rand(18, 135), description: `${merchant} weekly shop`,
+        date: dateInMonth(m, randInt(1, 28)), is_recurring: false,
+        merchant_name: merchant, category_source: "merchant",
+      });
+    }
+
+    // ─── EXPENSE: Dining out (3-5 per month) ───
+    const diningTrips = randInt(3, 5);
+    for (let d = 0; d < diningTrips; d++) {
+      const merchant = pick(diningMerchants);
+      txValues.push({
+        account_id: acctMap["Amex Gold"], category_id: catMap["Dining Out"], type: "expense",
+        amount: rand(8, 145), description: `${merchant}${rng() < 0.3 ? " - dinner" : ""}`,
+        date: dateInMonth(m, randInt(1, 28)), is_recurring: false,
+        merchant_name: merchant, category_source: "merchant",
+      });
+    }
+
+    // ─── EXPENSE: Shopping (1-3 per month) ───
+    const shoppingTrips = randInt(1, 3);
+    for (let s = 0; s < shoppingTrips; s++) {
+      const merchant = pick(shoppingMerchants);
+      txValues.push({
+        account_id: acctMap["Amex Gold"], category_id: catMap["Shopping"], type: "expense",
+        amount: rand(12, 250), description: `${merchant} purchase`,
+        date: dateInMonth(m, randInt(1, 28)), is_recurring: false,
+        merchant_name: merchant, category_source: "merchant",
+      });
+    }
+
+    // ─── EXPENSE: Transport (1-3 misc per month) ───
+    const transportTrips = randInt(1, 3);
+    for (let t = 0; t < transportTrips; t++) {
+      txValues.push({
+        account_id: acctMap["Monzo Current"], category_id: catMap["Transport"], type: "expense",
+        amount: rand(5, 85), description: pick(transportItems),
+        date: dateInMonth(m, randInt(1, 28)), is_recurring: false,
+        category_source: "rule",
+      });
+    }
+
+    // ─── EXPENSE: Entertainment (1-2 per month) ───
+    const entertainmentEvents = randInt(1, 2);
+    for (let e = 0; e < entertainmentEvents; e++) {
+      txValues.push({
+        account_id: acctMap["Amex Gold"], category_id: catMap["Entertainment"], type: "expense",
+        amount: rand(10, 120), description: pick(entertainmentItems),
+        date: dateInMonth(m, randInt(1, 28)), is_recurring: false,
+        category_source: "ai",
+      });
+    }
+
+    // ─── EXPENSE: Health (0-2 per month) ───
+    const healthVisits = randInt(0, 2);
+    for (let h = 0; h < healthVisits; h++) {
+      txValues.push({
+        account_id: acctMap["Monzo Current"], category_id: catMap["Health"], type: "expense",
+        amount: rand(5, 85), description: pick(healthItems),
+        date: dateInMonth(m, randInt(1, 28)), is_recurring: false,
+        category_source: "ai",
+      });
+    }
+
+    // ─── EXPENSE: Education (~40% of months) ───
+    if (rng() < 0.4) {
+      txValues.push({
+        account_id: acctMap["Monzo Current"], category_id: catMap["Education"], type: "expense",
+        amount: rand(10, 200), description: pick(educationItems),
+        date: dateInMonth(m, randInt(1, 28)), is_recurring: false,
+        category_source: "ai",
+      });
+    }
+
+    // ─── EXPENSE: Gifts & Charity (~35% of months, more in Dec) ───
+    const giftChance = m % 12 === 0 ? 0.9 : 0.35; // December boost
+    if (rng() < giftChance) {
+      const giftCount = m % 12 === 0 ? randInt(2, 5) : 1; // More gifts in Dec
+      for (let gi = 0; gi < giftCount; gi++) {
+        txValues.push({
+          account_id: acctMap["Amex Gold"], category_id: catMap["Gifts & Charity"], type: "expense",
+          amount: rand(15, 200), description: pick(giftItems),
+          date: dateInMonth(m, randInt(1, 28)), is_recurring: false,
+          category_source: "ai",
+        });
+      }
+    }
+
+    // ─── EXPENSE: Personal Care (~50% of months) ───
+    if (rng() < 0.5) {
+      txValues.push({
+        account_id: acctMap["Monzo Current"], category_id: catMap["Personal Care"], type: "expense",
+        amount: rand(15, 80), description: pick(personalCareItems),
+        date: dateInMonth(m, randInt(1, 28)), is_recurring: false,
+        category_source: "ai",
+      });
+    }
+
+    // ─── EXPENSE: Childcare (started 8 months ago, nursery fees) ───
+    if (m <= 8) {
+      txValues.push({
+        account_id: acctMap["Starling Joint"], category_id: catMap["Childcare"], type: "expense",
+        amount: 950, description: "Little Stars Nursery",
+        date: dateInMonth(m, 1), is_recurring: true, recurring_pattern: "monthly",
+        ...(isCurrentMonth ? { next_recurring_date: daysFromNow(28) } : {}),
+        merchant_name: "Little Stars Nursery", category_source: "rule",
+      });
+    }
+
+    // ─── TRANSFER: Savings (2nd of month) ───
+    const savingsAmount = m >= 18 ? 400 : m >= 6 ? 500 : 650;
+    txValues.push({
+      account_id: acctMap["Monzo Current"], type: "transfer",
+      amount: savingsAmount, description: `Savings transfer - ${monthName(m)}`,
+      date: dateInMonth(m, 2), is_recurring: true, recurring_pattern: "monthly",
+      ...(isCurrentMonth ? { next_recurring_date: daysFromNow(28) } : {}),
+      transfer_account_id: acctMap["Chase Saver"],
+    });
+
+    // ─── TRANSFER: ISA contribution (2nd of month) ───
+    const isaAmount = m >= 18 ? 200 : m >= 6 ? 300 : 400;
+    txValues.push({
+      account_id: acctMap["Monzo Current"], category_id: catMap["Investments"], type: "transfer",
+      amount: isaAmount, description: `ISA contribution - ${monthName(m)}`,
+      date: dateInMonth(m, 2), is_recurring: true, recurring_pattern: "monthly",
+      ...(isCurrentMonth ? { next_recurring_date: daysFromNow(28) } : {}),
+      transfer_account_id: acctMap["Vanguard ISA"],
+    });
+
+    // ─── TRANSFER: Marcus savings (~every other month) ───
+    if (m % 2 === 0) {
+      txValues.push({
+        account_id: acctMap["Monzo Current"], type: "transfer",
+        amount: rand(100, 500), description: `Marcus top-up - ${monthName(m)}`,
+        date: dateInMonth(m, 15), is_recurring: false,
+        transfer_account_id: acctMap["Marcus Savings"],
+      });
+    }
+
+    // ─── EXPENSE: EUR spending on Wise (~30% of months) ───
+    if (rng() < 0.3) {
+      txValues.push({
+        account_id: acctMap["Wise EUR"], category_id: catMap["Dining Out"], type: "expense",
+        amount: rand(20, 150), description: `Restaurant in ${pick(["Paris", "Amsterdam", "Berlin", "Barcelona", "Rome", "Lisbon"])}`,
+        date: dateInMonth(m, randInt(10, 25)), is_recurring: false,
+        category_source: "ai",
+      });
+    }
+
+    // ─── EXPENSE: USD spending on Wise (~20% of months) ───
+    if (rng() < 0.2) {
+      txValues.push({
+        account_id: acctMap["Wise USD"], category_id: catMap["Shopping"], type: "expense",
+        amount: rand(30, 200), description: `Online purchase (USD) - ${pick(["Newegg", "Best Buy", "B&H Photo", "Apple Store US"])}`,
+        date: dateInMonth(m, randInt(5, 25)), is_recurring: false,
+        category_source: "ai",
+      });
+    }
+
+    // ─── Costco joint shop (monthly) ───
+    txValues.push({
+      account_id: acctMap["Starling Joint"], category_id: catMap["Groceries"], type: "expense",
+      amount: rand(80, 200), description: "Costco bulk shop",
+      date: dateInMonth(m, randInt(14, 20)), is_recurring: false,
+      merchant_name: "Costco", category_source: "merchant",
+    });
+  }
+
+  // ─── YEARLY: Insurance payments (once per year) ───
+  for (let y = 0; y < 3; y++) {
+    const mOff = y * 12 + 3; // March each year
+    if (mOff < MONTHS_OF_DATA) {
+      for (const ins of insuranceItems) {
+        txValues.push({
+          account_id: acctMap["Monzo Current"], category_id: catMap["Insurance"], type: "expense",
+          amount: rand(150, 650), description: ins,
+          date: dateInMonth(mOff, randInt(1, 15)), is_recurring: true, recurring_pattern: "yearly",
+          ...(y === 0 ? { next_recurring_date: daysFromNow(320) } : {}),
+          category_source: "rule",
+        });
+      }
+    }
+  }
+
+  // ─── WEEKLY: Pret coffee (last 6 months of Mondays) ───
+  for (let w = 0; w < 26; w++) {
+    txValues.push({
+      account_id: acctMap["Monzo Current"], category_id: catMap["Dining Out"], type: "expense",
+      amount: rand(4, 6), description: "Pret coffee",
+      date: daysAgo(w * 7), is_recurring: true, recurring_pattern: "weekly",
+      ...(w === 0 ? { next_recurring_date: daysFromNow(7) } : {}),
+      merchant_name: "Pret A Manger", category_source: "rule",
+    });
+  }
+
+  // ─── REFUNDS (scattered across history) ───
+  const refundDescriptions = [
+    { desc: "Amazon refund - item returned", cat: "Shopping", amount: 59.99 },
+    { desc: "ASOS refund - wrong size", cat: "Shopping", amount: 42.00 },
+    { desc: "Uber refund - cancelled ride", cat: "Transport", amount: 15.00 },
+    { desc: "Train refund - delay compensation", cat: "Transport", amount: 32.50 },
+    { desc: "Netflix refund - billing error", cat: "Entertainment", amount: 15.99 },
+    { desc: "Restaurant overcharge refund", cat: "Dining Out", amount: 24.50 },
+    { desc: "Gym refund - closed facility", cat: "Health", amount: 39.99 },
+    { desc: "John Lewis refund - faulty item", cat: "Shopping", amount: 89.99 },
+    { desc: "Currys refund - price match", cat: "Shopping", amount: 30.00 },
+    { desc: "Zara refund - exchange", cat: "Shopping", amount: 55.00 },
   ];
-
-  const transactions = await db.insert(transactionsTable).values(txValues.map(v => ({ ...v, user_id: USER_ID }))).returning();
-  console.log(`  ✓ ${transactions.length} transactions`);
-
-  // Link refund → original expense
-  const headphonesExpense = transactions.find((t) => t.description === "Amazon - headphones");
-  const headphonesRefund = transactions.find((t) => t.description === "Amazon refund - headphones returned");
-  if (headphonesExpense && headphonesRefund) {
-    await db.update(transactionsTable)
-      .set({ refund_for_transaction_id: headphonesExpense.id })
-      .where(eq(transactionsTable.id, headphonesRefund.id));
+  for (const ref of refundDescriptions) {
+    txValues.push({
+      account_id: ref.cat === "Shopping" ? acctMap["Amex Gold"] : acctMap["Monzo Current"],
+      category_id: catMap[ref.cat], type: "refund",
+      amount: ref.amount, description: ref.desc,
+      date: dateInMonth(randInt(0, 24), randInt(1, 28)), is_recurring: false,
+    });
   }
 
-  // ── Transaction splits ───────────────────────────────────────────
-  const splitTx = transactions.find((t) => t.is_split);
-  if (splitTx) {
-    const splits = await db
-      .insert(transactionSplitsTable)
-      .values([
-        { transaction_id: splitTx.id, category_id: catMap["Groceries"], amount: 98.50, description: "Food items" },
-        { transaction_id: splitTx.id, category_id: catMap["Health"], amount: 32.30, description: "Vitamins & supplements" },
-        { transaction_id: splitTx.id, category_id: catMap["Shopping"], amount: 26.00, description: "Household items" },
-      ])
-      .returning();
-    console.log(`  ✓ ${splits.length} transaction splits`);
+  // ─── SALES (investment proceeds, a few per year) ───
+  const saleDescriptions = [
+    { desc: "Sold 5x AAPL shares", amount: 851.25, monthOff: 2 },
+    { desc: "Sold 100x LLOY shares", amount: 56.00, monthOff: 8 },
+    { desc: "Sold 3x NVDA shares", amount: 2420.00, monthOff: 14 },
+    { desc: "Sold 10x VWRL units", amount: 962.00, monthOff: 20 },
+    { desc: "Sold 0.05 BTC", amount: 3120.00, monthOff: 26 },
+    { desc: "Sold 1x ETH", amount: 2850.00, monthOff: 32 },
+  ];
+  for (const sale of saleDescriptions) {
+    txValues.push({
+      account_id: acctMap["Monzo Current"], category_id: catMap["Investments"], type: "sale",
+      amount: sale.amount, description: sale.desc,
+      date: dateInMonth(sale.monthOff, 15), is_recurring: false,
+    });
   }
 
-  // ── Budgets ──────────────────────────────────────────────────────
+  // ─── One split transaction per quarter ───
+  for (let q = 0; q < 12; q++) {
+    txValues.push({
+      account_id: acctMap["Monzo Current"], category_id: catMap["Groceries"], type: "expense",
+      amount: rand(120, 220), description: `Big Tesco shop (split) Q${(q % 4) + 1}`,
+      date: dateInMonth(q * 3, 13), is_recurring: false, is_split: true,
+    });
+  }
+
+  // Insert all transactions in batches of 500
+  const allTxInserts = txValues.map(v => ({ ...v, user_id: USER_ID }));
+  let transactions: (typeof transactionsTable.$inferSelect)[] = [];
+  for (let i = 0; i < allTxInserts.length; i += 500) {
+    const batch = allTxInserts.slice(i, i + 500);
+    const result = await db.insert(transactionsTable).values(batch).returning();
+    transactions = transactions.concat(result);
+  }
+  console.log(`  ✓ ${transactions.length} transactions (${MONTHS_OF_DATA} months of data)`);
+
+  // ── Transaction splits (for each split transaction) ────────────────
+  const splitTxns = transactions.filter((t) => t.is_split);
+  let splitCount = 0;
+  for (const splitTx of splitTxns) {
+    const total = Number(splitTx.amount);
+    const foodPortion = +(total * rand(0.5, 0.65)).toFixed(2);
+    const healthPortion = +(total * rand(0.1, 0.2)).toFixed(2);
+    const shopPortion = +(total - foodPortion - healthPortion).toFixed(2);
+    const splits = await db.insert(transactionSplitsTable).values([
+      { transaction_id: splitTx.id, category_id: catMap["Groceries"], amount: foodPortion, description: "Food items" },
+      { transaction_id: splitTx.id, category_id: catMap["Health"], amount: healthPortion, description: "Vitamins & supplements" },
+      { transaction_id: splitTx.id, category_id: catMap["Shopping"], amount: shopPortion, description: "Household items" },
+    ]).returning();
+    splitCount += splits.length;
+  }
+  console.log(`  ✓ ${splitCount} transaction splits (${splitTxns.length} split transactions)`);
+
+  // ── Budgets (expanded with new categories) ─────────────────────────
   const budgets = await db
     .insert(budgetsTable)
     .values([
-      { user_id: USER_ID, category_id: catMap["Groceries"], amount: 400, period: "monthly" as const, start_date: monthsAgo(0) },
-      { user_id: USER_ID, category_id: catMap["Transport"], amount: 250, period: "monthly" as const, start_date: monthsAgo(0) },
-      { user_id: USER_ID, category_id: catMap["Entertainment"], amount: 500, period: "monthly" as const, start_date: monthsAgo(0) },
-      { user_id: USER_ID, category_id: catMap["Dining Out"], amount: 150, period: "monthly" as const, start_date: monthsAgo(0) },
-      { user_id: USER_ID, category_id: catMap["Bills & Utilities"], amount: 350, period: "weekly" as const, start_date: monthsAgo(0) },
+      { user_id: USER_ID, category_id: catMap["Groceries"], amount: 450, period: "monthly" as const, start_date: monthsAgo(24) },
+      { user_id: USER_ID, category_id: catMap["Transport"], amount: 280, period: "monthly" as const, start_date: monthsAgo(24) },
+      { user_id: USER_ID, category_id: catMap["Entertainment"], amount: 200, period: "monthly" as const, start_date: monthsAgo(18) },
+      { user_id: USER_ID, category_id: catMap["Dining Out"], amount: 300, period: "monthly" as const, start_date: monthsAgo(24) },
+      { user_id: USER_ID, category_id: catMap["Bills & Utilities"], amount: 1800, period: "monthly" as const, start_date: monthsAgo(24) },
+      { user_id: USER_ID, category_id: catMap["Health"], amount: 100, period: "monthly" as const, start_date: monthsAgo(12) },
+      { user_id: USER_ID, category_id: catMap["Education"], amount: 100, period: "monthly" as const, start_date: monthsAgo(6) },
+      { user_id: USER_ID, category_id: catMap["Personal Care"], amount: 60, period: "monthly" as const, start_date: monthsAgo(6) },
+      { user_id: USER_ID, category_id: catMap["Childcare"], amount: 1000, period: "monthly" as const, start_date: monthsAgo(8) },
+      { user_id: USER_ID, category_id: catMap["Insurance"], amount: 250, period: "monthly" as const, start_date: monthsAgo(12) },
     ])
     .returning();
   console.log(`  ✓ ${budgets.length} budgets`);
@@ -373,91 +676,123 @@ async function seed() {
       { budget_id: budgetMap["Groceries"], user_id: USER_ID, threshold: 80, browser_alerts: true, email_alerts: false },
       { budget_id: budgetMap["Dining Out"], user_id: USER_ID, threshold: 75, browser_alerts: true, email_alerts: true },
       { budget_id: budgetMap["Entertainment"], user_id: USER_ID, threshold: 90, browser_alerts: true, email_alerts: false },
+      { budget_id: budgetMap["Bills & Utilities"], user_id: USER_ID, threshold: 95, browser_alerts: true, email_alerts: true },
+      { budget_id: budgetMap["Childcare"], user_id: USER_ID, threshold: 100, browser_alerts: true, email_alerts: true },
+      { budget_id: budgetMap["Transport"], user_id: USER_ID, threshold: 85, browser_alerts: true, email_alerts: false },
     ])
     .returning();
   console.log(`  ✓ ${alertPrefs.length} budget alert preferences`);
 
-  // ── Budget notifications ─────────────────────────────────────────
+  // ── Budget notifications (recent month + older) ───────────────────
   const notifications = await db
     .insert(budgetNotificationsTable)
     .values([
       { user_id: USER_ID, budget_id: budgetMap["Dining Out"], alert_type: "threshold_warning" as const, message: "You've used 80% of your Dining Out budget this month.", is_read: true, emailed: false },
       { user_id: USER_ID, budget_id: budgetMap["Dining Out"], alert_type: "over_budget" as const, message: "You've exceeded your Dining Out budget for this month!", is_read: false, emailed: true },
       { user_id: USER_ID, budget_id: budgetMap["Groceries"], alert_type: "threshold_warning" as const, message: "You've used 85% of your Groceries budget this month.", is_read: false, emailed: false },
+      { user_id: USER_ID, budget_id: budgetMap["Entertainment"], alert_type: "over_budget" as const, message: "Entertainment budget exceeded — concert tickets pushed it over.", is_read: false, emailed: false },
+      { user_id: USER_ID, budget_id: budgetMap["Transport"], alert_type: "threshold_warning" as const, message: "Transport spending at 90% of budget.", is_read: true, emailed: false },
+      { user_id: USER_ID, budget_id: budgetMap["Bills & Utilities"], alert_type: "threshold_warning" as const, message: "Bills & Utilities at 95% — energy bill was higher than usual.", is_read: false, emailed: true },
     ])
     .returning();
   console.log(`  ✓ ${notifications.length} budget notifications`);
 
-  // ── Categorisation rules ─────────────────────────────────────────
+  // ── Categorisation rules (expanded) ──────────────────────────────
+  const rulePatterns: [string, string, number][] = [
+    // Groceries
+    ["tesco", "Groceries", 1], ["sainsbury", "Groceries", 2], ["aldi", "Groceries", 3],
+    ["ocado", "Groceries", 4], ["m&s food", "Groceries", 5], ["costco", "Groceries", 6],
+    ["lidl", "Groceries", 7], ["waitrose", "Groceries", 8], ["asda", "Groceries", 9],
+    ["morrisons", "Groceries", 10], ["co-op", "Groceries", 11],
+    // Transport
+    ["uber", "Transport", 20], ["tfl", "Transport", 21], ["oyster", "Transport", 22],
+    ["train", "Transport", 23], ["bolt", "Transport", 24], ["lime", "Transport", 25],
+    ["national express", "Transport", 26],
+    // Entertainment
+    ["netflix", "Entertainment", 30], ["spotify", "Entertainment", 31],
+    ["vue cinema", "Entertainment", 32], ["concert", "Entertainment", 33],
+    ["odeon", "Entertainment", 34], ["theatre", "Entertainment", 35],
+    // Shopping
+    ["amazon", "Shopping", 40], ["asos", "Shopping", 41], ["tk maxx", "Shopping", 42],
+    ["currys", "Shopping", 43], ["uniqlo", "Shopping", 44], ["john lewis", "Shopping", 45],
+    ["whsmith", "Shopping", 46], ["argos", "Shopping", 47], ["zara", "Shopping", 48],
+    ["h&m", "Shopping", 49], ["ikea", "Shopping", 50], ["superdrug", "Shopping", 51],
+    // Dining Out
+    ["pret", "Dining Out", 60], ["dishoom", "Dining Out", 61], ["nando", "Dining Out", 62],
+    ["wagamama", "Dining Out", 63], ["five guys", "Dining Out", 64],
+    ["pizza express", "Dining Out", 65], ["hawksmoor", "Dining Out", 66],
+    ["nobu", "Dining Out", 67], ["leon", "Dining Out", 68], ["itsu", "Dining Out", 69],
+    ["franco manca", "Dining Out", 70], ["honest burgers", "Dining Out", 71],
+    ["chipotle", "Dining Out", 72], ["gbk", "Dining Out", 73],
+    // Health
+    ["puregym", "Health", 80], ["boots pharmacy", "Health", 81], ["pharmacy", "Health", 82],
+    ["holland & barrett", "Health", 83], ["dentist", "Health", 84], ["optician", "Health", 85],
+    // Bills & Utilities
+    ["edf", "Bills & Utilities", 90], ["sky", "Bills & Utilities", 91],
+    ["three mobile", "Bills & Utilities", 92], ["thames water", "Bills & Utilities", 93],
+    ["council tax", "Bills & Utilities", 94], ["admiral", "Bills & Utilities", 95],
+    ["broadband", "Bills & Utilities", 96], ["rent", "Bills & Utilities", 97],
+    // Education
+    ["udemy", "Education", 100], ["coursera", "Education", 101], ["pluralsight", "Education", 102],
+    // Gifts & Charity
+    ["justgiving", "Gifts & Charity", 110], ["unicef", "Gifts & Charity", 111],
+    ["macmillan", "Gifts & Charity", 112],
+    // Personal Care
+    ["barber", "Personal Care", 120], ["dry cleaning", "Personal Care", 121],
+    // Childcare
+    ["nursery", "Childcare", 130],
+    // Insurance
+    ["admiral", "Insurance", 140], ["life insurance", "Insurance", 141],
+    ["travel insurance", "Insurance", 142], ["pet insurance", "Insurance", 143],
+  ];
   const rules = await db
     .insert(categorisationRulesTable)
-    .values([
-      // Groceries
-      { user_id: USER_ID, pattern: "tesco", category_id: catMap["Groceries"], priority: 1 },
-      { user_id: USER_ID, pattern: "sainsbury", category_id: catMap["Groceries"], priority: 2 },
-      { user_id: USER_ID, pattern: "aldi", category_id: catMap["Groceries"], priority: 3 },
-      { user_id: USER_ID, pattern: "ocado", category_id: catMap["Groceries"], priority: 4 },
-      { user_id: USER_ID, pattern: "m&s food", category_id: catMap["Groceries"], priority: 5 },
-      { user_id: USER_ID, pattern: "costco", category_id: catMap["Groceries"], priority: 6 },
-      { user_id: USER_ID, pattern: "lidl", category_id: catMap["Groceries"], priority: 7 },
-      { user_id: USER_ID, pattern: "waitrose", category_id: catMap["Groceries"], priority: 8 },
-      // Transport
-      { user_id: USER_ID, pattern: "uber", category_id: catMap["Transport"], priority: 10 },
-      { user_id: USER_ID, pattern: "tfl", category_id: catMap["Transport"], priority: 11 },
-      { user_id: USER_ID, pattern: "oyster", category_id: catMap["Transport"], priority: 12 },
-      { user_id: USER_ID, pattern: "train", category_id: catMap["Transport"], priority: 13 },
-      { user_id: USER_ID, pattern: "bolt", category_id: catMap["Transport"], priority: 14 },
-      // Entertainment
-      { user_id: USER_ID, pattern: "netflix", category_id: catMap["Entertainment"], priority: 20 },
-      { user_id: USER_ID, pattern: "spotify", category_id: catMap["Entertainment"], priority: 21 },
-      { user_id: USER_ID, pattern: "vue cinema", category_id: catMap["Entertainment"], priority: 22 },
-      { user_id: USER_ID, pattern: "concert", category_id: catMap["Entertainment"], priority: 23 },
-      { user_id: USER_ID, pattern: "odeon", category_id: catMap["Entertainment"], priority: 24 },
-      // Shopping
-      { user_id: USER_ID, pattern: "amazon", category_id: catMap["Shopping"], priority: 30 },
-      { user_id: USER_ID, pattern: "asos", category_id: catMap["Shopping"], priority: 31 },
-      { user_id: USER_ID, pattern: "tk maxx", category_id: catMap["Shopping"], priority: 32 },
-      { user_id: USER_ID, pattern: "currys", category_id: catMap["Shopping"], priority: 33 },
-      { user_id: USER_ID, pattern: "uniqlo", category_id: catMap["Shopping"], priority: 34 },
-      { user_id: USER_ID, pattern: "john lewis", category_id: catMap["Shopping"], priority: 35 },
-      { user_id: USER_ID, pattern: "whsmith", category_id: catMap["Shopping"], priority: 36 },
-      { user_id: USER_ID, pattern: "argos", category_id: catMap["Shopping"], priority: 37 },
-      // Dining Out
-      { user_id: USER_ID, pattern: "pret", category_id: catMap["Dining Out"], priority: 40 },
-      { user_id: USER_ID, pattern: "dishoom", category_id: catMap["Dining Out"], priority: 41 },
-      { user_id: USER_ID, pattern: "nando", category_id: catMap["Dining Out"], priority: 42 },
-      { user_id: USER_ID, pattern: "wagamama", category_id: catMap["Dining Out"], priority: 43 },
-      { user_id: USER_ID, pattern: "five guys", category_id: catMap["Dining Out"], priority: 44 },
-      { user_id: USER_ID, pattern: "pizza express", category_id: catMap["Dining Out"], priority: 45 },
-      { user_id: USER_ID, pattern: "hawksmoor", category_id: catMap["Dining Out"], priority: 46 },
-      { user_id: USER_ID, pattern: "nobu", category_id: catMap["Dining Out"], priority: 47 },
-      // Health
-      { user_id: USER_ID, pattern: "puregym", category_id: catMap["Health"], priority: 50 },
-      { user_id: USER_ID, pattern: "boots", category_id: catMap["Health"], priority: 51 },
-      { user_id: USER_ID, pattern: "pharmacy", category_id: catMap["Health"], priority: 52 },
-      // Bills & Utilities
-      { user_id: USER_ID, pattern: "edf", category_id: catMap["Bills & Utilities"], priority: 60 },
-      { user_id: USER_ID, pattern: "sky", category_id: catMap["Bills & Utilities"], priority: 61 },
-      { user_id: USER_ID, pattern: "three mobile", category_id: catMap["Bills & Utilities"], priority: 62 },
-      { user_id: USER_ID, pattern: "thames water", category_id: catMap["Bills & Utilities"], priority: 63 },
-      { user_id: USER_ID, pattern: "council tax", category_id: catMap["Bills & Utilities"], priority: 64 },
-      { user_id: USER_ID, pattern: "admiral", category_id: catMap["Bills & Utilities"], priority: 65 },
-      { user_id: USER_ID, pattern: "broadband", category_id: catMap["Bills & Utilities"], priority: 66 },
-      { user_id: USER_ID, pattern: "rent", category_id: catMap["Bills & Utilities"], priority: 67 },
-    ])
+    .values(rulePatterns.map(([pattern, cat, priority]) => ({
+      user_id: USER_ID, pattern, category_id: catMap[cat], priority,
+    })))
     .returning();
   console.log(`  ✓ ${rules.length} categorisation rules`);
 
-  // ── Goals ────────────────────────────────────────────────────────
+  // ── Merchant mappings ──────────────────────────────────────────────
+  const merchantMappingDefs: [string, string][] = [
+    ["Tesco", "Groceries"], ["Sainsbury's", "Groceries"], ["Aldi", "Groceries"],
+    ["Lidl", "Groceries"], ["Ocado", "Groceries"], ["M&S Food", "Groceries"],
+    ["Waitrose", "Groceries"], ["Asda", "Groceries"], ["Morrisons", "Groceries"],
+    ["Co-op", "Groceries"], ["Costco", "Groceries"],
+    ["Pret A Manger", "Dining Out"], ["Dishoom", "Dining Out"], ["Wagamama", "Dining Out"],
+    ["Nando's", "Dining Out"], ["Five Guys", "Dining Out"], ["Pizza Express", "Dining Out"],
+    ["Leon", "Dining Out"], ["Itsu", "Dining Out"], ["Franco Manca", "Dining Out"],
+    ["Amazon", "Shopping"], ["ASOS", "Shopping"], ["Uniqlo", "Shopping"],
+    ["John Lewis", "Shopping"], ["Currys", "Shopping"], ["TK Maxx", "Shopping"],
+    ["Zara", "Shopping"], ["H&M", "Shopping"], ["IKEA", "Shopping"],
+    ["Netflix", "Entertainment"], ["Spotify", "Entertainment"],
+    ["PureGym", "Health"], ["TfL", "Transport"],
+    ["EDF Energy", "Bills & Utilities"], ["Sky Broadband", "Bills & Utilities"],
+    ["Three Mobile", "Bills & Utilities"], ["Thames Water", "Bills & Utilities"],
+    ["Little Stars Nursery", "Childcare"], ["Acme Corp Ltd", "Salary"],
+  ];
+  const merchantRows = await db
+    .insert(merchantMappingsTable)
+    .values(merchantMappingDefs.map(([merchant, cat]) => ({
+      user_id: USER_ID, merchant, category_id: catMap[cat], source: "correction" as const,
+    })))
+    .returning();
+  console.log(`  ✓ ${merchantRows.length} merchant mappings`);
+
+  // ── Goals (expanded) ──────────────────────────────────────────────
   const goals = await db
     .insert(goalsTable)
     .values([
-      { user_id: USER_ID, name: "Emergency Fund", target_amount: 10000, saved_amount: 6500, target_date: daysFromNow(180), icon: "Shield", color: "#22c55e" },
-      { user_id: USER_ID, name: "Holiday - Japan", target_amount: 5000, saved_amount: 2200, target_date: daysFromNow(270), icon: "Plane", color: "#3b82f6" },
-      { user_id: USER_ID, name: "New Laptop", target_amount: 2000, saved_amount: 1400, target_date: daysFromNow(90), icon: "Laptop", color: "#a855f7" },
-      { user_id: USER_ID, name: "House Deposit", target_amount: 50000, saved_amount: 18000, target_date: daysFromNow(730), icon: "Home", color: "#f97316" },
-      { user_id: USER_ID, name: "New Phone", target_amount: 1100, saved_amount: 1100, target_date: daysFromNow(0), icon: "Smartphone", color: "#06b6d4" },
-      { user_id: USER_ID, name: "Rainy Day Fund", target_amount: 3000, saved_amount: 850, icon: "Umbrella", color: "#64748b" },
+      { user_id: USER_ID, name: "Emergency Fund", target_amount: 15000, saved_amount: 9200, target_date: daysFromNow(180), icon: "Shield", color: "#22c55e" },
+      { user_id: USER_ID, name: "Holiday - Japan", target_amount: 5000, saved_amount: 3800, target_date: daysFromNow(200), icon: "Plane", color: "#3b82f6" },
+      { user_id: USER_ID, name: "New Laptop", target_amount: 2500, saved_amount: 2500, target_date: daysFromNow(0), icon: "Laptop", color: "#a855f7" },
+      { user_id: USER_ID, name: "House Deposit", target_amount: 60000, saved_amount: 24500, target_date: daysFromNow(730), icon: "Home", color: "#f97316" },
+      { user_id: USER_ID, name: "New Phone", target_amount: 1200, saved_amount: 1200, target_date: daysFromNow(0), icon: "Smartphone", color: "#06b6d4" },
+      { user_id: USER_ID, name: "Rainy Day Fund", target_amount: 3000, saved_amount: 1650, icon: "Umbrella", color: "#64748b" },
+      { user_id: USER_ID, name: "Wedding Fund", target_amount: 25000, saved_amount: 8200, target_date: daysFromNow(540), icon: "Heart", color: "#ec4899" },
+      { user_id: USER_ID, name: "Baby Fund", target_amount: 10000, saved_amount: 4500, target_date: daysFromNow(365), icon: "Baby", color: "#fb923c" },
+      { user_id: USER_ID, name: "Car Replacement", target_amount: 20000, saved_amount: 6800, target_date: daysFromNow(900), icon: "Car", color: "#0ea5e9" },
+      { user_id: USER_ID, name: "Course: MBA", target_amount: 35000, saved_amount: 5000, target_date: daysFromNow(1460), icon: "GraduationCap", color: "#8b5cf6" },
     ])
     .returning();
   console.log(`  ✓ ${goals.length} goals`);

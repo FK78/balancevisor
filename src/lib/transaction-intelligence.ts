@@ -379,6 +379,7 @@ export type EnrichmentResult = {
   subscriptions: { linked: number; flagged: number };
   debts: { linked: number; flagged: number };
   recurringDetected: number;
+  ruleCategorised: number;
   aiCategorised: number;
   categoriesCreated: number;
   subscriptionsCreated: number;
@@ -400,6 +401,10 @@ export async function enrichTransactions(
     const { promoteRecurringToSubscriptions } = await import("@/lib/subscription-promoter");
     const promoResult = await promoteRecurringToSubscriptions(userId, transactionIds);
 
+    // Rule-based + merchant-mapping categorisation first (fast, no API calls)
+    const { applyDeterministicCategorisation } = await import("@/lib/deterministic-categorise");
+    const deterministicResult = await applyDeterministicCategorisation(userId, transactionIds);
+
     // Batch AI categorisation for remaining uncategorised transactions
     const { batchAiCategorise } = await import("@/lib/auto-categorise");
     const aiResult = await batchAiCategorise(userId, transactionIds);
@@ -408,6 +413,7 @@ export async function enrichTransactions(
       subscriptions: subResult,
       debts: debtResult,
       recurringDetected,
+      ruleCategorised: deterministicResult.categorised,
       aiCategorised: aiResult.categorised,
       categoriesCreated: aiResult.categoriesCreated,
       subscriptionsCreated: promoResult.created,
@@ -419,6 +425,7 @@ export async function enrichTransactions(
       subscriptions: { linked: 0, flagged: 0 },
       debts: { linked: 0, flagged: 0 },
       recurringDetected: 0,
+      ruleCategorised: 0,
       aiCategorised: 0,
       categoriesCreated: 0,
       subscriptionsCreated: 0,

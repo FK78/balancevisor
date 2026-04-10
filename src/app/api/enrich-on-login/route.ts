@@ -51,7 +51,7 @@ export async function POST(req: Request) {
 
     logger.info(
       "enrich-on-login",
-      `User ${userId}: categorised=${enrichment.aiCategorised}, ` +
+      `User ${userId}: rules=${enrichment.ruleCategorised}, ai=${enrichment.aiCategorised}, ` +
         `newCats=${enrichment.categoriesCreated}, subs=${enrichment.subscriptionsCreated}, ` +
         `budgets=${budgets.budgetsCreated}`,
     );

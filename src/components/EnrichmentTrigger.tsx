@@ -8,8 +8,9 @@ const INTERVAL_MS = 30 * 60 * 1000; // 30 minutes — matches server cooldown
 
 function showEnrichmentToast(result: Record<string, number>) {
   const parts: string[] = [];
-  if (result.aiCategorised > 0)
-    parts.push(`${result.aiCategorised} categorised`);
+  const totalCategorised = (result.ruleCategorised ?? 0) + (result.aiCategorised ?? 0);
+  if (totalCategorised > 0)
+    parts.push(`${totalCategorised} categorised`);
   if (result.categoriesCreated > 0)
     parts.push(`${result.categoriesCreated} new categories`);
   if (result.subscriptionsCreated > 0)
