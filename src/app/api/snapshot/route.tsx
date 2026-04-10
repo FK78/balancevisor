@@ -266,7 +266,7 @@ function buildFunnySnapshot(body: SnapshotBody) {
         {/* Detail quip */}
         {body.detail && (
           <div style={{ fontSize: 16, fontStyle: "italic", color: "rgba(255,255,255,0.4)", marginTop: 14 }}>
-            {"\u201C"}{body.detail}{"\u201D"}
+            {`\u201C${body.detail}\u201D`}
           </div>
         )}
       </div>
