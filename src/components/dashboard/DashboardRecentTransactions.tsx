@@ -6,21 +6,35 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { TransactionRow } from "@/components/TransactionRow";
+import { formatCurrency } from "@/lib/formatCurrency";
 import type { TransactionWithDetails } from "@/lib/types";
 
 type DashboardRecentTransactionsProps = {
   transactions: TransactionWithDetails[];
   currency: string;
 };
+
+function getTransactionStyle(type: string) {
+  switch (type) {
+    case "income":
+    case "sale":
+      return { color: "text-emerald-600", prefix: "+" };
+    case "refund":
+      return { color: "text-amber-600", prefix: "↩ " };
+    case "transfer":
+      return { color: "text-blue-600", prefix: "⇄ " };
+    default:
+      return { color: "text-red-600", prefix: "−" };
+  }
+}
+
+function getCategoryLabel(t: TransactionWithDetails) {
+  if (t.type === "transfer") return "Transfer";
+  if (t.type === "sale") return "Sale";
+  if (t.type === "refund") return "Refund";
+  return t.category ?? "";
+}
 
 export function DashboardRecentTransactions({
   transactions,
@@ -53,22 +67,23 @@ export function DashboardRecentTransactions({
             </Button>
           </div>
         ) : (
-          <div className="overflow-x-auto -mx-6 px-6">
-            <Table className="min-w-[480px]">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactions.map((t) => (
-                  <TransactionRow key={t.id} t={t} currency={currency} />
-                ))}
-              </TableBody>
-            </Table>
+          <div className="divide-y">
+            {transactions.map((t) => {
+              const style = getTransactionStyle(t.type);
+              return (
+                <div key={t.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{t.description}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {getCategoryLabel(t)}{t.date ? ` · ${t.date}` : ""}
+                    </p>
+                  </div>
+                  <span className={`shrink-0 text-sm font-semibold tabular-nums ${style.color}`}>
+                    {style.prefix}{formatCurrency(t.amount, currency)}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
       </CardContent>
