@@ -10,6 +10,7 @@ import { eq, sum, and, gte, lt, inArray } from 'drizzle-orm';
 import { sendBudgetAlertEmail } from '@/lib/email';
 import { createClient } from '@/lib/supabase/server';
 import { getUserBaseCurrency } from '@/db/queries/onboarding';
+import { getMonthRange } from '@/lib/date';
 
 /**
  * Atomically create a budget notification only if one with the same
@@ -45,16 +46,6 @@ async function createNotificationIfNotExists(
 
     return row;
   });
-}
-
-function getMonthRange(monthsAgo = 0) {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1);
-  const end = new Date(now.getFullYear(), now.getMonth() - monthsAgo + 1, 1);
-  return {
-    start: start.toISOString().split('T')[0],
-    end: end.toISOString().split('T')[0],
-  };
 }
 
 type BudgetWithSpend = {
