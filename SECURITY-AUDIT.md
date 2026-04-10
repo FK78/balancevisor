@@ -26,11 +26,11 @@ BalanceVisor demonstrates strong security fundamentals: per-user envelope encryp
 | # | Finding | Status |
 |---|---------|--------|
 | H1 | **Missing input validation in `saveZakatSettings`** — `anniversaryDate` and `nisabType` taken directly from FormData without sanitisation. | **FIXED** — Added `requireDate()` and `sanitizeEnum()` validation. |
-| H2 | **`dangerouslySetInnerHTML` with AI-generated content** — 8+ components render AI responses via `formatMarkdown()` → `dangerouslySetInnerHTML`. While `escapeHtml` runs first, regex replacements re-introduce HTML. | **FIXED** — Added `isomorphic-dompurify` as a final sanitisation pass with strict allowlist of tags and no attributes. |
+| H2 | **`dangerouslySetInnerHTML` with AI-generated content** — 8+ components render AI responses via `formatMarkdown()` → `dangerouslySetInnerHTML`. While `escapeHtml` runs first, regex replacements re-introduce HTML. | **FIXED** — Added `sanitize-html` as a final sanitisation pass with strict allowlist of tags and no attributes. |
 | H3 | **Health endpoint leaks internal state** — `process.uptime()`, heap memory usage exposed to unauthenticated users. | **FIXED** — Uptime and memory only included in non-production responses. |
 | H4 | **Nisab prices endpoint has no rate limit** — Public, unauthenticated, makes outbound HTTP requests (DoS / SSRF vector). | **FIXED** — Added rate limiting via `withRateLimit` keyed by client IP. |
 | H5 | **Ticker search has no auth check** — Rate limited by spoofable IP only. | **FIXED** — Added `getCurrentUserId()` authentication check. |
-| H6 | **CSP allows `unsafe-inline` and `unsafe-eval`** — Effectively disables XSS protection. | **FIXED** — Replaced with SHA-256 hash (`'sha256-F91Obb/...'`) of the inline theme script. Removed `unsafe-eval`. |
+| H6 | **CSP allows `unsafe-eval`** — Allows eval-based XSS attacks. | **FIXED** — Removed `unsafe-eval` from `script-src`. `unsafe-inline` retained because Next.js requires it for hydration/RSC inline scripts. |
 
 ### MEDIUM
 
@@ -87,9 +87,9 @@ These security controls were reviewed and found to be well-implemented:
 | `src/app/api/health/route.ts` | Strip uptime/memory in production |
 | `src/app/api/nisab-prices/route.ts` | Added rate limiting |
 | `src/app/api/tickers/search/route.ts` | Added auth check |
-| `next.config.ts` | CSP: SHA-256 hash instead of `unsafe-inline`/`unsafe-eval`; pinned Groq connect-src; added `payment=()` |
+| `next.config.ts` | CSP: removed `unsafe-eval` (kept `unsafe-inline` for Next.js hydration); pinned Groq connect-src; added `payment=()` |
 | `src/db/mutations/mfa/verify.ts` | Generic error messages |
 | `src/db/mutations/import-data.ts` | Fresh UUIDs + FK remapping on import |
 | `src/db/mutations/settings.ts` | Removed duplicate deletions |
 
-**New dependency:** `isomorphic-dompurify` (DOMPurify for server + client)
+**New dependency:** `sanitize-html` (pure JS HTML sanitiser, no jsdom required)

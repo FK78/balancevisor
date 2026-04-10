@@ -11,13 +11,12 @@
  * - Paragraphs (double newlines)
  */
 
-import DOMPurify from "isomorphic-dompurify";
+import sanitizeHtml from "sanitize-html";
 
 const ALLOWED_TAGS = [
   "p", "h2", "h3", "h4", "strong", "em", "code", "pre",
   "ul", "li", "br",
 ];
-const ALLOWED_ATTR: string[] = [];
 
 function escapeHtml(str: string): string {
   return str
@@ -58,5 +57,5 @@ export function formatMarkdown(text: string): string {
   html = html.replace(/<p>(<pre>)/g, "$1");
   html = html.replace(/(<\/pre>)<\/p>/g, "$1");
 
-  return DOMPurify.sanitize(html, { ALLOWED_TAGS, ALLOWED_ATTR });
+  return sanitizeHtml(html, { allowedTags: ALLOWED_TAGS, allowedAttributes: {} });
 }

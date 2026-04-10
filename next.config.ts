@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
       "@tanstack/react-query",
     ],
   },
-  serverExternalPackages: ["yahoo-finance2"],
+  serverExternalPackages: ["yahoo-finance2", "sanitize-html"],
   async headers() {
     return [
       {
@@ -68,7 +68,7 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'sha256-F91Obb/JfCFDMzcJ/6F8cwpVMJNCEj4Q+vAkYgkoTGE='",
+              "script-src 'self' 'unsafe-inline'",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "connect-src 'self' https://*.supabase.co https://*.supabase.in https://*.truelayer.com https://*.truelayer-sandbox.com https://live.trading212.com https://demo.trading212.com https://api.groq.com",
