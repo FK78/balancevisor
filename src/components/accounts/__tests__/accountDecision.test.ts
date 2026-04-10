@@ -124,8 +124,6 @@ describe("account decision helpers", () => {
       ],
       {
         id: "shared_1",
-        accountName: "Shared Account",
-        type: "savings",
         balance: 700,
       },
     );

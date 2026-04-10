@@ -85,7 +85,7 @@ function makeRenewal(overrides: Partial<Subscription> = {}): Subscription {
     billing_cycle: "monthly",
     next_billing_date: "2026-04-11",
     category_id: null,
-    account_id: null,
+    account_id: "acc_1",
     categoryName: null,
     categoryColor: null,
     url: null,
@@ -93,7 +93,7 @@ function makeRenewal(overrides: Partial<Subscription> = {}): Subscription {
     is_active: true,
     color: "#ef4444",
     icon: null,
-    created_at: "2026-04-01T00:00:00.000Z",
+    created_at: new Date("2026-04-01T00:00:00.000Z"),
     ...overrides,
   };
 }
