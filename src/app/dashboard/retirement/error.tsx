@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
 import { logger } from "@/lib/logger";
+import { capturePostHogException } from "@/lib/posthog-error-tracking";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,6 +22,10 @@ export default function RetirementError({
   reset: () => void;
 }) {
   useEffect(() => {
+    capturePostHogException(error, {
+      source: "retirement_route_error",
+      error_digest: error.digest,
+    });
     logger.error("retirement", "Retirement page error", error);
   }, [error]);
 

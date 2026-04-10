@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
+import { capturePostHogException } from "@/lib/posthog-error-tracking";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,6 +21,10 @@ export default function OnboardingError({
   reset: () => void;
 }) {
   useEffect(() => {
+    capturePostHogException(error, {
+      source: "onboarding_route_error",
+      error_digest: error.digest,
+    });
     console.error(error);
   }, [error]);
 

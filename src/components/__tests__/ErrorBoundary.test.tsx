@@ -4,9 +4,20 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
+const { captureException } = vi.hoisted(() => ({
+  captureException: vi.fn(),
+}));
+
+vi.mock("posthog-js", () => ({
+  default: {
+    captureException,
+  },
+}));
+
 // Suppress console.error from ErrorBoundary.componentDidCatch
 beforeEach(() => {
   vi.spyOn(console, "error").mockImplementation(() => {});
+  captureException.mockReset();
 });
 
 function ThrowingChild({ shouldThrow = true }: { shouldThrow?: boolean }) {
@@ -84,5 +95,21 @@ describe("ErrorBoundary", () => {
       </ErrorBoundary>,
     );
     expect(console.error).toHaveBeenCalled();
+  });
+
+  it("captures boundary errors in PostHog", () => {
+    render(
+      <ErrorBoundary>
+        <ThrowingChild />
+      </ErrorBoundary>,
+    );
+
+    expect(captureException).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({
+        source: "error_boundary",
+        componentStack: expect.any(String),
+      }),
+    );
   });
 });
