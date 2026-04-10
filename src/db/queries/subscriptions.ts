@@ -91,3 +91,5 @@ export async function getUpcomingRenewals(userId: string, withinDays = 7) {
     )
     .orderBy(subscriptionsTable.next_billing_date);
 }
+
+export type UpcomingRenewalRow = Awaited<ReturnType<typeof getUpcomingRenewals>>[number];

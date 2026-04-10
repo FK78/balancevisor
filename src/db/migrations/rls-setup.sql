@@ -24,7 +24,14 @@ END
 $$;
 
 -- Grant connect + usage
-GRANT CONNECT ON DATABASE CURRENT_DATABASE() TO app_user;
+DO $$
+BEGIN
+  EXECUTE format(
+    'GRANT CONNECT ON DATABASE %I TO app_user',
+    current_database()
+  );
+END
+$$;
 GRANT USAGE ON SCHEMA public TO app_user;
 
 -- Grant table-level DML on all existing tables

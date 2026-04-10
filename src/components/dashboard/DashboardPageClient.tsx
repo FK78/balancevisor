@@ -41,6 +41,9 @@ import type { WidgetLayoutItem } from "@/lib/widget-registry";
 import type { Insight } from "@/db/queries/insights";
 import type { NetWorthPoint } from "@/db/queries/net-worth";
 import type { MonthlyCashflowPoint } from "@/db/queries/transactions";
+import type { BudgetRow } from "@/db/queries/budgets";
+import type { UpcomingRenewalRow } from "@/db/queries/subscriptions";
+import type { TransactionWithDetails } from "@/lib/types";
 import type { CashflowForecast } from "@/lib/cashflow-forecast";
 import type { SpendingAnomaly } from "@/lib/spending-anomalies";
 import type { RetirementProjection } from "@/lib/retirement-calculator";
@@ -98,16 +101,12 @@ interface DashboardPageClientProps {
   readonly monthlyTrend: MonthlyCashflowPoint[];
   readonly forecast: CashflowForecast | null;
   readonly anomalies: SpendingAnomaly[];
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  readonly upcomingRenewals: any[];
-  readonly budgets: any[];
-  readonly budgetsAtRisk: any[];
-  /* eslint-enable @typescript-eslint/no-explicit-any */
+  readonly upcomingRenewals: UpcomingRenewalRow[];
+  readonly budgets: BudgetRow[];
+  readonly budgetsAtRisk: BudgetRow[];
   readonly spendByCategory: { category: string; total: string | null; color: string }[];
   readonly expenses: number;
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  readonly lastFiveTransactions: any[];
-  /* eslint-enable @typescript-eslint/no-explicit-any */
+  readonly lastFiveTransactions: TransactionWithDetails[];
   readonly retirementProjection: RetirementProjection | null;
   readonly hasRetirementProfile: boolean;
   readonly milestones: readonly Milestone[];

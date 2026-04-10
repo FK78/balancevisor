@@ -1,25 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, Nunito } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { QueryProvider } from "@/components/QueryProvider";
 import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { Toaster } from "sonner";
-
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
-  variable: "--font-dm-sans",
-  display: "swap",
-});
-
-const nunito = Nunito({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-nunito",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "Wealth",
@@ -50,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${dmSans.variable} ${nunito.variable}`}>
+    <html lang="en">
       <body className="antialiased">
         <ThemeProvider defaultTheme="system">
           <QueryProvider>

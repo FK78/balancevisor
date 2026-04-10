@@ -41,6 +41,8 @@ export async function getBudgets(userId: string) {
   return rows.map((row) => ({ ...row, isShared: false as boolean }));
 }
 
+export type BudgetRow = Awaited<ReturnType<typeof getBudgets>>[number];
+
 export async function getSharedBudgets(userId: string, email: string) {
   const sharedRows = await db
     .select({ resource_id: sharedAccessTable.resource_id })
