@@ -146,7 +146,7 @@ export function SplitTransactionDialog({
           Split Transaction
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent mobileLayout="full-height" className="sm:max-w-lg">
         {view === "success" ? (
           <>
             <DialogHeader className="sr-only">
@@ -162,7 +162,7 @@ export function SplitTransactionDialog({
                 </p>
               </div>
             </div>
-            <DialogFooter className="flex gap-2 sm:justify-center">
+            <DialogFooter mobileSticky className="flex gap-2 sm:justify-center">
               <Button variant="outline" onClick={handleAddAnother}>
                 <Plus className="mr-1 h-4 w-4" />
                 Add Another
@@ -319,7 +319,7 @@ export function SplitTransactionDialog({
                 </div>
               </div>
 
-              <DialogFooter>
+              <DialogFooter mobileSticky>
                 <Button
                   type="button"
                   variant="outline"

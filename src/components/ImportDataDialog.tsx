@@ -202,7 +202,7 @@ export function ImportDataDialog({ onImported }: { onImported?: () => void }) {
           Import Data (JSON)
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent mobileLayout="full-height" className="sm:max-w-lg">
         {step === "upload" && (
           <>
             <DialogHeader>
@@ -238,7 +238,7 @@ export function ImportDataDialog({ onImported }: { onImported?: () => void }) {
                 </Button>
               </label>
             </div>
-            <DialogFooter>
+            <DialogFooter mobileSticky>
               <Button variant="outline" onClick={() => handleOpenChange(false)}>
                 Cancel
               </Button>
@@ -300,7 +300,7 @@ export function ImportDataDialog({ onImported }: { onImported?: () => void }) {
               overwritten).
             </p>
 
-            <DialogFooter className="flex gap-2">
+            <DialogFooter mobileSticky className="flex gap-2">
               <Button variant="outline" onClick={() => resetState()}>
                 <X className="mr-1 h-4 w-4" />
                 Start Over
@@ -397,7 +397,7 @@ export function ImportDataDialog({ onImported }: { onImported?: () => void }) {
                 </div>
               )}
             </div>
-            <DialogFooter className="sm:justify-center">
+            <DialogFooter mobileSticky className="sm:justify-center">
               <Button onClick={() => handleOpenChange(false)}>Done</Button>
             </DialogFooter>
           </>

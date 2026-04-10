@@ -148,7 +148,7 @@ export function QuickAddTransaction({
           Quick Add
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent mobileLayout="full-height" className="sm:max-w-md">
         {view === "success" ? (
           <>
             <DialogHeader className="sr-only">
@@ -165,7 +165,7 @@ export function QuickAddTransaction({
                 </p>
               </div>
             </div>
-            <DialogFooter className="flex gap-2 sm:justify-center">
+            <DialogFooter mobileSticky className="flex gap-2 sm:justify-center">
               <Button variant="outline" onClick={handleAddAnother}>
                 <Sparkles className="mr-1 h-4 w-4" />
                 Add Another
@@ -242,7 +242,7 @@ export function QuickAddTransaction({
               )}
             </div>
 
-            <DialogFooter className="gap-2">
+            <DialogFooter mobileSticky className="gap-2">
               <Button variant="outline" onClick={() => setView("input")}>
                 Back
               </Button>
@@ -314,7 +314,7 @@ export function QuickAddTransaction({
                 </div>
               </div>
 
-              <DialogFooter>
+              <DialogFooter mobileSticky>
                 <Button
                   type="submit"
                   disabled={parseMutation.isPending || !input.trim()}
