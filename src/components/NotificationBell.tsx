@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useTransition, useCallback } from "react";
-import { Bell, AlertTriangle, TrendingUp, Check } from "lucide-react";
+import Link from "next/link";
+import { Bell, AlertTriangle, TrendingUp, Check, Link2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -24,10 +25,13 @@ type Notification = {
 export function NotificationBell({
   notifications,
   unreadCount,
+  reviewFlagCount = 0,
 }: {
   notifications: Notification[];
   unreadCount: number;
+  reviewFlagCount?: number;
 }) {
+  const totalBadge = unreadCount + reviewFlagCount;
   const [isPending, startTransition] = useTransition();
   const [permissionState, setPermissionState] = useState<NotificationPermission | "unsupported">(() => {
     if (typeof window !== "undefined" && "Notification" in window) {
@@ -73,9 +77,9 @@ export function NotificationBell({
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative h-8 w-8">
           <Bell className="h-4 w-4" />
-          {unreadCount > 0 && (
+          {totalBadge > 0 && (
             <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-              {unreadCount > 9 ? "9+" : unreadCount}
+              {totalBadge > 9 ? "9+" : totalBadge}
             </span>
           )}
         </Button>
@@ -109,7 +113,26 @@ export function NotificationBell({
         </div>
 
         <div className="max-h-80 overflow-y-auto">
-          {notifications.length === 0 ? (
+          {reviewFlagCount > 0 && (
+            <Link
+              href="/dashboard/notifications"
+              className="flex items-start gap-3 border-b px-4 py-3 bg-amber-50/50 dark:bg-amber-950/20 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors"
+            >
+              <div className="mt-0.5 shrink-0">
+                <Link2 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="flex-1 space-y-1">
+                <p className="text-xs font-medium leading-relaxed">
+                  {reviewFlagCount} transaction{reviewFlagCount !== 1 ? "s" : ""} to review
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  May be linked to subscriptions or debts
+                </p>
+              </div>
+              <ArrowRight className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" />
+            </Link>
+          )}
+          {notifications.length === 0 && reviewFlagCount === 0 ? (
             <div className="flex flex-col items-center gap-2 py-8 text-center">
               <Bell className="h-8 w-8 text-muted-foreground/40" />
               <p className="text-sm text-muted-foreground">No notifications yet</p>
@@ -157,6 +180,14 @@ export function NotificationBell({
               </div>
             ))
           )}
+        </div>
+        <div className="border-t px-4 py-2">
+          <Link
+            href="/dashboard/notifications"
+            className="flex items-center justify-center gap-1 text-xs font-medium text-primary hover:underline"
+          >
+            View all notifications
+          </Link>
         </div>
       </PopoverContent>
     </Popover>
