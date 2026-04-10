@@ -42,6 +42,11 @@ interface SnapshotBody {
 }
 
 function buildSnapshotElement(body: SnapshotBody) {
+  if (body.kind === "funny") return buildFunnySnapshot(body);
+  return buildRegularSnapshot(body);
+}
+
+function buildRegularSnapshot(body: SnapshotBody) {
   const accent = ACCENT_CONFIG[body.accent] ?? ACCENT_CONFIG.blue;
   const label = KIND_LABEL[body.kind] ?? "Milestone";
 
@@ -145,6 +150,143 @@ function buildSnapshotElement(body: SnapshotBody) {
             height: 36,
             borderRadius: "50%",
             background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 16,
+            fontWeight: 700,
+          }}
+        >
+          W
+        </div>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <span style={{ fontSize: 14, color: "rgba(255,255,255,0.7)" }}>
+            {body.displayName ? `${body.displayName} · ` : ""}Tracked with Wealth
+          </span>
+          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>{dateLabel}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function buildFunnySnapshot(body: SnapshotBody) {
+  const dateLabel = new Date().toLocaleDateString("en-GB", {
+    month: "long",
+    year: "numeric",
+  });
+
+  return (
+    <div
+      style={{
+        width: 800,
+        height: 450,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        padding: 48,
+        background: "linear-gradient(135deg, #4a1225, #1a0a14, #2d1040)",
+        color: "white",
+        fontFamily: "Inter, system-ui, sans-serif",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* Dual glow blobs */}
+      <div
+        style={{
+          position: "absolute",
+          top: -30,
+          right: -30,
+          width: 180,
+          height: 180,
+          borderRadius: "50%",
+          background: "rgba(244,63,94,0.15)",
+          filter: "blur(60px)",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          bottom: 40,
+          left: -20,
+          width: 140,
+          height: 140,
+          borderRadius: "50%",
+          background: "rgba(245,158,11,0.1)",
+          filter: "blur(50px)",
+        }}
+      />
+
+      {/* Content */}
+      <div style={{ display: "flex", flexDirection: "column", position: "relative" }}>
+        {/* Badge */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+          <div
+            style={{
+              padding: "4px 14px",
+              borderRadius: 100,
+              fontSize: 14,
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: 1.5,
+              background: "rgba(244,63,94,0.15)",
+              color: "#fb7185",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            Fun Fact
+          </div>
+        </div>
+
+        {/* Big stat */}
+        {body.stat && (
+          <div
+            style={{
+              fontSize: 60,
+              fontWeight: 800,
+              color: "#fda4af",
+              letterSpacing: -2,
+              lineHeight: 1,
+              marginBottom: 16,
+            }}
+          >
+            {body.stat}
+          </div>
+        )}
+
+        {/* Title */}
+        <div style={{ fontSize: 32, fontWeight: 700, lineHeight: 1.2 }}>{body.title}</div>
+        <div style={{ fontSize: 18, color: "rgba(255,255,255,0.6)", marginTop: 8 }}>
+          {body.subtitle}
+        </div>
+
+        {/* Detail quip */}
+        {body.detail && (
+          <div style={{ fontSize: 16, fontStyle: "italic", color: "rgba(255,255,255,0.4)", marginTop: 14 }}>
+            {"\u201C"}{body.detail}{"\u201D"}
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          borderTop: "1px solid rgba(255,255,255,0.1)",
+          paddingTop: 20,
+        }}
+      >
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: "50%",
+            background: "linear-gradient(135deg, #f43f5e, #f59e0b)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
