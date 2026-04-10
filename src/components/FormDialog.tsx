@@ -106,7 +106,7 @@ export function FormDialog({
           </Button>
         ))}
       </DialogTrigger>
-      <DialogContent className={contentClassName}>
+      <DialogContent mobileLayout="full-height" className={contentClassName}>
         {view === "success" ? (
           <>
             <DialogHeader className="sr-only">
@@ -125,7 +125,7 @@ export function FormDialog({
                 </p>
               </div>
             </div>
-            <DialogFooter className="flex gap-2 sm:justify-center">
+            <DialogFooter mobileSticky className="flex gap-2 sm:justify-center">
               {!isEdit && (
                 <Button variant="outline" onClick={handleAddAnother}>
                   <Plus className="mr-1 h-4 w-4" />
@@ -145,7 +145,7 @@ export function FormDialog({
             </DialogHeader>
             <form key={formKey} onSubmit={handleSubmit} className="grid gap-4">
               {children}
-              <DialogFooter>
+              <DialogFooter mobileSticky>
                 <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
                   Cancel
                 </Button>

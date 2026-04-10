@@ -70,6 +70,22 @@ describe("FormDialog", () => {
     expect(screen.getByRole("button", { name: /add account/i })).toBeInTheDocument();
   });
 
+  it("uses the mobile full-height form shell by default", async () => {
+    const user = userEvent.setup();
+    render(
+      <FormDialog {...defaultProps}>
+        <input name="name" />
+      </FormDialog>,
+    );
+
+    await user.click(screen.getByRole("button", { name: /add account/i }));
+
+    expect(screen.getByRole("dialog")).toHaveAttribute("data-mobile-layout", "full-height");
+    expect(
+      screen.getByRole("button", { name: /cancel/i }).closest("[data-slot='dialog-footer']"),
+    ).toHaveAttribute("data-mobile-sticky", "true");
+  });
+
   it("uses custom title when provided", async () => {
     const user = userEvent.setup();
     render(

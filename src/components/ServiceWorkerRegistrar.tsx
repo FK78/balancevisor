@@ -2,24 +2,10 @@
 
 import { useEffect, useState } from "react";
 
-declare global {
-  interface Window {
-    __pwaInstallPrompt?: Event | null;
-  }
-}
-
 export function ServiceWorkerRegistrar() {
   const [updateReady, setUpdateReady] = useState(false);
 
   useEffect(() => {
-    // Capture beforeinstallprompt early at root level so it's not missed
-    // when InstallPrompt is inside an authenticated layout that mounts later
-    const captureInstall = (e: Event) => {
-      e.preventDefault();
-      window.__pwaInstallPrompt = e;
-    };
-    window.addEventListener("beforeinstallprompt", captureInstall);
-
     if (!("serviceWorker" in navigator)) return;
 
     navigator.serviceWorker
@@ -42,10 +28,6 @@ export function ServiceWorkerRegistrar() {
       .catch(() => {
         // Service worker registration failed — non-critical
       });
-
-    return () => {
-      window.removeEventListener("beforeinstallprompt", captureInstall);
-    };
   }, []);
 
   if (!updateReady) return null;

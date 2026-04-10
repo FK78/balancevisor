@@ -288,7 +288,7 @@ export function ImportCSVDialog({
           Import CSV
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent mobileLayout="full-height" className="sm:max-w-2xl">
         {step === "upload" && (
           <>
             <DialogHeader>
@@ -319,7 +319,7 @@ export function ImportCSVDialog({
                 </Button>
               </label>
             </div>
-            <DialogFooter>
+            <DialogFooter mobileSticky>
               <Button variant="outline" onClick={() => handleOpenChange(false)}>
                 Cancel
               </Button>
@@ -514,7 +514,7 @@ export function ImportCSVDialog({
               )}
             </div>
 
-            <DialogFooter className="flex gap-2">
+            <DialogFooter mobileSticky className="flex gap-2">
               <Button variant="outline" onClick={() => { resetState(); }}>
                 <X className="mr-1 h-4 w-4" />
                 Start Over
@@ -578,7 +578,7 @@ export function ImportCSVDialog({
                 </div>
               )}
             </div>
-            <DialogFooter className="sm:justify-center">
+            <DialogFooter mobileSticky className="sm:justify-center">
               <Button onClick={() => handleOpenChange(false)}>Done</Button>
             </DialogFooter>
           </>

@@ -9,6 +9,12 @@ import {
   type InstallMethod,
 } from "@/components/InstallGuideDialog";
 
+declare global {
+  interface Window {
+    __pwaInstallPrompt?: Event | null;
+  }
+}
+
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;

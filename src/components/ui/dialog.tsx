@@ -51,23 +51,26 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  mobileLayout = "sheet",
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
+  mobileLayout?: "sheet" | "full-height"
 }) {
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"
+        data-mobile-layout={mobileLayout}
         className={cn(
-          // ── Mobile: iOS-style bottom sheet ──
           "bg-card fixed z-50 grid w-full gap-4 p-5 shadow-none outline-none duration-200",
-          "inset-x-0 bottom-0 max-h-[90vh] overflow-y-auto rounded-t-[14px]",
+          mobileLayout === "full-height"
+            ? "inset-x-0 top-0 bottom-0 h-[100dvh] max-h-[100dvh] overflow-y-auto rounded-none overscroll-contain"
+            : "inset-x-0 bottom-0 max-h-[90vh] overflow-y-auto rounded-t-[14px]",
           "data-[state=open]:animate-in data-[state=closed]:animate-out",
           "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
           "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
-          // ── Desktop: centered modal (Apple style — 14px radius, clean) ──
           "sm:inset-auto sm:top-[50%] sm:left-[50%] sm:bottom-auto sm:max-h-none sm:overflow-visible sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-xl sm:border-0 sm:max-w-lg sm:shadow-[0_8px_32px_rgba(0,0,0,0.12)]",
           "sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0",
           "sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95",
@@ -107,16 +110,21 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
 function DialogFooter({
   className,
   showCloseButton = false,
+  mobileSticky = false,
   children,
   ...props
 }: React.ComponentProps<"div"> & {
   showCloseButton?: boolean
+  mobileSticky?: boolean
 }) {
   return (
     <div
       data-slot="dialog-footer"
+      data-mobile-sticky={mobileSticky ? "true" : undefined}
       className={cn(
         "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
+        mobileSticky &&
+          "sticky bottom-0 z-10 -mx-5 mt-4 border-t bg-card px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:static sm:mx-0 sm:mt-0 sm:border-0 sm:bg-transparent sm:px-0 sm:pt-0 sm:pb-0",
         className
       )}
       {...props}

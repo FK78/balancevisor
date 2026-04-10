@@ -49,14 +49,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${dmSans.variable} ${nunito.variable}`}>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("wealth-theme");if(t==="dark"||(!t&&matchMedia("(prefers-color-scheme:dark)").matches))document.documentElement.classList.add("dark")}catch(e){}})();window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__pwaInstallPrompt=e})`,
-          }}
-        />
-      </head>
+    <html lang="en" className={`${dmSans.variable} ${nunito.variable}`}>
       <body className="antialiased">
         <ThemeProvider defaultTheme="system">
           <QueryProvider>
