@@ -149,10 +149,102 @@ interface NormalisedTlAccount {
 }
 
 // ---------------------------------------------------------------------------
+// Preview: fetch account list without importing (for user selection)
+// ---------------------------------------------------------------------------
+
+export type TlAccountPreview = {
+  readonly tlId: string;
+  readonly displayName: string;
+  readonly accountType: "currentAccount" | "savings" | "creditCard" | "investment";
+  readonly currency: string;
+  readonly providerName: string | undefined;
+  readonly source: "account" | "card";
+  readonly balance: number;
+  readonly likelyPot: boolean;
+};
+
+export async function previewTrueLayerAccounts(): Promise<TlAccountPreview[]> {
+  const userId = await getCurrentUserId();
+
+  const connections = await db
+    .select()
+    .from(truelayerConnectionsTable)
+    .where(eq(truelayerConnectionsTable.user_id, userId));
+
+  if (connections.length === 0) {
+    throw new Error("No TrueLayer connections found. Please connect a bank first.");
+  }
+
+  const all: TlAccountPreview[] = [];
+
+  for (const connection of connections) {
+    let accessToken: string;
+    try {
+      accessToken = await getValidToken(connection.id, userId);
+    } catch (tokenErr) {
+      logger.error("truelayer.preview", "Token refresh failed", { connectionId: connection.id, error: String(tokenErr) });
+      continue;
+    }
+
+    const [tlAccounts, tlCards] = await Promise.all([
+      fetchAccounts(accessToken).catch(() => [] as Awaited<ReturnType<typeof fetchAccounts>>),
+      fetchCards(accessToken).catch(() => [] as Awaited<ReturnType<typeof fetchCards>>),
+    ]);
+
+    // Detect pots: provider is Monzo/Starling + type is savings but user also has
+    // a current account from the same provider — the savings are likely pots/spaces.
+    const hasCurrentAccount = tlAccounts.some(
+      (a) => mapAccountType(a.account_type) === "currentAccount",
+    );
+
+    for (const a of tlAccounts) {
+      const accountType = mapAccountType(a.account_type);
+      let balance = 0;
+      try {
+        const b = await fetchBalance(accessToken, a.account_id);
+        balance = b.current;
+      } catch { /* non-critical */ }
+
+      all.push({
+        tlId: a.account_id,
+        displayName: a.display_name,
+        accountType,
+        currency: a.currency,
+        providerName: a.provider?.display_name,
+        source: "account",
+        balance,
+        likelyPot: hasCurrentAccount && accountType === "savings",
+      });
+    }
+
+    for (const c of tlCards) {
+      let balance = 0;
+      try {
+        const b = await fetchCardBalance(accessToken, c.account_id);
+        balance = b.current;
+      } catch { /* non-critical */ }
+
+      all.push({
+        tlId: c.account_id,
+        displayName: c.display_name,
+        accountType: mapCardType(c.card_type),
+        currency: c.currency,
+        providerName: c.provider?.display_name,
+        source: "card",
+        balance,
+        likelyPot: false,
+      });
+    }
+  }
+
+  return all;
+}
+
+// ---------------------------------------------------------------------------
 // Import accounts + transactions for all of a user's TrueLayer connections
 // ---------------------------------------------------------------------------
 
-export async function importFromTrueLayer() {
+export async function importFromTrueLayer(selectedTlIds?: string[]) {
   const userId = await getCurrentUserId();
 
   // H2: Rate limit import to prevent excessive TrueLayer API usage
@@ -252,7 +344,12 @@ export async function importFromTrueLayer() {
       ? toDateString(new Date(connection.last_synced_at.getTime() - 2 * 24 * 60 * 60 * 1000))
       : toDateString(new Date(Date.now() - 730 * 24 * 60 * 60 * 1000));
 
-    for (const tlItem of normalised) {
+    // Filter to user-selected accounts when provided (first import with account picker)
+    const toImport = selectedTlIds
+      ? normalised.filter((a) => selectedTlIds.includes(a.tlId))
+      : normalised;
+
+    for (const tlItem of toImport) {
       try {
         let balance = 0;
         try {
