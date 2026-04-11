@@ -1,4 +1,4 @@
--- Seed: 500 most common UK merchants for global_merchant_aliases.
+-- Seed: Global merchant aliases — UK + worldwide brands.
 -- Run AFTER add-global-merchant-aliases.sql migration.
 -- Safe to re-run — uses ON CONFLICT to skip existing aliases.
 
@@ -1031,4 +1031,695 @@ INSERT INTO global_merchant_aliases (alias, brand, default_category, brand_type,
   -- Health
   ('hollandandbarrett.com', 'Holland & Barrett', 'Health', 'retailer', 'seed'),
   ('specsavers.co.uk', 'Specsavers', 'Health', 'retailer', 'seed')
+ON CONFLICT (alias) DO NOTHING;
+
+-- ══════════════════════════════════════════════════════════════════════
+-- ██  WORLDWIDE BRANDS  ██
+-- Global merchants not already covered by the UK section above.
+-- ══════════════════════════════════════════════════════════════════════
+
+-- ══════════════════════════════════════════════════════════════════════
+-- WORLDWIDE GROCERIES & SUPERMARKETS
+-- ══════════════════════════════════════════════════════════════════════
+
+INSERT INTO global_merchant_aliases (alias, brand, default_category, brand_type, source) VALUES
+  -- US
+  ('walmart', 'Walmart', 'Groceries', 'grocery', 'seed'),
+  ('walmart supercenter', 'Walmart', 'Groceries', 'grocery', 'seed'),
+  ('wal-mart', 'Walmart', 'Groceries', 'grocery', 'seed'),
+  ('walmart.com', 'Walmart', 'Groceries', 'grocery', 'seed'),
+  ('kroger', 'Kroger', 'Groceries', 'grocery', 'seed'),
+  ('kroger co', 'Kroger', 'Groceries', 'grocery', 'seed'),
+  ('publix', 'Publix', 'Groceries', 'grocery', 'seed'),
+  ('publix super market', 'Publix', 'Groceries', 'grocery', 'seed'),
+  ('trader joe''s', 'Trader Joe''s', 'Groceries', 'grocery', 'seed'),
+  ('trader joes', 'Trader Joe''s', 'Groceries', 'grocery', 'seed'),
+  ('whole foods market', 'Whole Foods', 'Groceries', 'grocery', 'seed'),
+  ('safeway', 'Safeway', 'Groceries', 'grocery', 'seed'),
+  ('albertsons', 'Albertsons', 'Groceries', 'grocery', 'seed'),
+  ('heb grocery', 'H-E-B', 'Groceries', 'grocery', 'seed'),
+  ('h-e-b', 'H-E-B', 'Groceries', 'grocery', 'seed'),
+  ('wegmans', 'Wegmans', 'Groceries', 'grocery', 'seed'),
+  ('aldi us', 'Aldi', 'Groceries', 'grocery', 'seed'),
+  ('target', 'Target', 'Groceries', 'grocery', 'seed'),
+  ('target.com', 'Target', 'Groceries', 'grocery', 'seed'),
+  ('sam''s club', 'Sam''s Club', 'Groceries', 'grocery', 'seed'),
+  ('costco wholesale us', 'Costco', 'Groceries', 'grocery', 'seed'),
+  ('sprouts farmers', 'Sprouts', 'Groceries', 'grocery', 'seed'),
+  ('food lion', 'Food Lion', 'Groceries', 'grocery', 'seed'),
+  ('stop & shop', 'Stop & Shop', 'Groceries', 'grocery', 'seed'),
+  ('giant food', 'Giant', 'Groceries', 'grocery', 'seed'),
+  ('winco foods', 'WinCo', 'Groceries', 'grocery', 'seed'),
+  ('meijer', 'Meijer', 'Groceries', 'grocery', 'seed'),
+  ('piggly wiggly', 'Piggly Wiggly', 'Groceries', 'grocery', 'seed'),
+  ('harris teeter', 'Harris Teeter', 'Groceries', 'grocery', 'seed'),
+  ('instacart', 'Instacart', 'Groceries', 'grocery', 'seed'),
+  ('instacart.com', 'Instacart', 'Groceries', 'grocery', 'seed'),
+  -- Europe
+  ('carrefour', 'Carrefour', 'Groceries', 'grocery', 'seed'),
+  ('carrefour.com', 'Carrefour', 'Groceries', 'grocery', 'seed'),
+  ('leclerc', 'E.Leclerc', 'Groceries', 'grocery', 'seed'),
+  ('e.leclerc', 'E.Leclerc', 'Groceries', 'grocery', 'seed'),
+  ('auchan', 'Auchan', 'Groceries', 'grocery', 'seed'),
+  ('intermarche', 'Intermarché', 'Groceries', 'grocery', 'seed'),
+  ('monoprix', 'Monoprix', 'Groceries', 'grocery', 'seed'),
+  ('casino supermarche', 'Casino', 'Groceries', 'grocery', 'seed'),
+  ('franprix', 'Franprix', 'Groceries', 'grocery', 'seed'),
+  ('albert heijn', 'Albert Heijn', 'Groceries', 'grocery', 'seed'),
+  ('jumbo supermarkten', 'Jumbo', 'Groceries', 'grocery', 'seed'),
+  ('rewe', 'REWE', 'Groceries', 'grocery', 'seed'),
+  ('edeka', 'EDEKA', 'Groceries', 'grocery', 'seed'),
+  ('penny markt', 'Penny', 'Groceries', 'grocery', 'seed'),
+  ('netto marken', 'Netto', 'Groceries', 'grocery', 'seed'),
+  ('kaufland', 'Kaufland', 'Groceries', 'grocery', 'seed'),
+  ('mercadona', 'Mercadona', 'Groceries', 'grocery', 'seed'),
+  ('dia supermarket', 'DIA', 'Groceries', 'grocery', 'seed'),
+  ('el corte ingles', 'El Corte Inglés', 'Groceries', 'grocery', 'seed'),
+  ('esselunga', 'Esselunga', 'Groceries', 'grocery', 'seed'),
+  ('coop italia', 'Coop', 'Groceries', 'grocery', 'seed'),
+  ('migros', 'Migros', 'Groceries', 'grocery', 'seed'),
+  ('coop switzerland', 'Coop CH', 'Groceries', 'grocery', 'seed'),
+  ('delhaize', 'Delhaize', 'Groceries', 'grocery', 'seed'),
+  ('colruyt', 'Colruyt', 'Groceries', 'grocery', 'seed'),
+  ('billa', 'Billa', 'Groceries', 'grocery', 'seed'),
+  ('spar international', 'Spar', 'Groceries', 'grocery', 'seed'),
+  -- Asia / Middle East
+  ('lulu hypermarket', 'Lulu', 'Groceries', 'grocery', 'seed'),
+  ('carrefour uae', 'Carrefour', 'Groceries', 'grocery', 'seed'),
+  ('spinneys', 'Spinneys', 'Groceries', 'grocery', 'seed'),
+  ('waitrose uae', 'Waitrose', 'Groceries', 'grocery', 'seed'),
+  ('aeon', 'AEON', 'Groceries', 'grocery', 'seed'),
+  ('don quijote', 'Don Quijote', 'Groceries', 'grocery', 'seed'),
+  ('7-eleven', '7-Eleven', 'Groceries', 'grocery', 'seed'),
+  ('7 eleven', '7-Eleven', 'Groceries', 'grocery', 'seed'),
+  ('lawson', 'Lawson', 'Groceries', 'grocery', 'seed'),
+  ('familymart', 'FamilyMart', 'Groceries', 'grocery', 'seed'),
+  -- Australia / NZ
+  ('woolworths', 'Woolworths', 'Groceries', 'grocery', 'seed'),
+  ('woolworths au', 'Woolworths', 'Groceries', 'grocery', 'seed'),
+  ('coles', 'Coles', 'Groceries', 'grocery', 'seed'),
+  ('coles supermarket', 'Coles', 'Groceries', 'grocery', 'seed'),
+  ('iga australia', 'IGA', 'Groceries', 'grocery', 'seed'),
+  ('countdown nz', 'Countdown', 'Groceries', 'grocery', 'seed'),
+  ('pak n save', 'PAK''nSAVE', 'Groceries', 'grocery', 'seed'),
+  ('new world nz', 'New World', 'Groceries', 'grocery', 'seed'),
+  -- Canada
+  ('loblaws', 'Loblaws', 'Groceries', 'grocery', 'seed'),
+  ('real canadian superstore', 'Superstore', 'Groceries', 'grocery', 'seed'),
+  ('no frills', 'No Frills', 'Groceries', 'grocery', 'seed'),
+  ('metro inc', 'Metro', 'Groceries', 'grocery', 'seed'),
+  ('sobeys', 'Sobeys', 'Groceries', 'grocery', 'seed'),
+  -- South Africa
+  ('pick n pay', 'Pick n Pay', 'Groceries', 'grocery', 'seed'),
+  ('checkers', 'Checkers', 'Groceries', 'grocery', 'seed'),
+  ('shoprite', 'Shoprite', 'Groceries', 'grocery', 'seed')
+ON CONFLICT (alias) DO NOTHING;
+
+-- ══════════════════════════════════════════════════════════════════════
+-- WORLDWIDE RESTAURANTS & FAST FOOD
+-- ══════════════════════════════════════════════════════════════════════
+
+INSERT INTO global_merchant_aliases (alias, brand, default_category, brand_type, source) VALUES
+  -- US Chains (global)
+  ('chick-fil-a', 'Chick-fil-A', 'Dining Out', 'restaurant', 'seed'),
+  ('chick fil a', 'Chick-fil-A', 'Dining Out', 'restaurant', 'seed'),
+  ('chipotle mexican grill', 'Chipotle', 'Dining Out', 'restaurant', 'seed'),
+  ('chipotle.com', 'Chipotle', 'Dining Out', 'restaurant', 'seed'),
+  ('panera bread', 'Panera Bread', 'Dining Out', 'restaurant', 'seed'),
+  ('panera', 'Panera Bread', 'Dining Out', 'restaurant', 'seed'),
+  ('wendy''s', 'Wendy''s', 'Dining Out', 'restaurant', 'seed'),
+  ('wendys', 'Wendy''s', 'Dining Out', 'restaurant', 'seed'),
+  ('taco bell', 'Taco Bell', 'Dining Out', 'restaurant', 'seed'),
+  ('popeyes', 'Popeyes', 'Dining Out', 'restaurant', 'seed'),
+  ('popeyes louisiana', 'Popeyes', 'Dining Out', 'restaurant', 'seed'),
+  ('dunkin donuts', 'Dunkin''', 'Dining Out', 'restaurant', 'seed'),
+  ('dunkin', 'Dunkin''', 'Dining Out', 'restaurant', 'seed'),
+  ('jack in the box', 'Jack in the Box', 'Dining Out', 'restaurant', 'seed'),
+  ('sonic drive-in', 'Sonic', 'Dining Out', 'restaurant', 'seed'),
+  ('arby''s', 'Arby''s', 'Dining Out', 'restaurant', 'seed'),
+  ('arbys', 'Arby''s', 'Dining Out', 'restaurant', 'seed'),
+  ('dairy queen', 'Dairy Queen', 'Dining Out', 'restaurant', 'seed'),
+  ('in-n-out', 'In-N-Out', 'Dining Out', 'restaurant', 'seed'),
+  ('in n out burger', 'In-N-Out', 'Dining Out', 'restaurant', 'seed'),
+  ('whataburger', 'Whataburger', 'Dining Out', 'restaurant', 'seed'),
+  ('panda express', 'Panda Express', 'Dining Out', 'restaurant', 'seed'),
+  ('olive garden', 'Olive Garden', 'Dining Out', 'restaurant', 'seed'),
+  ('applebees', 'Applebee''s', 'Dining Out', 'restaurant', 'seed'),
+  ('applebee''s', 'Applebee''s', 'Dining Out', 'restaurant', 'seed'),
+  ('chilis', 'Chili''s', 'Dining Out', 'restaurant', 'seed'),
+  ('chili''s', 'Chili''s', 'Dining Out', 'restaurant', 'seed'),
+  ('ihop', 'IHOP', 'Dining Out', 'restaurant', 'seed'),
+  ('denny''s', 'Denny''s', 'Dining Out', 'restaurant', 'seed'),
+  ('dennys', 'Denny''s', 'Dining Out', 'restaurant', 'seed'),
+  ('the cheesecake factory', 'The Cheesecake Factory', 'Dining Out', 'restaurant', 'seed'),
+  ('cheesecake factory', 'The Cheesecake Factory', 'Dining Out', 'restaurant', 'seed'),
+  ('outback steakhouse', 'Outback Steakhouse', 'Dining Out', 'restaurant', 'seed'),
+  ('red lobster', 'Red Lobster', 'Dining Out', 'restaurant', 'seed'),
+  ('cracker barrel', 'Cracker Barrel', 'Dining Out', 'restaurant', 'seed'),
+  ('buffalo wild wings', 'Buffalo Wild Wings', 'Dining Out', 'restaurant', 'seed'),
+  ('wingstop', 'Wingstop', 'Dining Out', 'restaurant', 'seed'),
+  ('wingstop.com', 'Wingstop', 'Dining Out', 'restaurant', 'seed'),
+  ('sweetgreen', 'Sweetgreen', 'Dining Out', 'restaurant', 'seed'),
+  ('cava', 'CAVA', 'Dining Out', 'restaurant', 'seed'),
+  ('shake shack', 'Shake Shack', 'Dining Out', 'restaurant', 'seed'),
+  ('shakeshack.com', 'Shake Shack', 'Dining Out', 'restaurant', 'seed'),
+  -- Coffee (global)
+  ('starbucks.com', 'Starbucks', 'Dining Out', 'restaurant', 'seed'),
+  ('costa.com', 'Costa Coffee', 'Dining Out', 'restaurant', 'seed'),
+  -- Delivery (global)
+  ('doordash', 'DoorDash', 'Dining Out', 'restaurant', 'seed'),
+  ('doordash.com', 'DoorDash', 'Dining Out', 'restaurant', 'seed'),
+  ('grubhub', 'Grubhub', 'Dining Out', 'restaurant', 'seed'),
+  ('grubhub.com', 'Grubhub', 'Dining Out', 'restaurant', 'seed'),
+  ('postmates', 'Postmates', 'Dining Out', 'restaurant', 'seed'),
+  ('seamless', 'Seamless', 'Dining Out', 'restaurant', 'seed'),
+  ('skip the dishes', 'SkipTheDishes', 'Dining Out', 'restaurant', 'seed'),
+  ('skipthedishes', 'SkipTheDishes', 'Dining Out', 'restaurant', 'seed'),
+  ('foodpanda', 'foodpanda', 'Dining Out', 'restaurant', 'seed'),
+  ('swiggy', 'Swiggy', 'Dining Out', 'restaurant', 'seed'),
+  ('zomato', 'Zomato', 'Dining Out', 'restaurant', 'seed'),
+  ('talabat', 'Talabat', 'Dining Out', 'restaurant', 'seed'),
+  ('rappi', 'Rappi', 'Dining Out', 'restaurant', 'seed'),
+  ('ifood', 'iFood', 'Dining Out', 'restaurant', 'seed'),
+  ('menulog', 'Menulog', 'Dining Out', 'restaurant', 'seed'),
+  ('wolt', 'Wolt', 'Dining Out', 'restaurant', 'seed'),
+  ('glovo', 'Glovo', 'Dining Out', 'restaurant', 'seed')
+ON CONFLICT (alias) DO NOTHING;
+
+-- ══════════════════════════════════════════════════════════════════════
+-- WORLDWIDE RETAILERS & SHOPPING
+-- ══════════════════════════════════════════════════════════════════════
+
+INSERT INTO global_merchant_aliases (alias, brand, default_category, brand_type, source) VALUES
+  -- US Retail
+  ('best buy', 'Best Buy', 'Shopping', 'retailer', 'seed'),
+  ('bestbuy.com', 'Best Buy', 'Shopping', 'retailer', 'seed'),
+  ('home depot', 'Home Depot', 'Shopping', 'retailer', 'seed'),
+  ('homedepot.com', 'Home Depot', 'Shopping', 'retailer', 'seed'),
+  ('lowe''s', 'Lowe''s', 'Shopping', 'retailer', 'seed'),
+  ('lowes', 'Lowe''s', 'Shopping', 'retailer', 'seed'),
+  ('lowes.com', 'Lowe''s', 'Shopping', 'retailer', 'seed'),
+  ('macy''s', 'Macy''s', 'Shopping', 'retailer', 'seed'),
+  ('macys', 'Macy''s', 'Shopping', 'retailer', 'seed'),
+  ('macys.com', 'Macy''s', 'Shopping', 'retailer', 'seed'),
+  ('nordstrom', 'Nordstrom', 'Shopping', 'retailer', 'seed'),
+  ('nordstrom.com', 'Nordstrom', 'Shopping', 'retailer', 'seed'),
+  ('target stores', 'Target', 'Shopping', 'retailer', 'seed'),
+  ('kohl''s', 'Kohl''s', 'Shopping', 'retailer', 'seed'),
+  ('kohls', 'Kohl''s', 'Shopping', 'retailer', 'seed'),
+  ('kohls.com', 'Kohl''s', 'Shopping', 'retailer', 'seed'),
+  ('ross stores', 'Ross', 'Shopping', 'retailer', 'seed'),
+  ('marshalls', 'Marshalls', 'Shopping', 'retailer', 'seed'),
+  ('tj maxx', 'TJ Maxx', 'Shopping', 'retailer', 'seed'),
+  ('tjmaxx.com', 'TJ Maxx', 'Shopping', 'retailer', 'seed'),
+  ('dollar tree', 'Dollar Tree', 'Shopping', 'retailer', 'seed'),
+  ('dollar general', 'Dollar General', 'Shopping', 'retailer', 'seed'),
+  ('five below', 'Five Below', 'Shopping', 'retailer', 'seed'),
+  ('bath & body works', 'Bath & Body Works', 'Shopping', 'retailer', 'seed'),
+  ('victoria''s secret', 'Victoria''s Secret', 'Shopping', 'retailer', 'seed'),
+  ('sephora.com', 'Sephora', 'Shopping', 'retailer', 'seed'),
+  ('ulta beauty', 'Ulta', 'Shopping', 'retailer', 'seed'),
+  ('ulta.com', 'Ulta', 'Shopping', 'retailer', 'seed'),
+  ('bed bath beyond', 'Bed Bath & Beyond', 'Shopping', 'retailer', 'seed'),
+  ('williams sonoma', 'Williams-Sonoma', 'Shopping', 'retailer', 'seed'),
+  ('pottery barn', 'Pottery Barn', 'Shopping', 'retailer', 'seed'),
+  ('restoration hardware', 'RH', 'Shopping', 'retailer', 'seed'),
+  ('wayfair', 'Wayfair', 'Shopping', 'retailer', 'seed'),
+  ('wayfair.com', 'Wayfair', 'Shopping', 'retailer', 'seed'),
+  ('overstock', 'Overstock', 'Shopping', 'retailer', 'seed'),
+  ('chewy.com', 'Chewy', 'Shopping', 'retailer', 'seed'),
+  ('chewy', 'Chewy', 'Shopping', 'retailer', 'seed'),
+  ('petco', 'Petco', 'Shopping', 'retailer', 'seed'),
+  ('petsmart', 'PetSmart', 'Shopping', 'retailer', 'seed'),
+  ('gamestop', 'GameStop', 'Shopping', 'retailer', 'seed'),
+  -- Global Fashion
+  ('louis vuitton', 'Louis Vuitton', 'Shopping', 'retailer', 'seed'),
+  ('gucci', 'Gucci', 'Shopping', 'retailer', 'seed'),
+  ('prada', 'Prada', 'Shopping', 'retailer', 'seed'),
+  ('hermes', 'Hermès', 'Shopping', 'retailer', 'seed'),
+  ('chanel', 'Chanel', 'Shopping', 'retailer', 'seed'),
+  ('burberry', 'Burberry', 'Shopping', 'retailer', 'seed'),
+  ('ralph lauren', 'Ralph Lauren', 'Shopping', 'retailer', 'seed'),
+  ('tommy hilfiger', 'Tommy Hilfiger', 'Shopping', 'retailer', 'seed'),
+  ('calvin klein', 'Calvin Klein', 'Shopping', 'retailer', 'seed'),
+  ('hugo boss', 'Hugo Boss', 'Shopping', 'retailer', 'seed'),
+  ('levi''s', 'Levi''s', 'Shopping', 'retailer', 'seed'),
+  ('levis', 'Levi''s', 'Shopping', 'retailer', 'seed'),
+  ('lululemon', 'Lululemon', 'Shopping', 'retailer', 'seed'),
+  ('lululemon.com', 'Lululemon', 'Shopping', 'retailer', 'seed'),
+  ('under armour', 'Under Armour', 'Shopping', 'retailer', 'seed'),
+  ('underarmour.com', 'Under Armour', 'Shopping', 'retailer', 'seed'),
+  ('the north face', 'The North Face', 'Shopping', 'retailer', 'seed'),
+  ('patagonia', 'Patagonia', 'Shopping', 'retailer', 'seed'),
+  ('forever 21', 'Forever 21', 'Shopping', 'retailer', 'seed'),
+  ('urban outfitters', 'Urban Outfitters', 'Shopping', 'retailer', 'seed'),
+  ('anthropologie', 'Anthropologie', 'Shopping', 'retailer', 'seed'),
+  ('free people', 'Free People', 'Shopping', 'retailer', 'seed'),
+  ('abercrombie & fitch', 'Abercrombie & Fitch', 'Shopping', 'retailer', 'seed'),
+  ('hollister', 'Hollister', 'Shopping', 'retailer', 'seed'),
+  ('old navy', 'Old Navy', 'Shopping', 'retailer', 'seed'),
+  ('banana republic', 'Banana Republic', 'Shopping', 'retailer', 'seed'),
+  ('j.crew', 'J.Crew', 'Shopping', 'retailer', 'seed'),
+  -- Australia
+  ('kmart au', 'Kmart', 'Shopping', 'retailer', 'seed'),
+  ('big w', 'Big W', 'Shopping', 'retailer', 'seed'),
+  ('bunnings', 'Bunnings', 'Shopping', 'retailer', 'seed'),
+  ('bunnings warehouse', 'Bunnings', 'Shopping', 'retailer', 'seed'),
+  ('jb hi-fi', 'JB Hi-Fi', 'Shopping', 'retailer', 'seed'),
+  ('myer', 'Myer', 'Shopping', 'retailer', 'seed'),
+  ('david jones', 'David Jones', 'Shopping', 'retailer', 'seed'),
+  ('officeworks', 'Officeworks', 'Shopping', 'retailer', 'seed'),
+  -- Global Tech
+  ('microsoft store', 'Microsoft Store', 'Shopping', 'retailer', 'seed'),
+  ('google store', 'Google Store', 'Shopping', 'retailer', 'seed'),
+  ('store.google.com', 'Google Store', 'Shopping', 'retailer', 'seed'),
+  -- Global Furniture
+  ('ikea.com/au', 'IKEA', 'Shopping', 'retailer', 'seed'),
+  ('ikea.com/us', 'IKEA', 'Shopping', 'retailer', 'seed'),
+  -- Middle East
+  ('noon', 'Noon', 'Shopping', 'retailer', 'seed'),
+  ('noon.com', 'Noon', 'Shopping', 'retailer', 'seed'),
+  ('namshi', 'Namshi', 'Shopping', 'retailer', 'seed'),
+  ('namshi.com', 'Namshi', 'Shopping', 'retailer', 'seed')
+ON CONFLICT (alias) DO NOTHING;
+
+-- ══════════════════════════════════════════════════════════════════════
+-- WORLDWIDE SUBSCRIPTIONS & STREAMING
+-- ══════════════════════════════════════════════════════════════════════
+
+INSERT INTO global_merchant_aliases (alias, brand, default_category, brand_type, subscription_name, source) VALUES
+  -- Streaming (additional global)
+  ('hbo max', 'HBO Max', 'Entertainment', 'subscription', 'HBO Max', 'seed'),
+  ('max.com', 'Max', 'Entertainment', 'subscription', 'Max', 'seed'),
+  ('hulu', 'Hulu', 'Entertainment', 'subscription', 'Hulu', 'seed'),
+  ('hulu.com', 'Hulu', 'Entertainment', 'subscription', 'Hulu', 'seed'),
+  ('peacock', 'Peacock', 'Entertainment', 'subscription', 'Peacock', 'seed'),
+  ('peacocktv.com', 'Peacock', 'Entertainment', 'subscription', 'Peacock', 'seed'),
+  ('fubo tv', 'FuboTV', 'Entertainment', 'subscription', 'FuboTV', 'seed'),
+  ('sling tv', 'Sling TV', 'Entertainment', 'subscription', 'Sling TV', 'seed'),
+  ('philo', 'Philo', 'Entertainment', 'subscription', 'Philo', 'seed'),
+  ('curiositystream', 'CuriosityStream', 'Entertainment', 'subscription', 'CuriosityStream', 'seed'),
+  ('showtime', 'Showtime', 'Entertainment', 'subscription', 'Showtime', 'seed'),
+  ('starz', 'Starz', 'Entertainment', 'subscription', 'Starz', 'seed'),
+  ('stan', 'Stan', 'Entertainment', 'subscription', 'Stan', 'seed'),
+  ('binge', 'Binge', 'Entertainment', 'subscription', 'Binge', 'seed'),
+  ('kayo sports', 'Kayo', 'Entertainment', 'subscription', 'Kayo Sports', 'seed'),
+  ('foxtel', 'Foxtel', 'Entertainment', 'subscription', 'Foxtel', 'seed'),
+  ('crave', 'Crave', 'Entertainment', 'subscription', 'Crave', 'seed'),
+  ('shahid', 'Shahid', 'Entertainment', 'subscription', 'Shahid VIP', 'seed'),
+  ('shahid.mbc.net', 'Shahid', 'Entertainment', 'subscription', 'Shahid VIP', 'seed'),
+  ('osn', 'OSN', 'Entertainment', 'subscription', 'OSN+', 'seed'),
+  ('hotstar', 'Hotstar', 'Entertainment', 'subscription', 'Hotstar', 'seed'),
+  ('jiocinema', 'JioCinema', 'Entertainment', 'subscription', 'JioCinema', 'seed'),
+  -- Music (additional global)
+  ('soundcloud', 'SoundCloud', 'Entertainment', 'subscription', 'SoundCloud Go+', 'seed'),
+  ('soundcloud.com', 'SoundCloud', 'Entertainment', 'subscription', 'SoundCloud Go+', 'seed'),
+  ('pandora', 'Pandora', 'Entertainment', 'subscription', 'Pandora', 'seed'),
+  ('sirius xm', 'SiriusXM', 'Entertainment', 'subscription', 'SiriusXM', 'seed'),
+  ('siriusxm', 'SiriusXM', 'Entertainment', 'subscription', 'SiriusXM', 'seed'),
+  ('anghami', 'Anghami', 'Entertainment', 'subscription', 'Anghami', 'seed'),
+  -- Software / Productivity
+  ('github', 'GitHub', 'Bills & Utilities', 'subscription', 'GitHub', 'seed'),
+  ('github.com', 'GitHub', 'Bills & Utilities', 'subscription', 'GitHub', 'seed'),
+  ('atlassian', 'Atlassian', 'Bills & Utilities', 'subscription', 'Atlassian', 'seed'),
+  ('slack', 'Slack', 'Bills & Utilities', 'subscription', 'Slack', 'seed'),
+  ('slack.com', 'Slack', 'Bills & Utilities', 'subscription', 'Slack', 'seed'),
+  ('zoom.us', 'Zoom', 'Bills & Utilities', 'subscription', 'Zoom', 'seed'),
+  ('zoom video', 'Zoom', 'Bills & Utilities', 'subscription', 'Zoom', 'seed'),
+  ('figma', 'Figma', 'Bills & Utilities', 'subscription', 'Figma', 'seed'),
+  ('figma.com', 'Figma', 'Bills & Utilities', 'subscription', 'Figma', 'seed'),
+  ('linear', 'Linear', 'Bills & Utilities', 'subscription', 'Linear', 'seed'),
+  ('vercel', 'Vercel', 'Bills & Utilities', 'subscription', 'Vercel', 'seed'),
+  ('netlify', 'Netlify', 'Bills & Utilities', 'subscription', 'Netlify', 'seed'),
+  ('grammarly', 'Grammarly', 'Bills & Utilities', 'subscription', 'Grammarly', 'seed'),
+  ('grammarly.com', 'Grammarly', 'Bills & Utilities', 'subscription', 'Grammarly', 'seed'),
+  ('evernote', 'Evernote', 'Bills & Utilities', 'subscription', 'Evernote', 'seed'),
+  ('todoist', 'Todoist', 'Bills & Utilities', 'subscription', 'Todoist', 'seed'),
+  ('bitwarden', 'Bitwarden', 'Bills & Utilities', 'subscription', 'Bitwarden', 'seed'),
+  ('lastpass', 'LastPass', 'Bills & Utilities', 'subscription', 'LastPass', 'seed'),
+  ('dashlane', 'Dashlane', 'Bills & Utilities', 'subscription', 'Dashlane', 'seed'),
+  ('surfshark', 'Surfshark', 'Bills & Utilities', 'subscription', 'Surfshark', 'seed'),
+  ('proton', 'Proton', 'Bills & Utilities', 'subscription', 'Proton', 'seed'),
+  ('protonmail', 'Proton', 'Bills & Utilities', 'subscription', 'Proton', 'seed'),
+  ('claude.ai', 'Anthropic', 'Bills & Utilities', 'subscription', 'Claude Pro', 'seed'),
+  ('anthropic', 'Anthropic', 'Bills & Utilities', 'subscription', 'Claude Pro', 'seed'),
+  ('midjourney', 'Midjourney', 'Bills & Utilities', 'subscription', 'Midjourney', 'seed'),
+  -- News (global)
+  ('nytimes', 'The New York Times', 'Entertainment', 'subscription', 'The New York Times', 'seed'),
+  ('nytimes.com', 'The New York Times', 'Entertainment', 'subscription', 'The New York Times', 'seed'),
+  ('new york times', 'The New York Times', 'Entertainment', 'subscription', 'The New York Times', 'seed'),
+  ('washington post', 'The Washington Post', 'Entertainment', 'subscription', 'The Washington Post', 'seed'),
+  ('washingtonpost.com', 'The Washington Post', 'Entertainment', 'subscription', 'The Washington Post', 'seed'),
+  ('wall street journal', 'The Wall Street Journal', 'Entertainment', 'subscription', 'WSJ', 'seed'),
+  ('wsj.com', 'The Wall Street Journal', 'Entertainment', 'subscription', 'WSJ', 'seed'),
+  ('bloomberg', 'Bloomberg', 'Entertainment', 'subscription', 'Bloomberg', 'seed'),
+  ('medium.com', 'Medium', 'Entertainment', 'subscription', 'Medium', 'seed'),
+  ('medium', 'Medium', 'Entertainment', 'subscription', 'Medium', 'seed'),
+  ('substack', 'Substack', 'Entertainment', 'subscription', 'Substack', 'seed'),
+  ('substack.com', 'Substack', 'Entertainment', 'subscription', 'Substack', 'seed'),
+  -- Fitness (global)
+  ('planet fitness', 'Planet Fitness', 'Health', 'subscription', 'Planet Fitness', 'seed'),
+  ('equinox', 'Equinox', 'Health', 'subscription', 'Equinox', 'seed'),
+  ('orangetheory', 'Orangetheory', 'Health', 'subscription', 'Orangetheory', 'seed'),
+  ('crossfit', 'CrossFit', 'Health', 'subscription', 'CrossFit', 'seed'),
+  ('apple fitness', 'Apple Fitness+', 'Health', 'subscription', 'Apple Fitness+', 'seed'),
+  ('apple fitness+', 'Apple Fitness+', 'Health', 'subscription', 'Apple Fitness+', 'seed'),
+  ('fitbit premium', 'Fitbit', 'Health', 'subscription', 'Fitbit Premium', 'seed'),
+  ('headspace', 'Headspace', 'Health', 'subscription', 'Headspace', 'seed'),
+  ('headspace.com', 'Headspace', 'Health', 'subscription', 'Headspace', 'seed'),
+  ('calm.com', 'Calm', 'Health', 'subscription', 'Calm', 'seed'),
+  ('calm', 'Calm', 'Health', 'subscription', 'Calm', 'seed'),
+  ('noom', 'Noom', 'Health', 'subscription', 'Noom', 'seed'),
+  ('noom.com', 'Noom', 'Health', 'subscription', 'Noom', 'seed')
+ON CONFLICT (alias) DO NOTHING;
+
+-- ══════════════════════════════════════════════════════════════════════
+-- WORLDWIDE TRANSPORT
+-- ══════════════════════════════════════════════════════════════════════
+
+INSERT INTO global_merchant_aliases (alias, brand, default_category, brand_type, source) VALUES
+  -- Ride-hailing
+  ('lyft', 'Lyft', 'Transport', 'transport', 'seed'),
+  ('lyft.com', 'Lyft', 'Transport', 'transport', 'seed'),
+  ('grab', 'Grab', 'Transport', 'transport', 'seed'),
+  ('grab.com', 'Grab', 'Transport', 'transport', 'seed'),
+  ('gojek', 'Gojek', 'Transport', 'transport', 'seed'),
+  ('ola cabs', 'Ola', 'Transport', 'transport', 'seed'),
+  ('ola', 'Ola', 'Transport', 'transport', 'seed'),
+  ('careem', 'Careem', 'Transport', 'transport', 'seed'),
+  ('careem.com', 'Careem', 'Transport', 'transport', 'seed'),
+  ('didi', 'DiDi', 'Transport', 'transport', 'seed'),
+  ('didi chuxing', 'DiDi', 'Transport', 'transport', 'seed'),
+  ('cabify', 'Cabify', 'Transport', 'transport', 'seed'),
+  ('99 taxi', '99', 'Transport', 'transport', 'seed'),
+  -- Airlines (additional global)
+  ('united airlines', 'United Airlines', 'Transport', 'transport', 'seed'),
+  ('united.com', 'United Airlines', 'Transport', 'transport', 'seed'),
+  ('delta air lines', 'Delta', 'Transport', 'transport', 'seed'),
+  ('delta.com', 'Delta', 'Transport', 'transport', 'seed'),
+  ('american airlines', 'American Airlines', 'Transport', 'transport', 'seed'),
+  ('aa.com', 'American Airlines', 'Transport', 'transport', 'seed'),
+  ('southwest airlines', 'Southwest', 'Transport', 'transport', 'seed'),
+  ('southwest.com', 'Southwest', 'Transport', 'transport', 'seed'),
+  ('jetblue', 'JetBlue', 'Transport', 'transport', 'seed'),
+  ('jetblue.com', 'JetBlue', 'Transport', 'transport', 'seed'),
+  ('spirit airlines', 'Spirit', 'Transport', 'transport', 'seed'),
+  ('frontier airlines', 'Frontier', 'Transport', 'transport', 'seed'),
+  ('alaska airlines', 'Alaska Airlines', 'Transport', 'transport', 'seed'),
+  ('hawaiian airlines', 'Hawaiian Airlines', 'Transport', 'transport', 'seed'),
+  ('air canada', 'Air Canada', 'Transport', 'transport', 'seed'),
+  ('westjet', 'WestJet', 'Transport', 'transport', 'seed'),
+  ('qantas', 'Qantas', 'Transport', 'transport', 'seed'),
+  ('qantas.com', 'Qantas', 'Transport', 'transport', 'seed'),
+  ('air new zealand', 'Air New Zealand', 'Transport', 'transport', 'seed'),
+  ('singapore airlines', 'Singapore Airlines', 'Transport', 'transport', 'seed'),
+  ('cathay pacific', 'Cathay Pacific', 'Transport', 'transport', 'seed'),
+  ('japan airlines', 'Japan Airlines', 'Transport', 'transport', 'seed'),
+  ('ana', 'ANA', 'Transport', 'transport', 'seed'),
+  ('etihad', 'Etihad', 'Transport', 'transport', 'seed'),
+  ('etihad airways', 'Etihad', 'Transport', 'transport', 'seed'),
+  ('flydubai', 'flydubai', 'Transport', 'transport', 'seed'),
+  ('air india', 'Air India', 'Transport', 'transport', 'seed'),
+  ('indigo airlines', 'IndiGo', 'Transport', 'transport', 'seed'),
+  ('latam airlines', 'LATAM', 'Transport', 'transport', 'seed'),
+  ('avianca', 'Avianca', 'Transport', 'transport', 'seed'),
+  ('volaris', 'Volaris', 'Transport', 'transport', 'seed'),
+  ('aeromexico', 'Aeroméxico', 'Transport', 'transport', 'seed'),
+  ('sas scandinavian', 'SAS', 'Transport', 'transport', 'seed'),
+  ('norwegian air', 'Norwegian', 'Transport', 'transport', 'seed'),
+  ('finnair', 'Finnair', 'Transport', 'transport', 'seed'),
+  ('iberia', 'Iberia', 'Transport', 'transport', 'seed'),
+  ('tap portugal', 'TAP', 'Transport', 'transport', 'seed'),
+  ('swiss air', 'SWISS', 'Transport', 'transport', 'seed'),
+  ('austrian airlines', 'Austrian Airlines', 'Transport', 'transport', 'seed'),
+  ('south african airways', 'South African Airways', 'Transport', 'transport', 'seed'),
+  ('kenya airways', 'Kenya Airways', 'Transport', 'transport', 'seed'),
+  ('ethiopian airlines', 'Ethiopian Airlines', 'Transport', 'transport', 'seed'),
+  -- Car Rental (global)
+  ('enterprise.com', 'Enterprise', 'Transport', 'general', 'seed'),
+  ('hertz.com', 'Hertz', 'Transport', 'general', 'seed'),
+  ('budget car rental', 'Budget', 'Transport', 'general', 'seed'),
+  ('budget.com', 'Budget', 'Transport', 'general', 'seed'),
+  ('thrifty', 'Thrifty', 'Transport', 'general', 'seed'),
+  ('national car rental', 'National', 'Transport', 'general', 'seed'),
+  ('turo', 'Turo', 'Transport', 'general', 'seed'),
+  ('turo.com', 'Turo', 'Transport', 'general', 'seed'),
+  -- Public Transit (global)
+  ('mta', 'MTA', 'Transport', 'transport', 'seed'),
+  ('wmata', 'WMATA', 'Transport', 'transport', 'seed'),
+  ('bart', 'BART', 'Transport', 'transport', 'seed'),
+  ('cta', 'CTA', 'Transport', 'transport', 'seed'),
+  ('marta', 'MARTA', 'Transport', 'transport', 'seed'),
+  ('opal card', 'Opal', 'Transport', 'transport', 'seed'),
+  ('myki', 'Myki', 'Transport', 'transport', 'seed'),
+  ('nol card', 'NOL', 'Transport', 'transport', 'seed'),
+  ('salik', 'Salik', 'Transport', 'transport', 'seed')
+ON CONFLICT (alias) DO NOTHING;
+
+-- ══════════════════════════════════════════════════════════════════════
+-- WORLDWIDE LENDERS & FINANCIAL SERVICES
+-- ══════════════════════════════════════════════════════════════════════
+
+INSERT INTO global_merchant_aliases (alias, brand, default_category, brand_type, lender_for, source) VALUES
+  -- US Banks / Cards
+  ('chase', 'Chase', 'Bills & Utilities', 'lender', 'Credit Card', 'seed'),
+  ('chase.com', 'Chase', 'Bills & Utilities', 'lender', 'Credit Card', 'seed'),
+  ('wells fargo', 'Wells Fargo', 'Bills & Utilities', 'lender', 'Mortgage', 'seed'),
+  ('bank of america', 'Bank of America', 'Bills & Utilities', 'lender', 'Credit Card', 'seed'),
+  ('citibank', 'Citi', 'Bills & Utilities', 'lender', 'Credit Card', 'seed'),
+  ('citi card', 'Citi', 'Bills & Utilities', 'lender', 'Credit Card', 'seed'),
+  ('discover', 'Discover', 'Bills & Utilities', 'lender', 'Credit Card', 'seed'),
+  ('us bank', 'US Bank', 'Bills & Utilities', 'lender', 'Mortgage', 'seed'),
+  ('pnc bank', 'PNC', 'Bills & Utilities', 'lender', 'Mortgage', 'seed'),
+  ('truist', 'Truist', 'Bills & Utilities', 'lender', 'Mortgage', 'seed'),
+  ('td bank', 'TD Bank', 'Bills & Utilities', 'lender', 'Mortgage', 'seed'),
+  ('sofi', 'SoFi', 'Bills & Utilities', 'lender', 'Personal Loan', 'seed'),
+  ('sofi.com', 'SoFi', 'Bills & Utilities', 'lender', 'Personal Loan', 'seed'),
+  ('marcus by goldman', 'Marcus', 'Bills & Utilities', 'lender', 'Personal Loan', 'seed'),
+  ('lending club', 'LendingClub', 'Bills & Utilities', 'lender', 'Personal Loan', 'seed'),
+  ('upstart', 'Upstart', 'Bills & Utilities', 'lender', 'Personal Loan', 'seed'),
+  -- BNPL (global)
+  ('afterpay', 'Afterpay', 'Shopping', 'lender', 'Buy Now Pay Later', 'seed'),
+  ('afterpay.com', 'Afterpay', 'Shopping', 'lender', 'Buy Now Pay Later', 'seed'),
+  ('affirm', 'Affirm', 'Shopping', 'lender', 'Buy Now Pay Later', 'seed'),
+  ('affirm.com', 'Affirm', 'Shopping', 'lender', 'Buy Now Pay Later', 'seed'),
+  ('zip pay', 'Zip', 'Shopping', 'lender', 'Buy Now Pay Later', 'seed'),
+  ('zip co', 'Zip', 'Shopping', 'lender', 'Buy Now Pay Later', 'seed'),
+  ('sezzle', 'Sezzle', 'Shopping', 'lender', 'Buy Now Pay Later', 'seed'),
+  ('tabby', 'Tabby', 'Shopping', 'lender', 'Buy Now Pay Later', 'seed'),
+  ('tabby.ai', 'Tabby', 'Shopping', 'lender', 'Buy Now Pay Later', 'seed'),
+  ('tamara', 'Tamara', 'Shopping', 'lender', 'Buy Now Pay Later', 'seed'),
+  ('tamara.co', 'Tamara', 'Shopping', 'lender', 'Buy Now Pay Later', 'seed'),
+  -- Student Loans (US)
+  ('navient', 'Navient', 'Bills & Utilities', 'lender', 'Student Loan', 'seed'),
+  ('nelnet', 'Nelnet', 'Bills & Utilities', 'lender', 'Student Loan', 'seed'),
+  ('great lakes', 'Great Lakes', 'Bills & Utilities', 'lender', 'Student Loan', 'seed'),
+  ('mohela', 'MOHELA', 'Bills & Utilities', 'lender', 'Student Loan', 'seed'),
+  ('fedloan', 'FedLoan', 'Bills & Utilities', 'lender', 'Student Loan', 'seed')
+ON CONFLICT (alias) DO NOTHING;
+
+INSERT INTO global_merchant_aliases (alias, brand, default_category, brand_type, source) VALUES
+  -- Payment Services (global)
+  ('venmo', 'Venmo', 'Bills & Utilities', 'general', 'seed'),
+  ('cash app', 'Cash App', 'Bills & Utilities', 'general', 'seed'),
+  ('cashapp', 'Cash App', 'Bills & Utilities', 'general', 'seed'),
+  ('zelle', 'Zelle', 'Bills & Utilities', 'general', 'seed'),
+  ('stripe', 'Stripe', 'Bills & Utilities', 'general', 'seed'),
+  ('square', 'Square', 'Bills & Utilities', 'general', 'seed'),
+  ('remitly', 'Remitly', 'Bills & Utilities', 'general', 'seed'),
+  ('xe.com', 'XE', 'Bills & Utilities', 'general', 'seed'),
+  ('payoneer', 'Payoneer', 'Bills & Utilities', 'general', 'seed'),
+  ('n26', 'N26', 'Bills & Utilities', 'general', 'seed'),
+  ('bunq', 'Bunq', 'Bills & Utilities', 'general', 'seed')
+ON CONFLICT (alias) DO NOTHING;
+
+-- ══════════════════════════════════════════════════════════════════════
+-- WORLDWIDE UTILITIES & TELCOS
+-- ══════════════════════════════════════════════════════════════════════
+
+INSERT INTO global_merchant_aliases (alias, brand, default_category, brand_type, subscription_name, source) VALUES
+  -- US Telcos
+  ('at&t', 'AT&T', 'Bills & Utilities', 'subscription', 'AT&T', 'seed'),
+  ('att', 'AT&T', 'Bills & Utilities', 'subscription', 'AT&T', 'seed'),
+  ('at&t wireless', 'AT&T', 'Bills & Utilities', 'subscription', 'AT&T', 'seed'),
+  ('verizon', 'Verizon', 'Bills & Utilities', 'subscription', 'Verizon', 'seed'),
+  ('verizon wireless', 'Verizon', 'Bills & Utilities', 'subscription', 'Verizon', 'seed'),
+  ('t-mobile', 'T-Mobile', 'Bills & Utilities', 'subscription', 'T-Mobile', 'seed'),
+  ('t mobile', 'T-Mobile', 'Bills & Utilities', 'subscription', 'T-Mobile', 'seed'),
+  ('sprint', 'Sprint', 'Bills & Utilities', 'subscription', 'Sprint', 'seed'),
+  ('xfinity', 'Xfinity', 'Bills & Utilities', 'subscription', 'Xfinity', 'seed'),
+  ('comcast', 'Xfinity', 'Bills & Utilities', 'subscription', 'Xfinity', 'seed'),
+  ('spectrum', 'Spectrum', 'Bills & Utilities', 'subscription', 'Spectrum', 'seed'),
+  ('cox communications', 'Cox', 'Bills & Utilities', 'subscription', 'Cox', 'seed'),
+  ('google fiber', 'Google Fiber', 'Bills & Utilities', 'subscription', 'Google Fiber', 'seed'),
+  ('mint mobile', 'Mint Mobile', 'Bills & Utilities', 'subscription', 'Mint Mobile', 'seed'),
+  ('visible', 'Visible', 'Bills & Utilities', 'subscription', 'Visible', 'seed'),
+  -- Canada Telcos
+  ('rogers', 'Rogers', 'Bills & Utilities', 'subscription', 'Rogers', 'seed'),
+  ('bell canada', 'Bell', 'Bills & Utilities', 'subscription', 'Bell', 'seed'),
+  ('telus', 'TELUS', 'Bills & Utilities', 'subscription', 'TELUS', 'seed'),
+  -- Australia Telcos
+  ('telstra', 'Telstra', 'Bills & Utilities', 'subscription', 'Telstra', 'seed'),
+  ('optus', 'Optus', 'Bills & Utilities', 'subscription', 'Optus', 'seed'),
+  ('vodafone au', 'Vodafone AU', 'Bills & Utilities', 'subscription', 'Vodafone', 'seed'),
+  ('tpg', 'TPG', 'Bills & Utilities', 'subscription', 'TPG', 'seed'),
+  -- Middle East Telcos
+  ('du telecom', 'du', 'Bills & Utilities', 'subscription', 'du', 'seed'),
+  ('etisalat', 'Etisalat', 'Bills & Utilities', 'subscription', 'Etisalat', 'seed'),
+  ('e& uae', 'e&', 'Bills & Utilities', 'subscription', 'e&', 'seed'),
+  ('stc', 'STC', 'Bills & Utilities', 'subscription', 'STC', 'seed'),
+  ('zain', 'Zain', 'Bills & Utilities', 'subscription', 'Zain', 'seed'),
+  ('ooredoo', 'Ooredoo', 'Bills & Utilities', 'subscription', 'Ooredoo', 'seed'),
+  -- India
+  ('jio', 'Jio', 'Bills & Utilities', 'subscription', 'Jio', 'seed'),
+  ('airtel', 'Airtel', 'Bills & Utilities', 'subscription', 'Airtel', 'seed'),
+  ('vi india', 'Vi', 'Bills & Utilities', 'subscription', 'Vi', 'seed'),
+  -- Global Internet
+  ('starlink', 'Starlink', 'Bills & Utilities', 'subscription', 'Starlink', 'seed'),
+  ('starlink.com', 'Starlink', 'Bills & Utilities', 'subscription', 'Starlink', 'seed')
+ON CONFLICT (alias) DO NOTHING;
+
+-- ══════════════════════════════════════════════════════════════════════
+-- WORLDWIDE INSURANCE
+-- ══════════════════════════════════════════════════════════════════════
+
+INSERT INTO global_merchant_aliases (alias, brand, default_category, brand_type, subscription_name, source) VALUES
+  -- US
+  ('geico', 'GEICO', 'Insurance', 'subscription', 'GEICO', 'seed'),
+  ('state farm', 'State Farm', 'Insurance', 'subscription', 'State Farm', 'seed'),
+  ('progressive', 'Progressive', 'Insurance', 'subscription', 'Progressive', 'seed'),
+  ('allstate', 'Allstate', 'Insurance', 'subscription', 'Allstate', 'seed'),
+  ('liberty mutual', 'Liberty Mutual', 'Insurance', 'subscription', 'Liberty Mutual', 'seed'),
+  ('usaa', 'USAA', 'Insurance', 'subscription', 'USAA', 'seed'),
+  ('farmers insurance', 'Farmers', 'Insurance', 'subscription', 'Farmers', 'seed'),
+  ('nationwide insurance', 'Nationwide', 'Insurance', 'subscription', 'Nationwide', 'seed'),
+  ('travelers', 'Travelers', 'Insurance', 'subscription', 'Travelers', 'seed'),
+  ('lemonade', 'Lemonade', 'Insurance', 'subscription', 'Lemonade', 'seed'),
+  ('lemonade.com', 'Lemonade', 'Insurance', 'subscription', 'Lemonade', 'seed'),
+  ('root insurance', 'Root', 'Insurance', 'subscription', 'Root', 'seed'),
+  ('oscar health', 'Oscar Health', 'Insurance', 'subscription', 'Oscar Health', 'seed'),
+  -- Global
+  ('allianz', 'Allianz', 'Insurance', 'subscription', 'Allianz', 'seed'),
+  ('generali', 'Generali', 'Insurance', 'subscription', 'Generali', 'seed'),
+  ('aig', 'AIG', 'Insurance', 'subscription', 'AIG', 'seed'),
+  ('metlife', 'MetLife', 'Insurance', 'subscription', 'MetLife', 'seed'),
+  ('prudential', 'Prudential', 'Insurance', 'subscription', 'Prudential', 'seed'),
+  ('manulife', 'Manulife', 'Insurance', 'subscription', 'Manulife', 'seed'),
+  ('sun life', 'Sun Life', 'Insurance', 'subscription', 'Sun Life', 'seed'),
+  ('cigna', 'Cigna', 'Insurance', 'subscription', 'Cigna', 'seed'),
+  ('anthem', 'Anthem', 'Insurance', 'subscription', 'Anthem', 'seed'),
+  ('unitedhealthcare', 'UnitedHealthcare', 'Insurance', 'subscription', 'UnitedHealthcare', 'seed'),
+  ('kaiser permanente', 'Kaiser Permanente', 'Insurance', 'subscription', 'Kaiser Permanente', 'seed'),
+  ('blue cross', 'Blue Cross', 'Insurance', 'subscription', 'Blue Cross', 'seed'),
+  ('blue shield', 'Blue Shield', 'Insurance', 'subscription', 'Blue Shield', 'seed'),
+  -- Australia
+  ('medibank', 'Medibank', 'Insurance', 'subscription', 'Medibank', 'seed'),
+  ('nrma', 'NRMA', 'Insurance', 'subscription', 'NRMA', 'seed')
+ON CONFLICT (alias) DO NOTHING;
+
+-- ══════════════════════════════════════════════════════════════════════
+-- WORLDWIDE EDUCATION
+-- ══════════════════════════════════════════════════════════════════════
+
+INSERT INTO global_merchant_aliases (alias, brand, default_category, brand_type, source) VALUES
+  ('khan academy', 'Khan Academy', 'Education', 'general', 'seed'),
+  ('khanacademy.org', 'Khan Academy', 'Education', 'general', 'seed'),
+  ('edx', 'edX', 'Education', 'general', 'seed'),
+  ('edx.org', 'edX', 'Education', 'general', 'seed'),
+  ('babbel', 'Babbel', 'Education', 'general', 'seed'),
+  ('babbel.com', 'Babbel', 'Education', 'general', 'seed'),
+  ('rosetta stone', 'Rosetta Stone', 'Education', 'general', 'seed'),
+  ('datacamp', 'DataCamp', 'Education', 'general', 'seed'),
+  ('datacamp.com', 'DataCamp', 'Education', 'general', 'seed'),
+  ('o''reilly media', 'O''Reilly', 'Education', 'general', 'seed'),
+  ('blinkist', 'Blinkist', 'Education', 'general', 'seed'),
+  ('blinkist.com', 'Blinkist', 'Education', 'general', 'seed'),
+  ('kindle unlimited', 'Kindle Unlimited', 'Education', 'general', 'seed')
+ON CONFLICT (alias) DO NOTHING;
+
+-- ══════════════════════════════════════════════════════════════════════
+-- WORLDWIDE ENTERTAINMENT & TRAVEL
+-- ══════════════════════════════════════════════════════════════════════
+
+INSERT INTO global_merchant_aliases (alias, brand, default_category, brand_type, source) VALUES
+  -- Hotels (global)
+  ('marriott.com', 'Marriott', 'Entertainment', 'general', 'seed'),
+  ('hilton.com', 'Hilton', 'Entertainment', 'general', 'seed'),
+  ('ihg', 'IHG', 'Entertainment', 'general', 'seed'),
+  ('ihg.com', 'IHG', 'Entertainment', 'general', 'seed'),
+  ('hyatt', 'Hyatt', 'Entertainment', 'general', 'seed'),
+  ('hyatt.com', 'Hyatt', 'Entertainment', 'general', 'seed'),
+  ('accor', 'Accor', 'Entertainment', 'general', 'seed'),
+  ('accor.com', 'Accor', 'Entertainment', 'general', 'seed'),
+  ('radisson', 'Radisson', 'Entertainment', 'general', 'seed'),
+  ('best western', 'Best Western', 'Entertainment', 'general', 'seed'),
+  ('four seasons', 'Four Seasons', 'Entertainment', 'general', 'seed'),
+  ('ritz carlton', 'The Ritz-Carlton', 'Entertainment', 'general', 'seed'),
+  ('w hotel', 'W Hotels', 'Entertainment', 'general', 'seed'),
+  ('hostelworld', 'Hostelworld', 'Entertainment', 'general', 'seed'),
+  ('hostelworld.com', 'Hostelworld', 'Entertainment', 'general', 'seed'),
+  ('vrbo', 'VRBO', 'Entertainment', 'general', 'seed'),
+  ('vrbo.com', 'VRBO', 'Entertainment', 'general', 'seed'),
+  -- Travel OTAs
+  ('trip.com', 'Trip.com', 'Entertainment', 'general', 'seed'),
+  ('agoda', 'Agoda', 'Entertainment', 'general', 'seed'),
+  ('agoda.com', 'Agoda', 'Entertainment', 'general', 'seed'),
+  ('kayak', 'Kayak', 'Entertainment', 'general', 'seed'),
+  ('kayak.com', 'Kayak', 'Entertainment', 'general', 'seed'),
+  ('hopper', 'Hopper', 'Entertainment', 'general', 'seed'),
+  ('hopper.com', 'Hopper', 'Entertainment', 'general', 'seed'),
+  ('tripadvisor', 'Tripadvisor', 'Entertainment', 'general', 'seed'),
+  ('viator', 'Viator', 'Entertainment', 'general', 'seed'),
+  ('getyourguide', 'GetYourGuide', 'Entertainment', 'general', 'seed'),
+  ('getyourguide.com', 'GetYourGuide', 'Entertainment', 'general', 'seed'),
+  ('klook', 'Klook', 'Entertainment', 'general', 'seed'),
+  ('klook.com', 'Klook', 'Entertainment', 'general', 'seed'),
+  -- Entertainment (global)
+  ('amc theatres', 'AMC', 'Entertainment', 'general', 'seed'),
+  ('regal cinemas', 'Regal', 'Entertainment', 'general', 'seed'),
+  ('cinemark', 'Cinemark', 'Entertainment', 'general', 'seed'),
+  ('imax', 'IMAX', 'Entertainment', 'general', 'seed'),
+  ('axs.com', 'AXS', 'Entertainment', 'general', 'seed'),
+  ('live nation', 'Live Nation', 'Entertainment', 'general', 'seed'),
+  ('stubhub.com', 'StubHub', 'Entertainment', 'general', 'seed'),
+  ('viagogo', 'Viagogo', 'Entertainment', 'general', 'seed'),
+  -- Theme Parks
+  ('disneyland', 'Disney Parks', 'Entertainment', 'general', 'seed'),
+  ('disney world', 'Disney Parks', 'Entertainment', 'general', 'seed'),
+  ('walt disney world', 'Disney Parks', 'Entertainment', 'general', 'seed'),
+  ('universal studios', 'Universal Studios', 'Entertainment', 'general', 'seed'),
+  ('universal orlando', 'Universal Studios', 'Entertainment', 'general', 'seed'),
+  ('six flags', 'Six Flags', 'Entertainment', 'general', 'seed'),
+  ('cedar point', 'Cedar Fair', 'Entertainment', 'general', 'seed'),
+  ('legoland.com', 'LEGOLAND', 'Entertainment', 'general', 'seed'),
+  ('seaworld', 'SeaWorld', 'Entertainment', 'general', 'seed'),
+  -- Gambling (global)
+  ('draftkings', 'DraftKings', 'Entertainment', 'general', 'seed'),
+  ('draftkings.com', 'DraftKings', 'Entertainment', 'general', 'seed'),
+  ('fanduel', 'FanDuel', 'Entertainment', 'general', 'seed'),
+  ('fanduel.com', 'FanDuel', 'Entertainment', 'general', 'seed'),
+  ('betmgm', 'BetMGM', 'Entertainment', 'general', 'seed'),
+  ('pokerstars', 'PokerStars', 'Entertainment', 'general', 'seed'),
+  ('888sport', '888sport', 'Entertainment', 'general', 'seed'),
+  ('unibet', 'Unibet', 'Entertainment', 'general', 'seed')
+ON CONFLICT (alias) DO NOTHING;
+
+-- ══════════════════════════════════════════════════════════════════════
+-- WORLDWIDE CHARITY
+-- ══════════════════════════════════════════════════════════════════════
+
+INSERT INTO global_merchant_aliases (alias, brand, default_category, brand_type, source) VALUES
+  ('unicef', 'UNICEF', 'Gifts & Charity', 'general', 'seed'),
+  ('world vision', 'World Vision', 'Gifts & Charity', 'general', 'seed'),
+  ('doctors without borders', 'MSF', 'Gifts & Charity', 'general', 'seed'),
+  ('msf', 'MSF', 'Gifts & Charity', 'general', 'seed'),
+  ('amnesty international', 'Amnesty International', 'Gifts & Charity', 'general', 'seed'),
+  ('wwf', 'WWF', 'Gifts & Charity', 'general', 'seed'),
+  ('greenpeace', 'Greenpeace', 'Gifts & Charity', 'general', 'seed'),
+  ('wikimedia', 'Wikipedia', 'Gifts & Charity', 'general', 'seed'),
+  ('wikipedia', 'Wikipedia', 'Gifts & Charity', 'general', 'seed'),
+  ('patreon', 'Patreon', 'Gifts & Charity', 'general', 'seed'),
+  ('patreon.com', 'Patreon', 'Gifts & Charity', 'general', 'seed'),
+  ('ko-fi', 'Ko-fi', 'Gifts & Charity', 'general', 'seed'),
+  ('buymeacoffee', 'Buy Me a Coffee', 'Gifts & Charity', 'general', 'seed')
 ON CONFLICT (alias) DO NOTHING;
