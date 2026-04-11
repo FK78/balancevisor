@@ -146,6 +146,17 @@ export async function importFromTrueLayer() {
     const accessToken = await getValidToken(connection.id);
     const tlAccounts = await fetchAccounts(accessToken);
 
+    logger.debug("truelayer.import", `Fetched ${tlAccounts.length} accounts from TrueLayer`, {
+      connectionId: connection.id,
+      accounts: tlAccounts.map((a) => ({
+        account_id: a.account_id,
+        display_name: a.display_name,
+        account_type: a.account_type,
+        currency: a.currency,
+        provider: a.provider?.display_name,
+      })),
+    });
+
     for (const tlAccount of tlAccounts) {
       let balance = 0;
       try {
@@ -154,6 +165,11 @@ export async function importFromTrueLayer() {
           tlAccount.account_id,
         );
         balance = balanceData.current;
+        logger.debug("truelayer.import", `Balance for ${tlAccount.display_name}`, {
+          accountId: tlAccount.account_id,
+          balance: balanceData.current,
+          currency: balanceData.currency,
+        });
       } catch {
         logger.warn("truelayer.import", "Balance fetch failed for account", {
           accountId: tlAccount.account_id,
@@ -202,6 +218,20 @@ export async function importFromTrueLayer() {
           from,
           to,
         );
+        logger.debug("truelayer.import", `Fetched ${tlTransactions.length} transactions for ${tlAccount.display_name}`, {
+          accountId: tlAccount.account_id,
+          accountType: tlAccount.account_type,
+          totalCount: tlTransactions.length,
+          sample: tlTransactions.slice(0, 10).map((t) => ({
+            transaction_id: t.transaction_id,
+            timestamp: t.timestamp,
+            description: t.description,
+            amount: t.amount,
+            currency: t.currency,
+            transaction_type: t.transaction_type,
+            transaction_category: t.transaction_category,
+          })),
+        });
       } catch {
         logger.warn(
           "truelayer.import",
@@ -223,6 +253,16 @@ export async function importFromTrueLayer() {
           tlTxn.transaction_type === "DEBIT" || tlTxn.amount < 0;
         const amount = Math.abs(tlTxn.amount);
         const description = tlTxn.description || "Bank transaction";
+
+        logger.debug("truelayer.import", `Transaction: ${description}`, {
+          transaction_id: tlTxn.transaction_id,
+          raw_amount: tlTxn.amount,
+          abs_amount: amount,
+          transaction_type: tlTxn.transaction_type,
+          transaction_category: tlTxn.transaction_category,
+          isExpense,
+          timestamp: tlTxn.timestamp,
+        });
 
         // Detect refunds: keyword match or expense match for CREDIT transactions
         let type: "income" | "expense" | "refund" = isExpense ? "expense" : "income";

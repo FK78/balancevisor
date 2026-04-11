@@ -8,7 +8,7 @@
  * just change the `dispatch` function — every call site stays the same.
  */
 
-type LogLevel = "error" | "warn" | "info";
+type LogLevel = "error" | "warn" | "info" | "debug";
 
 interface LogEntry {
   level: LogLevel;
@@ -41,6 +41,9 @@ function dispatch(entry: LogEntry) {
     case "warn":
       console.warn(parts.join(" "));
       break;
+    case "debug":
+      console.debug(parts.join(" "));
+      break;
     default:
       console.log(parts.join(" "));
   }
@@ -60,5 +63,10 @@ export const logger = {
 
   info(source: string, message: string, meta?: Record<string, unknown>) {
     dispatch({ level: "info", source, message, meta });
+  },
+
+  debug(source: string, message: string, meta?: Record<string, unknown>) {
+    if (process.env.DEBUG_TRUELAYER !== "true") return;
+    dispatch({ level: "debug", source, message, meta });
   },
 };
