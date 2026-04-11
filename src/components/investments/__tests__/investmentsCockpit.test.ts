@@ -170,6 +170,65 @@ describe("buildInvestmentsCockpitModel", () => {
     );
   });
 
+  it("only marks the true largest holding when duplicate broker ticker ids exist across accounts", () => {
+    const model = buildInvestmentsCockpitModel({
+      holdings: [
+        {
+          id: "trading212-AAPL",
+          source: "trading212" as const,
+          ticker: "AAPL",
+          name: "Apple",
+          quantity: 2,
+          averagePrice: 100,
+          currentPrice: 140,
+          currency: "GBP",
+          value: 280,
+          gainLoss: 80,
+          gainLossPercent: 40,
+          investmentType: "stock" as const,
+          accountId: "acct-isa",
+          accountName: "ISA",
+          groupId: null,
+          groupName: null,
+          groupColor: null,
+          pricePending: false,
+        },
+        {
+          id: "trading212-AAPL",
+          source: "trading212" as const,
+          ticker: "AAPL",
+          name: "Apple",
+          quantity: 6,
+          averagePrice: 90,
+          currentPrice: 130,
+          currency: "GBP",
+          value: 780,
+          gainLoss: 240,
+          gainLossPercent: 44.44,
+          investmentType: "stock" as const,
+          accountId: "acct-gia",
+          accountName: "GIA",
+          groupId: null,
+          groupName: null,
+          groupColor: null,
+          pricePending: false,
+        },
+      ],
+      brokerErrors: [],
+      brokerCash: 0,
+      totalRealizedGain: 0,
+      baseCurrency: "GBP",
+      allGroups: [],
+    });
+
+    expect(model.accountSections[0]?.accountId).toBe("acct-gia");
+    expect(model.accountSections[0]?.groups[0]?.holdings[0]?.interpretation).toBe(
+      "Largest position in portfolio",
+    );
+    expect(model.accountSections[1]?.accountId).toBe("acct-isa");
+    expect(model.accountSections[1]?.groups[0]?.holdings[0]?.interpretation).toBeNull();
+  });
+
   it("orders grouped and ungrouped sections by portfolio value", () => {
     const model = buildInvestmentsCockpitModel({
       holdings: [

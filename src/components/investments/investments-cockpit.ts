@@ -92,6 +92,10 @@ type BuildInvestmentsCockpitModelParams = {
   allGroups: GroupInput[];
 };
 
+function getHoldingIdentity(holding: Pick<HoldingInput, "id" | "accountId" | "groupId">) {
+  return `${holding.id}::${holding.accountId ?? "__ungrouped__"}::${holding.groupId ?? "__ungrouped_group__"}`;
+}
+
 function selectPrimaryAction(params: {
   brokerErrors: BrokerErrorInput[];
   stalePriceCount: number;
@@ -209,7 +213,7 @@ function buildPriorityCards(params: {
 
 function buildAccountSections(holdings: HoldingInput[], allGroups: GroupInput[]): AccountSection[] {
   const sortedHoldings = [...holdings].sort((a, b) => b.value - a.value);
-  const largestHoldingId = sortedHoldings[0]?.id ?? null;
+  const largestHoldingIdentity = sortedHoldings[0] ? getHoldingIdentity(sortedHoldings[0]) : null;
   const accountSummaries: Array<{
     accountKey: string;
     accountId: string | null;
@@ -266,7 +270,7 @@ function buildAccountSections(holdings: HoldingInput[], allGroups: GroupInput[])
           value: holding.value,
           interpretation: holding.pricePending
             ? "Manual price needs refreshing"
-            : holding.id === largestHoldingId
+            : getHoldingIdentity(holding) === largestHoldingIdentity
               ? "Largest position in portfolio"
               : null,
         })),
@@ -284,7 +288,7 @@ function buildAccountSections(holdings: HoldingInput[], allGroups: GroupInput[])
             value: holding.value,
             interpretation: holding.pricePending
               ? "Manual price needs refreshing"
-              : holding.id === largestHoldingId
+              : getHoldingIdentity(holding) === largestHoldingIdentity
                 ? "Largest position in portfolio"
                 : null,
           })),
