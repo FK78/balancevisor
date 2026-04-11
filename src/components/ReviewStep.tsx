@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { completeOnboardingAndRedirectWithFeatures } from "@/db/mutations/onboarding";
 import posthog from "posthog-js";
-import { ONBOARDING_FEATURE_IDS } from "@/components/InterestPicker";
 import { hasCoreOnboardingSetup } from "@/lib/onboarding-flow";
 
 interface ReviewStepProps {
@@ -194,13 +193,9 @@ export function ReviewStep({
                   });
                   const remainingFeatures = selectedFeatures.slice(1);
                   const firstFeature = selectedFeatures.length > 0 ? selectedFeatures[0] : undefined;
-                  const disabledFeatures = ONBOARDING_FEATURE_IDS.filter(
-                    (id) => !selectedFeatures.includes(id),
-                  );
                   await completeOnboardingAndRedirectWithFeatures(
                     remainingFeatures,
                     firstFeature,
-                    disabledFeatures,
                     aiEnabled,
                   );
                 });

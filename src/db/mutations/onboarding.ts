@@ -161,31 +161,20 @@ export async function skipOnboarding(aiEnabled?: boolean) {
 export async function completeOnboardingAndRedirectWithFeatures(
   features: string[],
   firstFeature?: string,
-  disabledFeatures?: string[],
   aiEnabled?: boolean,
 ) {
   const userId = await getCurrentUserId();
   await finishOnboarding(userId, features);
 
-  const hasDisabled = disabledFeatures && disabledFeatures.length > 0;
-  const hasAiPref = typeof aiEnabled === 'boolean';
-
-  if (hasDisabled || hasAiPref) {
+  if (typeof aiEnabled === 'boolean') {
     const now = new Date();
-    const disabledJson = hasDisabled ? JSON.stringify(disabledFeatures) : undefined;
-
     await db.insert(userPreferencesTable).values({
       user_id: userId,
-      ...(hasDisabled && { disabled_features: disabledJson }),
-      ...(hasAiPref && { ai_enabled: aiEnabled }),
+      ai_enabled: aiEnabled,
       updated_at: now,
     }).onConflictDoUpdate({
       target: userPreferencesTable.user_id,
-      set: {
-        ...(hasDisabled && { disabled_features: disabledJson }),
-        ...(hasAiPref && { ai_enabled: aiEnabled }),
-        updated_at: now,
-      },
+      set: { ai_enabled: aiEnabled, updated_at: now },
     });
   }
 
