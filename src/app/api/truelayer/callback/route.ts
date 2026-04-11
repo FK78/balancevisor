@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { exchangeCode } from '@/lib/truelayer';
-import { saveTrueLayerConnection, importFromTrueLayer, getTrueLayerConnections } from '@/db/mutations/truelayer';
+import { saveTrueLayerConnection, getTrueLayerConnections } from '@/db/mutations/truelayer';
 import { getCurrentUserId } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import { getPostHogClient } from '@/lib/posthog-server';
@@ -65,14 +65,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Auto-import accounts & transactions immediately after connecting
-    try {
-      await importFromTrueLayer();
-    } catch (importErr) {
-      logger.warn('truelayer.callback', 'Initial import after connect failed — user can manual sync', {
-        error: importErr instanceof Error ? importErr.message : String(importErr),
-      });
-    }
+    // Import is now triggered client-side via TrueLayerImportTrigger to avoid
+    // blocking this redirect (which caused white-screen waits of 30s+).
 
     const posthog = getPostHogClient();
     posthog.capture({
@@ -84,8 +78,8 @@ export async function GET(request: NextRequest) {
     // If connecting from onboarding, redirect back there instead of dashboard
     const returnTo = request.cookies.get('truelayer_return_to')?.value;
     const successUrl = returnTo === 'onboarding'
-      ? `${siteUrl}/onboarding?stage=setup&method=auto&truelayer_connected=true`
-      : `${siteUrl}/dashboard/accounts?truelayer_connected=true`;
+      ? `${siteUrl}/onboarding?stage=setup&method=auto&truelayer_connected=true&import_pending=true`
+      : `${siteUrl}/dashboard/accounts?truelayer_connected=true&import_pending=true`;
 
     const response = NextResponse.redirect(successUrl);
     // Clear cookies after use

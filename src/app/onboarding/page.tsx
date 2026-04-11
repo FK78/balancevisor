@@ -25,6 +25,7 @@ import { CategorySelector } from "@/components/CategorySelector";
 import { WelcomeStep } from "@/components/WelcomeStep";
 import { ReviewStep } from "@/components/ReviewStep";
 import { AccountMethodStep } from "@/components/AccountMethodStep";
+import { TrueLayerImportTrigger } from "@/components/TrueLayerImportTrigger";
 import {
   buildOnboardingHref,
   normalizeAccountMethod,
@@ -98,6 +99,8 @@ export default async function OnboardingPage({
       skipAction={skipAction}
       canSkip={canUseTopSkip}
     >
+      <TrueLayerImportTrigger />
+
       {stage === "basics" && (
         <WelcomeStep
           baseCurrency={baseCurrency}

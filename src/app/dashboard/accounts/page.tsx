@@ -25,6 +25,7 @@ const AccountCharts = dynamic(
   { loading: () => <ChartSkeleton height={300} /> }
 );
 import { AccountHealthCheck } from "@/components/AccountHealthCheck";
+import { TrueLayerImportTrigger } from "@/components/TrueLayerImportTrigger";
 import { getTrueLayerConnections } from "@/db/mutations/truelayer";
 import { getManualHoldings, getBrokerConnections } from "@/db/queries/investments";
 import { BROKER_META } from "@/lib/brokers";
@@ -206,20 +207,23 @@ export default async function Accounts() {
   const healthCheckEl = accounts.length > 0 ? <AccountHealthCheck /> : null;
 
   return (
-    <AccountsPageClient
-      serverLayout={serverLayout}
-      header={headerEl}
-      pendingInvitations={pendingInvitationsEl}
-      stats={statsEl}
-      charts={chartsEl}
-      accountCards={accountCardsEl}
-      healthCheck={healthCheckEl}
-      primaryAccountLink={accounts[0]
-        ? {
-            href: `/dashboard/accounts/${accounts[0].id}`,
-            label: `Open ${accounts[0].accountName}`,
-          }
-        : undefined}
-    />
+    <>
+      <TrueLayerImportTrigger />
+      <AccountsPageClient
+        serverLayout={serverLayout}
+        header={headerEl}
+        pendingInvitations={pendingInvitationsEl}
+        stats={statsEl}
+        charts={chartsEl}
+        accountCards={accountCardsEl}
+        healthCheck={healthCheckEl}
+        primaryAccountLink={accounts[0]
+          ? {
+              href: `/dashboard/accounts/${accounts[0].id}`,
+              label: `Open ${accounts[0].accountName}`,
+            }
+          : undefined}
+      />
+    </>
   );
 }
