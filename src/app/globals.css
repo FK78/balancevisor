@@ -453,6 +453,15 @@ html {
     text-transform: uppercase;
   }
 
+  .decision-status-pill {
+    background: color-mix(in srgb, var(--workspace-shell) 12%, white 88%);
+    border: 1px solid color-mix(in srgb, var(--workspace-card-border) 80%, transparent);
+    border-radius: 999px;
+    color: color-mix(in srgb, var(--foreground) 84%, transparent);
+    display: inline-flex;
+    padding: 0.2rem 0.55rem;
+  }
+
   .decision-amount {
     font-size: 1.2rem;
     font-weight: 600;
@@ -465,11 +474,20 @@ html {
     display: flex;
     flex-wrap: wrap;
     font-size: 0.76rem;
-    gap: 0.35rem 0.85rem;
+    gap: 0.4rem;
     line-height: 1.35;
     list-style: none;
     margin: 0;
     padding: 0;
+  }
+
+  .decision-meta-pill {
+    background: color-mix(in srgb, var(--workspace-muted-surface) 72%, white 28%);
+    border: 1px solid color-mix(in srgb, var(--workspace-card-border) 74%, transparent);
+    border-radius: 999px;
+    color: color-mix(in srgb, var(--foreground) 82%, transparent);
+    display: inline-flex;
+    padding: 0.22rem 0.55rem;
   }
 
   .decision-interpretation {

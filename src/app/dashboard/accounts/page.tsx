@@ -222,6 +222,12 @@ export default async function Accounts() {
       accountCards={accountCardsEl}
       healthCheck={healthCheckEl}
       otherAssets={otherAssetsEl}
+      primaryAccountLink={accounts[0]
+        ? {
+            href: `/dashboard/accounts/${accounts[0].id}`,
+            label: `Open ${accounts[0].accountName}`,
+          }
+        : undefined}
     />
   );
 }

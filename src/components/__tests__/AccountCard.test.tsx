@@ -46,5 +46,6 @@ describe("AccountCard", () => {
     expect(screen.getByText("20.0% of total exposure")).toBeInTheDocument();
     expect(screen.getByText(/prioritise paydown/i)).toBeInTheDocument();
     expect(screen.getByText("−£240.00")).toBeInTheDocument();
+    expect(screen.getByText(/open account cockpit/i)).toBeInTheDocument();
   });
 });

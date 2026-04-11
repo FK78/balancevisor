@@ -45,6 +45,12 @@ import { ChangePasswordForm } from "@/components/ChangePasswordForm";
 import { ImportDataDialog } from "@/components/ImportDataDialog";
 import { Switch } from "@/components/ui/switch";
 import {
+  ActionShelf,
+  CockpitHero,
+  PriorityCard,
+  PriorityStack,
+} from "@/components/ui/cockpit";
+import {
   updateDisplayName,
   updateBaseCurrency,
   deleteAccount,
@@ -98,6 +104,7 @@ export function SettingsClient({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deletePending, startDeleteTransition] = useTransition();
+  const hiddenFeaturesCount = disabledSet.size;
 
   function handleProfileSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -163,7 +170,91 @@ export function SettingsClient({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="cockpit-page mx-auto max-w-5xl px-4 py-6 md:px-10 md:py-10">
+      <div className="space-y-6 md:space-y-8">
+      <CockpitHero
+        eyebrow="Settings"
+        title="Keep the essentials easy to adjust"
+        description="Profile, preferences, security, and data controls stay grouped in a calmer workspace so routine changes never feel heavier than they need to."
+        aside={(
+          <div className="space-y-3">
+            <div>
+              <p className="cockpit-kicker text-[10px] text-white/70">At a glance</p>
+              <p className="text-sm font-medium text-white/80">
+                {aiValue ? "AI enabled" : "AI paused"} · {theme} theme
+              </p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="workspace-hero-panel rounded-2xl p-3">
+                <p className="text-xs uppercase tracking-[0.18em] text-white/60">Currency</p>
+                <p className="mt-1 text-lg font-semibold text-white">{currencyValue}</p>
+              </div>
+              <div className="workspace-hero-panel rounded-2xl p-3">
+                <p className="text-xs uppercase tracking-[0.18em] text-white/60">Hidden features</p>
+                <p className="mt-1 text-lg font-semibold text-white">{hiddenFeaturesCount}</p>
+              </div>
+            </div>
+          </div>
+        )}
+      />
+
+      <ActionShelf
+        eyebrow="Workspace rhythm"
+        title="Settings should stay calm and low-friction"
+        description="The quickest adjustments stay visible first, while deeper account security and data controls sit further down instead of competing for attention."
+      >
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-2xl border border-[var(--workspace-card-border)] bg-background/90 p-4">
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Profile
+            </p>
+            <p className="mt-2 text-base font-semibold text-foreground">{displayName || "Add your name"}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{email}</p>
+          </div>
+          <div className="rounded-2xl border border-[var(--workspace-card-border)] bg-background/90 p-4">
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Appearance
+            </p>
+            <p className="mt-2 text-base font-semibold text-foreground capitalize">{theme} mode</p>
+            <p className="mt-1 text-sm text-muted-foreground">Base currency set to {currencyValue}.</p>
+          </div>
+          <div className="rounded-2xl border border-[var(--workspace-card-border)] bg-background/90 p-4">
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Controls
+            </p>
+            <p className="mt-2 text-base font-semibold text-foreground">
+              {hiddenFeaturesCount === 0 ? "Everything visible" : `${hiddenFeaturesCount} features hidden`}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Security and export tools stay below when you need them.
+            </p>
+          </div>
+        </div>
+      </ActionShelf>
+
+      <PriorityStack
+        eyebrow="What to review"
+        title="Start with the settings that change day-to-day comfort"
+        description="These priorities keep appearance, automation, and account safety easy to find before the more infrequent actions."
+      >
+        <PriorityCard
+          eyebrow="Identity"
+          title="Profile stays simple"
+          description="Name and base preferences should be quick to check so the rest of the app reflects the right defaults."
+        />
+        <PriorityCard
+          eyebrow="Controls"
+          title={aiValue ? "AI and features are currently active" : "AI is currently paused"}
+          description="Feature visibility and AI controls are grouped together so you can shape the workspace without hunting around."
+        />
+        <PriorityCard
+          eyebrow="Safety"
+          title="Security and data tools stay one section lower"
+          description="Password, MFA, export, and deletion remain easy to reach without dominating the page."
+        />
+      </PriorityStack>
+
+      <div className="space-y-6">
       {/* Profile */}
       <Card>
         <CardHeader>
@@ -482,6 +573,8 @@ export function SettingsClient({
           </p>
         </CardContent>
       </Card>
+      </div>
+      </div>
     </div>
   );
 }

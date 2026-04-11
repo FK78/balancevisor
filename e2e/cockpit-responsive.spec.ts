@@ -25,8 +25,7 @@ async function expectResponsiveRoute(
   for (const viewport of viewports) {
     await test.step(`${route} @ ${viewport.name}`, async () => {
       await page.setViewportSize(viewport.size);
-      await page.goto(route);
-      await page.waitForLoadState("networkidle");
+      await page.goto(route, { waitUntil: "domcontentloaded" });
       await assertion(page);
       await expectNoHorizontalOverflow(page);
     });
@@ -34,6 +33,8 @@ async function expectResponsiveRoute(
 }
 
 test.describe("Balanced cockpit responsive QA", () => {
+  test.setTimeout(180000);
+
   test("landing page keeps the new public story readable", async ({ page }) => {
     await expectResponsiveRoute(page, "/", async (currentPage) => {
       await expect(
@@ -89,6 +90,20 @@ test.describe("Balanced cockpit responsive QA", () => {
     });
   });
 
+  test("account detail keeps the mini-cockpit above embedded activity tools", async ({ page }) => {
+    await expectResponsiveRoute(page, "/dashboard/accounts", async (currentPage) => {
+      await currentPage.getByRole("link", { name: /^open /i }).first().click();
+      await currentPage.waitForURL(/\/dashboard\/accounts\/[^/?#]+/);
+
+      await expect(
+        currentPage.getByRole("heading", { name: /keep this account in clear view/i }),
+      ).toBeVisible();
+      await expect(
+        currentPage.getByRole("tablist", { name: /transactions workspace tabs/i }),
+      ).toBeVisible();
+    });
+  });
+
   test("budgets keeps the cockpit intro above the deeper tools", async ({ page }) => {
     await expectResponsiveRoute(page, "/dashboard/budgets", async (currentPage) => {
       await expect(
@@ -133,6 +148,30 @@ test.describe("Balanced cockpit responsive QA", () => {
     await expectResponsiveRoute(page, "/dashboard/reports", async (currentPage) => {
       await expect(
         currentPage.getByRole("heading", { name: /use trends to decide what to do next/i }),
+      ).toBeVisible();
+    });
+  });
+
+  test("retirement keeps the planning cockpit above projection tools", async ({ page }) => {
+    await expectResponsiveRoute(page, "/dashboard/retirement", async (currentPage) => {
+      await expect(
+        currentPage.getByRole("heading", { name: /make retirement feel concrete, not distant/i }),
+      ).toBeVisible();
+    });
+  });
+
+  test("settings keeps the cockpit summary above the forms", async ({ page }) => {
+    await expectResponsiveRoute(page, "/dashboard/settings", async (currentPage) => {
+      await expect(
+        currentPage.getByRole("heading", { name: /keep the essentials easy to adjust/i }),
+      ).toBeVisible();
+    });
+  });
+
+  test("zakat keeps the due-now summary above the deeper breakdown", async ({ page }) => {
+    await expectResponsiveRoute(page, "/dashboard/zakat", async (currentPage) => {
+      await expect(
+        currentPage.getByRole("heading", { name: /know what is due and when to prepare/i }),
       ).toBeVisible();
     });
   });

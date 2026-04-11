@@ -269,6 +269,8 @@ describe("Dashboard decision widgets", () => {
     expect(
       screen.getByText("Recent items that may need your attention first."),
     ).toBeInTheDocument();
+    expect(screen.getByText("2 items in watchlist")).toBeInTheDocument();
+    expect(screen.getByText("1 item needs review right now.")).toBeInTheDocument();
     expect(screen.getByText("Needs review")).toBeInTheDocument();
     expect(screen.getByText("Transfer")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open transactions" })).toHaveAttribute(

@@ -42,6 +42,13 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import {
+  ActionShelf,
+  CockpitHero,
+  PriorityCard,
+  PriorityStack,
+  SectionHeader,
+} from "@/components/ui/cockpit";
 import { upsertRetirementProfile } from "@/db/mutations/retirement";
 import posthog from "posthog-js";
 import { RetirementAIAdvisor } from "@/components/RetirementAIAdvisor";
@@ -611,34 +618,89 @@ function SetupView({
   suggestions: RetirementSuggestions;
   baseCurrency: string;
 }) {
-  return (
-    <div className="mx-auto max-w-2xl space-y-6 px-4 py-6 md:px-10 md:py-10">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          Retirement Planner
-        </h1>
-        <p className="text-muted-foreground mt-0.5 text-sm">
-          We&apos;ll use your financial data to estimate when you can retire
-        </p>
-      </div>
+  const hasData = suggestions.hasEnoughData;
+  const compactCurrency = (value: number) => formatCompactCurrency(value, baseCurrency);
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Setup</CardTitle>
-          <CardDescription>
-            Just two questions &mdash; we&apos;ll fill in the rest from your actual
-            spending and income.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <RetirementProfileForm
-            profile={null}
-            suggestions={suggestions}
-            baseCurrency={baseCurrency}
-            minimal
+  return (
+    <div className="cockpit-page mx-auto max-w-5xl px-4 py-6 md:px-10 md:py-10">
+      <div className="space-y-6 md:space-y-8">
+        <CockpitHero
+          eyebrow="Retirement"
+          title="Make retirement feel concrete, not distant"
+          description="Start with a simple setup, then let your existing money data shape the projection instead of asking you to build everything from scratch."
+          aside={(
+            <div className="space-y-3">
+              <div>
+                <p className="cockpit-kicker text-[10px] text-white/70">Data status</p>
+                <p className="text-sm font-medium text-white/80">
+                  {hasData ? "Enough history to suggest a baseline" : "We can start simple and refine later"}
+                </p>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="workspace-hero-panel rounded-2xl p-3">
+                  <p className="text-xs uppercase tracking-[0.18em] text-white/60">Salary estimate</p>
+                  <p className="mt-1 text-lg font-semibold text-white">
+                    {hasData ? compactCurrency(suggestions.estimatedAnnualSalary) : "Pending"}
+                  </p>
+                </div>
+                <div className="workspace-hero-panel rounded-2xl p-3">
+                  <p className="text-xs uppercase tracking-[0.18em] text-white/60">Spending signal</p>
+                  <p className="mt-1 text-lg font-semibold text-white">
+                    {hasData ? compactCurrency(suggestions.suggestedAnnualSpending) : "Add more data"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        />
+
+        <ActionShelf
+          eyebrow="Quick setup"
+          title="See the next planning move first"
+          description="Answer the essential questions here and let the planner fill in the rest from the financial history you already have."
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick setup</CardTitle>
+              <CardDescription>
+                Just two questions, with sensible defaults pulled from your real income and spending where possible.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <RetirementProfileForm
+                profile={null}
+                suggestions={suggestions}
+                baseCurrency={baseCurrency}
+                minimal
+              />
+            </CardContent>
+          </Card>
+        </ActionShelf>
+
+        <PriorityStack
+          eyebrow="What this unlocks"
+          title="Use the first estimate to create momentum"
+          description="The goal is not precision on day one. It is giving you a believable next step and a projection you can keep improving."
+        >
+          <PriorityCard
+            eyebrow="Baseline"
+            title={hasData ? "We can suggest a realistic starting point" : "You can start without perfect data"}
+            description={hasData
+              ? `Current activity suggests around ${compactCurrency(suggestions.suggestedAnnualSpending)} of annual retirement spending.`
+              : "Once more account activity lands, the planner will suggest spending and savings assumptions automatically."}
           />
-        </CardContent>
-      </Card>
+          <PriorityCard
+            eyebrow="Savings"
+            title={hasData ? `${compactCurrency(suggestions.suggestedMonthlySavings)} monthly saving signal` : "Savings signal builds over time"}
+            description="The planner uses savings momentum to show how today’s habits affect your retirement timing."
+          />
+          <PriorityCard
+            eyebrow="Confidence"
+            title="Adjust assumptions without rebuilding the whole plan"
+            description="You can refine return, inflation, and life expectancy later, once the first timeline is visible."
+          />
+        </PriorityStack>
+      </div>
     </div>
   );
 }
@@ -656,23 +718,43 @@ export function RetirementPageClient({
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Retirement Planner
-          </h1>
-          <p className="text-muted-foreground mt-0.5 text-sm">
-            Estimate when you can retire based on your financial data
-          </p>
-        </div>
+    <div className="cockpit-page mx-auto max-w-7xl px-4 py-6 md:px-10 md:py-10">
+      <div className="space-y-6 md:space-y-8">
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" variant="outline" className="gap-1.5">
-              <Pencil className="h-3.5 w-3.5" />
-              Edit Profile
-            </Button>
-          </DialogTrigger>
+          <CockpitHero
+            eyebrow="Retirement"
+            title="Make retirement feel concrete, not distant"
+            description="The planner now frames your retirement timing, funding gap, and next adjustment in one place before you dive into charts and scenarios."
+            action={(
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline" className="gap-1.5">
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit Profile
+                </Button>
+              </DialogTrigger>
+            )}
+            aside={(
+              <div className="space-y-3">
+                <div>
+                  <p className="cockpit-kicker text-[10px] text-white/70">Current outlook</p>
+                  <p className="text-sm font-medium text-white/80">
+                    {projection.canRetireOnTarget ? "On track for your target age" : "A funding gap still needs attention"}
+                  </p>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="workspace-hero-panel rounded-2xl p-3">
+                    <p className="text-xs uppercase tracking-[0.18em] text-white/60">Target age</p>
+                    <p className="mt-1 text-lg font-semibold text-white">{projection.targetRetirementAge}</p>
+                  </div>
+                  <div className="workspace-hero-panel rounded-2xl p-3">
+                    <p className="text-xs uppercase tracking-[0.18em] text-white/60">Fund progress</p>
+                    <p className="mt-1 text-lg font-semibold text-white">{projection.fundProgress}%</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          />
+
           <DialogContent mobileLayout="full-height" className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Edit Retirement Profile</DialogTitle>
@@ -684,45 +766,85 @@ export function RetirementPageClient({
             />
           </DialogContent>
         </Dialog>
-      </div>
 
-      <RetirementCountdown projection={projection} baseCurrency={baseCurrency} />
-
-      {/* Progress bar */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Fund progress at target age</span>
-              <span className="font-medium">{projection.fundProgress}%</span>
-            </div>
-            <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
-              <div
-                className={`h-full rounded-full transition-all ${
-                  projection.fundProgress >= 100
-                    ? "bg-green-500"
-                    : projection.fundProgress >= 60
-                      ? "bg-amber-500"
-                      : "bg-red-500"
-                }`}
-                style={{ width: `${Math.min(100, projection.fundProgress)}%` }}
-              />
-            </div>
+        <ActionShelf
+          eyebrow="Planning focus"
+          title="See the next planning move first"
+          description="Start with the headline retirement call, then use the deeper chart and scenario tools to stress-test it."
+        >
+          <div className="space-y-4">
+            <RetirementCountdown projection={projection} baseCurrency={baseCurrency} />
+            <Card>
+              <CardContent className="pt-6">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Fund progress at target age</span>
+                    <span className="font-medium">{projection.fundProgress}%</span>
+                  </div>
+                  <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        projection.fundProgress >= 100
+                          ? "bg-green-500"
+                          : projection.fundProgress >= 60
+                            ? "bg-amber-500"
+                            : "bg-red-500"
+                      }`}
+                      style={{ width: `${Math.min(100, projection.fundProgress)}%` }}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+        </ActionShelf>
 
-      <FinancialSnapshot
-        projection={projection}
-        baseCurrency={baseCurrency}
-        estimatedAnnualSalary={suggestions.estimatedAnnualSalary}
-      />
+        <PriorityStack
+          eyebrow="Key decisions"
+          title="Keep the retirement trade-offs in front of you"
+          description="These signals make it easier to decide whether to save more, adjust assumptions, or accept a later retirement age."
+        >
+          <PriorityCard
+            eyebrow="Timeline"
+            title={projection.canRetireOnTarget ? "Target age looks realistic" : `Estimated retirement age ${projection.estimatedRetirementAge}`}
+            description={projection.canRetireOnTarget
+              ? "Your current saving and growth assumptions point to a realistic path for the target you set."
+              : "The current plan lands later than your target, which usually means either increasing savings or revising expectations."}
+          />
+          <PriorityCard
+            eyebrow="Gap"
+            title={projection.fundGap > 0
+              ? `${formatCompactCurrency(projection.fundGap, baseCurrency)} still to close`
+              : "Funding target is currently covered"}
+            description="Use the chart and scenarios below to understand whether the gap is better solved by time, savings, or assumption changes."
+          />
+          <PriorityCard
+            eyebrow="Cash flow"
+            title={`${formatCompactCurrency(projection.monthlySavings, baseCurrency)} saved each month`}
+            description="Monthly savings is the clearest lever you control today, so it deserves attention before more abstract assumptions."
+          />
+        </PriorityStack>
 
-      <RetirementProjectionChart projection={projection} baseCurrency={baseCurrency} />
+        <section className="space-y-4">
+          <SectionHeader
+            eyebrow="Deeper tools"
+            title="Review the projection, then pressure-test it"
+            description="Charts, scenarios, and AI guidance sit underneath the headline view so they support the decision instead of replacing it."
+          />
 
-      <RetirementScenarios projection={projection} />
+          <FinancialSnapshot
+            projection={projection}
+            baseCurrency={baseCurrency}
+            estimatedAnnualSalary={suggestions.estimatedAnnualSalary}
+          />
 
-      <RetirementAIAdvisor />
+          <RetirementProjectionChart projection={projection} baseCurrency={baseCurrency} />
+
+          <RetirementScenarios projection={projection} />
+
+          <RetirementAIAdvisor />
+        </section>
+      </div>
     </div>
   );
 }

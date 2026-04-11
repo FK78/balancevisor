@@ -1,21 +1,8 @@
 import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  CreditCard,
-  PiggyBank,
-  TrendingUp,
   Users,
-  Wallet,
-  ChevronLeft,
 } from "lucide-react";
 import { getAccountById } from "@/db/queries/accounts";
 import { getAccountsWithDetails } from "@/db/queries/accounts";
@@ -40,6 +27,7 @@ import { ShareDialog } from "@/components/ShareDialog";
 import { TransactionsClient } from "@/components/TransactionsClient";
 import { DecisionMetricCard } from "@/components/dense-data/DecisionMetricCard";
 import { DecisionRow } from "@/components/dense-data/DecisionRow";
+import { AccountDetailPageClient } from "@/components/accounts/AccountDetailPageClient";
 import {
   buildAccountCardDecision,
   buildVisibleExposureTotal,
@@ -53,13 +41,6 @@ const typeConfig: Record<
   savings: { label: "Savings", variant: "default" },
   creditCard: { label: "Credit Card", variant: "destructive" },
   investment: { label: "Investment", variant: "outline" },
-};
-
-const typeIcons: Record<string, typeof Wallet> = {
-  currentAccount: Wallet,
-  savings: PiggyBank,
-  creditCard: CreditCard,
-  investment: TrendingUp,
 };
 
 const PAGE_SIZE = 10;
@@ -103,7 +84,6 @@ export default async function AccountDetailPage({
   const account = await getAccountById(userId, email, accountId);
   if (!account) notFound();
 
-  const Icon = typeIcons[account.type ?? ""] ?? Wallet;
   const config = typeConfig[account.type ?? ""] ?? {
     label: account.type,
     variant: "secondary" as const,
@@ -203,127 +183,139 @@ export default async function AccountDetailPage({
     shareCount: shares.length,
   });
   const netFlow = totalIncome - totalExpenses + totalRefunds;
+  const accountActions = (
+    <div className="space-y-4">
+      <DecisionRow
+        title="Account decision snapshot"
+        amount={accountDecision.amountLabel}
+        amountTone={accountDecision.amountTone}
+        statusLabel={accountDecision.statusLabel}
+        interpretation={accountDecision.interpretation}
+        meta={[
+          accountDecision.typeLabel,
+          accountDecision.transactionsLabel,
+          accountDecision.shareLabel,
+          accountDecision.balanceShareLabel,
+        ]}
+      />
 
-  return (
-    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
-      {/* Breadcrumb */}
-      <div>
-        <Button asChild variant="ghost" size="sm" className="gap-1 px-2 text-muted-foreground">
-          <Link href="/dashboard/accounts">
-            <ChevronLeft className="h-4 w-4" />
-            Accounts
-          </Link>
+      <div className="flex flex-wrap items-center gap-2">
+        {!account.isShared ? (
+          <ShareDialog
+            resourceType="account"
+            resourceId={account.id}
+            resourceName={account.accountName}
+            existingShares={shares.map((s) => ({
+              id: s.id,
+              shared_with_email: s.shared_with_email,
+              permission: s.permission,
+              status: s.status,
+            }))}
+          />
+        ) : null}
+        {!account.isShared ? <AccountFormDialog account={account} /> : null}
+        {!account.isShared ? <DeleteAccountButton account={account} /> : null}
+        <Button asChild variant="outline" size="sm">
+          <a href="#account-activity">Jump to activity</a>
         </Button>
       </div>
+    </div>
+  );
+  const accountPriorities = (
+    <>
+      <DecisionMetricCard
+        eyebrow="Income"
+        title={formatCurrency(totalIncome, baseCurrency)}
+        subtitle="Money in during selected period"
+        interpretation="Use this to verify salary and recurring inflows landed on schedule."
+      />
+      <DecisionMetricCard
+        eyebrow="Spend"
+        title={formatCurrency(totalExpenses, baseCurrency)}
+        subtitle="Outflows during selected period"
+        interpretation="Compare spend against planned monthly thresholds before adding commitments."
+      />
+      <DecisionMetricCard
+        eyebrow="Refunds"
+        title={formatCurrency(totalRefunds, baseCurrency)}
+        subtitle="Recovered spend"
+        interpretation="Refunds offset expenses, but they are less predictable than regular income."
+      />
+      <DecisionMetricCard
+        eyebrow="Net flow"
+        title={`${netFlow < 0 ? "−" : ""}${formatCurrency(Math.abs(netFlow), baseCurrency)}`}
+        subtitle="Income − spend + refunds"
+        interpretation={
+          netFlow >= 0
+            ? "Positive period cash flow supports savings or debt paydown."
+            : "Negative period cash flow. Review recent spending pressure."
+        }
+      />
+    </>
+  );
 
-      {/* Account decision cockpit */}
-      <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="bg-primary/10 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl">
-              <Icon className="text-primary h-6 w-6" />
-            </div>
-            <div>
-              <CardTitle className="text-xl">{account.accountName}</CardTitle>
-              <CardDescription className="text-sm">
-                {account.transactions} transaction{account.transactions !== 1 ? "s" : ""}
-              </CardDescription>
-            </div>
-          </div>
+  return (
+    <AccountDetailPageClient
+      breadcrumbHref="/dashboard/accounts"
+      accountName={account.accountName}
+      heroAside={(
+        <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant={config.variant}>{config.label}</Badge>
-            {account.isShared && (
-              <Badge variant="outline" className="gap-1 text-[10px]">
+            {account.isShared ? (
+              <Badge variant="outline" className="gap-1 text-[10px] text-white/90">
                 <Users className="h-3 w-3" />
                 Shared
               </Badge>
+            ) : (
+              <Badge variant="outline" className="text-[10px] text-white/90">
+                Private
+              </Badge>
             )}
-            {!account.isShared && (
-              <ShareDialog
-                resourceType="account"
-                resourceId={account.id}
-                resourceName={account.accountName}
-                existingShares={shares.map((s) => ({
-                  id: s.id,
-                  shared_with_email: s.shared_with_email,
-                  permission: s.permission,
-                  status: s.status,
-                }))}
-              />
-            )}
-            {!account.isShared && <AccountFormDialog account={account} />}
-            {!account.isShared && <DeleteAccountButton account={account} />}
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <DecisionRow
-            title="Account decision snapshot"
-            amount={accountDecision.amountLabel}
-            amountTone={accountDecision.amountTone}
-            statusLabel={accountDecision.statusLabel}
-            interpretation={accountDecision.interpretation}
-            meta={[
-              accountDecision.typeLabel,
-              accountDecision.transactionsLabel,
-              accountDecision.shareLabel,
-              accountDecision.balanceShareLabel,
-            ]}
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="workspace-hero-panel rounded-2xl p-3">
+              <p className="text-xs uppercase tracking-[0.18em] text-white/60">Balance</p>
+              <p className="mt-1 text-lg font-semibold text-white">
+                {formatCurrency(account.balance, baseCurrency)}
+              </p>
+            </div>
+            <div className="workspace-hero-panel rounded-2xl p-3">
+              <p className="text-xs uppercase tracking-[0.18em] text-white/60">Transactions</p>
+              <p className="mt-1 text-lg font-semibold text-white">
+                {account.transactions}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      actionShelf={accountActions}
+      priorityCards={accountPriorities}
+      activity={(
+        <div id="account-activity">
+          <TransactionsClient
+            transactions={transactions}
+            accounts={allAccounts}
+            categories={categories}
+            currentPage={requestedPage}
+            pageSize={PAGE_SIZE}
+            totalTransactions={totalTransactions}
+            totalIncome={totalIncome}
+            totalExpenses={totalExpenses}
+            totalRefunds={totalRefunds}
+            startDate={startDate}
+            endDate={endDate}
+            search={search}
+            accountId={accountId}
+            dailyTrend={dailyTrend}
+            dailyCategoryExpenses={dailyCategoryExpenses}
+            currency={baseCurrency}
+            splits={serializedSplits}
+            uncategorisedCount={uncategorisedCount}
+            shellMode="embedded"
           />
-
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <DecisionMetricCard
-              eyebrow="Income"
-              title={formatCurrency(totalIncome, baseCurrency)}
-              subtitle="Money in during selected period"
-              interpretation="Use this to verify salary and recurring inflows landed on schedule."
-            />
-            <DecisionMetricCard
-              eyebrow="Spend"
-              title={formatCurrency(totalExpenses, baseCurrency)}
-              subtitle="Outflows during selected period"
-              interpretation="Compare spend against planned monthly thresholds before adding commitments."
-            />
-            <DecisionMetricCard
-              eyebrow="Refunds"
-              title={formatCurrency(totalRefunds, baseCurrency)}
-              subtitle="Recovered spend"
-              interpretation="Refunds offset expenses, but they are less predictable than regular income."
-            />
-            <DecisionMetricCard
-              eyebrow="Net flow"
-              title={`${netFlow < 0 ? "−" : ""}${formatCurrency(Math.abs(netFlow), baseCurrency)}`}
-              subtitle="Income − spend + refunds"
-              interpretation={
-                netFlow >= 0
-                  ? "Positive period cash flow supports savings or debt paydown."
-                  : "Negative period cash flow. Review recent spending pressure."
-              }
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Transactions list (pre-filtered to this account) */}
-      <TransactionsClient
-        transactions={transactions}
-        accounts={allAccounts}
-        categories={categories}
-        currentPage={requestedPage}
-        pageSize={PAGE_SIZE}
-        totalTransactions={totalTransactions}
-        totalIncome={totalIncome}
-        totalExpenses={totalExpenses}
-        totalRefunds={totalRefunds}
-        startDate={startDate}
-        endDate={endDate}
-        search={search}
-        accountId={accountId}
-        dailyTrend={dailyTrend}
-        dailyCategoryExpenses={dailyCategoryExpenses}
-        currency={baseCurrency}
-        splits={serializedSplits}
-        uncategorisedCount={uncategorisedCount}
-      />
-    </div>
+        </div>
+      )}
+    />
   );
 }

@@ -99,6 +99,7 @@ export function TransactionsClient({
   currency,
   splits,
   uncategorisedCount,
+  shellMode = "full",
 }: {
   transactions: Transaction[];
   accounts: AccountWithDetails[];
@@ -118,6 +119,7 @@ export function TransactionsClient({
   currency: string;
   splits?: Record<string, SplitDetail[]>;
   uncategorisedCount?: number;
+  shellMode?: "full" | "embedded";
 }) {
   const router = useRouter();
   const aiEnabled = useAiEnabled();
@@ -163,6 +165,7 @@ export function TransactionsClient({
   const hasReviewItemsOutsideCurrentQueue = (uncategorisedCount ?? 0) > 0 && reviewTransactions.length === 0;
   const searchResultSummary = `Showing ${totalTransactions} transaction${totalTransactions === 1 ? "" : "s"}`;
   const heroStatusSummary = `${totalTransactions} transaction${totalTransactions === 1 ? "" : "s"} loaded`;
+  const showFullShell = shellMode === "full";
   const transactionPriorityCards = [
     {
       id: "review",
@@ -544,106 +547,8 @@ export function TransactionsClient({
     );
   }
 
-  return (
-    <div className="cockpit-page mx-auto max-w-7xl px-4 py-6 md:px-10 md:py-10">
-      <CockpitHero
-        eyebrow="Transactions"
-        title={reviewQueueCount > 0 || hasReviewItemsOutsideCurrentQueue
-          ? "A few transactions need a decision"
-          : "Your transaction flow is calm and easy to act on"}
-        description={reviewQueueCount > 0 || hasReviewItemsOutsideCurrentQueue
-          ? "We pull attention toward the cleanup queue first, then keep search and the wider feed close by."
-          : "The feed stays focused on what changed, while search and review remain ready the moment you need them."}
-        action={reviewQueueCount > 0 || hasReviewItemsOutsideCurrentQueue ? (
-          <Button type="button" className="workspace-primary-action" onClick={() => setActiveTab("review")}>
-            Open review queue
-          </Button>
-        ) : canCreateTransaction ? (
-          <TransactionFormDialog
-            accounts={accounts}
-            categories={categories}
-            onSaved={handleTransactionsAdded}
-          />
-        ) : (
-          <Button asChild variant="outline">
-            <Link href={accounts.length === 0 ? "/dashboard/accounts" : "/dashboard/categories"}>
-              {accounts.length === 0 ? "Create account to start" : "Create category to start"}
-            </Link>
-          </Button>
-        )}
-        aside={(
-          <div className="space-y-3">
-            <div>
-              <p className="cockpit-kicker text-[10px] text-white/70">Current status</p>
-              <p className="text-sm font-medium text-white/80">
-                {heroStatusSummary}
-              </p>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <div className="workspace-hero-panel rounded-2xl p-3">
-                <p className="text-xs uppercase tracking-[0.18em] text-white/60">Review</p>
-                <p className="mt-1 text-lg font-semibold text-white">{uncategorisedCount ?? 0}</p>
-              </div>
-              <div className="workspace-hero-panel rounded-2xl p-3">
-                <p className="text-xs uppercase tracking-[0.18em] text-white/60">Net spend</p>
-                <p className="mt-1 text-lg font-semibold text-white">
-                  {formatCurrency(totalExpenses - totalRefunds, currency)}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      />
-
-      <ActionShelf
-        eyebrow="Tools"
-        title="Keep the action shelf nearby"
-        description="Quick add is primary, while import, transfer, split, and bulk cleanup stay one tap away instead of competing with the whole page."
-      >
-        {canCreateTransaction ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <QuickAddTransaction
-              onSaved={handleTransactionsAdded}
-            />
-            <ImportCSVDialog
-              accounts={accounts}
-              onImported={() => router.refresh()}
-            />
-            {accounts.length >= 2 && (
-              <TransferFormDialog
-                accounts={accounts}
-                onSaved={(id) => handleTransactionsAdded([id])}
-              />
-            )}
-            <SplitTransactionDialog
-              accounts={accounts}
-              categories={categories}
-              onSaved={() => router.refresh()}
-            />
-            {(uncategorisedCount ?? 0) > 0 && activeTab !== "review" && (
-              <BulkCategoriseButton count={uncategorisedCount ?? 0} />
-            )}
-          </div>
-        ) : (
-          <Button asChild size="sm" variant="outline">
-            <Link href={accounts.length === 0 ? "/dashboard/accounts" : "/dashboard/categories"}>
-              {accounts.length === 0 ? "Create account to start" : "Create category to start"}
-            </Link>
-          </Button>
-        )}
-      </ActionShelf>
-
-      <PriorityStack
-        eyebrow="Decision support"
-        title="Know what changed before you drill in"
-        description="These cards keep the most useful operational context visible even when space is tight."
-      >
-        {transactionPriorityCards.map((card) => (
-          <PriorityCard key={card.id} title={card.title} description={card.description} />
-        ))}
-      </PriorityStack>
-
-      <section className="space-y-4">
+  const workspaceContent = (
+    <section className="space-y-4">
         <div className="workspace-surface space-y-3 rounded-[28px] border border-[var(--workspace-card-border)] px-4 py-4 shadow-sm">
           <div className="space-y-1">
             <p className="cockpit-kicker">Workspace</p>
@@ -1063,6 +968,112 @@ export function TransactionsClient({
           </div>
         ))}
       </section>
+  );
+
+  return (
+    <div className={showFullShell ? "cockpit-page mx-auto max-w-7xl px-4 py-6 md:px-10 md:py-10" : "space-y-4"}>
+      {showFullShell ? (
+        <>
+          <CockpitHero
+            eyebrow="Transactions"
+            title={reviewQueueCount > 0 || hasReviewItemsOutsideCurrentQueue
+              ? "A few transactions need a decision"
+              : "Your transaction flow is calm and easy to act on"}
+            description={reviewQueueCount > 0 || hasReviewItemsOutsideCurrentQueue
+              ? "We pull attention toward the cleanup queue first, then keep search and the wider feed close by."
+              : "The feed stays focused on what changed, while search and review remain ready the moment you need them."}
+            action={reviewQueueCount > 0 || hasReviewItemsOutsideCurrentQueue ? (
+              <Button type="button" className="workspace-primary-action" onClick={() => setActiveTab("review")}>
+                Open review queue
+              </Button>
+            ) : canCreateTransaction ? (
+              <TransactionFormDialog
+                accounts={accounts}
+                categories={categories}
+                onSaved={handleTransactionsAdded}
+              />
+            ) : (
+              <Button asChild variant="outline">
+                <Link href={accounts.length === 0 ? "/dashboard/accounts" : "/dashboard/categories"}>
+                  {accounts.length === 0 ? "Create account to start" : "Create category to start"}
+                </Link>
+              </Button>
+            )}
+            aside={(
+              <div className="space-y-3">
+                <div>
+                  <p className="cockpit-kicker text-[10px] text-white/70">Current status</p>
+                  <p className="text-sm font-medium text-white/80">
+                    {heroStatusSummary}
+                  </p>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="workspace-hero-panel rounded-2xl p-3">
+                    <p className="text-xs uppercase tracking-[0.18em] text-white/60">Review</p>
+                    <p className="mt-1 text-lg font-semibold text-white">{uncategorisedCount ?? 0}</p>
+                  </div>
+                  <div className="workspace-hero-panel rounded-2xl p-3">
+                    <p className="text-xs uppercase tracking-[0.18em] text-white/60">Net spend</p>
+                    <p className="mt-1 text-lg font-semibold text-white">
+                      {formatCurrency(totalExpenses - totalRefunds, currency)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          />
+
+          <ActionShelf
+            eyebrow="Tools"
+            title="Keep the action shelf nearby"
+            description="Quick add is primary, while import, transfer, split, and bulk cleanup stay one tap away instead of competing with the whole page."
+          >
+            {canCreateTransaction ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <QuickAddTransaction
+                  onSaved={handleTransactionsAdded}
+                />
+                <ImportCSVDialog
+                  accounts={accounts}
+                  onImported={() => router.refresh()}
+                />
+                {accounts.length >= 2 && (
+                  <TransferFormDialog
+                    accounts={accounts}
+                    onSaved={(id) => handleTransactionsAdded([id])}
+                  />
+                )}
+                <SplitTransactionDialog
+                  accounts={accounts}
+                  categories={categories}
+                  onSaved={() => router.refresh()}
+                />
+                {(uncategorisedCount ?? 0) > 0 && activeTab !== "review" && (
+                  <BulkCategoriseButton count={uncategorisedCount ?? 0} />
+                )}
+              </div>
+            ) : (
+              <Button asChild size="sm" variant="outline">
+                <Link href={accounts.length === 0 ? "/dashboard/accounts" : "/dashboard/categories"}>
+                  {accounts.length === 0 ? "Create account to start" : "Create category to start"}
+                </Link>
+              </Button>
+            )}
+          </ActionShelf>
+
+          <PriorityStack
+            eyebrow="Decision support"
+            title="Know what changed before you drill in"
+            description="These cards keep the most useful operational context visible even when space is tight."
+          >
+            {transactionPriorityCards.map((card) => (
+              <PriorityCard key={card.id} title={card.title} description={card.description} />
+            ))}
+          </PriorityStack>
+
+          {workspaceContent}
+        </>
+      ) : workspaceContent}
     </div>
   );
 }

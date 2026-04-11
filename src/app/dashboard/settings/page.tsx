@@ -21,19 +21,13 @@ export default async function SettingsPage() {
   const email = user?.email ?? "";
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Settings</h1>
-      </div>
-
-      <SettingsClient
-        displayName={displayName}
-        email={email}
-        baseCurrency={baseCurrency}
-        supportedCurrencies={SUPPORTED_BASE_CURRENCIES}
-        aiEnabled={aiEnabled}
-        disabledFeatures={disabledFeatures}
-      />
-    </div>
+    <SettingsClient
+      displayName={displayName}
+      email={email}
+      baseCurrency={baseCurrency}
+      supportedCurrencies={SUPPORTED_BASE_CURRENCIES}
+      aiEnabled={aiEnabled}
+      disabledFeatures={disabledFeatures}
+    />
   );
 }

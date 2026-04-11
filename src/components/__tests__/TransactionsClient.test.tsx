@@ -333,4 +333,36 @@ describe("TransactionsClient", () => {
     expect(screen.queryByText("Needs review")).not.toBeInTheDocument();
     expect(screen.getByText(/review items exist outside this page/i)).toBeInTheDocument();
   });
+
+  it("supports an embedded shell mode for nested cockpit pages", () => {
+    render(
+      <TransactionsClient
+        transactions={[]}
+        accounts={[{ id: "acc_1", accountName: "Main Account" } as never]}
+        categories={[{ id: "cat_1", name: "Groceries" } as never]}
+        currentPage={1}
+        pageSize={10}
+        totalTransactions={0}
+        totalIncome={0}
+        totalExpenses={0}
+        totalRefunds={0}
+        dailyTrend={[]}
+        dailyCategoryExpenses={[]}
+        currency="GBP"
+        splits={{}}
+        uncategorisedCount={0}
+        shellMode="embedded"
+      />,
+    );
+
+    expect(
+      screen.queryByRole("heading", { name: /keep the action shelf nearby/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: /know what changed before you drill in/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("tablist", { name: /transactions workspace tabs/i }),
+    ).toBeInTheDocument();
+  });
 });

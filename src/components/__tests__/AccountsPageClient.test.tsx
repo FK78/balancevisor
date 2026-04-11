@@ -29,6 +29,10 @@ describe("AccountsPageClient", () => {
         accountCards={<div>Account Cards Widget</div>}
         healthCheck={<div>Health Check Widget</div>}
         otherAssets={<div>Other Assets Widget</div>}
+        primaryAccountLink={{
+          href: "/dashboard/accounts/acc_1",
+          label: "Open Monzo Current",
+        }}
       />,
     );
 
@@ -39,6 +43,10 @@ describe("AccountsPageClient", () => {
     expect(screen.getByRole("tab", { name: "Summary" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText("Stats Summary Widget")).toBeInTheDocument();
     expect(screen.queryByText("Account Cards Widget")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open Monzo Current" })).toHaveAttribute(
+      "href",
+      "/dashboard/accounts/acc_1",
+    );
 
     await user.click(screen.getByRole("tab", { name: "Accounts" }));
 

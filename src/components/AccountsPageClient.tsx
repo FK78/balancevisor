@@ -1,12 +1,14 @@
 "use client";
 
 import { type ReactNode, useState } from "react";
+import Link from "next/link";
 import { ReadOnlyWidgetGrid } from "@/components/ReadOnlyWidgetGrid";
 import { WidgetLayoutProvider } from "@/components/WidgetLayoutProvider";
 import { DashboardWidget } from "@/components/DashboardWidget";
 import { WorkspaceTabs } from "@/components/ui/workspace-tabs";
 import { useWidgetLayoutContext } from "@/components/WidgetLayoutProvider";
 import { ActionShelf, CockpitHero, SoftPanel } from "@/components/ui/cockpit";
+import { Button } from "@/components/ui/button";
 import {
   ACCOUNTS_WORKSPACE_TABS,
   type AccountsWorkspaceTab,
@@ -23,6 +25,10 @@ interface AccountsPageClientProps {
   readonly accountCards: ReactNode;
   readonly healthCheck: ReactNode;
   readonly otherAssets: ReactNode;
+  readonly primaryAccountLink?: {
+    readonly href: string;
+    readonly label: string;
+  };
 }
 
 export function AccountsPageClient({
@@ -34,6 +40,7 @@ export function AccountsPageClient({
   accountCards,
   healthCheck,
   otherAssets,
+  primaryAccountLink,
 }: AccountsPageClientProps) {
   return (
     <WidgetLayoutProvider pageId="accounts" serverLayout={serverLayout}>
@@ -45,6 +52,7 @@ export function AccountsPageClient({
         accountCards={accountCards}
         healthCheck={healthCheck}
         otherAssets={otherAssets}
+        primaryAccountLink={primaryAccountLink}
       />
     </WidgetLayoutProvider>
   );
@@ -58,6 +66,7 @@ function AccountsPageContent({
   accountCards,
   healthCheck,
   otherAssets,
+  primaryAccountLink,
 }: Omit<AccountsPageClientProps, "serverLayout">) {
   const { layout } = useWidgetLayoutContext();
   const [activeTab, setActiveTab] = useState<AccountsWorkspaceTab>("summary");
@@ -106,6 +115,11 @@ function AccountsPageContent({
         title="Your money, organised"
         description="Keep balances, account roster, and insights in clear workspaces, with the most important shifts above the fold."
         titleAs="h2"
+        action={primaryAccountLink ? (
+          <Button asChild variant="outline">
+            <Link href={primaryAccountLink.href}>{primaryAccountLink.label}</Link>
+          </Button>
+        ) : null}
         aside={(
           <div className="space-y-2">
             <p className="cockpit-kicker text-[10px] text-white/70">Workspace</p>

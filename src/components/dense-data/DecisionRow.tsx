@@ -40,7 +40,9 @@ export function DecisionRow({
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           {cleanStatusLabel ? (
-            <p className="decision-eyebrow">{cleanStatusLabel}</p>
+            <p className="decision-eyebrow">
+              <span className="decision-status-pill">{cleanStatusLabel}</span>
+            </p>
           ) : null}
           <h3 className="text-base font-semibold tracking-tight text-foreground sm:text-lg">
             {title}
@@ -54,7 +56,9 @@ export function DecisionRow({
       {cleanMeta.length > 0 ? (
         <ul className="decision-meta">
           {cleanMeta.map((item, index) => (
-            <li key={`${item}-${index}`}>{item}</li>
+            <li key={`${item}-${index}`}>
+              <span className="decision-meta-pill">{item}</span>
+            </li>
           ))}
         </ul>
       ) : null}

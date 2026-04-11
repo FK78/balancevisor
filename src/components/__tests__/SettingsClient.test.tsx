@@ -78,4 +78,24 @@ describe("SettingsClient", () => {
       screen.getByRole("button", { name: /cancel/i }).closest("[data-slot='dialog-footer']"),
     ).toHaveAttribute("data-mobile-sticky", "true");
   });
+
+  it("shows a cockpit summary above the deeper settings forms", () => {
+    render(
+      <SettingsClient
+        displayName="Fahad"
+        email="fahad@example.com"
+        baseCurrency="USD"
+        supportedCurrencies={["USD", "GBP"]}
+        aiEnabled
+        disabledFeatures={["zakat"]}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: /keep the essentials easy to adjust/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /settings should stay calm and low-friction/i }),
+    ).toBeInTheDocument();
+  });
 });
