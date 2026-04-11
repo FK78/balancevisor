@@ -285,8 +285,8 @@ export default async function InvestmentsPage() {
   }
 
   const totalInvestmentValue = holdings.reduce((sum, holding) => sum + holding.value, 0) + brokerCash;
-  const totalCost = holdings.reduce((sum, holding) => sum + holding.averagePrice * holding.quantity, 0);
   const totalGainLoss = holdings.reduce((sum, holding) => sum + holding.gainLoss, 0);
+  const totalCost = holdings.reduce((sum, holding) => sum + (holding.value - holding.gainLoss), 0);
   const totalGainLossPercent = totalCost > 0 ? (totalGainLoss / totalCost) * 100 : 0;
   const totalRealizedGain = sales.reduce((sum, sale) => sum + sale.realized_gain, 0);
   const sortedHoldings = [...holdings].sort((left, right) => right.value - left.value);

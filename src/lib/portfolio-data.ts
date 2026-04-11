@@ -132,8 +132,8 @@ export async function getPortfolioSnapshot(userId: string): Promise<PortfolioSna
   }
 
   const totalValue = holdings.reduce((s, h) => s + h.value, 0) + brokerCash;
-  const totalCost = holdings.reduce((s, h) => s + h.averagePrice * h.quantity, 0);
   const totalGainLoss = holdings.reduce((s, h) => s + h.gainLoss, 0);
+  const totalCost = holdings.reduce((s, h) => s + (h.value - h.gainLoss), 0);
   const totalGainLossPercent = totalCost > 0 ? (totalGainLoss / totalCost) * 100 : 0;
   const totalRealizedGain = sales.reduce((sum, s) => sum + s.realized_gain, 0);
 

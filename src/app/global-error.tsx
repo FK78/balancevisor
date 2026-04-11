@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ClipboardCopy, Check, RefreshCw } from "lucide-react";
+import { AlertTriangle, Send, Check, RefreshCw, Loader2 } from "lucide-react";
 import { capturePostHogException } from "@/lib/posthog-error-tracking";
 
 export default function GlobalError({
@@ -13,7 +13,8 @@ export default function GlobalError({
   reset: () => void;
 }) {
   const router = useRouter();
-  const [copied, setCopied] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
   const [retrying, setRetrying] = useState(false);
 
   useEffect(() => {
@@ -30,25 +31,27 @@ export default function GlobalError({
     setTimeout(() => setRetrying(false), 1500);
   }, [router, reset]);
 
-  const handleCopyReport = useCallback(async () => {
-    const report = [
-      "--- BalanceVisor Error Report ---",
-      `Time: ${new Date().toISOString()}`,
-      `Page: ${window.location.pathname}`,
-      `Error: ${error.name ?? "Unknown"}`,
-      error.digest ? `Ref: ${error.digest}` : null,
-      `Browser: ${navigator.userAgent}`,
-      "---",
-      "Please send this report to the BalanceVisor team so we can investigate.",
-    ]
-      .filter(Boolean)
-      .join("\n");
+  const handleSendReport = useCallback(async () => {
+    setSending(true);
     try {
-      await navigator.clipboard.writeText(report);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
+      const res = await fetch("/api/error-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          page: window.location.pathname,
+          errorName: error.name ?? "Unknown",
+          digest: error.digest ?? undefined,
+          timestamp: new Date().toISOString(),
+          userAgent: navigator.userAgent,
+        }),
+      });
+      if (res.ok) {
+        setSent(true);
+      }
     } catch {
-      /* clipboard unsupported */
+      /* network error — fail silently */
+    } finally {
+      setSending(false);
     }
   }, [error]);
 
@@ -91,15 +94,22 @@ export default function GlobalError({
           </button>
         </div>
         <button
-          onClick={handleCopyReport}
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+          onClick={handleSendReport}
+          disabled={sending || sent}
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-40"
         >
-          {copied ? (
+          {sent ? (
             <Check className="h-3.5 w-3.5" />
+          ) : sending ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
           ) : (
-            <ClipboardCopy className="h-3.5 w-3.5" />
+            <Send className="h-3.5 w-3.5" />
           )}
-          {copied ? "Copied!" : "Copy error report for support"}
+          {sent
+            ? "Report sent!"
+            : sending
+              ? "Sending…"
+              : "Send report to team"}
         </button>
       </body>
     </html>

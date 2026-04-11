@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ClipboardCopy, Check, RefreshCw } from "lucide-react";
+import { AlertTriangle, Send, Check, RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,18 +22,16 @@ interface PageErrorProps {
   backLabel?: string;
 }
 
-function buildSafeReport(error: Error & { digest?: string }): string {
-  const lines = [
-    `--- BalanceVisor Error Report ---`,
-    `Time: ${new Date().toISOString()}`,
-    `Page: ${typeof window !== "undefined" ? window.location.pathname : "unknown"}`,
-    `Error: ${error.name ?? "Unknown"}`,
-    error.digest ? `Ref: ${error.digest}` : null,
-    `Browser: ${typeof navigator !== "undefined" ? navigator.userAgent : "unknown"}`,
-    `---`,
-    `Please send this report to the BalanceVisor team so we can investigate.`,
-  ];
-  return lines.filter(Boolean).join("\n");
+function buildSafePayload(error: Error & { digest?: string }) {
+  return {
+    page:
+      typeof window !== "undefined" ? window.location.pathname : "unknown",
+    errorName: error.name ?? "Unknown",
+    digest: error.digest ?? undefined,
+    timestamp: new Date().toISOString(),
+    userAgent:
+      typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
+  };
 }
 
 export default function PageError({
@@ -45,7 +43,8 @@ export default function PageError({
   backLabel = "Back to dashboard",
 }: PageErrorProps) {
   const router = useRouter();
-  const [copied, setCopied] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
   const [retrying, setRetrying] = useState(false);
 
   const handleRetry = useCallback(() => {
@@ -55,15 +54,24 @@ export default function PageError({
     setTimeout(() => setRetrying(false), 1500);
   }, [router, reset]);
 
-  const handleCopyReport = useCallback(async () => {
-    const report = buildSafeReport(error);
+  const handleSendReport = useCallback(async () => {
+    setSending(true);
     try {
-      await navigator.clipboard.writeText(report);
-      setCopied(true);
-      toast.success("Error report copied to clipboard");
-      setTimeout(() => setCopied(false), 2500);
+      const res = await fetch("/api/error-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildSafePayload(error)),
+      });
+      if (res.ok) {
+        setSent(true);
+        toast.success("Error report sent to the team — thank you!");
+      } else {
+        toast.error("Could not send report — please try again later");
+      }
     } catch {
-      toast.error("Could not copy — please take a screenshot instead");
+      toast.error("Could not send report — please try again later");
+    } finally {
+      setSending(false);
     }
   }, [error]);
 
@@ -105,14 +113,21 @@ export default function PageError({
               variant="ghost"
               size="sm"
               className="text-xs text-muted-foreground"
-              onClick={handleCopyReport}
+              onClick={handleSendReport}
+              disabled={sending || sent}
             >
-              {copied ? (
+              {sent ? (
                 <Check className="h-3.5 w-3.5" />
+              ) : sending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <ClipboardCopy className="h-3.5 w-3.5" />
+                <Send className="h-3.5 w-3.5" />
               )}
-              {copied ? "Copied!" : "Copy error report for support"}
+              {sent
+                ? "Report sent!"
+                : sending
+                  ? "Sending…"
+                  : "Send report to team"}
             </Button>
           </div>
         </CardContent>

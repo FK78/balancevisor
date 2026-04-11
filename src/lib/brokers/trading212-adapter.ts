@@ -1,5 +1,6 @@
 import type { BrokerAdapter, BrokerCredentials, BrokerPosition, BrokerSummary, BrokerValidationResult } from "./types";
 import { getT212AccountSummary, getT212Positions, validateT212ApiKey } from "@/lib/trading212";
+import { getSubUnitDivisor, toMajorCurrency } from "@/lib/currency";
 
 export const trading212Adapter: BrokerAdapter = {
   source: "trading212",
@@ -16,9 +17,14 @@ export const trading212Adapter: BrokerAdapter = {
     const positions = await getT212Positions(creds.apiKey, creds.apiSecret, creds.environment);
 
     return positions.map((pos) => {
-      const avgPrice = parseFloat(String(pos.averagePricePaid));
+      const rawCurrency = pos.instrument.currencyCode ?? "GBP";
+      const divisor = getSubUnitDivisor(rawCurrency);
+      const currency = toMajorCurrency(rawCurrency);
+
+      const avgPrice = parseFloat(String(pos.averagePricePaid)) / divisor;
+      const currentPrice = pos.currentPrice / divisor;
       const cost = avgPrice * pos.quantity;
-      const value = pos.walletImpact?.currentValue ?? pos.currentPrice * pos.quantity;
+      const value = pos.walletImpact?.currentValue ?? currentPrice * pos.quantity;
       const gainLoss = pos.walletImpact?.profitLoss ?? value - cost;
       const gainLossPercent =
         pos.walletImpact?.profitLossPercent ?? (cost > 0 ? (gainLoss / cost) * 100 : 0);
@@ -28,8 +34,8 @@ export const trading212Adapter: BrokerAdapter = {
         name: pos.instrument.name ?? pos.instrument.shortName ?? pos.instrument.ticker,
         quantity: pos.quantity,
         averagePrice: avgPrice,
-        currentPrice: pos.currentPrice,
-        currency: pos.instrument.currencyCode ?? "GBP",
+        currentPrice,
+        currency,
         value,
         gainLoss,
         gainLossPercent,

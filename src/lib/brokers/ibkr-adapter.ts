@@ -1,4 +1,5 @@
 import type { BrokerAdapter, BrokerCredentials, BrokerPosition, BrokerSummary } from "./types";
+import { getSubUnitDivisor, toMajorCurrency } from "@/lib/currency";
 
 const BASE_URL = "https://api.ibkr.com/v1/api";
 
@@ -74,9 +75,15 @@ export const ibkrAdapter: BrokerAdapter = {
     );
 
     return positions.map((pos) => {
-      const value = pos.mktValue;
-      const cost = pos.avgCost * pos.position;
-      const gainLoss = pos.unrealizedPnl;
+      const rawCurrency = pos.currency ?? "USD";
+      const divisor = getSubUnitDivisor(rawCurrency);
+      const currency = toMajorCurrency(rawCurrency);
+
+      const avgPrice = pos.avgPrice / divisor;
+      const currentPrice = pos.mktPrice / divisor;
+      const value = pos.mktValue / divisor;
+      const cost = pos.avgCost * pos.position / divisor;
+      const gainLoss = pos.unrealizedPnl / divisor;
       const gainLossPercent = cost > 0 ? (gainLoss / cost) * 100 : 0;
 
       let investmentType: BrokerPosition["investmentType"] = "stock";
@@ -87,9 +94,9 @@ export const ibkrAdapter: BrokerAdapter = {
         ticker: pos.ticker ?? pos.contractDesc,
         name: pos.contractDesc,
         quantity: pos.position,
-        averagePrice: pos.avgPrice,
-        currentPrice: pos.mktPrice,
-        currency: pos.currency ?? "USD",
+        averagePrice: avgPrice,
+        currentPrice,
+        currency,
         value,
         gainLoss,
         gainLossPercent,
