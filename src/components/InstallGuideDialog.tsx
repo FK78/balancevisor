@@ -24,6 +24,9 @@ export function detectInstallMethod(): InstallMethod {
   // Chromium browsers that captured the beforeinstallprompt event
   if (window.__pwaInstallPrompt) return "native";
 
+  // Chromium but event hasn't fired yet — still treat as native-capable
+  if ("BeforeInstallPromptEvent" in window) return "native";
+
   const ua = navigator.userAgent;
   const isIOS =
     /iPad|iPhone|iPod/.test(ua) ||
@@ -35,9 +38,6 @@ export function detectInstallMethod(): InstallMethod {
 
   // Firefox / other mobile browsers that don't support beforeinstallprompt
   if (/Android/.test(ua)) return "android-browser";
-
-  // Chromium but event hasn't fired yet — still treat as native-capable
-  if ("BeforeInstallPromptEvent" in window) return "native";
 
   return "unsupported";
 }
