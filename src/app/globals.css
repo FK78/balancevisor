@@ -521,32 +521,30 @@ html {
 }
 
 @media (min-width: 768px) {
-  @layer utilities {
-    .cockpit-page {
-      gap: 1.5rem;
-    }
+  .cockpit-page {
+    gap: 1.5rem;
+  }
 
-    .cockpit-topbar {
-      align-items: center;
-      flex-direction: row;
-      justify-content: space-between;
-    }
+  .cockpit-topbar {
+    align-items: center;
+    flex-direction: row;
+    justify-content: space-between;
+  }
 
-    .cockpit-hero {
-      align-items: end;
-      grid-template-columns: minmax(0, 1.75fr) minmax(260px, 0.95fr);
-      padding: 1.75rem;
-    }
+  .cockpit-hero {
+    align-items: end;
+    grid-template-columns: minmax(0, 1.2fr) minmax(340px, 1.1fr);
+    padding: 1.75rem;
+  }
 
-    .priority-stack-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
+  .priority-stack-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 
-    .action-shelf,
-    .priority-stack,
-    .soft-panel {
-      padding: 1.2rem 1.25rem;
-    }
+  .action-shelf,
+  .priority-stack,
+  .soft-panel {
+    padding: 1.2rem 1.25rem;
   }
 }
 
