@@ -516,7 +516,7 @@ function DashboardPageContent(props: DashboardPageClientProps) {
         ) : (
           <Card className="workspace-card border border-dashed border-[var(--workspace-card-border)] px-2 py-2 shadow-none">
             <CardContent className="flex flex-col items-center justify-center gap-3 py-10 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--workspace-muted-surface)] text-[var(--workspace-shell)]">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--workspace-muted-surface)] text-primary">
                 <SlidersHorizontal className="h-5 w-5" />
               </div>
               <div className="space-y-1">

@@ -31,4 +31,20 @@ describe("OnboardingLayout", () => {
       screen.getByRole("button", { name: /continue/i }).closest("[data-slot='onboarding-action-bar']"),
     ).toHaveAttribute("data-mobile-sticky", "true");
   });
+
+  it("uses readable text for the active light progress pill", () => {
+    render(
+      <OnboardingLayout
+        currentStage="basics"
+        stageTitle="Set up your basics"
+        stageDescription="Choose your base currency and decide whether AI features should be enabled."
+      >
+        <div>Stage content</div>
+      </OnboardingLayout>,
+    );
+
+    const activePill = screen.getAllByText("Basics")[0].closest("[data-state='active']");
+    expect(activePill).toBeInTheDocument();
+    expect(screen.getAllByText("Basics")[0]).toHaveClass("text-foreground");
+  });
 });

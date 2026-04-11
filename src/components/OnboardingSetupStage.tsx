@@ -64,7 +64,7 @@ export function OnboardingSetupStage({
     <div className="space-y-5">
       <section className="workspace-card rounded-[1.75rem] border border-[var(--workspace-card-border)] px-5 py-5 shadow-sm">
         <div className="flex items-start gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-[color-mix(in_srgb,var(--workspace-accent)_18%,white)] text-[var(--workspace-shell)]">
+          <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-[color-mix(in_srgb,var(--workspace-accent)_18%,var(--card))] text-primary">
             <ClipboardList className="h-5 w-5" />
           </div>
           <div className="space-y-1">
@@ -84,19 +84,19 @@ export function OnboardingSetupStage({
               className={cn(
                 "rounded-[1.35rem] border p-4 transition-colors",
                 item.status === "done"
-                  ? "border-[var(--workspace-shell)]/18 bg-[color-mix(in_srgb,var(--workspace-shell)_7%,white)]"
+                  ? "border-[var(--workspace-shell)]/18 bg-[color-mix(in_srgb,var(--workspace-shell)_7%,var(--card))] text-primary"
                   : "border-[var(--workspace-card-border)] bg-background",
               )}
             >
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-foreground">{item.label}</p>
+                <p className={cn("text-sm font-semibold", item.status === "done" ? "text-current" : "text-foreground")}>{item.label}</p>
                 {item.status === "done" ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--workspace-shell)_12%,white)] px-2.5 py-1 text-[11px] font-medium text-[var(--workspace-shell)]">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--workspace-shell)_12%,var(--card))] px-2.5 py-1 text-[11px] font-medium text-primary">
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Done
                   </span>
                 ) : (
-                  <span className="rounded-full bg-[color-mix(in_srgb,var(--workspace-muted-surface)_48%,white)] px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                  <span className="rounded-full bg-[color-mix(in_srgb,var(--workspace-muted-surface)_48%,var(--card))] px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                     {item.helper}
                   </span>
                 )}

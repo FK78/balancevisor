@@ -94,8 +94,8 @@ function StepRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start gap-3 rounded-[1.25rem] border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--card)_94%,white_6%)] p-3">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--workspace-accent)_16%,white)] text-[var(--workspace-shell)]">
+    <div className="flex items-start gap-3 rounded-[1.25rem] border border-[var(--workspace-card-border)] bg-card p-3">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--workspace-accent)_16%,var(--card))] text-primary">
         {icon}
       </div>
       <div className="pt-0.5">

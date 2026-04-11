@@ -98,7 +98,7 @@ export function InterestPicker({ defaultSelected = [], selectedFeatures: control
               className={cn(
                 "flex w-full items-center gap-3 rounded-[1.35rem] border p-4 text-left transition-all duration-200",
                 isSelected
-                  ? "border-[var(--workspace-shell)]/25 bg-[color-mix(in_srgb,var(--workspace-shell)_8%,white)] shadow-sm"
+                  ? "border-[var(--workspace-shell)]/25 bg-[color-mix(in_srgb,var(--workspace-shell)_8%,var(--card))] shadow-sm"
                   : "border-[var(--workspace-card-border)] bg-background hover:border-[var(--workspace-shell)]/20 hover:bg-accent/40"
               )}
               onClick={() => toggleFeature(option.id)}
@@ -107,7 +107,7 @@ export function InterestPicker({ defaultSelected = [], selectedFeatures: control
                 className={cn(
                   "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
                   isSelected
-                    ? "bg-[color-mix(in_srgb,var(--workspace-accent)_18%,white)] text-[var(--workspace-shell)]"
+                    ? "bg-[color-mix(in_srgb,var(--workspace-accent)_18%,var(--card))] text-primary"
                     : "bg-muted text-muted-foreground"
                 )}
               >

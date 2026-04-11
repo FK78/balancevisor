@@ -50,7 +50,7 @@ export function ReviewStep({
       <section className="workspace-card rounded-[1.75rem] border border-[var(--workspace-card-border)] px-5 py-5 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-2">
-            <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-[color-mix(in_srgb,var(--workspace-accent)_18%,white)] text-[var(--workspace-shell)]">
+            <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-[color-mix(in_srgb,var(--workspace-accent)_18%,var(--card))] text-primary">
               {coreSetupReady ? (
                 <CheckCircle2 className="h-7 w-7" />
               ) : (
@@ -69,7 +69,7 @@ export function ReviewStep({
             </div>
           </div>
 
-          <div className="rounded-2xl border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_34%,white)] px-4 py-3 text-sm">
+          <div className="rounded-2xl border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_34%,var(--card))] px-4 py-3 text-sm">
             <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Readiness</p>
             <p className="mt-1 font-semibold text-foreground">
               {coreSetupReady ? "Core setup complete" : "Setup incomplete"}
@@ -123,10 +123,10 @@ export function ReviewStep({
                 ].map(([label, count]) => (
                   <div
                     key={label}
-                    className="rounded-2xl border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_34%,white)] p-4 text-center"
+                    className="rounded-2xl border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_34%,var(--card))] p-4 text-center"
                   >
-                    <p className="text-lg font-semibold">{count}</p>
-                    <p className="text-xs text-muted-foreground">{label}</p>
+                    <p className="text-lg font-semibold text-foreground">{count}</p>
+                    <p className="whitespace-nowrap text-[11px] text-muted-foreground">{label}</p>
                   </div>
                 ))}
               </div>
@@ -138,14 +138,14 @@ export function ReviewStep({
           <section className="workspace-card rounded-[1.75rem] border border-[var(--workspace-card-border)] px-5 py-5 shadow-sm">
             <h3 className="text-lg font-semibold tracking-tight text-foreground">Preferences</h3>
             {aiEnabled ? (
-              <div className="mt-4 flex items-start gap-3 rounded-2xl border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_34%,white)] p-4 text-sm text-muted-foreground">
+              <div className="mt-4 flex items-start gap-3 rounded-2xl border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_34%,var(--card))] p-4 text-sm text-muted-foreground">
                 <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>
                   AI features are enabled. You can change this anytime from Settings.
                 </span>
               </div>
             ) : (
-              <div className="mt-4 flex items-start gap-3 rounded-2xl border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_34%,white)] p-4 text-sm text-muted-foreground">
+              <div className="mt-4 flex items-start gap-3 rounded-2xl border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_34%,var(--card))] p-4 text-sm text-muted-foreground">
                 <ShieldOff className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>
                   AI features are disabled. You can re-enable them anytime from Settings.

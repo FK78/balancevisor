@@ -94,8 +94,8 @@ export function InstallPrompt() {
     <>
       <div className="fixed bottom-20 right-4 z-50 max-w-sm animate-in slide-in-from-bottom-4 fade-in duration-300 md:bottom-4">
         <div className="soft-panel flex items-start gap-3 rounded-[1.6rem] p-4 shadow-[0_24px_56px_rgba(27,36,30,0.18)]">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--workspace-accent)_16%,white)]">
-            <Download className="h-5 w-5 text-[var(--workspace-shell)]" />
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--workspace-accent)_16%,var(--card))]">
+            <Download className="h-5 w-5 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="cockpit-kicker">Install</p>

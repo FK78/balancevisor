@@ -53,9 +53,9 @@ export function OnboardingLayout({
                   className={cn(
                     "rounded-2xl border px-3 py-2 text-left transition-colors",
                     isActive
-                      ? "border-[var(--workspace-shell)] bg-[color-mix(in_srgb,var(--workspace-shell)_10%,white)]"
+                      ? "border-[var(--workspace-shell)] bg-[color-mix(in_srgb,var(--workspace-shell)_10%,var(--card))]"
                       : isDone
-                        ? "border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_46%,white)]"
+                        ? "border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_46%,var(--card))]"
                         : "border-[var(--workspace-card-border)] bg-background/70",
                   )}
                 >

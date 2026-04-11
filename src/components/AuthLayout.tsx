@@ -4,10 +4,10 @@ import { ArrowLeft, TrendingUp, PieChart, Shield, Landmark, Sparkles } from "luc
 import { Button } from "@/components/ui/button";
 
 const highlights = [
-  { icon: TrendingUp, text: "Calm money overview with clear next steps", color: "bg-[color-mix(in_srgb,var(--workspace-accent)_16%,white)] text-[var(--workspace-accent)]" },
-  { icon: PieChart, text: "Simple spending breakdowns that stay easy to scan", color: "bg-[color-mix(in_srgb,var(--workspace-blue)_30%,white)] text-[#4f6e84]" },
-  { icon: Landmark, text: "Accounts, budgets, and goals in one organised cockpit", color: "bg-[color-mix(in_srgb,var(--workspace-shell)_10%,white)] text-[var(--workspace-shell)]" },
-  { icon: Shield, text: "Bank-grade protection with quiet, trustworthy design", color: "bg-[color-mix(in_srgb,var(--workspace-danger)_12%,white)] text-[var(--workspace-danger)]" },
+  { icon: TrendingUp, text: "Calm money overview with clear next steps", color: "bg-[color-mix(in_srgb,var(--workspace-accent)_16%,var(--card))] text-[var(--workspace-accent)]" },
+  { icon: PieChart, text: "Simple spending breakdowns that stay easy to scan", color: "bg-[color-mix(in_srgb,var(--workspace-blue)_30%,var(--card))] text-[#4f6e84]" },
+  { icon: Landmark, text: "Accounts, budgets, and goals in one organised cockpit", color: "bg-[color-mix(in_srgb,var(--workspace-shell)_10%,var(--card))] text-primary" },
+  { icon: Shield, text: "Bank-grade protection with quiet, trustworthy design", color: "bg-[color-mix(in_srgb,var(--workspace-danger)_12%,var(--card))] text-[var(--workspace-danger)]" },
 ];
 
 export function AuthLayout({
@@ -28,7 +28,7 @@ export function AuthLayout({
         </Link>
 
         <div className="space-y-6 animate-fade-in-up">
-          <div className="inline-flex items-center gap-2 rounded-full bg-[color-mix(in_srgb,var(--workspace-accent)_16%,white)] px-4 py-2 text-sm font-medium text-[var(--workspace-shell)]">
+          <div className="inline-flex items-center gap-2 rounded-full bg-[color-mix(in_srgb,var(--workspace-accent)_16%,var(--card))] px-4 py-2 text-sm font-medium text-primary">
             <Sparkles className="h-3.5 w-3.5" />
             Calm money clarity
           </div>

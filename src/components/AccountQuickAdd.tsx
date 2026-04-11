@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Wallet, PiggyBank, CreditCard, TrendingUp, Plus } from "lucide-react";
+import { Wallet, PiggyBank, CreditCard, TrendingUp, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AccountTemplate {
@@ -25,37 +25,38 @@ const ACCOUNT_TEMPLATES: AccountTemplate[] = [
 interface AccountQuickAddProps {
   currency: string;
   onAddAccount: (data: { name: string; type: string; balance: string }) => void;
+  onDeleteAccount?: (id: string) => void;
   existingAccounts: Array<{ id: string; accountName: string; type: string | null; balance: number }>;
 }
 
-export function AccountQuickAdd({ currency, onAddAccount, existingAccounts }: AccountQuickAddProps) {
+export function AccountQuickAdd({ currency, onAddAccount, onDeleteAccount, existingAccounts }: AccountQuickAddProps) {
   const [customForm, setCustomForm] = useState(false);
   const [customName, setCustomName] = useState("");
   const [customType, setCustomType] = useState("currentAccount");
-  const [customBalance, setCustomBalance] = useState("0");
+  const [customBalance, setCustomBalance] = useState("");
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
-  const [editingBalance, setEditingBalance] = useState("0");
+  const [editingBalance, setEditingBalance] = useState("");
 
   const addedTypes = new Set(existingAccounts.map((a) => a.type));
 
   const handleQuickAddClick = (template: AccountTemplate) => {
     setEditingTemplate(template.id);
-    setEditingBalance(template.defaultBalance.toString());
+    setEditingBalance("");
   };
 
   const handleQuickAddConfirm = (template: AccountTemplate) => {
     onAddAccount({
       name: template.name,
       type: template.type,
-      balance: editingBalance,
+      balance: editingBalance || "0",
     });
     setEditingTemplate(null);
-    setEditingBalance("0");
+    setEditingBalance("");
   };
 
   const handleQuickAddCancel = () => {
     setEditingTemplate(null);
-    setEditingBalance("0");
+    setEditingBalance("");
   };
 
   const handleCustomSubmit = (e: React.FormEvent) => {
@@ -64,11 +65,11 @@ export function AccountQuickAdd({ currency, onAddAccount, existingAccounts }: Ac
     onAddAccount({
       name: customName,
       type: customType,
-      balance: customBalance,
+      balance: customBalance || "0",
     });
     setCustomName("");
     setCustomType("currentAccount");
-    setCustomBalance("0");
+    setCustomBalance("");
     setCustomForm(false);
   };
 
@@ -79,7 +80,7 @@ export function AccountQuickAdd({ currency, onAddAccount, existingAccounts }: Ac
           Start with a common account template, then add anything custom underneath.
         </p>
         {existingAccounts.length > 0 && (
-          <span className="rounded-full bg-[color-mix(in_srgb,var(--workspace-muted-surface)_44%,white)] px-3 py-1 text-xs font-medium text-foreground">
+          <span className="rounded-full bg-[color-mix(in_srgb,var(--workspace-muted-surface)_44%,var(--card))] px-3 py-1 text-xs font-medium text-foreground">
             {existingAccounts.length} ready
           </span>
         )}
@@ -99,7 +100,7 @@ export function AccountQuickAdd({ currency, onAddAccount, existingAccounts }: Ac
                   alreadyAdded
                     ? "border-[var(--workspace-card-border)] bg-muted/50 opacity-55"
                     : isEditing
-                      ? "border-[var(--workspace-shell)]/30 bg-[color-mix(in_srgb,var(--workspace-shell)_7%,white)] shadow-sm"
+                      ? "border-[var(--workspace-shell)]/30 bg-[color-mix(in_srgb,var(--workspace-shell)_7%,var(--card))] shadow-sm"
                       : "border-[var(--workspace-card-border)] bg-background hover:border-[var(--workspace-shell)]/22 hover:bg-accent/40"
                 )}
               >
@@ -108,10 +109,10 @@ export function AccountQuickAdd({ currency, onAddAccount, existingAccounts }: Ac
                   alreadyAdded
                     ? "bg-muted"
                     : isEditing
-                      ? "bg-[color-mix(in_srgb,var(--workspace-accent)_18%,white)]"
+                      ? "bg-[color-mix(in_srgb,var(--workspace-accent)_18%,var(--card))]"
                       : "bg-muted/70",
                 )}>
-                  <Icon className={cn("h-5 w-5", alreadyAdded ? "text-muted-foreground" : isEditing ? "text-[var(--workspace-shell)]" : "text-muted-foreground")} />
+                  <Icon className={cn("h-5 w-5", alreadyAdded ? "text-muted-foreground" : isEditing ? "text-primary" : "text-muted-foreground")} />
                 </div>
                 <span className="text-xs font-medium">{template.name}</span>
                 {alreadyAdded ? (
@@ -177,7 +178,7 @@ export function AccountQuickAdd({ currency, onAddAccount, existingAccounts }: Ac
           Add custom account
         </Button>
       ) : (
-        <form onSubmit={handleCustomSubmit} className="space-y-4 rounded-[1.5rem] border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_34%,white)] p-4">
+        <form onSubmit={handleCustomSubmit} className="space-y-4 rounded-[1.5rem] border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_34%,var(--card))] p-4">
           <div className="grid gap-2">
             <Label htmlFor="custom-name">Account Name</Label>
             <Input
@@ -240,9 +241,16 @@ export function AccountQuickAdd({ currency, onAddAccount, existingAccounts }: Ac
                       {account.type}
                     </p>
                   </div>
-                  <span className="rounded-full bg-[color-mix(in_srgb,var(--workspace-muted-surface)_44%,white)] px-2.5 py-1 text-[11px] font-medium text-foreground">
-                    Ready
-                  </span>
+                  {onDeleteAccount && (
+                    <button
+                      type="button"
+                      onClick={() => onDeleteAccount(account.id)}
+                      className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                      aria-label={`Delete ${account.accountName}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
                 <p className="mt-4 text-base font-semibold tabular-nums text-foreground">
                   {account.balance.toLocaleString("en-GB", { style: "currency", currency })}

@@ -52,7 +52,7 @@ export default async function DashboardLayout({
     <AiSettingsProvider aiEnabled={aiEnabled}>
     <FeatureFlagsProvider disabledFeatures={disabledFeatures}>
     <div className="dashboard-shell-bg min-h-screen bg-[var(--workspace-canvas)]">
-      <nav className="sticky top-0 z-50 border-b border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--background)_88%,white_12%)]/95 backdrop-blur-xl">
+      <nav className="sticky top-0 z-50 border-b border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--background)_88%,var(--card)_12%)]/95 backdrop-blur-xl">
         <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-4 md:min-h-[4.5rem] md:gap-6 md:px-10">
           <div className="flex items-center gap-3 md:gap-6">
             <Link

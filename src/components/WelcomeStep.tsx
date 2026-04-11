@@ -54,7 +54,7 @@ export function WelcomeStep({
       className="space-y-5"
     >
       <section className="workspace-card rounded-[1.75rem] border border-[var(--workspace-card-border)] px-5 py-5 shadow-sm">
-        <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-[color-mix(in_srgb,var(--workspace-accent)_18%,white)] text-[var(--workspace-shell)]">
+        <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-[color-mix(in_srgb,var(--workspace-accent)_18%,var(--card))] text-primary">
           <CheckCircle2 className="h-7 w-7" />
         </div>
         <div className="mt-5 space-y-2">
@@ -74,9 +74,9 @@ export function WelcomeStep({
             return (
               <div
                 key={point.title}
-                className="rounded-2xl border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_34%,white)] p-4"
+                className="rounded-2xl border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_34%,var(--card))] p-4"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-background text-[var(--workspace-shell)] shadow-sm">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-background text-primary shadow-sm">
                   <Icon className="h-4 w-4" />
                 </div>
                 <p className="mt-3 text-sm font-semibold text-foreground">{point.title}</p>
@@ -108,10 +108,10 @@ export function WelcomeStep({
             </select>
           </div>
 
-          <div className="rounded-[1.5rem] border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_36%,white)] p-4">
+          <div className="rounded-[1.5rem] border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_36%,var(--card))] p-4">
             <div className="flex items-start justify-between gap-4">
               <div className="flex gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-background text-[var(--workspace-shell)] shadow-sm">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-background text-primary shadow-sm">
                   <Sparkles className="h-4 w-4" />
                 </div>
                 <div className="space-y-1">

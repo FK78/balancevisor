@@ -11,7 +11,7 @@ import { getSubscriptions } from "@/db/queries/subscriptions";
 import { getBrokerConnections, getManualHoldings } from "@/db/queries/investments";
 import { getGroupsByUser } from "@/db/queries/investment-groups";
 import { getDefaultCategoryTemplates, getOnboardingState } from "@/db/queries/onboarding";
-import { addAccount } from "@/db/mutations/accounts";
+import { addAccount, deleteAccount } from "@/db/mutations/accounts";
 import { addCategory } from "@/db/mutations/categories";
 import {
   continueFromCategories,
@@ -120,6 +120,10 @@ export default async function OnboardingPage({
                 formData.set("type", data.type);
                 formData.set("balance", data.balance);
                 await addAccount(formData);
+              }}
+              onDeleteAccount={async (id) => {
+                "use server";
+                await deleteAccount(id);
               }}
               existingAccounts={accounts}
             />

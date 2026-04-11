@@ -27,12 +27,12 @@ export function CategorySelector({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-[1.5rem] border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_34%,white)] p-4">
+      <div className="rounded-[1.5rem] border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_34%,var(--card))] p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <p className="text-sm font-semibold text-foreground">Recommended starting point</p>
-              <span className="rounded-full bg-[color-mix(in_srgb,var(--workspace-accent)_18%,white)] px-2.5 py-1 text-[11px] font-medium text-[var(--workspace-shell)]">
+              <span className="rounded-full bg-[color-mix(in_srgb,var(--workspace-accent)_18%,var(--card))] px-2.5 py-1 text-[11px] font-medium text-primary">
                 Fastest path
               </span>
             </div>

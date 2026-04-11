@@ -17,7 +17,7 @@ export function FeaturesStep({
   return (
     <div className="space-y-4">
       <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--workspace-accent)_18%,white)] text-[var(--workspace-shell)]">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--workspace-accent)_18%,var(--card))] text-primary">
           <Sparkles className="h-4 w-4" />
         </div>
         <div className="space-y-1">
@@ -31,7 +31,7 @@ export function FeaturesStep({
       </div>
 
       {!aiEnabled && (
-        <div className="rounded-2xl border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_34%,white)] p-4 text-sm text-muted-foreground">
+        <div className="rounded-2xl border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_34%,var(--card))] p-4 text-sm text-muted-foreground">
           AI-assisted insights stay off, but you can still choose the areas you want to set up first.
         </div>
       )}

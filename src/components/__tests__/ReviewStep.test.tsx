@@ -54,4 +54,23 @@ describe("ReviewStep", () => {
     expect(screen.getByText(/your workspace is ready/i)).toBeInTheDocument();
     expect(screen.getByText(/ai features are disabled/i)).toBeInTheDocument();
   });
+
+  it("keeps readiness panels readable with proper text contrast", () => {
+    render(
+      <ReviewStep
+        accountsCount={2}
+        categoriesCount={8}
+        budgetsCount={1}
+        goalsCount={1}
+        debtsCount={0}
+        subscriptionsCount={0}
+        selectedFeatures={["budgets", "goals"]}
+        aiEnabled={false}
+        backHref="/onboarding?stage=setup&ai=0&features=budgets,goals"
+      />,
+    );
+
+    expect(screen.getByText("Readiness")).toHaveClass("text-muted-foreground");
+    expect(screen.getByText("Core setup complete")).toHaveClass("text-foreground");
+  });
 });

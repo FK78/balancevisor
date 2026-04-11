@@ -43,4 +43,20 @@ describe("OnboardingSetupStage", () => {
       "/onboarding?stage=review&ai=0&features=budgets",
     );
   });
+
+  it("keeps completed checklist cards readable on their lighter background", () => {
+    render(
+      <OnboardingSetupStage
+        aiEnabled={false}
+        accountsCount={2}
+        categoriesCount={6}
+        initialSelectedFeatures={["budgets"]}
+        accountsSection={<div>Accounts section</div>}
+        categoriesSection={<div>Categories section</div>}
+        reviewBaseHref="/onboarding?stage=review&ai=0"
+      />,
+    );
+
+    expect(screen.getAllByText("Accounts")[0].parentElement?.parentElement).toHaveClass("text-primary");
+  });
 });

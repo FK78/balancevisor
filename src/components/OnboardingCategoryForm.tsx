@@ -21,7 +21,7 @@ export function OnboardingCategoryForm({ action }: { action: AddCategoryAction }
   }, [iconSearch]);
 
   return (
-    <form action={action} className="grid gap-4 rounded-[1.5rem] border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_34%,white)] p-4">
+    <form action={action} className="grid gap-4 rounded-[1.5rem] border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_34%,var(--card))] p-4">
       <input type="hidden" name="color" value={selectedColor} />
       <input type="hidden" name="icon" value={selectedIcon ?? ""} />
 

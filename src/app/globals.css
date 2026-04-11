@@ -305,7 +305,7 @@ html {
   }
 
   .workspace-accent-chip {
-    background: color-mix(in srgb, var(--workspace-accent) 20%, white 10%);
+    background: color-mix(in srgb, var(--workspace-accent) 20%, var(--card) 10%);
     color: color-mix(in srgb, var(--workspace-accent) 78%, black);
   }
 
@@ -454,7 +454,7 @@ html {
   }
 
   .decision-status-pill {
-    background: color-mix(in srgb, var(--workspace-shell) 12%, white 88%);
+    background: color-mix(in srgb, var(--workspace-shell) 12%, var(--card) 88%);
     border: 1px solid color-mix(in srgb, var(--workspace-card-border) 80%, transparent);
     border-radius: 999px;
     color: color-mix(in srgb, var(--foreground) 84%, transparent);
@@ -482,7 +482,7 @@ html {
   }
 
   .decision-meta-pill {
-    background: color-mix(in srgb, var(--workspace-muted-surface) 72%, white 28%);
+    background: color-mix(in srgb, var(--workspace-muted-surface) 72%, var(--card) 28%);
     border: 1px solid color-mix(in srgb, var(--workspace-card-border) 74%, transparent);
     border-radius: 999px;
     color: color-mix(in srgb, var(--foreground) 82%, transparent);

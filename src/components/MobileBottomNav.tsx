@@ -65,7 +65,7 @@ export function MobileBottomNav() {
     <>
       <nav
         aria-label="Primary"
-        className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--background)_88%,white_12%)]/95 backdrop-blur-xl xl:hidden"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--background)_88%,var(--card)_12%)]/95 backdrop-blur-xl xl:hidden"
       >
         <div
           className="mx-auto grid max-w-lg px-2 pt-2"
@@ -81,8 +81,8 @@ export function MobileBottomNav() {
                 className={cn(
                   "flex min-h-[70px] flex-col items-center justify-center gap-1 rounded-[1.15rem] px-2 py-2 transition-all",
                   active
-                    ? "bg-[color-mix(in_srgb,var(--workspace-shell)_10%,white)] text-foreground shadow-sm"
-                    : "text-muted-foreground hover:bg-white/70 hover:text-foreground",
+                    ? "bg-[color-mix(in_srgb,var(--workspace-shell)_10%,var(--card))] text-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-card/70 hover:text-foreground",
                 )}
               >
                 <item.icon
@@ -109,8 +109,8 @@ export function MobileBottomNav() {
             className={cn(
               "flex min-h-[70px] flex-col items-center justify-center gap-1 rounded-[1.15rem] px-2 py-2 transition-all",
               moreIsActive || drawerOpen
-                ? "bg-[color-mix(in_srgb,var(--workspace-shell)_10%,white)] text-foreground shadow-sm"
-                : "text-muted-foreground hover:bg-white/70 hover:text-foreground",
+                ? "bg-[color-mix(in_srgb,var(--workspace-shell)_10%,var(--card))] text-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-card/70 hover:text-foreground",
             )}
           >
             <MoreHorizontal
