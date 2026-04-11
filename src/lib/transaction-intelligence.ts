@@ -39,7 +39,7 @@ type RawTransaction = {
 // ---------------------------------------------------------------------------
 
 export { normalise, fuzzyMatch, amountsMatch } from "@/lib/matching-utils";
-import { normalise, fuzzyMatch, amountsMatch, amountsCloseEnough } from "@/lib/matching-utils";
+import { normalise, fuzzyMatch, amountsMatch, amountsCloseEnough, isNearBillingDate } from "@/lib/matching-utils";
 
 // ---------------------------------------------------------------------------
 // Fetch unlinked transactions for a user (recently imported)
@@ -123,6 +123,11 @@ export async function matchTransactionsToSubscriptions(
   for (const txn of expenses) {
     for (const sub of subs) {
       if (!fuzzyMatch(txn.description, sub.name)) continue;
+
+      // Require the transaction date to fall near an expected billing date.
+      // Without this, any purchase from a merchant that shares a name with a
+      // subscription (e.g. Amazon purchase vs Amazon Prime) would match.
+      if (txn.date && !isNearBillingDate(txn.date, sub.next_billing_date, sub.billing_cycle)) continue;
 
       if (amountsCloseEnough(txn.amount, sub.amount)) {
         // Name + amount within 30% → auto-link and advance billing
