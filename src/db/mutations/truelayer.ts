@@ -264,8 +264,12 @@ export async function importFromTrueLayer() {
           timestamp: tlTxn.timestamp,
         });
 
-        // Detect refunds: keyword match or expense match for CREDIT transactions
-        let type: "income" | "expense" | "refund" = isExpense ? "expense" : "income";
+        // Classify transaction type
+        // DEBIT + TRANSFER = internal move (e.g. Monzo Roundups, pot transfers) — not a real expense
+        const isTransfer = tlTxn.transaction_category === "TRANSFER";
+        let type: "income" | "expense" | "transfer" | "refund" = isExpense
+          ? (isTransfer ? "transfer" : "expense")
+          : "income";
         let refundForTransactionId: string | null = null;
 
         if (!isExpense) {
