@@ -42,6 +42,8 @@ export async function saveTrueLayerConnection(
   const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
   const userKey = await getUserKey(userId);
 
+  // Upsert: if the user reconnects (e.g. to grant access to more accounts),
+  // update the existing connection's tokens instead of failing.
   const [connection] = await db
     .insert(truelayerConnectionsTable)
     .values({
@@ -49,6 +51,14 @@ export async function saveTrueLayerConnection(
       access_token: encryptForUser(tokens.access_token, userKey),
       refresh_token: encryptForUser(tokens.refresh_token, userKey),
       token_expires_at: expiresAt,
+    })
+    .onConflictDoUpdate({
+      target: truelayerConnectionsTable.user_id,
+      set: {
+        access_token: encryptForUser(tokens.access_token, userKey),
+        refresh_token: encryptForUser(tokens.refresh_token, userKey),
+        token_expires_at: expiresAt,
+      },
     })
     .returning({ id: truelayerConnectionsTable.id });
 
@@ -167,7 +177,8 @@ export async function importFromTrueLayer() {
   const importedTransactionIds: string[] = [];
 
   for (const connection of connections) {
-    const accessToken = await getValidToken(connection.id);
+    // Refresh token once before listing accounts/cards
+    let accessToken = await getValidToken(connection.id);
 
     // Fetch bank accounts (/data/v1/accounts) and cards (/data/v1/cards)
     // separately — TrueLayer serves them from different endpoints.
@@ -202,7 +213,7 @@ export async function importFromTrueLayer() {
       })),
     ];
 
-    logger.debug("truelayer.import", `Fetched ${tlAccounts.length} accounts + ${tlCards.length} cards from TrueLayer`, {
+    logger.info("truelayer.import", `Found ${tlAccounts.length} accounts + ${tlCards.length} cards from TrueLayer`, {
       connectionId: connection.id,
       items: normalised.map((a) => ({
         tl_id: a.tlId,
@@ -215,163 +226,175 @@ export async function importFromTrueLayer() {
     });
 
     for (const tlItem of normalised) {
-      let balance = 0;
+      // Refresh token before EACH account to prevent expiry after long imports
       try {
-        const balanceData = tlItem.source === "card"
-          ? await fetchCardBalance(accessToken, tlItem.tlId)
-          : await fetchBalance(accessToken, tlItem.tlId);
-        balance = balanceData.current;
-        logger.debug("truelayer.import", `Balance for ${tlItem.displayName}`, {
-          accountId: tlItem.tlId,
-          source: tlItem.source,
-          balance: balanceData.current,
-          currency: balanceData.currency,
-        });
-      } catch {
-        logger.warn("truelayer.import", "Balance fetch failed for account", {
-          accountId: tlItem.tlId,
-          source: tlItem.source,
-        });
-      }
-
-      // Upsert: insert or update on conflict (user_id, truelayer_id) to prevent duplicate accounts
-      const [upserted] = await db
-        .insert(accountsTable)
-        .values({
-          user_id: userId,
-          name: encryptForUser(
-            tlItem.displayName ||
-              `${tlItem.providerName ?? "Bank"} Account`,
-            userKey,
-          ),
-          type: tlItem.accountType,
-          balance,
-          currency: tlItem.currency || baseCurrency,
-          truelayer_id: tlItem.tlId,
-          truelayer_connection_id: connection.id,
-        })
-        .onConflictDoUpdate({
-          target: [accountsTable.user_id, accountsTable.truelayer_id],
-          set: { balance },
-        })
-        .returning({ id: accountsTable.id });
-
-      const localAccountId = upserted.id;
-      accountsImported++;
-
-      if (tlItem.providerName && !connection.provider_name) {
-        await db
-          .update(truelayerConnectionsTable)
-          .set({ provider_name: tlItem.providerName })
-          .where(eq(truelayerConnectionsTable.id, connection.id));
-      }
-
-      const to = toDateString(new Date());
-      const from = toDateString(new Date(Date.now() - 730 * 24 * 60 * 60 * 1000));
-
-      let tlTransactions;
-      try {
-        tlTransactions = tlItem.source === "card"
-          ? await fetchCardTransactions(accessToken, tlItem.tlId, from, to)
-          : await fetchTransactions(accessToken, tlItem.tlId, from, to);
-        logger.debug("truelayer.import", `Fetched ${tlTransactions.length} transactions for ${tlItem.displayName}`, {
-          accountId: tlItem.tlId,
-          source: tlItem.source,
-          accountType: tlItem.accountType,
-          totalCount: tlTransactions.length,
-          sample: tlTransactions.slice(0, 10).map((t) => ({
-            transaction_id: t.transaction_id,
-            timestamp: t.timestamp,
-            description: t.description,
-            amount: t.amount,
-            currency: t.currency,
-            transaction_type: t.transaction_type,
-            transaction_category: t.transaction_category,
-          })),
-        });
-      } catch {
-        logger.warn(
-          "truelayer.import",
-          "Transaction fetch failed for account",
-          {
-            accountId: tlItem.tlId,
-            source: tlItem.source,
-          },
-        );
+        accessToken = await getValidToken(connection.id);
+      } catch (tokenErr) {
+        logger.error("truelayer.import", `Token refresh failed for ${tlItem.displayName}, skipping`, tokenErr);
         continue;
       }
 
-      const uncategorised =
-        userCategories.find((c) => c.name.toLowerCase() === "uncategorised") ??
-        userCategories.find((c) => c.name.toLowerCase() === "other") ??
-        userCategories[0];
-
-      for (const tlTxn of tlTransactions) {
-        const isExpense =
-          tlTxn.transaction_type === "DEBIT" || tlTxn.amount < 0;
-        const amount = Math.abs(tlTxn.amount);
-        const description = tlTxn.description || "Bank transaction";
-
-        logger.debug("truelayer.import", `Transaction: ${description}`, {
-          transaction_id: tlTxn.transaction_id,
-          raw_amount: tlTxn.amount,
-          abs_amount: amount,
-          transaction_type: tlTxn.transaction_type,
-          transaction_category: tlTxn.transaction_category,
-          isExpense,
-          timestamp: tlTxn.timestamp,
-        });
-
-        // Classify transaction type
-        // DEBIT + TRANSFER = internal move (e.g. Monzo Roundups, pot transfers) — not a real expense
-        const isTransfer = tlTxn.transaction_category === "TRANSFER";
-        let type: "income" | "expense" | "transfer" | "refund" = isExpense
-          ? (isTransfer ? "transfer" : "expense")
-          : "income";
-        let refundForTransactionId: string | null = null;
-
-        if (!isExpense) {
-          const keywordMatch = isLikelyRefund(description);
-          const expenseMatch = await findMatchingExpense(userId, localAccountId, amount, description);
-          if (keywordMatch || expenseMatch) {
-            type = "refund";
-            refundForTransactionId = expenseMatch?.transactionId ?? null;
-          }
+      try {
+        let balance = 0;
+        try {
+          const balanceData = tlItem.source === "card"
+            ? await fetchCardBalance(accessToken, tlItem.tlId)
+            : await fetchBalance(accessToken, tlItem.tlId);
+          balance = balanceData.current;
+          logger.debug("truelayer.import", `Balance for ${tlItem.displayName}`, {
+            accountId: tlItem.tlId,
+            source: tlItem.source,
+            balance: balanceData.current,
+            currency: balanceData.currency,
+          });
+        } catch {
+          logger.warn("truelayer.import", "Balance fetch failed for account", {
+            accountId: tlItem.tlId,
+            source: tlItem.source,
+          });
         }
 
-        // Unified categorisation pipeline: rules → merchant → bank category
-        const catResult = categoriseTransaction(
-          description,
-          catCtx,
-          tlTxn.transaction_category,
-        );
-        const categoryId = catResult.categoryId ?? uncategorised?.id ?? null;
+        // Upsert: insert or update on conflict (user_id, truelayer_id) to prevent duplicate accounts
+        const [upserted] = await db
+          .insert(accountsTable)
+          .values({
+            user_id: userId,
+            name: encryptForUser(
+              tlItem.displayName ||
+                `${tlItem.providerName ?? "Bank"} Account`,
+              userKey,
+            ),
+            type: tlItem.accountType,
+            balance,
+            currency: tlItem.currency || baseCurrency,
+            truelayer_id: tlItem.tlId,
+            truelayer_connection_id: connection.id,
+          })
+          .onConflictDoUpdate({
+            target: [accountsTable.user_id, accountsTable.truelayer_id],
+            set: { balance },
+          })
+          .returning({ id: accountsTable.id });
 
-        // Use onConflictDoNothing to safely skip duplicates during concurrent imports
-        const rows = await db.insert(transactionsTable).values({
-          user_id: userId,
-          account_id: localAccountId,
-          category_id: categoryId,
-          category_source: catResult.categorySource,
-          merchant_name: catResult.merchantName,
-          type,
-          amount,
-          description: encryptForUser(description, userKey),
-          date: tlTxn.timestamp ? tlTxn.timestamp.split("T")[0] : to,
-          is_recurring: false,
-          truelayer_id: tlTxn.transaction_id,
-          refund_for_transaction_id: refundForTransactionId,
-        }).onConflictDoNothing().returning({ id: transactionsTable.id });
+        const localAccountId = upserted.id;
+        accountsImported++;
 
-        if (rows.length > 0) {
-          importedTransactionIds.push(rows[0].id);
-          transactionsImported++;
+        if (tlItem.providerName && !connection.provider_name) {
+          await db
+            .update(truelayerConnectionsTable)
+            .set({ provider_name: tlItem.providerName })
+            .where(eq(truelayerConnectionsTable.id, connection.id));
+        }
 
-          // Learn merchant mapping from bank category matches
-          if (catResult.categorySource === 'bank' && catResult.merchantName && catResult.categoryId) {
-            learnMerchantMappingForUser(userId, catResult.merchantName, catResult.categoryId, 'bank').catch((err) => logger.warn('truelayer-import', 'merchant mapping learn failed', err));
+        const to = toDateString(new Date());
+        const from = toDateString(new Date(Date.now() - 730 * 24 * 60 * 60 * 1000));
+
+        let tlTransactions;
+        try {
+          tlTransactions = tlItem.source === "card"
+            ? await fetchCardTransactions(accessToken, tlItem.tlId, from, to)
+            : await fetchTransactions(accessToken, tlItem.tlId, from, to);
+          logger.debug("truelayer.import", `Fetched ${tlTransactions.length} transactions for ${tlItem.displayName}`, {
+            accountId: tlItem.tlId,
+            source: tlItem.source,
+            accountType: tlItem.accountType,
+            totalCount: tlTransactions.length,
+            sample: tlTransactions.slice(0, 10).map((t) => ({
+              transaction_id: t.transaction_id,
+              timestamp: t.timestamp,
+              description: t.description,
+              amount: t.amount,
+              currency: t.currency,
+              transaction_type: t.transaction_type,
+              transaction_category: t.transaction_category,
+            })),
+          });
+        } catch {
+          logger.warn(
+            "truelayer.import",
+            "Transaction fetch failed for account",
+            {
+              accountId: tlItem.tlId,
+              source: tlItem.source,
+            },
+          );
+          continue;
+        }
+
+        const uncategorised =
+          userCategories.find((c) => c.name.toLowerCase() === "uncategorised") ??
+          userCategories.find((c) => c.name.toLowerCase() === "other") ??
+          userCategories[0];
+
+        for (const tlTxn of tlTransactions) {
+          const isExpense =
+            tlTxn.transaction_type === "DEBIT" || tlTxn.amount < 0;
+          const amount = Math.abs(tlTxn.amount);
+          const description = tlTxn.description || "Bank transaction";
+
+          logger.debug("truelayer.import", `Transaction: ${description}`, {
+            transaction_id: tlTxn.transaction_id,
+            raw_amount: tlTxn.amount,
+            abs_amount: amount,
+            transaction_type: tlTxn.transaction_type,
+            transaction_category: tlTxn.transaction_category,
+            isExpense,
+            timestamp: tlTxn.timestamp,
+          });
+
+          // Classify transaction type
+          // DEBIT + TRANSFER = internal move (e.g. Monzo Roundups, pot transfers) — not a real expense
+          const isTransfer = tlTxn.transaction_category === "TRANSFER";
+          let type: "income" | "expense" | "transfer" | "refund" = isExpense
+            ? (isTransfer ? "transfer" : "expense")
+            : "income";
+          let refundForTransactionId: string | null = null;
+
+          if (!isExpense) {
+            const keywordMatch = isLikelyRefund(description);
+            const expenseMatch = await findMatchingExpense(userId, localAccountId, amount, description);
+            if (keywordMatch || expenseMatch) {
+              type = "refund";
+              refundForTransactionId = expenseMatch?.transactionId ?? null;
+            }
+          }
+
+          // Unified categorisation pipeline: rules → merchant → bank category
+          const catResult = categoriseTransaction(
+            description,
+            catCtx,
+            tlTxn.transaction_category,
+          );
+          const categoryId = catResult.categoryId ?? uncategorised?.id ?? null;
+
+          // Use onConflictDoNothing to safely skip duplicates during concurrent imports
+          const rows = await db.insert(transactionsTable).values({
+            user_id: userId,
+            account_id: localAccountId,
+            category_id: categoryId,
+            category_source: catResult.categorySource,
+            merchant_name: catResult.merchantName,
+            type,
+            amount,
+            description: encryptForUser(description, userKey),
+            date: tlTxn.timestamp ? tlTxn.timestamp.split("T")[0] : to,
+            is_recurring: false,
+            truelayer_id: tlTxn.transaction_id,
+            refund_for_transaction_id: refundForTransactionId,
+          }).onConflictDoNothing().returning({ id: transactionsTable.id });
+
+          if (rows.length > 0) {
+            importedTransactionIds.push(rows[0].id);
+            transactionsImported++;
+
+            // Learn merchant mapping from bank category matches
+            if (catResult.categorySource === 'bank' && catResult.merchantName && catResult.categoryId) {
+              learnMerchantMappingForUser(userId, catResult.merchantName, catResult.categoryId, 'bank').catch((err) => logger.warn('truelayer-import', 'merchant mapping learn failed', err));
+            }
           }
         }
+      } catch (accountErr) {
+        logger.error("truelayer.import", `Failed to import account ${tlItem.displayName} (${tlItem.tlId}), continuing with next account`, accountErr);
       }
     }
   }
