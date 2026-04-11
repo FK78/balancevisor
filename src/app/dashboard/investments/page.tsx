@@ -248,6 +248,11 @@ export default async function InvestmentsPage() {
 
   for (const holding of manualHoldings) {
     const quote = freshQuotes.get(holding.ticker);
+    const isStaleManualPrice =
+      (holding.investment_type ?? "stock") === "stock" &&
+      holding.ticker != null &&
+      (!holding.last_price_update ||
+        now.getTime() - new Date(holding.last_price_update).getTime() > 15 * 60 * 1000);
     const currentPrice = quote?.currentPrice ?? holding.current_price ?? holding.average_price;
     const value = currentPrice * holding.quantity;
     const cost = holding.average_price * holding.quantity;
@@ -275,11 +280,7 @@ export default async function InvestmentsPage() {
       groupId: holding.group_id,
       groupName: holding.group_id ? groupMap.get(holding.group_id)?.name ?? null : null,
       groupColor: holding.group_id ? groupMap.get(holding.group_id)?.color ?? null : null,
-      pricePending:
-        (holding.investment_type ?? "stock") === "stock" &&
-        holding.ticker != null &&
-        !holding.last_price_update &&
-        !quote,
+      pricePending: isStaleManualPrice && !quote,
     });
   }
 

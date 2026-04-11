@@ -362,6 +362,7 @@ export function buildCategoryStructureCards(params: {
       const spendShare = totalTrackedSpend > 0 ? (spend / totalTrackedSpend) * 100 : 0;
       const categoryRows = [...(monthlyRowsByCategoryId.get(category.id) ?? [])]
         .sort((left, right) => left.month.localeCompare(right.month));
+      const hasHistoricalSpend = categoryRows.length > 0;
       const previous = categoryRows.at(-2) ?? null;
       const changeRatio = latest && previous
         ? (latest.total - previous.total) / Math.max(previous.total, 1)
@@ -390,11 +391,15 @@ export function buildCategoryStructureCards(params: {
           ? latestMonthLabel
             ? `${formatCurrency(spend, params.currency)} in ${latestMonthLabel}`
             : `${formatCurrency(spend, params.currency)} in the latest tracked month`
-          : "No tracked spend yet",
+          : hasHistoricalSpend && latestMonthLabel
+            ? `No spend in ${latestMonthLabel}`
+            : "No tracked spend yet",
         shareLabel: totalTrackedSpend > 0 ? `${Math.round(spendShare)}% of tracked spend` : "0% of tracked spend",
         structureSignal,
         trendLabel: changeRatio === null
-          ? "Waiting for another month of spend"
+          ? hasHistoricalSpend
+            ? "Historical spend only"
+            : "Waiting for another month of spend"
           : `${changeRatio >= 0 ? "+" : ""}${Math.round(changeRatio * 100)}% vs last month`,
       };
     })

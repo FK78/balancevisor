@@ -80,13 +80,22 @@ function findHoldingForStory(params: {
   accountId: string | null;
   groupId: string | null;
   storyHoldingId: string;
+  groupMap: ReadonlyMap<string, GroupInput>;
 }) {
   return params.holdings.find((holding) => {
     const matchesAccount = (holding.accountId ?? null) === params.accountId;
     const matchesId = holding.id === params.storyHoldingId;
     const matchesGroup = params.groupId
       ? (holding.groupId ?? null) === params.groupId
-      : (holding.groupId ?? null) === null;
+      : (holding.groupId ?? null) === null ||
+        (() => {
+          if (!holding.groupId) {
+            return false;
+          }
+
+          const holdingGroup = params.groupMap.get(holding.groupId);
+          return !holdingGroup || holdingGroup.account_id !== params.accountId;
+        })();
 
     return matchesAccount && matchesId && matchesGroup;
   });
@@ -129,6 +138,7 @@ export function buildInvestmentsRosterSections({
             accountId: section.accountId,
             groupId: group.id,
             storyHoldingId: storyHolding.id,
+            groupMap,
           });
 
           if (!holding) {

@@ -80,4 +80,56 @@ describe("buildInvestmentsRosterSections", () => {
       gainLossLabel: "+£80.00 (+40.00%)",
     });
   });
+
+  it("keeps holdings whose group no longer exists in the ungrouped roster section", () => {
+    const holdings = [
+      {
+        id: "manual-legacy",
+        source: "manual" as const,
+        ticker: "AAPL",
+        name: "Apple",
+        quantity: 3,
+        averagePrice: 100,
+        currentPrice: 150,
+        currency: "GBP",
+        value: 450,
+        gainLoss: 150,
+        gainLossPercent: 50,
+        investmentType: "stock" as const,
+        accountId: "acct-isa",
+        accountName: "ISA",
+        groupId: "deleted-group",
+        groupName: "Old group",
+        groupColor: "#000000",
+        pricePending: false,
+      },
+    ];
+
+    const model = buildInvestmentsCockpitModel({
+      holdings,
+      brokerErrors: [],
+      brokerCash: 0,
+      totalRealizedGain: 0,
+      baseCurrency: "GBP",
+      allGroups: [],
+    });
+
+    const rosterSections = buildInvestmentsRosterSections({
+      accountSections: model.accountSections,
+      holdings,
+      allGroups: [],
+      investmentAccounts: [],
+      groupOptions: [],
+      baseCurrency: "GBP",
+      getInvestmentTypeLabel: (investmentType) => investmentType.toUpperCase(),
+      getGainTone: (holding) => (holding.gainLoss >= 0 ? "positive" : "negative"),
+    });
+
+    expect(rosterSections[0]?.groups[0]?.holdings).toHaveLength(1);
+    expect(rosterSections[0]?.groups[0]?.holdings[0]).toMatchObject({
+      id: "manual-legacy",
+      name: "Apple",
+      quantity: 3,
+    });
+  });
 });

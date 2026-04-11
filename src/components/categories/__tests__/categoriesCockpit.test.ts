@@ -231,4 +231,25 @@ describe("buildCategoryStructureCards", () => {
     expect(cards[0]?.spendLabel).not.toMatch(/this month/i);
     expect(cards[0]?.structureSignal).not.toMatch(/this month/i);
   });
+
+  it("distinguishes historical spend from categories that have never been tracked", () => {
+    const cards = buildCategoryStructureCards({
+      categories: [
+        { id: "travel", name: "Travel", color: "#0f766e", icon: "plane", user_id: "u1" },
+        { id: "housing", name: "Housing", color: "#1d4ed8", icon: "house", user_id: "u1" },
+      ],
+      monthlySpendRows: [
+        { month: "2026-01", category: "Travel", category_id: "travel", color: "#0f766e", total: 220 },
+        { month: "2026-02", category: "Travel", category_id: "travel", color: "#0f766e", total: 180 },
+        { month: "2026-03", category: "Housing", category_id: "housing", color: "#1d4ed8", total: 900 },
+      ],
+      currency: "GBP",
+    });
+
+    expect(cards[1]).toMatchObject({
+      id: "travel",
+      spendLabel: "No spend in Mar 2026",
+      trendLabel: "Historical spend only",
+    });
+  });
 });
