@@ -38,6 +38,7 @@ import { requireFeature } from "@/components/FeatureGate";
 import { getPageLayout } from "@/db/queries/dashboard-layouts";
 import { PageWidgetWrapper } from "@/components/PageWidgetWrapper";
 import { DashboardWidget } from "@/components/DashboardWidget";
+import { SecondaryPageIntro } from "@/components/SecondaryPageIntro";
 
 export default async function SubscriptionsPage() {
   await requireFeature("subscriptions");
@@ -55,6 +56,10 @@ export default async function SubscriptionsPage() {
 
   const activeCount = subscriptions.filter((s) => s.is_active).length;
   const pausedCount = subscriptions.filter((s) => !s.is_active).length;
+  const totalIssues =
+    healthReport.billIncreases.length
+    + healthReport.unusedSubscriptions.length
+    + healthReport.overlaps.length;
 
   const today = toDateString(new Date());
   const next7 = new Date();
@@ -72,35 +77,101 @@ export default async function SubscriptionsPage() {
       <SubscriptionFormDialog categories={categories} accounts={accounts} />
     </div>
   );
+  const statsCardEl = (
+    <Card>
+      <CardContent className="grid grid-cols-2 gap-4 py-4 sm:grid-cols-4 sm:divide-x sm:gap-0">
+        <div className="px-4 text-center">
+          <p className="text-xs text-muted-foreground">Monthly</p>
+          <p className="text-lg font-semibold tabular-nums">{formatCurrency(totals.monthly, baseCurrency)}</p>
+        </div>
+        <div className="px-4 text-center">
+          <p className="text-xs text-muted-foreground">Yearly</p>
+          <p className="text-lg font-semibold tabular-nums text-violet-600">{formatCurrency(totals.yearly, baseCurrency)}</p>
+        </div>
+        <div className="px-4 text-center">
+          <p className="text-xs text-muted-foreground">Due This Week</p>
+          <p className="text-lg font-semibold tabular-nums">{upcomingCount}</p>
+        </div>
+        <div className="px-4 text-center">
+          <p className="text-xs text-muted-foreground">Paused</p>
+          <p className="text-lg font-semibold tabular-nums">{pausedCount}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+  const introEl = (
+    <SecondaryPageIntro
+      heroEyebrow="Subscriptions"
+      heroTitle="Keep recurring costs honest and easy to question"
+      heroDescription={activeCount > 0
+        ? `${upcomingCount > 0 ? `${upcomingCount} renewal${upcomingCount === 1 ? "" : "s"} land this week.` : "The current renewal queue is calm."} This cockpit keeps the headline cost, health flags, and next decision visible before the full subscription roster.`
+        : "Once subscriptions are tracked, this page will surface recurring cost pressure and review opportunities before you scan the full list."}
+      heroAction={<SubscriptionFormDialog categories={categories} accounts={accounts} />}
+      heroAside={(
+        <div className="grid gap-2 sm:grid-cols-3">
+          <div className="workspace-hero-panel rounded-2xl p-3">
+            <p className="text-xs uppercase tracking-[0.18em] text-white/60">Monthly</p>
+            <p className="mt-1 text-lg font-semibold text-white">{formatCurrency(totals.monthly, baseCurrency)}</p>
+          </div>
+          <div className="workspace-hero-panel rounded-2xl p-3">
+            <p className="text-xs uppercase tracking-[0.18em] text-white/60">Due soon</p>
+            <p className="mt-1 text-lg font-semibold text-white">{upcomingCount}</p>
+          </div>
+          <div className="workspace-hero-panel rounded-2xl p-3">
+            <p className="text-xs uppercase tracking-[0.18em] text-white/60">Issues</p>
+            <p className="mt-1 text-lg font-semibold text-white">{totalIssues}</p>
+          </div>
+        </div>
+      )}
+      actionShelfEyebrow="Next step"
+      actionShelfTitle="Keep the cost picture steady before you review each service"
+      actionShelfDescription="Monthly spend, annual weight, and near-term renewals stay above the fold so your decisions do not depend on scanning the whole grid."
+      actionShelfContent={statsCardEl}
+      supportPanel={{
+        eyebrow: "Health check",
+        title: totalIssues > 0 ? "A few subscriptions deserve another look" : "The subscription stack looks healthy",
+        description: totalIssues > 0
+          ? "Price changes, unused services, and overlapping categories stay close to the top so they are easier to act on."
+          : "No price spikes, overlap, or likely unused services are currently standing out.",
+        content: <SubscriptionHealthBanner report={healthReport} currency={baseCurrency} />,
+      }}
+      priorities={{
+        eyebrow: "Priority stack",
+        title: "Know what to question before you open each subscription",
+        description: "These cards keep the most decision-relevant subscription signals visible first.",
+        items: [
+          {
+            id: "renewals",
+            title: upcomingCount > 0
+              ? `${upcomingCount} subscription${upcomingCount === 1 ? "" : "s"} renew this week`
+              : "No renewals are due in the next seven days",
+            description: upcomingCount > 0
+              ? "That near-term queue is the best place to confirm value, cancel unused services, or pause spending."
+              : "The roster below is still available for deeper cleanup and optimisation.",
+          },
+          {
+            id: "health",
+            title: totalIssues > 0
+              ? `${totalIssues} subscription health issue${totalIssues === 1 ? "" : "s"} found`
+              : "No health issues are standing out right now",
+            description: totalIssues > 0
+              ? `${formatCurrency(healthReport.potentialMonthlySavings, baseCurrency)} per month could be recoverable from the flagged services.`
+              : "The page can stay focused on upkeep and switching opportunities instead of cleanup.",
+          },
+          {
+            id: "paused",
+            title: `${pausedCount} subscription${pausedCount === 1 ? "" : "s"} are paused`,
+            description: pausedCount > 0
+              ? "Paused services stay visible so they do not quietly drift back into spend without a deliberate choice."
+              : "If you pause services later, they will appear here as part of the decision summary.",
+          },
+        ],
+      }}
+    />
+  );
 
   return (
-    <PageWidgetWrapper pageId="subscriptions" serverLayout={serverLayout} header={headerEl}>
-      <DashboardWidget id="stats">
-      <Card>
-        <CardContent className="grid grid-cols-2 gap-4 py-4 sm:grid-cols-4 sm:divide-x sm:gap-0">
-          <div className="px-4 text-center">
-            <p className="text-xs text-muted-foreground">Monthly</p>
-            <p className="text-lg font-semibold tabular-nums">{formatCurrency(totals.monthly, baseCurrency)}</p>
-          </div>
-          <div className="px-4 text-center">
-            <p className="text-xs text-muted-foreground">Yearly</p>
-            <p className="text-lg font-semibold tabular-nums text-violet-600">{formatCurrency(totals.yearly, baseCurrency)}</p>
-          </div>
-          <div className="px-4 text-center">
-            <p className="text-xs text-muted-foreground">Due This Week</p>
-            <p className="text-lg font-semibold tabular-nums">{upcomingCount}</p>
-          </div>
-          <div className="px-4 text-center">
-            <p className="text-xs text-muted-foreground">Paused</p>
-            <p className="text-lg font-semibold tabular-nums">{pausedCount}</p>
-          </div>
-        </CardContent>
-      </Card>
-      </DashboardWidget>
-
-      <DashboardWidget id="subscription-health">
-        <SubscriptionHealthBanner report={healthReport} currency={baseCurrency} />
-      </DashboardWidget>
+    <PageWidgetWrapper pageId="subscriptions" serverLayout={serverLayout} header={headerEl} intro={introEl}>
 
       <DashboardWidget id="subscription-cards">
       {subscriptions.length === 0 ? (

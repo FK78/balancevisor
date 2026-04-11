@@ -88,4 +88,52 @@ test.describe("Balanced cockpit responsive QA", () => {
       ).toBeVisible();
     });
   });
+
+  test("budgets keeps the cockpit intro above the deeper tools", async ({ page }) => {
+    await expectResponsiveRoute(page, "/dashboard/budgets", async (currentPage) => {
+      await expect(
+        currentPage.getByRole("heading", { name: /keep your category limits ahead of the month/i }),
+      ).toBeVisible();
+    });
+  });
+
+  test("goals keeps the next savings move clear", async ({ page }) => {
+    await expectResponsiveRoute(page, "/dashboard/goals", async (currentPage) => {
+      await expect(
+        currentPage.getByRole("heading", { name: /turn savings targets into the next clear move/i }),
+      ).toBeVisible();
+    });
+  });
+
+  test("debts keeps payoff momentum and priorities visible", async ({ page }) => {
+    await expectResponsiveRoute(page, "/dashboard/debts", async (currentPage) => {
+      await expect(
+        currentPage.getByRole("heading", { name: /keep payoff momentum pointed at the right balances/i }),
+      ).toBeVisible();
+    });
+  });
+
+  test("subscriptions keeps recurring cost guidance visible", async ({ page }) => {
+    await expectResponsiveRoute(page, "/dashboard/subscriptions", async (currentPage) => {
+      await expect(
+        currentPage.getByRole("heading", { name: /keep recurring costs honest and easy to question/i }),
+      ).toBeVisible();
+    });
+  });
+
+  test("recurring keeps schedule guidance visible", async ({ page }) => {
+    await expectResponsiveRoute(page, "/dashboard/recurring", async (currentPage) => {
+      await expect(
+        currentPage.getByRole("heading", { name: /recurring money should feel predictable, not hidden/i }),
+      ).toBeVisible();
+    });
+  });
+
+  test("reports keeps trend guidance above the charts", async ({ page }) => {
+    await expectResponsiveRoute(page, "/dashboard/reports", async (currentPage) => {
+      await expect(
+        currentPage.getByRole("heading", { name: /use trends to decide what to do next/i }),
+      ).toBeVisible();
+    });
+  });
 });

@@ -331,8 +331,13 @@ html {
   }
 
   .cockpit-page {
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: 1.25rem;
+  }
+
+  .cockpit-page > * {
+    min-width: 0;
   }
 
   .cockpit-topbar {

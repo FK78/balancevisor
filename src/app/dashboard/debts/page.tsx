@@ -23,6 +23,7 @@ import { getPageLayout } from "@/db/queries/dashboard-layouts";
 import { PageWidgetWrapper } from "@/components/PageWidgetWrapper";
 import { DashboardWidget } from "@/components/DashboardWidget";
 import { DebtPayoffStrategies } from "@/components/DebtPayoffStrategies";
+import { SecondaryPageIntro } from "@/components/SecondaryPageIntro";
 
 export default async function DebtsPage() {
   await requireFeature("debts");
@@ -43,6 +44,13 @@ export default async function DebtsPage() {
     totalMinimumPayment,
     overallPct,
   } = summary;
+  const highInterestCount = active.filter((debt) => debt.interest_rate >= 15).length;
+  const nextDebt = [...active].sort((left, right) => {
+    if (right.interest_rate !== left.interest_rate) {
+      return right.interest_rate - left.interest_rate;
+    }
+    return right.remaining_amount - left.remaining_amount;
+  })[0];
 
   const nowMs = new Date().getTime();
   const daysLeftMap = new Map<string, number | null>();
@@ -63,59 +71,140 @@ export default async function DebtsPage() {
       <DebtFormDialog />
     </div>
   );
+  const overviewCardEl = active.length > 0 ? (
+    <Card>
+      <CardContent className="flex flex-col gap-4 py-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10">
+            <CreditCard className="h-7 w-7 text-red-500" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">Total Remaining</p>
+            <p className="text-2xl font-bold tabular-nums text-red-600">
+              {formatCurrency(totalRemaining, baseCurrency)}{" "}
+              <span className="text-base font-normal text-muted-foreground">
+                of {formatCurrency(totalOriginal, baseCurrency)}
+              </span>
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-6 text-sm">
+          <div>
+            <p className="text-muted-foreground text-xs">Paid Off</p>
+            <p className="font-semibold tabular-nums text-emerald-600">
+              {formatCurrency(totalPaid, baseCurrency)}
+            </p>
+          </div>
+          <div>
+            <p className="text-muted-foreground text-xs">Min. Monthly</p>
+            <p className="font-semibold tabular-nums">
+              {formatCurrency(totalMinimumPayment, baseCurrency)}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-24">
+              <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+                <span>{overallPct}% paid</span>
+                <span>{active.length} debt{active.length !== 1 ? "s" : ""}</span>
+              </div>
+              <div className="bg-muted h-2.5 rounded-full overflow-hidden">
+                <div
+                  className="bg-[#34C759] h-full rounded-full transition-all"
+                  style={{ width: `${Math.min(overallPct, 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  ) : (
+    <Card>
+      <CardContent className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+        <CreditCard className="h-10 w-10 text-muted-foreground opacity-40" />
+        <div>
+          <p className="text-sm font-medium text-foreground">No debts tracked yet</p>
+          <p className="text-xs text-muted-foreground">
+            Add a debt and this page will surface the balances that deserve attention first.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+  const introEl = (
+    <SecondaryPageIntro
+      heroEyebrow="Debt payoff"
+      heroTitle="Keep payoff momentum pointed at the right balances"
+      heroDescription={active.length > 0
+        ? `${highInterestCount > 0 ? `${highInterestCount} balance${highInterestCount === 1 ? "" : "s"} carry higher pressure.` : "The current debt stack is steady."} This cockpit keeps the payoff picture and the strongest next payment visible before the full card grid.`
+        : "Once debts are added, this page will keep your payoff momentum, monthly pressure, and next best payment visible before the full tracker."}
+      heroAction={nextDebt ? (
+        <DebtPaymentDialog
+          debtId={nextDebt.id}
+          debtName={nextDebt.name}
+          remainingAmount={nextDebt.remaining_amount}
+          accounts={accounts}
+        />
+      ) : (
+        <DebtFormDialog />
+      )}
+      heroAside={(
+        <div className="grid gap-2 sm:grid-cols-3">
+          <div className="workspace-hero-panel rounded-2xl p-3">
+            <p className="text-xs uppercase tracking-[0.18em] text-white/60">Remaining</p>
+            <p className="mt-1 text-lg font-semibold text-white">{formatCurrency(totalRemaining, baseCurrency)}</p>
+          </div>
+          <div className="workspace-hero-panel rounded-2xl p-3">
+            <p className="text-xs uppercase tracking-[0.18em] text-white/60">Minimums</p>
+            <p className="mt-1 text-lg font-semibold text-white">{formatCurrency(totalMinimumPayment, baseCurrency)}</p>
+          </div>
+          <div className="workspace-hero-panel rounded-2xl p-3">
+            <p className="text-xs uppercase tracking-[0.18em] text-white/60">High APR</p>
+            <p className="mt-1 text-lg font-semibold text-white">{highInterestCount}</p>
+          </div>
+        </div>
+      )}
+      actionShelfEyebrow="Next step"
+      actionShelfTitle="Keep the payoff picture steady before you dive into each balance"
+      actionShelfDescription="The total remaining, monthly minimums, and progress summary stay fixed above the fold so the next payment decision stays grounded."
+      actionShelfContent={overviewCardEl}
+      priorities={{
+        eyebrow: "Priority stack",
+        title: "See where the pressure and momentum sit first",
+        description: "These cards keep the most useful payoff context visible before the strategy tools and full debt list begin.",
+        items: [
+          {
+            id: "next-debt",
+            title: nextDebt
+              ? `${nextDebt.name} is the strongest next payment candidate`
+              : "No active balances need a payment right now",
+            description: nextDebt
+              ? `${formatCurrency(nextDebt.remaining_amount, baseCurrency)} remains${nextDebt.interest_rate > 0 ? ` at ${nextDebt.interest_rate}% APR` : ""}, so it is the clearest place to focus extra payoff energy.`
+              : "Add a debt to start seeing payment guidance here.",
+          },
+          {
+            id: "high-interest",
+            title: highInterestCount > 0
+              ? `${highInterestCount} balance${highInterestCount === 1 ? "" : "s"} carry high interest`
+              : "No active balance is currently in the high-interest band",
+            description: highInterestCount > 0
+              ? "The strategy tools below can help you decide whether avalanche or snowball is the better fit."
+              : "You can still use the deeper payoff strategy tools to model the fastest route to debt freedom.",
+          },
+          {
+            id: "progress",
+            title: `${overallPct}% of tracked debt has already been cleared`,
+            description: totalOriginal > 0
+              ? `${formatCurrency(totalPaid, baseCurrency)} has been paid back so far, which keeps the payoff story anchored in progress rather than only what is left.`
+              : "Once debts are tracked, this card turns into the quickest read on payoff momentum.",
+          },
+        ],
+      }}
+    />
+  );
 
   return (
-    <PageWidgetWrapper pageId="debts" serverLayout={serverLayout} header={headerEl}>
-      <DashboardWidget id="overview">
-      {active.length > 0 && (
-        <Card>
-          <CardContent className="flex flex-col gap-4 py-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10">
-                <CreditCard className="h-7 w-7 text-red-500" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Remaining</p>
-                <p className="text-2xl font-bold tabular-nums text-red-600">
-                  {formatCurrency(totalRemaining, baseCurrency)}{" "}
-                  <span className="text-base font-normal text-muted-foreground">
-                    of {formatCurrency(totalOriginal, baseCurrency)}
-                  </span>
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-6 text-sm">
-              <div>
-                <p className="text-muted-foreground text-xs">Paid Off</p>
-                <p className="font-semibold tabular-nums text-emerald-600">
-                  {formatCurrency(totalPaid, baseCurrency)}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-xs">Min. Monthly</p>
-                <p className="font-semibold tabular-nums">
-                  {formatCurrency(totalMinimumPayment, baseCurrency)}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-24">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                    <span>{overallPct}% paid</span>
-                    <span>{active.length} debt{active.length !== 1 ? "s" : ""}</span>
-                  </div>
-                  <div className="bg-muted h-2.5 rounded-full overflow-hidden">
-                    <div
-                      className="bg-[#34C759] h-full rounded-full transition-all"
-                      style={{ width: `${Math.min(overallPct, 100)}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-      </DashboardWidget>
+    <PageWidgetWrapper pageId="debts" serverLayout={serverLayout} header={headerEl} intro={introEl}>
 
       <DashboardWidget id="debt-cards">
       {debts.length === 0 ? (

@@ -46,7 +46,7 @@ const client = postgres(DATABASE_URL, {
 const db = drizzle(client);
 
 // ── Constants ────────────────────────────────────────────────────────
-const USER_ID = "f02d2f39-74f1-4771-b70c-92d708a83890";
+const USER_ID = "48484073-a303-4627-9fc6-d8e3e90acfd3";
 const MONTHS_OF_DATA = 36; // 3 years of history
 
 function daysAgo(n: number): string {
@@ -792,7 +792,7 @@ async function seed() {
     // Bills & Utilities
     ["edf", "Bills & Utilities", 90], ["sky", "Bills & Utilities", 91],
     ["three mobile", "Bills & Utilities", 92], ["thames water", "Bills & Utilities", 93],
-    ["council tax", "Bills & Utilities", 94], ["admiral", "Bills & Utilities", 95],
+    ["council tax", "Bills & Utilities", 94], ["admiral insurance", "Bills & Utilities", 95],
     ["broadband", "Bills & Utilities", 96], ["rent", "Bills & Utilities", 97],
     // Education
     ["udemy", "Education", 100], ["coursera", "Education", 101], ["pluralsight", "Education", 102],

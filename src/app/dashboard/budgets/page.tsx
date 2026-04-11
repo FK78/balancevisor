@@ -36,6 +36,7 @@ import { requireFeature } from "@/components/FeatureGate";
 import { getPageLayout } from "@/db/queries/dashboard-layouts";
 import { PageWidgetWrapper } from "@/components/PageWidgetWrapper";
 import { DashboardWidget } from "@/components/DashboardWidget";
+import { SecondaryPageIntro } from "@/components/SecondaryPageIntro";
 
 export default async function Budgets() {
   await requireFeature("budgets");
@@ -74,7 +75,34 @@ export default async function Budgets() {
   const totalSpent = budgets.reduce((sum, b) => sum + b.budgetSpent, 0);
   const totalRemaining = totalBudget - totalSpent;
   const overBudgetCount = budgets.filter((b) => b.budgetSpent > b.budgetAmount).length;
+  const atRiskCount = budgets.filter((b) => {
+    if (b.budgetAmount <= 0) return false;
+    const used = (b.budgetSpent / b.budgetAmount) * 100;
+    return used >= 80;
+  }).length;
   const spentPercent = totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(0) : "0";
+  const statsCardEl = (
+    <Card>
+      <CardContent className="grid grid-cols-2 gap-4 py-4 sm:grid-cols-4 sm:divide-x sm:gap-0">
+        <div className="px-4 text-center">
+          <p className="text-xs text-muted-foreground">Budget</p>
+          <p className="text-lg font-semibold tabular-nums">{formatCurrency(totalBudget, baseCurrency)}</p>
+        </div>
+        <div className="px-4 text-center">
+          <p className="text-xs text-muted-foreground">Spent ({spentPercent}%)</p>
+          <p className="text-lg font-semibold tabular-nums text-violet-600">{formatCurrency(totalSpent, baseCurrency)}</p>
+        </div>
+        <div className="px-4 text-center">
+          <p className="text-xs text-muted-foreground">Remaining</p>
+          <p className="text-lg font-semibold tabular-nums text-emerald-600">{formatCurrency(totalRemaining, baseCurrency)}</p>
+        </div>
+        <div className="px-4 text-center">
+          <p className="text-xs text-muted-foreground">Over Budget</p>
+          <p className="text-lg font-semibold tabular-nums">{overBudgetCount}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
   const headerEl = (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
       <div>
@@ -89,37 +117,83 @@ export default async function Budgets() {
       )}
     </div>
   );
+  const introEl = (
+    <SecondaryPageIntro
+      heroEyebrow="Budgets"
+      heroTitle="Keep your category limits ahead of the month"
+      heroDescription={budgets.length > 0
+        ? `${atRiskCount > 0 ? `${atRiskCount} budget${atRiskCount === 1 ? "" : "s"} are already close to the edge.` : "Most categories are still on track."} The cockpit keeps the pressure points visible before you drop into every category card.`
+        : "Once you set category limits, this page will keep the month’s pressure points obvious before you dive into the full budget list."}
+      heroAction={categories.length === 0 ? (
+        <Button asChild size="sm" className="workspace-primary-action">
+          <Link href="/dashboard/categories">Add categories first</Link>
+        </Button>
+      ) : (
+        <BudgetFormDialog categories={categories} avgSpendByCategory={avgSpend} />
+      )}
+      heroAside={(
+        <div className="grid gap-2 sm:grid-cols-3">
+          <div className="workspace-hero-panel rounded-2xl p-3">
+            <p className="text-xs uppercase tracking-[0.18em] text-white/60">Budget</p>
+            <p className="mt-1 text-lg font-semibold text-white">{formatCurrency(totalBudget, baseCurrency)}</p>
+          </div>
+          <div className="workspace-hero-panel rounded-2xl p-3">
+            <p className="text-xs uppercase tracking-[0.18em] text-white/60">Remaining</p>
+            <p className="mt-1 text-lg font-semibold text-white">{formatCurrency(totalRemaining, baseCurrency)}</p>
+          </div>
+          <div className="workspace-hero-panel rounded-2xl p-3">
+            <p className="text-xs uppercase tracking-[0.18em] text-white/60">At risk</p>
+            <p className="mt-1 text-lg font-semibold text-white">{atRiskCount}</p>
+          </div>
+        </div>
+      )}
+      actionShelfEyebrow="Next step"
+      actionShelfTitle="Adjust the few categories that matter most"
+      actionShelfDescription="Keep the month summary and the primary add action together so the page feels guided instead of scattered."
+      actionShelfContent={statsCardEl}
+      supportPanel={budgetPendingInvitations.length > 0 ? {
+        eyebrow: "Shared budgets",
+        title: "Invitations stay visible without taking over",
+        description: "Pending shares can be reviewed quickly, then you can get straight back to the category plan.",
+        content: <PendingInvitations invitations={budgetPendingInvitations} />,
+      } : null}
+      priorities={{
+        eyebrow: "Priority stack",
+        title: "See the categories most likely to need a change first",
+        description: "The page should answer what is under pressure, what room is left, and where smart nudges can help.",
+        items: [
+          {
+            id: "at-risk",
+            title: atRiskCount > 0
+              ? `${atRiskCount} budget${atRiskCount === 1 ? "" : "s"} need attention`
+              : "No categories are under immediate pressure",
+            description: atRiskCount > 0
+              ? "Start with the categories that are already at or near their limit before they turn into cleanup work."
+              : "You can use the deeper tools below to tune limits before the month gets busier.",
+          },
+          {
+            id: "remaining",
+            title: `${formatCurrency(totalRemaining, baseCurrency)} remains across active budgets`,
+            description: budgets.length > 0
+              ? "That remaining headroom is the quickest way to see how much flexibility the rest of the month still has."
+              : "Once budgets exist, this card turns into the fastest read on how much space is left.",
+          },
+          {
+            id: "suggestions",
+            title: budgetSuggestions.length > 0
+              ? `${budgetSuggestions.length} smart suggestion${budgetSuggestions.length === 1 ? "" : "s"} are ready`
+              : "No smart budget changes are waiting right now",
+            description: budgetSuggestions.length > 0
+              ? "The suggestion feed below can help you tighten limits using recent spending patterns."
+              : "When recent spending shifts enough to matter, suggestions will show up here first.",
+          },
+        ],
+      }}
+    />
+  );
 
   return (
-    <PageWidgetWrapper pageId="budgets" serverLayout={serverLayout} header={headerEl}>
-      <DashboardWidget id="pending-invitations">
-        {budgetPendingInvitations.length > 0 && (
-          <PendingInvitations invitations={budgetPendingInvitations} />
-        )}
-      </DashboardWidget>
-
-      <DashboardWidget id="stats">
-      <Card>
-        <CardContent className="grid grid-cols-2 gap-4 py-4 sm:grid-cols-4 sm:divide-x sm:gap-0">
-          <div className="px-4 text-center">
-            <p className="text-xs text-muted-foreground">Budget</p>
-            <p className="text-lg font-semibold tabular-nums">{formatCurrency(totalBudget, baseCurrency)}</p>
-          </div>
-          <div className="px-4 text-center">
-            <p className="text-xs text-muted-foreground">Spent ({spentPercent}%)</p>
-            <p className="text-lg font-semibold tabular-nums text-violet-600">{formatCurrency(totalSpent, baseCurrency)}</p>
-          </div>
-          <div className="px-4 text-center">
-            <p className="text-xs text-muted-foreground">Remaining</p>
-            <p className="text-lg font-semibold tabular-nums text-emerald-600">{formatCurrency(totalRemaining, baseCurrency)}</p>
-          </div>
-          <div className="px-4 text-center">
-            <p className="text-xs text-muted-foreground">Over Budget</p>
-            <p className="text-lg font-semibold tabular-nums">{overBudgetCount}</p>
-          </div>
-        </CardContent>
-      </Card>
-      </DashboardWidget>
+    <PageWidgetWrapper pageId="budgets" serverLayout={serverLayout} header={headerEl} intro={introEl}>
 
       <DashboardWidget id="suggestions">
       {budgetSuggestions.length > 0 && (

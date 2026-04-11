@@ -116,8 +116,8 @@ function SuggestionCard({
         <p className="text-xs text-muted-foreground leading-relaxed">
           {suggestion.reason}
         </p>
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-3 text-xs">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
             <span className="tabular-nums">
               <span className="text-muted-foreground">Avg: </span>
               <span className="font-medium">
@@ -142,7 +142,7 @@ function SuggestionCard({
           <Button
             size="sm"
             variant={applied ? "ghost" : "outline"}
-            className="h-7 shrink-0 text-xs gap-1"
+            className="h-7 w-full gap-1 text-xs sm:w-auto sm:shrink-0"
             disabled={isPending || applied}
             onClick={handleApply}
           >

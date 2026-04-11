@@ -32,9 +32,9 @@ export function PendingInvitations({
         {invitations.map((inv) => (
           <div
             key={inv.id}
-            className="flex items-center justify-between rounded-md bg-background border p-3 text-sm"
+            className="flex flex-col gap-3 rounded-md border bg-background p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
           >
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               <span className="font-medium truncate">{inv.resourceName}</span>
               <Badge variant="outline" className="text-[10px] shrink-0">
                 {inv.resource_type}
@@ -43,11 +43,11 @@ export function PendingInvitations({
                 {inv.permission}
               </Badge>
             </div>
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="flex w-full flex-wrap items-center gap-1 sm:w-auto sm:justify-end">
               <Button
                 size="sm"
                 variant="default"
-                className="h-7 px-2"
+                className="h-7 flex-1 px-2 sm:flex-none"
                 disabled={isPending}
                 onClick={() =>
                   startTransition(async () => {
@@ -65,7 +65,7 @@ export function PendingInvitations({
               <Button
                 size="sm"
                 variant="outline"
-                className="h-7 px-2"
+                className="h-7 flex-1 px-2 sm:flex-none"
                 disabled={isPending}
                 onClick={() =>
                   startTransition(async () => {
