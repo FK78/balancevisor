@@ -56,7 +56,7 @@ export function OtherAssetsSection({ assets, baseCurrency }: OtherAssetsSectionP
           <h2 className="text-lg font-semibold tracking-tight">Assets outside broker feeds</h2>
           <p className="text-sm text-muted-foreground">
             Keep non-broker wealth in the portfolio story so total value and zakat checks stay complete.
-            {totalValue > 0 && ` Total value: ${formatCurrency(totalValue, baseCurrency)}`}
+            {assets.length > 0 && ` Total value: ${formatCurrency(totalValue, baseCurrency)}`}
           </p>
         </div>
         <OtherAssetFormDialog />
@@ -82,7 +82,7 @@ export function OtherAssetsSection({ assets, baseCurrency }: OtherAssetsSectionP
               <CardContent className="space-y-3 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 space-y-1">
-                    <p className="text-xs font-medium tabular-nums text-foreground">
+                    <p className="text-base font-semibold leading-none tabular-nums tracking-tight text-foreground">
                       {formatCurrency(asset.value, baseCurrency)}
                     </p>
                     <div className="flex min-w-0 items-center gap-2">
@@ -91,7 +91,7 @@ export function OtherAssetsSection({ assets, baseCurrency }: OtherAssetsSectionP
                           ASSET_TYPE_COLORS[asset.asset_type] ?? "bg-slate-400"
                         }`}
                       />
-                      <span className="truncate font-medium">{asset.name}</span>
+                      <span className="truncate text-sm font-medium text-muted-foreground">{asset.name}</span>
                     </div>
                   </div>
 

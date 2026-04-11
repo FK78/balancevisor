@@ -209,7 +209,7 @@ export default async function Accounts() {
   const healthCheckEl = accounts.length > 0 ? <AccountHealthCheck /> : null;
 
   const otherAssetsEl = (
-    <section className="space-y-3 pt-6" aria-label="Portfolio support">
+    <section id="portfolio-support" className="space-y-3 pt-6" aria-label="Portfolio support">
       <p className="cockpit-kicker">Portfolio support</p>
       <OtherAssetsSection assets={otherAssets} baseCurrency={baseCurrency} />
     </section>
