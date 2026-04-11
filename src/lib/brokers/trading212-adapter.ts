@@ -24,10 +24,9 @@ export const trading212Adapter: BrokerAdapter = {
       const avgPrice = parseFloat(String(pos.averagePricePaid)) / divisor;
       const currentPrice = pos.currentPrice / divisor;
       const cost = avgPrice * pos.quantity;
-      const value = pos.walletImpact?.currentValue ?? currentPrice * pos.quantity;
-      const gainLoss = pos.walletImpact?.profitLoss ?? value - cost;
-      const gainLossPercent =
-        pos.walletImpact?.profitLossPercent ?? (cost > 0 ? (gainLoss / cost) * 100 : 0);
+      const value = currentPrice * pos.quantity;
+      const gainLoss = value - cost;
+      const gainLossPercent = cost > 0 ? (gainLoss / cost) * 100 : 0;
 
       return {
         ticker: pos.instrument.ticker,

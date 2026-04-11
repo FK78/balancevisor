@@ -1,4 +1,11 @@
-export type OnboardingStage = "basics" | "setup" | "review";
+export type OnboardingStage = "basics" | "account-method" | "setup" | "review";
+
+export type AccountMethod = "auto" | "manual" | "hybrid";
+
+export function normalizeAccountMethod(raw?: string): AccountMethod {
+  if (raw === "auto" || raw === "manual" || raw === "hybrid") return raw;
+  return "manual";
+}
 
 export const ONBOARDING_STAGE_META: readonly {
   readonly value: OnboardingStage;
@@ -11,6 +18,12 @@ export const ONBOARDING_STAGE_META: readonly {
     label: "Basics",
     title: "Set up your basics",
     description: "Choose your base currency and decide whether AI features should be enabled.",
+  },
+  {
+    value: "account-method",
+    label: "Accounts",
+    title: "How do you want to add accounts?",
+    description: "Choose between automatic Open Banking, manual entry, or a mix of both.",
   },
   {
     value: "setup",
@@ -28,6 +41,7 @@ export const ONBOARDING_STAGE_META: readonly {
 
 const LEGACY_STEP_MAP: Record<string, OnboardingStage> = {
   welcome: "basics",
+  "account-method": "account-method",
   accounts: "setup",
   categories: "setup",
   features: "setup",
@@ -54,6 +68,7 @@ export function buildOnboardingHref(
   options?: {
     readonly aiEnabled?: boolean;
     readonly features?: string[];
+    readonly method?: AccountMethod;
   },
 ) {
   const params = new URLSearchParams({ stage });
@@ -64,6 +79,10 @@ export function buildOnboardingHref(
 
   if (options?.aiEnabled === false) {
     params.set("ai", "0");
+  }
+
+  if (options?.method) {
+    params.set("method", options.method);
   }
 
   return `/onboarding?${params.toString()}`;

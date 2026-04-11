@@ -80,7 +80,7 @@ export async function setBaseCurrency(formData: FormData) {
 
   revalidateDomains('onboarding', 'accounts', 'budgets', 'transactions');
   const ai = formData.get('ai_enabled');
-  redirect(buildOnboardingHref('setup', { aiEnabled: ai !== '0' }));
+  redirect(buildOnboardingHref('account-method', { aiEnabled: ai !== '0' }));
 }
 
 export async function continueFromCategories(formData: FormData) {
