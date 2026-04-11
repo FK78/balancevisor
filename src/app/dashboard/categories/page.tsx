@@ -24,9 +24,9 @@ import { ChartSkeleton } from "@/components/ChartSkeleton";
 import { CategoriesCockpitIntro } from "@/components/categories/CategoriesCockpitIntro";
 import {
   buildCategoriesCockpitModel,
+  buildCategoryStructureCards,
 } from "@/components/categories/categories-cockpit";
 import { CategoryStructureGrid } from "@/components/categories/CategoryStructureGrid";
-import { formatCurrency } from "@/lib/formatCurrency";
 const CategoryCharts = dynamic(
   () => import("@/components/CategoryCharts").then((mod) => mod.CategoryCharts),
   { loading: () => <ChartSkeleton height={300} /> }
@@ -65,57 +65,29 @@ export default async function Categories() {
     rules,
   });
 
-  const totalTrackedSpend = topSpendByCategory.reduce((sum, row) => sum + row.total, 0);
-  const topCategoryName = topSpendByCategory[0]?.category ?? null;
-  const categorySpendByName = new Map(topSpendByCategory.map((row) => [row.category, row.total]));
-  const monthlyRowsByCategoryId = new Map<string, typeof monthlySpendRows>();
-
-  for (const row of monthlySpendRows) {
-    const existing = monthlyRowsByCategoryId.get(row.category_id) ?? [];
-    monthlyRowsByCategoryId.set(row.category_id, [...existing, row]);
-  }
-
-  const categoryCards = [...categories]
-    .map((category) => {
-      const spend = categorySpendByName.get(category.name) ?? 0;
-      const spendShare = totalTrackedSpend > 0 ? (spend / totalTrackedSpend) * 100 : 0;
-      const monthlyRows = [...(monthlyRowsByCategoryId.get(category.id) ?? [])]
-        .sort((left, right) => left.month.localeCompare(right.month));
-      const latest = monthlyRows.at(-1) ?? null;
-      const previous = monthlyRows.at(-2) ?? null;
-      const changeRatio = latest && previous ? (latest.total - previous.total) / Math.max(previous.total, 1) : null;
-      const directionLabel = changeRatio === null
-        ? "Waiting for another month of spend"
-        : `${changeRatio >= 0 ? "+" : ""}${Math.round(changeRatio * 100)}% vs last month`;
-
-      let structureSignal = "Supporting category in the current structure";
-      if (category.name === topCategoryName && spend > 0) {
-        structureSignal = "Largest category this month";
-      } else if (spendShare >= 15) {
-        structureSignal = "Core part of this month's spend";
-      } else if (changeRatio !== null && Math.abs(changeRatio) >= 0.2) {
-        structureSignal = "Notable month-over-month shift";
-      }
-
-      return {
-        id: category.id,
-        name: category.name,
-        color: category.color,
-        icon: category.icon,
-        spendShare,
-        spendLabel: spend > 0 ? `${formatCurrency(spend, baseCurrency)} this month` : "No tracked spend yet",
-        shareLabel: totalTrackedSpend > 0 ? `${Math.round(spendShare)}% of tracked spend` : "Waiting for tracked spend",
-        structureSignal,
-        trendLabel: directionLabel,
-        actions: (
-          <div className="flex items-center gap-1">
-            <CategoryFormDialog category={category} />
-            <DeleteCategoryButton category={category} />
-          </div>
-        ),
-      };
-    })
-    .sort((left, right) => right.spendShare - left.spendShare || left.name.localeCompare(right.name));
+  const latestMonth = monthlySpendRows.reduce<string | null>(
+    (latest, row) => (latest === null || row.month > latest ? row.month : latest),
+    null,
+  );
+  const totalTrackedSpend = monthlySpendRows
+    .filter((row) => row.month === latestMonth)
+    .reduce((sum, row) => sum + row.total, 0);
+  const categoriesById = new Map(categories.map((category) => [category.id, category] as const));
+  const structureCards = buildCategoryStructureCards({
+    categories,
+    monthlySpendRows,
+    currency: baseCurrency,
+  }).map((card) => ({
+    ...card,
+    actions: (
+      <div className="flex items-center gap-1">
+        <CategoryFormDialog category={categoriesById.get(card.id)} />
+        <DeleteCategoryButton
+          category={categoriesById.get(card.id) ?? { id: card.id, name: card.name }}
+        />
+      </div>
+    ),
+  }));
 
   const heroAction = cockpitModel.primaryAction.key === "add-rule" && categories.length > 0
     ? <CategorisationRuleFormDialog categories={categories} />
@@ -206,7 +178,7 @@ export default async function Categories() {
                 />
               </div>
             ) : (
-              <CategoryStructureGrid categories={categoryCards} />
+              <CategoryStructureGrid categories={structureCards} />
             )}
           </CardContent>
         </Card>

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { buildCategoriesCockpitModel } from "@/components/categories/categories-cockpit";
+import {
+  buildCategoriesCockpitModel,
+  buildCategoryStructureCards,
+} from "@/components/categories/categories-cockpit";
 
 const categories = [
   { id: "groceries", name: "Groceries", color: "#16a34a", icon: "shopping-cart", user_id: "u1" },
@@ -128,5 +131,84 @@ describe("buildCategoriesCockpitModel", () => {
     expect(model.primaryAction.key).toBe("add-category");
     expect(model.heroTitle).toMatch(/build your category structure/i);
     expect(model.priorityCards).toHaveLength(3);
+  });
+
+  it("falls back to structure-building guidance when categories exist but spend history is still empty", () => {
+    const model = buildCategoriesCockpitModel({
+      categories,
+      topSpendByCategory: [],
+      monthlySpendRows: [],
+      rules: [
+        {
+          id: "rule-rent",
+          pattern: "landlord",
+          category_id: "housing",
+          categoryName: "Housing",
+          categoryColor: "#1d4ed8",
+          priority: 100,
+        },
+      ],
+    });
+
+    expect(model.primaryAction.key).toBe("add-category");
+    expect(model.heroTitle).toMatch(/build|structure/i);
+    expect(model.heroDescription).not.toMatch(/rule coverage|automation is the fastest/i);
+    expect(model.priorityCards[0]?.id).not.toBe("rule-coverage");
+  });
+
+  it("does not misattribute spend or coverage when duplicate category names exist", () => {
+    const model = buildCategoriesCockpitModel({
+      categories: [
+        { id: "food-home", name: "Food", color: "#16a34a", icon: "utensils", user_id: "u1" },
+        { id: "food-eating-out", name: "Food", color: "#f97316", icon: "utensils-crossed", user_id: "u1" },
+      ],
+      topSpendByCategory: [{ category: "Food", color: "#16a34a", total: 840 }],
+      monthlySpendRows: [
+        { month: "2026-02", category: "Food", category_id: "food-home", color: "#16a34a", total: 400 },
+        { month: "2026-03", category: "Food", category_id: "food-home", color: "#16a34a", total: 840 },
+      ],
+      rules: [
+        {
+          id: "rule-home",
+          pattern: "aldi",
+          category_id: "food-home",
+          categoryName: "Food",
+          categoryColor: "#16a34a",
+          priority: 100,
+        },
+      ],
+    });
+
+    expect(model.primaryAction.key).toBe("add-category");
+    expect(model.heroTitle).toMatch(/single-category|food/i);
+  });
+});
+
+describe("buildCategoryStructureCards", () => {
+  it("keeps duplicate category names isolated by category id when building structure cards", () => {
+    const cards = buildCategoryStructureCards({
+      categories: [
+        { id: "food-home", name: "Food", color: "#16a34a", icon: "utensils", user_id: "u1" },
+        { id: "food-eating-out", name: "Food", color: "#f97316", icon: "utensils-crossed", user_id: "u1" },
+      ],
+      monthlySpendRows: [
+        { month: "2026-02", category: "Food", category_id: "food-home", color: "#16a34a", total: 360 },
+        { month: "2026-03", category: "Food", category_id: "food-home", color: "#16a34a", total: 840 },
+      ],
+      currency: "GBP",
+    });
+
+    expect(cards).toHaveLength(2);
+    expect(cards[0]).toMatchObject({
+      id: "food-home",
+      spendLabel: "£840.00 this month",
+      shareLabel: "100% of tracked spend",
+      structureSignal: "Largest category this month",
+    });
+    expect(cards[1]).toMatchObject({
+      id: "food-eating-out",
+      spendLabel: "No tracked spend yet",
+      shareLabel: "0% of tracked spend",
+    });
   });
 });

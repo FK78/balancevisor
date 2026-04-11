@@ -1,5 +1,8 @@
 import type { CategoryWithColor } from "@/lib/types";
 import type { MonthlyCategorySpendPoint } from "@/db/queries/transactions";
+import { formatCurrency } from "@/lib/formatCurrency";
+
+import type { CategoryStructureCard } from "@/components/categories/CategoryStructureGrid";
 
 type TopSpendCategory = {
   readonly category: string;
@@ -53,20 +56,24 @@ function formatWholePercent(value: number) {
   return `${Math.round(value)}%`;
 }
 
-function getCoverageMetrics(
-  categories: readonly CategoryWithColor[],
-  topSpendByCategory: readonly TopSpendCategory[],
-  rules: readonly CategorisationRule[],
-) {
-  const activeIds = new Set(
-    topSpendByCategory
-      .map((entry) => categories.find((category) => category.name === entry.category)?.id ?? null)
-      .filter((value): value is string => value !== null),
+function getLatestMonthRows(monthlySpendRows: readonly MonthlyCategorySpendPoint[]) {
+  const latestMonth = monthlySpendRows.reduce<string | null>(
+    (latest, row) => (latest === null || row.month > latest ? row.month : latest),
+    null,
   );
 
-  const relevantIds = activeIds.size > 0
-    ? activeIds
-    : new Set(categories.map((category) => category.id));
+  if (!latestMonth) {
+    return [];
+  }
+
+  return monthlySpendRows.filter((row) => row.month === latestMonth);
+}
+
+function getCoverageMetrics(
+  activeIds: ReadonlySet<string>,
+  rules: readonly CategorisationRule[],
+) {
+  const relevantIds = activeIds;
 
   const coveredIds = new Set(
     rules
@@ -86,8 +93,9 @@ function getCoverageMetrics(
   };
 }
 
-function getConcentrationMetrics(topSpendByCategory: readonly TopSpendCategory[]) {
-  const sorted = [...topSpendByCategory].sort((left, right) => right.total - left.total);
+function getConcentrationMetrics(monthlySpendRows: readonly MonthlyCategorySpendPoint[]) {
+  const latestRows = getLatestMonthRows(monthlySpendRows);
+  const sorted = [...latestRows].sort((left, right) => right.total - left.total);
   const total = sorted.reduce((sum, row) => sum + row.total, 0);
   const largest = sorted[0] ?? null;
   const share = total > 0 && largest ? largest.total / total : 0;
@@ -284,8 +292,10 @@ function buildPriorityCards(params: {
 export function buildCategoriesCockpitModel(
   params: BuildCategoriesCockpitModelParams,
 ): CategoriesCockpitModel {
-  const coverage = getCoverageMetrics(params.categories, params.topSpendByCategory, params.rules);
-  const concentration = getConcentrationMetrics(params.topSpendByCategory);
+  const latestMonthRows = getLatestMonthRows(params.monthlySpendRows);
+  const activeCategoryIds = new Set(latestMonthRows.map((row) => row.category_id));
+  const coverage = getCoverageMetrics(activeCategoryIds, params.rules);
+  const concentration = getConcentrationMetrics(params.monthlySpendRows);
   const movement = getMovementMetrics(params.monthlySpendRows);
   const categoryDepthGap = getCategoryDepthGap(params.categories.length);
 
@@ -316,4 +326,61 @@ export function buildCategoriesCockpitModel(
       movement,
     }),
   };
+}
+
+export function buildCategoryStructureCards(params: {
+  readonly categories: readonly CategoryWithColor[];
+  readonly monthlySpendRows: readonly MonthlyCategorySpendPoint[];
+  readonly currency: string;
+}): CategoryStructureCard[] {
+  const latestMonthRows = getLatestMonthRows(params.monthlySpendRows);
+  const latestRowsByCategoryId = new Map(
+    latestMonthRows.map((row) => [row.category_id, row] as const),
+  );
+  const totalTrackedSpend = latestMonthRows.reduce((sum, row) => sum + row.total, 0);
+  const largestCategoryId = [...latestMonthRows]
+    .sort((left, right) => right.total - left.total)[0]?.category_id ?? null;
+  const monthlyRowsByCategoryId = new Map<string, MonthlyCategorySpendPoint[]>();
+
+  for (const row of params.monthlySpendRows) {
+    const existing = monthlyRowsByCategoryId.get(row.category_id) ?? [];
+    monthlyRowsByCategoryId.set(row.category_id, [...existing, row]);
+  }
+
+  return [...params.categories]
+    .map((category) => {
+      const latest = latestRowsByCategoryId.get(category.id) ?? null;
+      const spend = latest?.total ?? 0;
+      const spendShare = totalTrackedSpend > 0 ? (spend / totalTrackedSpend) * 100 : 0;
+      const categoryRows = [...(monthlyRowsByCategoryId.get(category.id) ?? [])]
+        .sort((left, right) => left.month.localeCompare(right.month));
+      const previous = categoryRows.at(-2) ?? null;
+      const changeRatio = latest && previous
+        ? (latest.total - previous.total) / Math.max(previous.total, 1)
+        : null;
+
+      let structureSignal = "Supporting category in the current structure";
+      if (category.id === largestCategoryId && spend > 0) {
+        structureSignal = "Largest category this month";
+      } else if (spendShare >= 15) {
+        structureSignal = "Core part of this month's spend";
+      } else if (changeRatio !== null && Math.abs(changeRatio) >= 0.2) {
+        structureSignal = "Notable month-over-month shift";
+      }
+
+      return {
+        id: category.id,
+        name: category.name,
+        color: category.color,
+        icon: category.icon,
+        spendShare,
+        spendLabel: spend > 0 ? `${formatCurrency(spend, params.currency)} this month` : "No tracked spend yet",
+        shareLabel: totalTrackedSpend > 0 ? `${Math.round(spendShare)}% of tracked spend` : "0% of tracked spend",
+        structureSignal,
+        trendLabel: changeRatio === null
+          ? "Waiting for another month of spend"
+          : `${changeRatio >= 0 ? "+" : ""}${Math.round(changeRatio * 100)}% vs last month`,
+      };
+    })
+    .sort((left, right) => right.spendShare - left.spendShare || left.name.localeCompare(right.name));
 }
