@@ -29,7 +29,9 @@ import {
   transactionReviewFlagsTable,
   sharedAccessTable,
   merchantMappingsTable,
+  globalMerchantAliasesTable,
 } from "./schema";
+import { SEED_BRANDS } from "@/lib/brand-dictionary";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) {
@@ -150,6 +152,7 @@ async function seed() {
   await db.delete(categoriesTable).where(eq(categoriesTable.user_id, USER_ID));
   await db.delete(userOnboardingTable).where(eq(userOnboardingTable.user_id, USER_ID));
   await db.delete(defaultCategoryTemplatesTable);
+  await db.execute(sql`TRUNCATE global_merchant_aliases`);
   console.log("  ✓ cleanup done");
 
   // ── Default category templates ───────────────────────────────────
@@ -679,6 +682,49 @@ async function seed() {
     });
   }
 
+  // ─── EDGE CASES: Transactions for review flag testing ───────────────
+  // These simulate real scenarios the enrichment pipeline would flag.
+
+  // Netflix price increase: sub is £15.99 but latest charge is £17.99
+  txValues.push({
+    account_id: acctMap["Amex Gold"], category_id: catMap["Entertainment"], type: "expense",
+    amount: 17.99, description: "Netflix",
+    date: daysAgo(3), is_recurring: false,
+    merchant_name: "Netflix", category_source: "merchant",
+  });
+
+  // Spotify upgraded from individual (£10.99) to family plan (£16.99)
+  txValues.push({
+    account_id: acctMap["Amex Gold"], category_id: catMap["Entertainment"], type: "expense",
+    amount: 16.99, description: "Spotify Premium",
+    date: daysAgo(5), is_recurring: false,
+    merchant_name: "Spotify", category_source: "merchant",
+  });
+
+  // YouTube Premium price increase: £12.99 → £13.99
+  txValues.push({
+    account_id: acctMap["Amex Gold"], category_id: catMap["Entertainment"], type: "expense",
+    amount: 13.99, description: "YouTube Premium",
+    date: daysAgo(2), is_recurring: false,
+    merchant_name: "YouTube", category_source: "merchant",
+  });
+
+  // Student Loans Company — salary-based repayment differs from minimum
+  txValues.push({
+    account_id: acctMap["Monzo Current"], category_id: catMap["Bills & Utilities"], type: "expense",
+    amount: 185, description: "Student Loans Company",
+    date: daysAgo(7), is_recurring: false,
+    merchant_name: "Student Loans Company", category_source: "bank",
+  });
+
+  // Black Horse Finance — user paid extra toward car loan this month
+  txValues.push({
+    account_id: acctMap["Monzo Current"], category_id: catMap["Bills & Utilities"], type: "expense",
+    amount: 350, description: "Black Horse Finance",
+    date: daysAgo(10), is_recurring: false,
+    merchant_name: "Black Horse", category_source: "bank",
+  });
+
   // Insert all transactions in batches of 500
   const allTxInserts = txValues.map(v => ({ ...v, user_id: USER_ID }));
   let transactions: (typeof transactionsTable.$inferSelect)[] = [];
@@ -815,26 +861,28 @@ async function seed() {
     .returning();
   console.log(`  ✓ ${rules.length} categorisation rules`);
 
-  // ── Merchant mappings ──────────────────────────────────────────────
+  // ── Global brand dictionary (system-wide, no user_id) ─────────────
+  const aliasRows: { alias: string; brand: string; default_category: string; brand_type: string; subscription_name: string | null; lender_for: string | null }[] = [];
+  for (const entry of SEED_BRANDS) {
+    for (const alias of entry.aliases) {
+      aliasRows.push({
+        alias: alias.toLowerCase(),
+        brand: entry.brand,
+        default_category: entry.defaultCategory,
+        brand_type: entry.type,
+        subscription_name: entry.subscriptionName ?? null,
+        lender_for: entry.lenderFor ?? null,
+      });
+    }
+  }
+  await db.insert(globalMerchantAliasesTable).values(aliasRows);
+  console.log(`  ✓ ${aliasRows.length} global merchant aliases (${SEED_BRANDS.length} brands)`);
+
+  // ── Merchant mappings (overrides only — brands NOT in global dictionary) ──
   const merchantMappingDefs: [string, string][] = [
-    ["Tesco", "Groceries"], ["Sainsbury's", "Groceries"], ["Aldi", "Groceries"],
-    ["Lidl", "Groceries"], ["Ocado", "Groceries"], ["M&S Food", "Groceries"],
-    ["Waitrose", "Groceries"], ["Asda", "Groceries"], ["Morrisons", "Groceries"],
-    ["Co-op", "Groceries"], ["Costco", "Groceries"],
-    ["Pret A Manger", "Dining Out"], ["Dishoom", "Dining Out"], ["Wagamama", "Dining Out"],
-    ["Nando's", "Dining Out"], ["Five Guys", "Dining Out"], ["Pizza Express", "Dining Out"],
     ["Leon", "Dining Out"], ["Itsu", "Dining Out"], ["Franco Manca", "Dining Out"],
-    ["Amazon", "Shopping"], ["ASOS", "Shopping"], ["Uniqlo", "Shopping"],
-    ["John Lewis", "Shopping"], ["Currys", "Shopping"], ["TK Maxx", "Shopping"],
-    ["Zara", "Shopping"], ["H&M", "Shopping"], ["IKEA", "Shopping"],
-    ["Netflix", "Entertainment"], ["Spotify", "Entertainment"],
-    ["PureGym", "Health"], ["TfL", "Transport"],
-    ["EDF Energy", "Bills & Utilities"], ["Sky Broadband", "Bills & Utilities"],
-    ["Three Mobile", "Bills & Utilities"], ["Thames Water", "Bills & Utilities"],
+    ["Caffe Nero", "Dining Out"], ["Black Sheep Coffee", "Dining Out"],
     ["Little Stars Nursery", "Childcare"], ["Acme Corp Ltd", "Salary"],
-    ["Deliveroo", "Dining Out"], ["Costa Coffee", "Dining Out"],
-    ["Starbucks", "Dining Out"], ["Caffe Nero", "Dining Out"],
-    ["Black Sheep Coffee", "Dining Out"],
   ];
   const merchantRows = await db
     .insert(merchantMappingsTable)
@@ -842,7 +890,7 @@ async function seed() {
       user_id: USER_ID, merchant, category_id: catMap[cat], source: "correction" as const,
     })))
     .returning();
-  console.log(`  ✓ ${merchantRows.length} merchant mappings`);
+  console.log(`  ✓ ${merchantRows.length} merchant mapping overrides`);
 
   // ── Goals (expanded) ──────────────────────────────────────────────
   const goals = await db
@@ -1143,10 +1191,7 @@ async function seed() {
   }
   console.log(`  ✓ ${linkedCount} transactions linked → subscriptions`);
 
-  // ── Transaction review flags ──────────────────────────────────────
-  const netflixSub = subscriptions.find((s) => s.name === "Netflix Standard");
-  const possibleSubTxn = transactions.find((t) => t.description === "PureGym membership" && !t.subscription_id);
-
+  // ── Transaction review flags (realistic edge cases) ────────────────
   type ReviewFlag = {
     user_id: string; transaction_id: string;
     flag_type: "subscription_amount_mismatch" | "possible_debt_payment" | "possible_subscription";
@@ -1155,24 +1200,81 @@ async function seed() {
   };
   const reviewFlagValues: ReviewFlag[] = [];
 
-  if (netflixSub) {
-    const mismatchTx = transactions.find((t) => t.description === "Netflix" && t.type === "expense");
-    if (mismatchTx) {
-      reviewFlagValues.push({
-        user_id: USER_ID, transaction_id: mismatchTx.id,
-        flag_type: "subscription_amount_mismatch",
-        suggested_subscription_id: netflixSub.id,
-        expected_amount: 15.99, actual_amount: 17.99,
-      });
-    }
-  }
-  if (possibleSubTxn) {
-    const pureGymSub = subscriptions.find((s) => s.name === "PureGym");
+  // Helper to find a specific edge-case transaction by description + amount
+  const findTx = (desc: string, amount?: number) =>
+    transactions.find((t) =>
+      t.description === desc &&
+      t.type === "expense" &&
+      (amount === undefined || Number(t.amount) === amount),
+    );
+
+  // 1. Netflix price increase: sub is £15.99 but latest charge was £17.99
+  const netflixSub = subscriptions.find((s) => s.name === "Netflix Standard");
+  const netflixPriceIncreaseTx = findTx("Netflix", 17.99);
+  if (netflixSub && netflixPriceIncreaseTx) {
     reviewFlagValues.push({
-      user_id: USER_ID, transaction_id: possibleSubTxn.id,
+      user_id: USER_ID, transaction_id: netflixPriceIncreaseTx.id,
+      flag_type: "subscription_amount_mismatch",
+      suggested_subscription_id: netflixSub.id,
+      expected_amount: 15.99, actual_amount: 17.99,
+    });
+  }
+
+  // 2. Spotify family plan upgrade: sub is £10.99 individual, charged £16.99
+  const spotifySub = subscriptions.find((s) => s.name === "Spotify Premium");
+  const spotifyUpgradeTx = findTx("Spotify Premium", 16.99);
+  if (spotifySub && spotifyUpgradeTx) {
+    reviewFlagValues.push({
+      user_id: USER_ID, transaction_id: spotifyUpgradeTx.id,
+      flag_type: "subscription_amount_mismatch",
+      suggested_subscription_id: spotifySub.id,
+      expected_amount: 10.99, actual_amount: 16.99,
+    });
+  }
+
+  // 3. YouTube Premium price increase: sub £12.99, charged £13.99
+  const ytSub = subscriptions.find((s) => s.name === "YouTube Premium");
+  const ytPriceIncreaseTx = findTx("YouTube Premium", 13.99);
+  if (ytSub && ytPriceIncreaseTx) {
+    reviewFlagValues.push({
+      user_id: USER_ID, transaction_id: ytPriceIncreaseTx.id,
+      flag_type: "subscription_amount_mismatch",
+      suggested_subscription_id: ytSub.id,
+      expected_amount: 12.99, actual_amount: 13.99,
+    });
+  }
+
+  // 4. Student loan: salary-based repayment (£185) differs from minimum (£150)
+  const slcTx = findTx("Student Loans Company", 185);
+  if (slcTx) {
+    reviewFlagValues.push({
+      user_id: USER_ID, transaction_id: slcTx.id,
+      flag_type: "possible_debt_payment",
+      suggested_debt_id: debts[0].id,
+      expected_amount: 150, actual_amount: 185,
+    });
+  }
+
+  // 5. Black Horse car finance: user overpaid this month (£350 vs £285 minimum)
+  const bhTx = findTx("Black Horse Finance", 350);
+  if (bhTx) {
+    reviewFlagValues.push({
+      user_id: USER_ID, transaction_id: bhTx.id,
+      flag_type: "possible_debt_payment",
+      suggested_debt_id: debts[1].id,
+      expected_amount: 285, actual_amount: 350,
+    });
+  }
+
+  // 6. PureGym possible subscription (recurring charge not yet linked)
+  const pureGymSub = subscriptions.find((s) => s.name === "PureGym");
+  const pureGymTx = findTx("PureGym membership");
+  if (pureGymSub && pureGymTx) {
+    reviewFlagValues.push({
+      user_id: USER_ID, transaction_id: pureGymTx.id,
       flag_type: "possible_subscription",
-      suggested_subscription_id: pureGymSub?.id,
-      expected_amount: 39.99, actual_amount: 39.99,
+      suggested_subscription_id: pureGymSub.id,
+      expected_amount: 39.99, actual_amount: Number(pureGymTx.amount),
     });
   }
 

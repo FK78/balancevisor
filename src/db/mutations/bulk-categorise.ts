@@ -9,6 +9,8 @@ import { getAllMerchantMappings } from '@/db/queries/merchant-mappings';
 import { normaliseMerchant } from '@/lib/merchant-normalise';
 import { decryptForUser, getUserKey } from '@/lib/encryption';
 import { revalidateDomains } from '@/lib/revalidate';
+import { resolveBrand } from '@/lib/brand-dictionary';
+import { getCategoriesByUser } from '@/db/queries/categories';
 
 export type BulkCategoriseResult = {
   categorised: number;
@@ -23,14 +25,12 @@ export async function bulkAutoCategorise(): Promise<BulkCategoriseResult> {
   const userId = await getCurrentUserId();
   const userKey = await getUserKey(userId);
 
-  // Fetch rules and merchant mappings once
-  const [rules, merchantMappings] = await Promise.all([
+  // Fetch rules, merchant mappings, and categories once
+  const [rules, merchantMappings, userCategories] = await Promise.all([
     fetchUserRules(userId),
     getAllMerchantMappings(userId),
+    getCategoriesByUser(userId),
   ]);
-  if (rules.length === 0 && merchantMappings.length === 0) {
-    return { categorised: 0, remaining: 0 };
-  }
 
   // Fetch all uncategorised transactions
   const uncategorised = await db
@@ -56,12 +56,11 @@ export async function bulkAutoCategorise(): Promise<BulkCategoriseResult> {
     const description = txn.description ? decryptForUser(txn.description, userKey) : '';
     const merchantName = normaliseMerchant(description);
 
-    // 1. Try rules first
-    let categoryId = matchAgainstRules(rules, description);
-    let categorySource: string | null = categoryId ? 'rule' : null;
+    let categoryId: string | null = null;
+    let categorySource: string | null = null;
 
-    // 2. Try merchant mapping if no rule match
-    if (!categoryId && merchantName) {
+    // 1. User merchant mapping override
+    if (merchantName) {
       const merchantLower = merchantName.toLowerCase();
       const mapping = merchantMappings.find(
         (m) => m.merchant.toLowerCase() === merchantLower,
@@ -70,6 +69,26 @@ export async function bulkAutoCategorise(): Promise<BulkCategoriseResult> {
         categoryId = mapping.category_id;
         categorySource = 'merchant';
       }
+    }
+
+    // 2. Global brand dictionary
+    if (!categoryId) {
+      const brand = await resolveBrand(description);
+      if (brand) {
+        const brandCat = userCategories.find(
+          (c) => c.name.toLowerCase() === brand.defaultCategory.toLowerCase(),
+        );
+        if (brandCat) {
+          categoryId = brandCat.id;
+          categorySource = 'brand';
+        }
+      }
+    }
+
+    // 3. Try rules
+    if (!categoryId) {
+      categoryId = matchAgainstRules(rules, description);
+      categorySource = categoryId ? 'rule' : null;
     }
 
     if (categoryId) {

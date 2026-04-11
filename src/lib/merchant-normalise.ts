@@ -4,7 +4,12 @@
  * Cleans raw bank transaction descriptions (e.g. "CARD PAYMENT TO TESCO STORES 1234")
  * into a canonical merchant name (e.g. "Tesco Stores") suitable for display and
  * exact-match merchant → category lookups.
+ *
+ * When the global brand dictionary has been loaded, known brands are resolved
+ * to their canonical name (e.g. "AMZN Mktp UK" → "Amazon").
  */
+
+import { resolveBrandSync } from "@/lib/brand-dictionary";
 
 // Prefixes injected by banks / payment processors — removed first
 const NOISE_PREFIXES = [
@@ -67,6 +72,10 @@ export function normaliseMerchant(raw: string): string | null {
 
   // Title-case: "TESCO STORES" → "Tesco Stores"
   cleaned = toTitleCase(cleaned);
+
+  // If brand dictionary cache is loaded, use canonical brand name
+  const brand = resolveBrandSync(raw);
+  if (brand) return brand.brand;
 
   return cleaned;
 }

@@ -40,6 +40,10 @@ type RawTransaction = {
 
 export { normalise, fuzzyMatch, amountsMatch } from "@/lib/matching-utils";
 import { normalise, fuzzyMatch, amountsMatch, amountsCloseEnough, isNearBillingDate } from "@/lib/matching-utils";
+import { resolveBrand } from "@/lib/brand-dictionary";
+
+const SUB_SKIP_TYPES = new Set(["retailer", "grocery", "restaurant"]);
+const DEBT_SKIP_TYPES = new Set(["restaurant", "grocery", "subscription", "retailer", "transport"]);
 
 // ---------------------------------------------------------------------------
 // Fetch unlinked transactions for a user (recently imported)
@@ -121,6 +125,10 @@ export async function matchTransactionsToSubscriptions(
   let flagged = 0;
 
   for (const txn of expenses) {
+    // Brand type gate: known retailers/groceries/restaurants cannot be subscription payments
+    const brand = await resolveBrand(txn.description);
+    if (brand && SUB_SKIP_TYPES.has(brand.type)) continue;
+
     for (const sub of subs) {
       if (!fuzzyMatch(txn.description, sub.name)) continue;
 
@@ -205,6 +213,10 @@ export async function matchTransactionsToDebts(
   let flagged = 0;
 
   for (const txn of expenses) {
+    // Brand type gate: restaurants/groceries/subscriptions/retailers cannot be debt payments
+    const brand = await resolveBrand(txn.description);
+    if (brand && DEBT_SKIP_TYPES.has(brand.type)) continue;
+
     for (const debt of activeDebts) {
       const matchesName = fuzzyMatch(txn.description, debt.name);
       const matchesLender =

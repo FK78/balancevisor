@@ -2,10 +2,11 @@
  * Unified transaction categorisation pipeline.
  *
  * Priority:
- *   1. User's categorisation rules (pattern match)  → source: 'rule'
- *   2. Merchant mapping (exact normalised merchant)  → source: 'merchant'
- *   3. TrueLayer bank category (mapped to user cat)  → source: 'bank'
- *   4. Fallback: null (uncategorised)
+ *   1. User merchant mapping override              → source: 'merchant'
+ *   2. Global brand dictionary (system-wide)        → source: 'brand'
+ *   3. User's categorisation rules (pattern match)  → source: 'rule'
+ *   4. TrueLayer bank category (mapped to user cat) → source: 'bank'
+ *   5. Fallback: null (uncategorised)
  *
  * AI categorisation is run separately in batch after import, not inline here.
  */
@@ -14,8 +15,9 @@ import type { CategorisationRule } from '@/lib/auto-categorise';
 import { matchAgainstRules } from '@/lib/auto-categorise';
 import { normaliseMerchant } from '@/lib/merchant-normalise';
 import { mapTrueLayerCategory } from '@/lib/truelayer-category-map';
+import { resolveBrandSync } from '@/lib/brand-dictionary';
 
-export type CategorySource = 'manual' | 'rule' | 'merchant' | 'bank' | 'ai';
+export type CategorySource = 'manual' | 'rule' | 'merchant' | 'brand' | 'bank' | 'ai';
 
 export type CategoriseResult = {
   categoryId: string | null;
@@ -46,13 +48,7 @@ export function categoriseTransaction(
 ): CategoriseResult {
   const merchantName = normaliseMerchant(description);
 
-  // 1. User's categorisation rules (substring pattern match)
-  const ruleMatch = matchAgainstRules(ctx.rules, description);
-  if (ruleMatch) {
-    return { categoryId: ruleMatch, categorySource: 'rule', merchantName };
-  }
-
-  // 2. Merchant mapping (exact normalised merchant match)
+  // 1. User merchant mapping override (sparse — only disagreements with global)
   if (merchantName) {
     const merchantLower = merchantName.toLowerCase();
     const mapping = ctx.merchantMappings.find(
@@ -63,7 +59,24 @@ export function categoriseTransaction(
     }
   }
 
-  // 3. TrueLayer bank category mapping
+  // 2. Global brand dictionary (sync, uses in-memory cache)
+  const brand = resolveBrandSync(description);
+  if (brand) {
+    const brandCat = ctx.userCategories.find(
+      (c) => c.name.toLowerCase() === brand.defaultCategory.toLowerCase(),
+    );
+    if (brandCat) {
+      return { categoryId: brandCat.id, categorySource: 'brand', merchantName };
+    }
+  }
+
+  // 3. User's categorisation rules (substring pattern match)
+  const ruleMatch = matchAgainstRules(ctx.rules, description);
+  if (ruleMatch) {
+    return { categoryId: ruleMatch, categorySource: 'rule', merchantName };
+  }
+
+  // 4. TrueLayer bank category mapping
   if (tlCategory) {
     const bankMatch = mapTrueLayerCategory(tlCategory, ctx.userCategories);
     if (bankMatch) {
@@ -71,6 +84,6 @@ export function categoriseTransaction(
     }
   }
 
-  // 4. No match — return uncategorised
+  // 5. No match — return uncategorised
   return { categoryId: null, categorySource: null, merchantName };
 }

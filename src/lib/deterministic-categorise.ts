@@ -13,6 +13,8 @@ import { normaliseMerchant } from "@/lib/merchant-normalise";
 import { decryptForUser, getUserKey } from "@/lib/encryption";
 import { revalidateDomains } from "@/lib/revalidate";
 import { logger } from "@/lib/logger";
+import { resolveBrand } from "@/lib/brand-dictionary";
+import { getCategoriesByUser } from "@/db/queries/categories";
 
 export type DeterministicResult = {
   categorised: number;
@@ -26,14 +28,11 @@ export async function applyDeterministicCategorisation(
   userId: string,
   transactionIds?: string[],
 ): Promise<DeterministicResult> {
-  const [rules, merchantMappings] = await Promise.all([
+  const [rules, merchantMappings, userCategories] = await Promise.all([
     fetchUserRules(userId),
     getAllMerchantMappings(userId),
+    getCategoriesByUser(userId),
   ]);
-
-  if (rules.length === 0 && merchantMappings.length === 0) {
-    return { categorised: 0 };
-  }
 
   const conditions = [
     eq(transactionsTable.user_id, userId),
@@ -67,12 +66,11 @@ export async function applyDeterministicCategorisation(
       : "";
     const merchantName = normaliseMerchant(description);
 
-    // 1. Try rules
-    let categoryId = matchAgainstRules(rules, description);
-    let categorySource: string | null = categoryId ? "rule" : null;
+    let categoryId: string | null = null;
+    let categorySource: string | null = null;
 
-    // 2. Try merchant mapping
-    if (!categoryId && merchantName) {
+    // 1. User merchant mapping override (sparse — only disagreements)
+    if (merchantName) {
       const merchantLower = merchantName.toLowerCase();
       const mapping = merchantMappings.find(
         (m) => m.merchant.toLowerCase() === merchantLower,
@@ -81,6 +79,26 @@ export async function applyDeterministicCategorisation(
         categoryId = mapping.category_id;
         categorySource = "merchant";
       }
+    }
+
+    // 2. Global brand dictionary
+    if (!categoryId) {
+      const brand = await resolveBrand(description);
+      if (brand) {
+        const brandCat = userCategories.find(
+          (c) => c.name.toLowerCase() === brand.defaultCategory.toLowerCase(),
+        );
+        if (brandCat) {
+          categoryId = brandCat.id;
+          categorySource = "brand";
+        }
+      }
+    }
+
+    // 3. Try rules
+    if (!categoryId) {
+      categoryId = matchAgainstRules(rules, description);
+      categorySource = categoryId ? "rule" : null;
     }
 
     if (categoryId) {

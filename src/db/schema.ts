@@ -102,6 +102,23 @@ export const merchantMappingsTable = pgTable("merchant_mappings", {
   userIdx: index("merchant_mappings_user_id_idx").on(table.user_id),
 }]);
 
+export const globalMerchantAliasesTable = pgTable("global_merchant_aliases", {
+  id: uuid().primaryKey().defaultRandom(),
+  alias: varchar({ length: 255 }).notNull().unique(),
+  brand: varchar({ length: 255 }).notNull(),
+  default_category: varchar("default_category", { length: 100 }).notNull(),
+  brand_type: varchar("brand_type", { length: 20 }).notNull().default("general"),
+  subscription_name: varchar("subscription_name", { length: 255 }),
+  lender_for: varchar("lender_for", { length: 255 }),
+  vote_count: integer("vote_count").notNull().default(1),
+  source: varchar({ length: 20 }).notNull().default("seed"),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [{
+  brandIdx: index("global_merchant_aliases_brand_idx").on(table.brand),
+  typeIdx: index("global_merchant_aliases_type_idx").on(table.brand_type),
+}]);
+
 export const budgetsTable = pgTable("budgets", {
     id: uuid().primaryKey().defaultRandom(),
     user_id: uuid("user_id").notNull(),

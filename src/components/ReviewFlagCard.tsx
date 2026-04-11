@@ -109,7 +109,7 @@ export function ReviewFlagCard({ flag, currency, onResolved }: ReviewFlagCardPro
               )}
               {flag.transactionDate && (
                 <span>
-                  {new Date(flag.transactionDate + "T00:00:00").toLocaleDateString(undefined, {
+                  {new Date(flag.transactionDate + "T00:00:00").toLocaleDateString("en-GB", {
                     month: "short",
                     day: "numeric",
                     year: "numeric",

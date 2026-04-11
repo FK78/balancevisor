@@ -5,6 +5,9 @@ import { decryptForUser, getUserKey } from "@/lib/encryption";
 import { normalise, fuzzyMatch } from "@/lib/matching-utils";
 import { logger } from "@/lib/logger";
 import { revalidateDomains } from "@/lib/revalidate";
+import { resolveBrand, type BrandType } from "@/lib/brand-dictionary";
+
+const PROMOTABLE_TYPES = new Set<BrandType>(["subscription", "utility"]);
 
 // Categories that represent variable spending / income — never promote to subscriptions
 const BLOCKED_CATEGORY_NAMES = new Set([
@@ -158,6 +161,10 @@ export async function promoteRecurringToSubscriptions(
         ? catNameById.get(latest.category_id)
         : null;
       if (catName && BLOCKED_CATEGORY_NAMES.has(catName.toLowerCase())) continue;
+
+      // Brand type gate: only subscription/utility brands (or unknown) can be promoted
+      const brand = await resolveBrand(latest.description);
+      if (brand && !PROMOTABLE_TYPES.has(brand.type)) continue;
 
       const alreadyExists = existingSubs.some(
         (s) =>
