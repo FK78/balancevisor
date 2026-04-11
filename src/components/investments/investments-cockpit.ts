@@ -210,7 +210,12 @@ function buildPriorityCards(params: {
 function buildAccountSections(holdings: HoldingInput[], allGroups: GroupInput[]): AccountSection[] {
   const sortedHoldings = [...holdings].sort((a, b) => b.value - a.value);
   const largestHoldingId = sortedHoldings[0]?.id ?? null;
-  const accountSummaries = Array.from(
+  const accountSummaries: Array<{
+    accountKey: string;
+    accountId: string | null;
+    accountName: string | null;
+    totalValue: number;
+  }> = Array.from(
     new Map(
       sortedHoldings.map((holding) => {
         const accountKey = holding.accountId ?? "__ungrouped__";

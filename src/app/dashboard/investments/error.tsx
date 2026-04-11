@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
-import { logger } from "@/lib/logger";
-import { capturePostHogException } from "@/lib/posthog-error-tracking";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,6 +12,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { capturePostHogException } from "@/lib/posthog-error-tracking";
+import { logger } from "@/lib/logger";
 
 export default function InvestmentsError({
   error,
@@ -30,29 +31,32 @@ export default function InvestmentsError({
   }, [error]);
 
   return (
-    <div className="mx-auto max-w-7xl p-6 md:p-10">
-      <Card className="mx-auto max-w-xl">
-        <CardHeader className="text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
-            <AlertTriangle className="h-6 w-6" />
+    <div className="mx-auto max-w-4xl px-4 py-10 md:px-10">
+      <Card className="border-border/70 bg-card/90 shadow-sm">
+        <CardHeader className="space-y-4">
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-amber-500/10 text-amber-600">
+            <AlertTriangle className="h-5 w-5" />
           </div>
-          <CardTitle>Couldn&apos;t load investments</CardTitle>
-          <CardDescription>
-            Something went wrong while fetching your investment data. Please try again or contact support if the issue persists.
-          </CardDescription>
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Investments cockpit
+            </p>
+            <CardTitle>We hit a snag loading your portfolio</CardTitle>
+            <CardDescription>
+              Your investments data has not been changed. Try loading the cockpit again, or return to the dashboard while broker feeds and manual holdings settle.
+            </CardDescription>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex justify-center gap-2">
-            <Button onClick={() => reset()}>Try again</Button>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => reset()}>Try investments again</Button>
             <Button asChild variant="outline">
               <Link href="/dashboard">Back to dashboard</Link>
             </Button>
           </div>
-          {error.digest && (
-            <p className="text-center text-xs text-muted-foreground">
-              Ref: {error.digest}
-            </p>
-          )}
+          {error.digest ? (
+            <p className="text-xs text-muted-foreground">Reference: {error.digest}</p>
+          ) : null}
         </CardContent>
       </Card>
     </div>
