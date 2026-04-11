@@ -1,7 +1,6 @@
 import type { CategoryWithColor } from "@/lib/types";
 import type { MonthlyCategorySpendPoint } from "@/db/queries/transactions";
 import { formatCurrency } from "@/lib/formatCurrency";
-
 import type { CategoryStructureCard } from "@/components/categories/CategoryStructureGrid";
 
 type TopSpendCategory = {
@@ -54,6 +53,12 @@ function clamp(value: number, min = 0, max = 1) {
 
 function formatWholePercent(value: number) {
   return `${Math.round(value)}%`;
+}
+
+function formatTrackedMonthLabel(month: string) {
+  const [year, monthIndex] = month.split("-").map(Number);
+  const date = new Date(year, (monthIndex ?? 1) - 1, 1);
+  return new Intl.DateTimeFormat("en-GB", { month: "short", year: "numeric" }).format(date);
 }
 
 function getLatestMonthRows(monthlySpendRows: readonly MonthlyCategorySpendPoint[]) {
@@ -334,6 +339,9 @@ export function buildCategoryStructureCards(params: {
   readonly currency: string;
 }): CategoryStructureCard[] {
   const latestMonthRows = getLatestMonthRows(params.monthlySpendRows);
+  const latestMonthLabel = latestMonthRows[0]?.month
+    ? formatTrackedMonthLabel(latestMonthRows[0].month)
+    : null;
   const latestRowsByCategoryId = new Map(
     latestMonthRows.map((row) => [row.category_id, row] as const),
   );
@@ -361,9 +369,13 @@ export function buildCategoryStructureCards(params: {
 
       let structureSignal = "Supporting category in the current structure";
       if (category.id === largestCategoryId && spend > 0) {
-        structureSignal = "Largest category this month";
+        structureSignal = latestMonthLabel
+          ? `Largest category in ${latestMonthLabel}`
+          : "Largest tracked category";
       } else if (spendShare >= 15) {
-        structureSignal = "Core part of this month's spend";
+        structureSignal = latestMonthLabel
+          ? `Core part of spend in ${latestMonthLabel}`
+          : "Core part of the latest tracked month";
       } else if (changeRatio !== null && Math.abs(changeRatio) >= 0.2) {
         structureSignal = "Notable month-over-month shift";
       }
@@ -374,7 +386,11 @@ export function buildCategoryStructureCards(params: {
         color: category.color,
         icon: category.icon,
         spendShare,
-        spendLabel: spend > 0 ? `${formatCurrency(spend, params.currency)} this month` : "No tracked spend yet",
+        spendLabel: spend > 0
+          ? latestMonthLabel
+            ? `${formatCurrency(spend, params.currency)} in ${latestMonthLabel}`
+            : `${formatCurrency(spend, params.currency)} in the latest tracked month`
+          : "No tracked spend yet",
         shareLabel: totalTrackedSpend > 0 ? `${Math.round(spendShare)}% of tracked spend` : "0% of tracked spend",
         structureSignal,
         trendLabel: changeRatio === null

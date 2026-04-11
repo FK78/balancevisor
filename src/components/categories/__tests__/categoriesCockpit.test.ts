@@ -201,14 +201,34 @@ describe("buildCategoryStructureCards", () => {
     expect(cards).toHaveLength(2);
     expect(cards[0]).toMatchObject({
       id: "food-home",
-      spendLabel: "£840.00 this month",
+      spendLabel: "£840.00 in Mar 2026",
       shareLabel: "100% of tracked spend",
-      structureSignal: "Largest category this month",
+      structureSignal: "Largest category in Mar 2026",
     });
     expect(cards[1]).toMatchObject({
       id: "food-eating-out",
       spendLabel: "No tracked spend yet",
       shareLabel: "0% of tracked spend",
     });
+  });
+
+  it("labels the latest tracked month honestly when it is not the current month", () => {
+    const cards = buildCategoryStructureCards({
+      categories: [
+        { id: "housing", name: "Housing", color: "#1d4ed8", icon: "house", user_id: "u1" },
+      ],
+      monthlySpendRows: [
+        { month: "2026-01", category: "Housing", category_id: "housing", color: "#1d4ed8", total: 900 },
+        { month: "2026-02", category: "Housing", category_id: "housing", color: "#1d4ed8", total: 1200 },
+      ],
+      currency: "GBP",
+    });
+
+    expect(cards[0]).toMatchObject({
+      spendLabel: "£1,200.00 in Feb 2026",
+      structureSignal: "Largest category in Feb 2026",
+    });
+    expect(cards[0]?.spendLabel).not.toMatch(/this month/i);
+    expect(cards[0]?.structureSignal).not.toMatch(/this month/i);
   });
 });
