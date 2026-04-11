@@ -32,18 +32,17 @@ export function InvestmentsCockpitIntro({
       heroDescription={model.heroDescription}
       heroAction={heroAction}
       heroAside={(
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="grid gap-2 sm:grid-cols-3 min-w-0">
           <div className="workspace-hero-panel rounded-2xl p-3">
             <p className="text-xs uppercase tracking-[0.18em] text-white/60">Portfolio value</p>
-            <p className="mt-1 text-lg font-semibold text-white">
+            <p className="mt-1 text-base font-semibold text-white sm:text-lg truncate">
               {formatCurrency(totalInvestmentValue, currency)}
             </p>
           </div>
           <div className="workspace-hero-panel rounded-2xl p-3">
             <p className="text-xs uppercase tracking-[0.18em] text-white/60">Open return</p>
-            <p className="mt-1 text-lg font-semibold text-white">
-              {totalGainLoss >= 0 ? "+" : "−"}
-              {formatCurrency(Math.abs(totalGainLoss), currency)}
+            <p className="mt-1 text-base font-semibold text-white sm:text-lg truncate">
+              {totalGainLoss >= 0 ? "+" : "−"}{formatCurrency(Math.abs(totalGainLoss), currency)}
             </p>
             <p className="mt-1 text-xs text-white/65">
               {totalGainLossPercent >= 0 ? "+" : ""}
@@ -52,9 +51,8 @@ export function InvestmentsCockpitIntro({
           </div>
           <div className="workspace-hero-panel rounded-2xl p-3">
             <p className="text-xs uppercase tracking-[0.18em] text-white/60">Realised gains</p>
-            <p className="mt-1 text-lg font-semibold text-white">
-              {totalRealizedGain >= 0 ? "+" : "−"}
-              {formatCurrency(Math.abs(totalRealizedGain), currency)}
+            <p className="mt-1 text-base font-semibold text-white sm:text-lg truncate">
+              {totalRealizedGain >= 0 ? "+" : "−"}{formatCurrency(Math.abs(totalRealizedGain), currency)}
             </p>
           </div>
         </div>

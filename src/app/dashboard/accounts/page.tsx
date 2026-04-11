@@ -39,8 +39,6 @@ import {
   buildAccountSummaryCards,
   formatAccountTypeLabel,
 } from "@/components/accounts/account-decision";
-import { getOtherAssets } from "@/db/queries/other-assets";
-import { OtherAssetsSection } from "@/components/OtherAssetsSection";
 
 export default async function Accounts() {
   await requireFeature("accounts");
@@ -48,7 +46,7 @@ export default async function Accounts() {
 
   const email = await getCurrentUserEmail();
 
-  const [ownedAccounts, sharedAccounts, baseCurrency, truelayerConnections, manualHoldings, brokerConnections, pendingInvitationsData, serverLayout, allShares, otherAssets] = await Promise.all([
+  const [ownedAccounts, sharedAccounts, baseCurrency, truelayerConnections, manualHoldings, brokerConnections, pendingInvitationsData, serverLayout, allShares] = await Promise.all([
     getAccountsWithDetails(userId),
     getSharedAccounts(userId, email),
     getUserBaseCurrency(userId),
@@ -58,7 +56,6 @@ export default async function Accounts() {
     getPendingInvitations(userId, email),
     getPageLayout(userId, "accounts"),
     getSharesByOwner(userId),
-    getOtherAssets(userId),
   ]);
 
   const accounts = [...ownedAccounts, ...sharedAccounts];
@@ -208,13 +205,6 @@ export default async function Accounts() {
 
   const healthCheckEl = accounts.length > 0 ? <AccountHealthCheck /> : null;
 
-  const otherAssetsEl = (
-    <section id="portfolio-support" className="space-y-3 pt-6" aria-label="Portfolio support">
-      <p className="cockpit-kicker">Portfolio support</p>
-      <OtherAssetsSection assets={otherAssets} baseCurrency={baseCurrency} />
-    </section>
-  );
-
   return (
     <AccountsPageClient
       serverLayout={serverLayout}
@@ -224,7 +214,6 @@ export default async function Accounts() {
       charts={chartsEl}
       accountCards={accountCardsEl}
       healthCheck={healthCheckEl}
-      otherAssets={otherAssetsEl}
       primaryAccountLink={accounts[0]
         ? {
             href: `/dashboard/accounts/${accounts[0].id}`,

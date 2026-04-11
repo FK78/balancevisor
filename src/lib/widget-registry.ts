@@ -88,6 +88,7 @@ const INVESTMENTS_WIDGETS: readonly WidgetDefinition[] = [
   { id: "charts", label: "Investment Charts", defaultVisible: true, colSpan: 2 },
   { id: "holdings-table", label: "Holdings Roster", defaultVisible: true, colSpan: 2 },
   { id: "ai-analysis", label: "AI Analysis", defaultVisible: true, colSpan: 2 },
+  { id: "other-investments", label: "Other Investments", defaultVisible: true, colSpan: 2 },
 ] as const;
 
 const RECURRING_WIDGETS: readonly WidgetDefinition[] = [

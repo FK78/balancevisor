@@ -43,6 +43,8 @@ import {
   getManualHoldings,
 } from "@/db/queries/investments";
 import { getGroupsByUser } from "@/db/queries/investment-groups";
+import { getOtherAssets } from "@/db/queries/other-assets";
+import { OtherAssetsSection } from "@/components/OtherAssetsSection";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { getCurrentUserId } from "@/lib/auth";
 import { BROKER_META, getAdapter } from "@/lib/brokers";
@@ -143,6 +145,7 @@ export default async function InvestmentsPage() {
     allGroups,
     sales,
     serverLayout,
+    otherAssets,
   ] = await Promise.all([
     getBrokerConnections(userId),
     getManualHoldings(userId),
@@ -151,6 +154,7 @@ export default async function InvestmentsPage() {
     getGroupsByUser(userId),
     getHoldingSales(userId),
     getPageLayout(userId, "investments"),
+    getOtherAssets(userId),
   ]);
 
   const groupMap = new Map(allGroups.map((group) => [group.id, group]));
@@ -577,6 +581,9 @@ export default async function InvestmentsPage() {
             ) : null}
           </div>
         )}
+      </DashboardWidget>
+      <DashboardWidget id="other-investments">
+        <OtherAssetsSection assets={otherAssets} baseCurrency={baseCurrency} />
       </DashboardWidget>
     </PageWidgetWrapper>
   );

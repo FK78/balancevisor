@@ -211,7 +211,7 @@ export async function addManualHolding(formData: FormData) {
   const tickerRaw = data.ticker ?? '';
   const name = data.name;
   const quantity = data.quantity;
-  const averagePrice = data.averagePrice;
+  const averagePriceRaw = data.averagePrice;
   const currency = data.currency;
   const accountId = data.account_id;
   const groupId = data.group_id;
@@ -230,6 +230,9 @@ export async function addManualHolding(formData: FormData) {
     // Private investments can have an optional ticker (e.g., custom identifier)
     ticker = tickerRaw ? tickerRaw.toUpperCase() : null;
   }
+
+  // For private investments the form sends total invested; convert to per-unit price
+  const averagePrice = investmentType === "stock" ? averagePriceRaw : averagePriceRaw / quantity;
 
   await db.insert(manualHoldingsTable).values({
     user_id: userId,
@@ -274,7 +277,10 @@ export async function editManualHolding(id: string, formData: FormData) {
   const tickerRaw = editData.ticker ?? '';
   const name = editData.name;
   const quantity = editData.quantity;
-  const averagePrice = editData.averagePrice;
+  const averagePriceRaw = editData.averagePrice;
+
+  // For private investments the form sends total invested; convert to per-unit price
+  const averagePrice = investmentType === "stock" ? averagePriceRaw : averagePriceRaw / quantity;
   const accountId = editData.account_id;
   const groupId = editData.group_id;
   const estimatedReturnPercent = editData.estimated_return_percent;

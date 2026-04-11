@@ -196,7 +196,7 @@ export function AddPrivateInvestmentDialog({
                   type="number"
                   step="0.01"
                   min="0"
-                  defaultValue={holding?.average_price?.toString() ?? ""}
+                  defaultValue={holding ? (holding.average_price * holding.quantity).toString() : ""}
                   placeholder="0.00"
                   required
                 />

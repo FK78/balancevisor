@@ -24,7 +24,6 @@ interface AccountsPageClientProps {
   readonly charts: ReactNode;
   readonly accountCards: ReactNode;
   readonly healthCheck: ReactNode;
-  readonly otherAssets: ReactNode;
   readonly primaryAccountLink?: {
     readonly href: string;
     readonly label: string;
@@ -39,7 +38,6 @@ export function AccountsPageClient({
   charts,
   accountCards,
   healthCheck,
-  otherAssets,
   primaryAccountLink,
 }: AccountsPageClientProps) {
   return (
@@ -51,7 +49,6 @@ export function AccountsPageClient({
         charts={charts}
         accountCards={accountCards}
         healthCheck={healthCheck}
-        otherAssets={otherAssets}
         primaryAccountLink={primaryAccountLink}
       />
     </WidgetLayoutProvider>
@@ -65,7 +62,6 @@ function AccountsPageContent({
   charts,
   accountCards,
   healthCheck,
-  otherAssets,
   primaryAccountLink,
 }: Omit<AccountsPageClientProps, "serverLayout">) {
   const { layout } = useWidgetLayoutContext();
@@ -176,7 +172,6 @@ function AccountsPageContent({
           </div>
         ))}
       </section>
-      {otherAssets}
     </div>
   );
 }

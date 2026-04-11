@@ -28,7 +28,6 @@ describe("AccountsPageClient", () => {
         charts={<div>Charts Widget</div>}
         accountCards={<div>Account Cards Widget</div>}
         healthCheck={<div>Health Check Widget</div>}
-        otherAssets={<div>Other Assets Widget</div>}
         primaryAccountLink={{
           href: "/dashboard/accounts/acc_1",
           label: "Open Monzo Current",
