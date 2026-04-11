@@ -1175,16 +1175,6 @@ async function seed() {
       expected_amount: 39.99, actual_amount: 39.99,
     });
   }
-  // Flag a dining out txn as possible debt payment
-  const possibleDebtTxn = transactions.find((t) => t.description?.includes("Wagamama") && t.type === "expense");
-  if (possibleDebtTxn) {
-    reviewFlagValues.push({
-      user_id: USER_ID, transaction_id: possibleDebtTxn.id,
-      flag_type: "possible_debt_payment",
-      suggested_debt_id: debts[2].id,
-      expected_amount: 200, actual_amount: Number(possibleDebtTxn.amount),
-    });
-  }
 
   if (reviewFlagValues.length > 0) {
     const flags = await db.insert(transactionReviewFlagsTable).values(reviewFlagValues).returning();
