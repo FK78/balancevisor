@@ -96,7 +96,6 @@ function selectPrimaryAction(params: {
   brokerErrors: BrokerErrorInput[];
   stalePriceCount: number;
   concentrationShare: number;
-  holdingCount: number;
 }): PrimaryAction {
   if (params.brokerErrors.length > 0) {
     return {
@@ -125,13 +124,11 @@ function selectPrimaryAction(params: {
   return {
     key: "add-holding",
     label: "Add holding",
-    description: params.holdingCount > 0
-      ? "Keep building the portfolio when you are ready."
-      : "Start tracking the first holding.",
+    description: "Keep building the portfolio when you are ready.",
   };
 }
 
-function buildHeroCopy(primaryAction: PrimaryAction, brokerErrorCount: number, stalePriceCount: number, concentrationShare: number, holdingCount: number) {
+function buildHeroCopy(primaryAction: PrimaryAction, brokerErrorCount: number, stalePriceCount: number, concentrationShare: number) {
   if (primaryAction.key === "reconnect-broker") {
     return {
       heroTitle: "Your broker connection needs attention",
@@ -199,7 +196,10 @@ function buildPriorityCards(params: {
     },
     {
       id: "realized-gains",
-      title: `${formatCurrency(params.totalRealizedGain, params.baseCurrency)} realised`,
+      title:
+        params.totalRealizedGain < 0
+          ? `-${formatCurrency(params.totalRealizedGain, params.baseCurrency)} realised`
+          : `${formatCurrency(params.totalRealizedGain, params.baseCurrency)} realised`,
       description: "Closed gains stay visible alongside the open portfolio story.",
     },
   ];
@@ -208,9 +208,36 @@ function buildPriorityCards(params: {
 }
 
 function buildAccountSections(holdings: HoldingInput[], allGroups: GroupInput[]): AccountSection[] {
-  const accountOrder = [...new Map(holdings.map((holding) => [holding.accountId ?? "__ungrouped__", holding])).keys()];
   const sortedHoldings = [...holdings].sort((a, b) => b.value - a.value);
   const largestHoldingId = sortedHoldings[0]?.id ?? null;
+  const accountSummaries = Array.from(
+    new Map(
+      sortedHoldings.map((holding) => {
+        const accountKey = holding.accountId ?? "__ungrouped__";
+        return [
+          accountKey,
+          {
+            accountKey,
+            accountId: holding.accountId ?? null,
+            accountName: holding.accountName ?? null,
+            totalValue: 0,
+          },
+        ] as const;
+      }),
+    ).values(),
+  );
+
+  for (const holding of sortedHoldings) {
+    const accountKey = holding.accountId ?? "__ungrouped__";
+    const summary = accountSummaries.find((entry) => entry.accountKey === accountKey);
+    if (summary) {
+      summary.totalValue += holding.value;
+    }
+  }
+
+  const accountOrder = accountSummaries
+    .sort((a, b) => b.totalValue - a.totalValue || (a.accountName ?? a.accountKey).localeCompare(b.accountName ?? b.accountKey))
+    .map((summary) => summary.accountKey);
 
   return accountOrder.map((accountKey) => {
     const accountId = accountKey === "__ungrouped__" ? null : accountKey;
@@ -276,7 +303,6 @@ export function buildInvestmentsCockpitModel(params: BuildInvestmentsCockpitMode
     brokerErrors: params.brokerErrors,
     stalePriceCount,
     concentrationShare: largestHoldingShare,
-    holdingCount: params.holdings.length,
   });
 
   const { heroTitle, heroDescription } = buildHeroCopy(
@@ -284,7 +310,6 @@ export function buildInvestmentsCockpitModel(params: BuildInvestmentsCockpitMode
     params.brokerErrors.length,
     stalePriceCount,
     largestHoldingShare,
-    params.holdings.length,
   );
 
   return {
