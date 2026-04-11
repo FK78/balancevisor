@@ -6,6 +6,7 @@ import { importFromTrueLayer } from "@/db/mutations/truelayer";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import posthog from "posthog-js";
+import { triggerAiEnrichment } from "@/lib/trigger-ai-enrichment";
 
 /**
  * Detects `?import_pending=true` in the URL (set by the TrueLayer callback)
@@ -69,34 +70,7 @@ export function TrueLayerImportTrigger() {
         );
 
         // Fire AI enrichment in the background (non-blocking)
-        if (res.transactionIds && res.transactionIds.length > 0) {
-          fetch("/api/ai-enrich-transactions", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ transactionIds: res.transactionIds }),
-          })
-            .then((r) => (r.ok ? r.json() : null))
-            .then((enrichResult) => {
-              if (!enrichResult) return;
-              const enrichParts: string[] = [];
-              if (enrichResult.aiCategorised > 0)
-                enrichParts.push(`${enrichResult.aiCategorised} categorised`);
-              if (enrichResult.categoriesCreated > 0)
-                enrichParts.push(`${enrichResult.categoriesCreated} new categories`);
-              if (enrichResult.subscriptionsCreated > 0)
-                enrichParts.push(`${enrichResult.subscriptionsCreated} subscriptions detected`);
-              if (enrichResult.recurringDetected > 0)
-                enrichParts.push(`${enrichResult.recurringDetected} recurring`);
-              if (enrichParts.length > 0) {
-                toast.success(`AI enrichment: ${enrichParts.join(" · ")}`, {
-                  duration: 6000,
-                });
-              }
-            })
-            .catch((err) =>
-              console.warn("[TrueLayerImportTrigger] AI enrichment failed:", err),
-            );
-        }
+        triggerAiEnrichment(res.transactionIds);
       } catch {
         toast.error("Bank import failed — you can retry from Accounts", {
           id: toastId,

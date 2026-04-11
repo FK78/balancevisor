@@ -7,12 +7,12 @@ import {
   transactionsTable,
   categoriesTable,
 } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gte, desc, sql } from "drizzle-orm";
 import { revalidateDomains } from "@/lib/revalidate";
 import { getCurrentUserId } from "@/lib/auth";
 import { toDateString } from "@/lib/date";
 import { encryptForUser, decryptForUser, getUserKey } from "@/lib/encryption";
-import { isLikelyRefund, findMatchingExpense } from "@/lib/refund-matcher";
+import { isLikelyRefund } from "@/lib/refund-matcher";
 import {
   TrueLayerTokens,
   refreshAccessToken,
@@ -30,6 +30,8 @@ import { categoriseTransaction } from "@/lib/categorise-transaction";
 import type { CategoriseContext } from "@/lib/categorise-transaction";
 import { learnMerchantMappingForUser } from "@/db/mutations/merchant-mappings";
 import { logger } from "@/lib/logger";
+import { rateLimiters } from "@/lib/rate-limiter";
+import { ValidationError } from "@/lib/errors";
 
 // ---------------------------------------------------------------------------
 // Save a new TrueLayer connection after OAuth callback
@@ -69,15 +71,18 @@ export async function saveTrueLayerConnection(
 // Get a valid access token, refreshing if expired
 // ---------------------------------------------------------------------------
 
-async function getValidToken(connectionId: string): Promise<string> {
+async function getValidToken(connectionId: string, userId: string): Promise<string> {
   const [conn] = await db
     .select()
     .from(truelayerConnectionsTable)
-    .where(eq(truelayerConnectionsTable.id, connectionId));
+    .where(and(
+      eq(truelayerConnectionsTable.id, connectionId),
+      eq(truelayerConnectionsTable.user_id, userId),
+    ));
 
-  if (!conn) throw new Error("TrueLayer connection not found");
+  if (!conn) throw new Error("TrueLayer connection not found or access denied");
 
-  const userKey = await getUserKey(conn.user_id);
+  const userKey = await getUserKey(userId);
 
   if (conn.token_expires_at > new Date()) {
     logger.info("truelayer.token", "Access token still valid", {
@@ -148,6 +153,13 @@ interface NormalisedTlAccount {
 
 export async function importFromTrueLayer() {
   const userId = await getCurrentUserId();
+
+  // H2: Rate limit import to prevent excessive TrueLayer API usage
+  const rl = rateLimiters.truelayer.consume(`truelayer-import:${userId}`);
+  if (!rl.allowed) {
+    throw new ValidationError("Import rate limit exceeded. Please try again in a few minutes.");
+  }
+
   const baseCurrency = await getUserBaseCurrency(userId);
   const userKey = await getUserKey(userId);
 
@@ -175,10 +187,18 @@ export async function importFromTrueLayer() {
   let accountsImported = 0;
   let transactionsImported = 0;
   const importedTransactionIds: string[] = [];
+  const skippedAccounts: string[] = []; // L3: track skipped accounts
 
   for (const connection of connections) {
-    // Refresh token once before listing accounts/cards
-    let accessToken = await getValidToken(connection.id);
+    // H4: Get token ONCE per connection, not per account
+    let accessToken: string;
+    try {
+      accessToken = await getValidToken(connection.id, userId);
+    } catch (tokenErr) {
+      logger.error("truelayer.import", "Token refresh failed for connection, skipping all accounts", { connectionId: connection.id, error: String(tokenErr) });
+      skippedAccounts.push(`Connection ${connection.provider_name ?? connection.id}`);
+      continue;
+    }
 
     // Fetch bank accounts (/data/v1/accounts) and cards (/data/v1/cards)
     // separately — TrueLayer serves them from different endpoints.
@@ -225,15 +245,13 @@ export async function importFromTrueLayer() {
       })),
     });
 
-    for (const tlItem of normalised) {
-      // Refresh token before EACH account to prevent expiry after long imports
-      try {
-        accessToken = await getValidToken(connection.id);
-      } catch (tokenErr) {
-        logger.error("truelayer.import", `Token refresh failed for ${tlItem.displayName}, skipping`, tokenErr);
-        continue;
-      }
+    // C1: Smart date window — 730d on first import, last_synced_at - 2d on re-sync
+    const to = toDateString(new Date());
+    const from = connection.last_synced_at
+      ? toDateString(new Date(connection.last_synced_at.getTime() - 2 * 24 * 60 * 60 * 1000))
+      : toDateString(new Date(Date.now() - 730 * 24 * 60 * 60 * 1000));
 
+    for (const tlItem of normalised) {
       try {
         let balance = 0;
         try {
@@ -286,9 +304,6 @@ export async function importFromTrueLayer() {
             .where(eq(truelayerConnectionsTable.id, connection.id));
         }
 
-        const to = toDateString(new Date());
-        const from = toDateString(new Date(Date.now() - 730 * 24 * 60 * 60 * 1000));
-
         let tlTransactions;
         try {
           tlTransactions = tlItem.source === "card"
@@ -299,15 +314,7 @@ export async function importFromTrueLayer() {
             source: tlItem.source,
             accountType: tlItem.accountType,
             totalCount: tlTransactions.length,
-            sample: tlTransactions.slice(0, 10).map((t) => ({
-              transaction_id: t.transaction_id,
-              timestamp: t.timestamp,
-              description: t.description,
-              amount: t.amount,
-              currency: t.currency,
-              transaction_type: t.transaction_type,
-              transaction_category: t.transaction_category,
-            })),
+            dateRange: { from, to },
           });
         } catch {
           logger.warn(
@@ -318,13 +325,37 @@ export async function importFromTrueLayer() {
               source: tlItem.source,
             },
           );
+          skippedAccounts.push(tlItem.displayName);
           continue;
         }
+
+        // H1: Pre-fetch recent expenses for this account for refund matching (avoid N+1)
+        const recentExpenses = await db
+          .select({
+            id: transactionsTable.id,
+            amount: transactionsTable.amount,
+            description: transactionsTable.description,
+          })
+          .from(transactionsTable)
+          .where(
+            and(
+              eq(transactionsTable.user_id, userId),
+              eq(transactionsTable.account_id, localAccountId),
+              eq(transactionsTable.type, "expense"),
+              gte(transactionsTable.date, from),
+            ),
+          )
+          .orderBy(desc(transactionsTable.date))
+          .limit(500);
 
         const uncategorised =
           userCategories.find((c) => c.name.toLowerCase() === "uncategorised") ??
           userCategories.find((c) => c.name.toLowerCase() === "other") ??
           userCategories[0];
+
+        // C2: Build batch of transaction values, then insert in chunks
+        const txnBatch: (typeof transactionsTable.$inferInsert)[] = [];
+        const merchantLearnings: { merchant: string; categoryId: string }[] = [];
 
         for (const tlTxn of tlTransactions) {
           const isExpense =
@@ -332,30 +363,28 @@ export async function importFromTrueLayer() {
           const amount = Math.abs(tlTxn.amount);
           const description = tlTxn.description || "Bank transaction";
 
-          logger.debug("truelayer.import", `Transaction: ${description}`, {
-            transaction_id: tlTxn.transaction_id,
-            raw_amount: tlTxn.amount,
-            abs_amount: amount,
-            transaction_type: tlTxn.transaction_type,
-            transaction_category: tlTxn.transaction_category,
-            isExpense,
-            timestamp: tlTxn.timestamp,
-          });
-
           // Classify transaction type
-          // DEBIT + TRANSFER = internal move (e.g. Monzo Roundups, pot transfers) — not a real expense
-          const isTransfer = tlTxn.transaction_category === "TRANSFER";
-          let type: "income" | "expense" | "transfer" | "refund" = isExpense
-            ? (isTransfer ? "transfer" : "expense")
-            : "income";
+          // Detect internal transfers: TL category TRANSFER, or Monzo pot moves (meta.provider_category)
+          const isMonzoPot = tlTxn.meta?.provider_category === "uk_retail_pot";
+          const isTransfer = tlTxn.transaction_category === "TRANSFER" || isMonzoPot;
+          let type: "income" | "expense" | "transfer" | "refund" = isTransfer
+            ? "transfer"
+            : (isExpense ? "expense" : "income");
           let refundForTransactionId: string | null = null;
 
-          if (!isExpense) {
+          // H1: In-memory refund matching using pre-fetched expenses
+          // Skip refund detection for transfers (e.g. Monzo pot withdrawals back to current account)
+          if (!isExpense && !isTransfer) {
             const keywordMatch = isLikelyRefund(description);
-            const expenseMatch = await findMatchingExpense(userId, localAccountId, amount, description);
+            const descLower = description.toLowerCase();
+            const expenseMatch = recentExpenses.find((e) => {
+              if (Math.abs(e.amount - amount) > 0.01) return false;
+              const expDesc = decryptForUser(e.description, userKey).toLowerCase();
+              return descLower.includes(expDesc.substring(0, 20)) || expDesc.includes(descLower.substring(0, 20));
+            });
             if (keywordMatch || expenseMatch) {
               type = "refund";
-              refundForTransactionId = expenseMatch?.transactionId ?? null;
+              refundForTransactionId = expenseMatch?.id ?? null;
             }
           }
 
@@ -367,8 +396,7 @@ export async function importFromTrueLayer() {
           );
           const categoryId = catResult.categoryId ?? uncategorised?.id ?? null;
 
-          // Use onConflictDoNothing to safely skip duplicates during concurrent imports
-          const rows = await db.insert(transactionsTable).values({
+          txnBatch.push({
             user_id: userId,
             account_id: localAccountId,
             category_id: categoryId,
@@ -381,20 +409,35 @@ export async function importFromTrueLayer() {
             is_recurring: false,
             truelayer_id: tlTxn.transaction_id,
             refund_for_transaction_id: refundForTransactionId,
-          }).onConflictDoNothing().returning({ id: transactionsTable.id });
+          });
 
-          if (rows.length > 0) {
-            importedTransactionIds.push(rows[0].id);
-            transactionsImported++;
-
-            // Learn merchant mapping from bank category matches
-            if (catResult.categorySource === 'bank' && catResult.merchantName && catResult.categoryId) {
-              learnMerchantMappingForUser(userId, catResult.merchantName, catResult.categoryId, 'bank').catch((err) => logger.warn('truelayer-import', 'merchant mapping learn failed', err));
-            }
+          if (catResult.categorySource === 'bank' && catResult.merchantName && catResult.categoryId) {
+            merchantLearnings.push({ merchant: catResult.merchantName, categoryId: catResult.categoryId });
           }
+        }
+
+        // C2: Insert in chunks of 100 instead of one-by-one
+        const CHUNK_SIZE = 100;
+        for (let i = 0; i < txnBatch.length; i += CHUNK_SIZE) {
+          const chunk = txnBatch.slice(i, i + CHUNK_SIZE);
+          const rows = await db.insert(transactionsTable)
+            .values(chunk)
+            .onConflictDoNothing()
+            .returning({ id: transactionsTable.id });
+          for (const row of rows) {
+            importedTransactionIds.push(row.id);
+          }
+          transactionsImported += rows.length;
+        }
+
+        // Learn merchant mappings in background (non-blocking)
+        for (const ml of merchantLearnings) {
+          learnMerchantMappingForUser(userId, ml.merchant, ml.categoryId, 'bank')
+            .catch((err) => logger.warn('truelayer-import', 'merchant mapping learn failed', err));
         }
       } catch (accountErr) {
         logger.error("truelayer.import", `Failed to import account ${tlItem.displayName} (${tlItem.tlId}), continuing with next account`, accountErr);
+        skippedAccounts.push(tlItem.displayName);
       }
     }
   }
@@ -408,7 +451,12 @@ export async function importFromTrueLayer() {
 
   revalidateDomains('accounts', 'transactions');
 
-  return { accountsImported, transactionsImported, transactionIds: importedTransactionIds };
+  return {
+    accountsImported,
+    transactionsImported,
+    transactionIds: importedTransactionIds,
+    skippedAccounts, // L3: expose skipped accounts to UI
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -424,45 +472,28 @@ export async function syncBankIfNeeded(): Promise<{
   transactionIds: string[];
 }> {
   const userId = await getCurrentUserId();
+  const noSync = { synced: false, accountsImported: 0, transactionsImported: 0, transactionIds: [] };
 
-  const connections = await db
-    .select({
-      id: truelayerConnectionsTable.id,
-      last_synced_at: truelayerConnectionsTable.last_synced_at,
-    })
-    .from(truelayerConnectionsTable)
-    .where(eq(truelayerConnectionsTable.user_id, userId));
+  // M2: Atomic lock — UPDATE only rows whose last_synced_at is stale, RETURNING
+  // the rows that were actually claimed. This eliminates the TOCTOU race.
+  const threshold = new Date(Date.now() - SYNC_INTERVAL_MS);
+  const claimed = await db
+    .update(truelayerConnectionsTable)
+    .set({ last_synced_at: new Date() })
+    .where(
+      and(
+        eq(truelayerConnectionsTable.user_id, userId),
+        sql`(${truelayerConnectionsTable.last_synced_at} IS NULL OR ${truelayerConnectionsTable.last_synced_at} < ${threshold})`,
+      ),
+    )
+    .returning({ id: truelayerConnectionsTable.id });
 
-  if (connections.length === 0) {
-    logger.info("truelayer.sync", "No connections found, skipping sync", { userId });
-    return { synced: false, accountsImported: 0, transactionsImported: 0, transactionIds: [] };
+  if (claimed.length === 0) {
+    logger.info("truelayer.sync", "No connections need sync (atomic check)", { userId });
+    return noSync;
   }
 
-  const now = Date.now();
-  const needsSync = connections.some(
-    (c) =>
-      !c.last_synced_at || now - c.last_synced_at.getTime() > SYNC_INTERVAL_MS,
-  );
-
-  if (!needsSync) {
-    logger.info("truelayer.sync", "All connections recently synced, skipping", {
-      userId,
-      lastSyncedAt: connections.map((c) => c.last_synced_at?.toISOString() ?? "never"),
-    });
-    return { synced: false, accountsImported: 0, transactionsImported: 0, transactionIds: [] };
-  }
-
-  logger.info("truelayer.sync", "Sync needed, starting import", { userId });
-
-  // Optimistic lock: set last_synced_at BEFORE import to prevent concurrent syncs
-  for (const c of connections) {
-    if (!c.last_synced_at || now - c.last_synced_at.getTime() > SYNC_INTERVAL_MS) {
-      await db
-        .update(truelayerConnectionsTable)
-        .set({ last_synced_at: new Date() })
-        .where(eq(truelayerConnectionsTable.id, c.id));
-    }
-  }
+  logger.info("truelayer.sync", `Sync needed for ${claimed.length} connection(s)`, { userId });
 
   try {
     const result = await importFromTrueLayer();
@@ -474,33 +505,26 @@ export async function syncBankIfNeeded(): Promise<{
     return { synced: true, ...result };
   } catch (err) {
     logger.error("truelayer.sync", "Auto-sync failed", err);
-    return { synced: false, accountsImported: 0, transactionsImported: 0, transactionIds: [] };
+    return noSync;
   }
 }
 
-// ---------------------------------------------------------------------------
-// Get user's TrueLayer connections
-// ---------------------------------------------------------------------------
-
-export async function getTrueLayerConnections() {
-  const userId = await getCurrentUserId();
-
-  return db
-    .select({
-      id: truelayerConnectionsTable.id,
-      provider_name: truelayerConnectionsTable.provider_name,
-      connected_at: truelayerConnectionsTable.connected_at,
-      last_synced_at: truelayerConnectionsTable.last_synced_at,
-    })
-    .from(truelayerConnectionsTable)
-    .where(eq(truelayerConnectionsTable.user_id, userId));
-}
+// M5: getTrueLayerConnections moved to src/db/queries/truelayer.ts
+// Re-export for backward compatibility with existing imports.
+export { getTrueLayerConnections } from "@/db/queries/truelayer";
 
 // ---------------------------------------------------------------------------
 // Disconnect a TrueLayer connection
 // ---------------------------------------------------------------------------
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function disconnectTrueLayer(connectionId: string) {
+  // H3: Validate connectionId format before using in queries
+  if (!UUID_RE.test(connectionId)) {
+    throw new ValidationError("Invalid connection ID");
+  }
+
   const userId = await getCurrentUserId();
 
   await db.transaction(async (tx) => {

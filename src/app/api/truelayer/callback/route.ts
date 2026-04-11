@@ -28,8 +28,11 @@ export async function GET(request: NextRequest) {
   };
 
   if (error || !code) {
-    const msg = error ?? 'Missing authorization code';
-    return redirectWithError(msg);
+    // M3: Map known TrueLayer error codes to user-friendly messages
+    const rawError = error ?? 'missing_code';
+    logger.warn('truelayer.callback', 'OAuth error or missing code', { error: rawError });
+    const userMessage = mapTruelayerError(rawError);
+    return redirectWithError(userMessage);
   }
 
   // Verify state matches (CSRF protection)
@@ -42,7 +45,9 @@ export async function GET(request: NextRequest) {
 
     let exchangeSucceeded = false;
     try {
-      const tokens = await exchangeCode(code);
+      // L4: Use PKCE code_verifier from cookie for token exchange
+      const codeVerifier = request.cookies.get('truelayer_pkce_verifier')?.value;
+      const tokens = await exchangeCode(code, codeVerifier);
       await saveTrueLayerConnection(userId, tokens);
       exchangeSucceeded = true;
     } catch (exchangeErr) {
@@ -84,10 +89,26 @@ export async function GET(request: NextRequest) {
     const response = NextResponse.redirect(successUrl);
     // Clear cookies after use
     response.cookies.set('truelayer_oauth_state', '', { maxAge: 0, path: '/api/truelayer/callback' });
+    response.cookies.set('truelayer_pkce_verifier', '', { maxAge: 0, path: '/api/truelayer/callback' });
     response.cookies.set('truelayer_return_to', '', { maxAge: 0, path: '/api/truelayer/callback' });
     return response;
   } catch (err) {
     logger.error('truelayer.callback', 'OAuth callback failed', err);
     return redirectWithError('Failed to connect bank. Please try again.');
   }
+}
+
+// ---------------------------------------------------------------------------
+// M3: Map TrueLayer error codes to user-friendly messages
+// ---------------------------------------------------------------------------
+
+function mapTruelayerError(error: string): string {
+  const errorMap: Record<string, string> = {
+    access_denied: 'Bank connection was declined. Please try again.',
+    temporarily_unavailable: 'Your bank is temporarily unavailable. Please try again later.',
+    server_error: 'TrueLayer experienced an issue. Please try again later.',
+    invalid_grant: 'Connection expired. Please reconnect your bank.',
+    missing_code: 'Bank connection was not completed. Please try again.',
+  };
+  return errorMap[error] ?? 'Failed to connect bank. Please try again.';
 }

@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback } from "react";
 import { syncBankIfNeeded } from "@/db/mutations/truelayer";
 import { toast } from "sonner";
 import posthog from "posthog-js";
+import { triggerAiEnrichment } from "@/lib/trigger-ai-enrichment";
 
 /**
  * Triggers a background bank sync on mount and shows a sonner toast
@@ -26,30 +27,7 @@ export function BankSyncTrigger({ enabled }: { enabled: boolean }) {
         );
 
         // Run AI enrichment and show detailed results
-        if (res.transactionIds && res.transactionIds.length > 0) {
-          fetch("/api/ai-enrich-transactions", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ transactionIds: res.transactionIds }),
-          })
-            .then((r) => (r.ok ? r.json() : null))
-            .then((enrichResult) => {
-              if (!enrichResult) return;
-              const parts: string[] = [];
-              if (enrichResult.aiCategorised > 0)
-                parts.push(`${enrichResult.aiCategorised} categorised`);
-              if (enrichResult.categoriesCreated > 0)
-                parts.push(`${enrichResult.categoriesCreated} new categories`);
-              if (enrichResult.subscriptionsCreated > 0)
-                parts.push(`${enrichResult.subscriptionsCreated} subscriptions detected`);
-              if (enrichResult.recurringDetected > 0)
-                parts.push(`${enrichResult.recurringDetected} recurring`);
-              if (parts.length > 0) {
-                toast.success(`AI enrichment: ${parts.join(" · ")}`, { duration: 6000 });
-              }
-            })
-            .catch((err) => console.warn('[BankSyncTrigger] AI enrichment failed:', err));
-        }
+        triggerAiEnrichment(res.transactionIds);
       }
     } catch {
       toast.error("Bank sync failed — try manual sync");
@@ -59,7 +37,7 @@ export function BankSyncTrigger({ enabled }: { enabled: boolean }) {
   useEffect(() => {
     if (!enabled || ran.current) return;
     ran.current = true;
-    queueMicrotask(doSync);
+    setTimeout(doSync, 100);
   }, [enabled, doSync]);
 
   return null;
