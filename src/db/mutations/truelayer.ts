@@ -19,6 +19,9 @@ import {
   fetchAccounts,
   fetchBalance,
   fetchTransactions,
+  fetchCards,
+  fetchCardBalance,
+  fetchCardTransactions,
 } from "@/lib/truelayer";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { fetchUserRules } from "@/lib/auto-categorise";
@@ -108,6 +111,27 @@ function mapAccountType(
   return "currentAccount";
 }
 
+function mapCardType(
+  cardType: string,
+): "currentAccount" | "savings" | "creditCard" | "investment" {
+  const t = cardType.toUpperCase();
+  if (t === "PREPAID") return "currentAccount";
+  return "creditCard"; // CREDIT, CHARGE, etc.
+}
+
+/**
+ * Normalised shape for both TrueLayer accounts and cards so the import
+ * loop can handle them identically.
+ */
+interface NormalisedTlAccount {
+  readonly tlId: string;
+  readonly displayName: string;
+  readonly accountType: "currentAccount" | "savings" | "creditCard" | "investment";
+  readonly currency: string;
+  readonly providerName: string | undefined;
+  readonly source: "account" | "card";
+}
+
 // ---------------------------------------------------------------------------
 // Import accounts + transactions for all of a user's TrueLayer connections
 // ---------------------------------------------------------------------------
@@ -138,41 +162,75 @@ export async function importFromTrueLayer() {
   ]);
   const catCtx: CategoriseContext = { rules, merchantMappings, userCategories };
 
-  const accountsImported = 0;
+  let accountsImported = 0;
   let transactionsImported = 0;
   const importedTransactionIds: string[] = [];
 
   for (const connection of connections) {
     const accessToken = await getValidToken(connection.id);
-    const tlAccounts = await fetchAccounts(accessToken);
 
-    logger.debug("truelayer.import", `Fetched ${tlAccounts.length} accounts from TrueLayer`, {
-      connectionId: connection.id,
-      accounts: tlAccounts.map((a) => ({
-        account_id: a.account_id,
-        display_name: a.display_name,
-        account_type: a.account_type,
+    // Fetch bank accounts (/data/v1/accounts) and cards (/data/v1/cards)
+    // separately — TrueLayer serves them from different endpoints.
+    const [tlAccounts, tlCards] = await Promise.all([
+      fetchAccounts(accessToken).catch((err) => {
+        logger.warn("truelayer.import", "Accounts endpoint failed", { connectionId: connection.id, error: String(err) });
+        return [] as Awaited<ReturnType<typeof fetchAccounts>>;
+      }),
+      fetchCards(accessToken).catch((err) => {
+        logger.warn("truelayer.import", "Cards endpoint failed", { connectionId: connection.id, error: String(err) });
+        return [] as Awaited<ReturnType<typeof fetchCards>>;
+      }),
+    ]);
+
+    // Normalise into a unified shape so the import loop handles both
+    const normalised: NormalisedTlAccount[] = [
+      ...tlAccounts.map((a) => ({
+        tlId: a.account_id,
+        displayName: a.display_name,
+        accountType: mapAccountType(a.account_type),
         currency: a.currency,
-        provider: a.provider?.display_name,
+        providerName: a.provider?.display_name,
+        source: "account" as const,
+      })),
+      ...tlCards.map((c) => ({
+        tlId: c.account_id,
+        displayName: c.display_name,
+        accountType: mapCardType(c.card_type),
+        currency: c.currency,
+        providerName: c.provider?.display_name,
+        source: "card" as const,
+      })),
+    ];
+
+    logger.debug("truelayer.import", `Fetched ${tlAccounts.length} accounts + ${tlCards.length} cards from TrueLayer`, {
+      connectionId: connection.id,
+      items: normalised.map((a) => ({
+        tl_id: a.tlId,
+        display_name: a.displayName,
+        type: a.accountType,
+        source: a.source,
+        currency: a.currency,
+        provider: a.providerName,
       })),
     });
 
-    for (const tlAccount of tlAccounts) {
+    for (const tlItem of normalised) {
       let balance = 0;
       try {
-        const balanceData = await fetchBalance(
-          accessToken,
-          tlAccount.account_id,
-        );
+        const balanceData = tlItem.source === "card"
+          ? await fetchCardBalance(accessToken, tlItem.tlId)
+          : await fetchBalance(accessToken, tlItem.tlId);
         balance = balanceData.current;
-        logger.debug("truelayer.import", `Balance for ${tlAccount.display_name}`, {
-          accountId: tlAccount.account_id,
+        logger.debug("truelayer.import", `Balance for ${tlItem.displayName}`, {
+          accountId: tlItem.tlId,
+          source: tlItem.source,
           balance: balanceData.current,
           currency: balanceData.currency,
         });
       } catch {
         logger.warn("truelayer.import", "Balance fetch failed for account", {
-          accountId: tlAccount.account_id,
+          accountId: tlItem.tlId,
+          source: tlItem.source,
         });
       }
 
@@ -182,14 +240,14 @@ export async function importFromTrueLayer() {
         .values({
           user_id: userId,
           name: encryptForUser(
-            tlAccount.display_name ||
-              `${tlAccount.provider?.display_name ?? "Bank"} Account`,
+            tlItem.displayName ||
+              `${tlItem.providerName ?? "Bank"} Account`,
             userKey,
           ),
-          type: mapAccountType(tlAccount.account_type),
+          type: tlItem.accountType,
           balance,
-          currency: tlAccount.currency || baseCurrency,
-          truelayer_id: tlAccount.account_id,
+          currency: tlItem.currency || baseCurrency,
+          truelayer_id: tlItem.tlId,
           truelayer_connection_id: connection.id,
         })
         .onConflictDoUpdate({
@@ -199,11 +257,12 @@ export async function importFromTrueLayer() {
         .returning({ id: accountsTable.id });
 
       const localAccountId = upserted.id;
+      accountsImported++;
 
-      if (tlAccount.provider?.display_name && !connection.provider_name) {
+      if (tlItem.providerName && !connection.provider_name) {
         await db
           .update(truelayerConnectionsTable)
-          .set({ provider_name: tlAccount.provider.display_name })
+          .set({ provider_name: tlItem.providerName })
           .where(eq(truelayerConnectionsTable.id, connection.id));
       }
 
@@ -212,15 +271,13 @@ export async function importFromTrueLayer() {
 
       let tlTransactions;
       try {
-        tlTransactions = await fetchTransactions(
-          accessToken,
-          tlAccount.account_id,
-          from,
-          to,
-        );
-        logger.debug("truelayer.import", `Fetched ${tlTransactions.length} transactions for ${tlAccount.display_name}`, {
-          accountId: tlAccount.account_id,
-          accountType: tlAccount.account_type,
+        tlTransactions = tlItem.source === "card"
+          ? await fetchCardTransactions(accessToken, tlItem.tlId, from, to)
+          : await fetchTransactions(accessToken, tlItem.tlId, from, to);
+        logger.debug("truelayer.import", `Fetched ${tlTransactions.length} transactions for ${tlItem.displayName}`, {
+          accountId: tlItem.tlId,
+          source: tlItem.source,
+          accountType: tlItem.accountType,
           totalCount: tlTransactions.length,
           sample: tlTransactions.slice(0, 10).map((t) => ({
             transaction_id: t.transaction_id,
@@ -237,7 +294,8 @@ export async function importFromTrueLayer() {
           "truelayer.import",
           "Transaction fetch failed for account",
           {
-            accountId: tlAccount.account_id,
+            accountId: tlItem.tlId,
+            source: tlItem.source,
           },
         );
         continue;

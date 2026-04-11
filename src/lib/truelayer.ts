@@ -53,6 +53,14 @@ export interface TrueLayerBalance {
   currency: string;
 }
 
+export interface TrueLayerCard {
+  account_id: string;
+  display_name: string;
+  card_type: string;     // CREDIT, CHARGE, PREPAID, etc.
+  currency: string;
+  provider: { display_name: string };
+}
+
 export interface TrueLayerTransaction {
   transaction_id: string;
   timestamp: string;
@@ -89,7 +97,7 @@ export function buildAuthLink(state: string): string {
   const params = new URLSearchParams({
     response_type: "code",
     client_id: clientId,
-    scope: "info accounts balance transactions offline_access",
+    scope: "info accounts balance cards transactions offline_access",
     redirect_uri: redirectUri,
     providers: "uk-ob-amex uk-ob-bos uk-ob-barclays uk-ob-chelsea-building-society uk-ob-danske uk-ob-first-direct uk-ob-halifax uk-ob-hsbc uk-ob-hsbc-business uk-ob-lloyds uk-ob-ms uk-ob-mbna uk-ob-monzo uk-ob-nationwide uk-ob-natwest uk-ob-revolut uk-ob-rbs uk-ob-santander uk-ob-tesco uk-ob-tide uk-ob-tsb uk-ob-transferwise uk-ob-yorkshire-building-society uk-ob-ulster uk-oauth-all",
     state,
@@ -189,6 +197,39 @@ export async function fetchTransactions(
 ): Promise<TrueLayerTransaction[]> {
   return tlGet<TrueLayerTransaction[]>(
     `/data/v1/accounts/${accountId}/transactions?from=${from}&to=${to}`,
+    accessToken
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Cards (credit cards, charge cards, store cards — separate TrueLayer endpoint)
+// ---------------------------------------------------------------------------
+
+export async function fetchCards(
+  accessToken: string
+): Promise<TrueLayerCard[]> {
+  return tlGet<TrueLayerCard[]>("/data/v1/cards", accessToken);
+}
+
+export async function fetchCardBalance(
+  accessToken: string,
+  cardId: string
+): Promise<TrueLayerBalance> {
+  const balances = await tlGet<TrueLayerBalance[]>(
+    `/data/v1/cards/${cardId}/balance`,
+    accessToken
+  );
+  return balances[0];
+}
+
+export async function fetchCardTransactions(
+  accessToken: string,
+  cardId: string,
+  from: string,
+  to: string
+): Promise<TrueLayerTransaction[]> {
+  return tlGet<TrueLayerTransaction[]>(
+    `/data/v1/cards/${cardId}/transactions?from=${from}&to=${to}`,
     accessToken
   );
 }
