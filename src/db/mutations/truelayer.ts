@@ -32,6 +32,7 @@ import { learnMerchantMappingForUser } from "@/db/mutations/merchant-mappings";
 import { logger } from "@/lib/logger";
 import { rateLimiters } from "@/lib/rate-limiter";
 import { ValidationError } from "@/lib/errors";
+import { getTrueLayerConnections as _getTrueLayerConnections } from "@/db/queries/truelayer";
 
 // ---------------------------------------------------------------------------
 // Save a new TrueLayer connection after OAuth callback
@@ -511,8 +512,10 @@ export async function syncBankIfNeeded(): Promise<{
 }
 
 // M5: getTrueLayerConnections moved to src/db/queries/truelayer.ts
-// Re-export for backward compatibility with existing imports.
-export { getTrueLayerConnections } from "@/db/queries/truelayer";
+// Thin wrapper (not a bare re-export) so this "use server" module stays valid.
+export async function getTrueLayerConnections() {
+  return _getTrueLayerConnections();
+}
 
 // ---------------------------------------------------------------------------
 // Disconnect a TrueLayer connection
