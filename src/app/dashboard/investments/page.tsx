@@ -24,8 +24,8 @@ import {
 } from "@/components/investments/investments-cockpit";
 import {
   HoldingsRoster,
-  type HoldingsRosterSection,
 } from "@/components/investments/HoldingsRoster";
+import { buildInvestmentsRosterSections } from "@/components/investments/investments-roster";
 import { SectionHeader } from "@/components/ui/cockpit";
 import {
   Card,
@@ -289,7 +289,6 @@ export default async function InvestmentsPage() {
   const totalGainLossPercent = totalCost > 0 ? (totalGainLoss / totalCost) * 100 : 0;
   const totalRealizedGain = sales.reduce((sum, sale) => sum + sale.realized_gain, 0);
   const sortedHoldings = [...holdings].sort((left, right) => right.value - left.value);
-  const holdingsById = new Map(sortedHoldings.map((holding) => [holding.id, holding]));
 
   const cockpitModel = buildInvestmentsCockpitModel({
     holdings: sortedHoldings,
@@ -300,132 +299,97 @@ export default async function InvestmentsPage() {
     allGroups,
   });
 
-  const rosterSections: HoldingsRosterSection[] = cockpitModel.accountSections.map((section) => ({
-    accountId: section.accountId,
-    accountName: section.accountName,
-    groups: section.groups.map((group) => {
-      const groupMeta = group.id ? groupMap.get(group.id) ?? null : null;
-
-      return {
-        id: group.id,
-        title: group.title,
-        actions: groupMeta ? (
-          <div className="flex items-center gap-0.5">
-            <InvestmentGroupDialog
-              group={{
-                id: groupMeta.id,
-                name: groupMeta.name,
-                color: groupMeta.color,
-                account_id: groupMeta.account_id,
+  const rosterSections = buildInvestmentsRosterSections({
+    accountSections: cockpitModel.accountSections,
+    holdings: sortedHoldings,
+    allGroups,
+    investmentAccounts,
+    groupOptions,
+    baseCurrency,
+    getInvestmentTypeLabel,
+    getGainTone,
+    getSourceLabel: (holding) =>
+      holding.source === "manual"
+        ? "Manual"
+        : (BROKER_META[holding.source]?.label ?? holding.source),
+    renderGroupActions: ({ group, investmentAccounts: accounts }) => (
+      <div className="flex items-center gap-0.5">
+        <InvestmentGroupDialog
+          group={{
+            id: group.id,
+            name: group.name,
+            color: group.color,
+            account_id: group.account_id,
+          }}
+          investmentAccounts={accounts}
+        />
+        <DeleteGroupButton group={{ id: group.id, name: group.name }} />
+      </div>
+    ),
+    renderHoldingActions: ({ holding, investmentAccounts: accounts, groupOptions: groups }) =>
+      holding.source === "manual" && holding.manualId ? (
+        <div className="flex items-center gap-1">
+          {holding.investmentType === "stock" && holding.ticker ? (
+            <AddHoldingDialog
+              holding={{
+                id: holding.manualId,
+                ticker: holding.ticker,
+                name: holding.name,
+                quantity: holding.quantity,
+                average_price: holding.averagePrice,
+                account_id: holding.accountId,
+                group_id: holding.groupId,
               }}
-              investmentAccounts={investmentAccounts}
+              investmentAccounts={accounts}
+              groups={groups}
             />
-            <DeleteGroupButton group={{ id: groupMeta.id, name: groupMeta.name }} />
-          </div>
-        ) : undefined,
-        holdings: group.holdings.flatMap((storyHolding) => {
-          const holding = holdingsById.get(storyHolding.id);
-          if (!holding) {
-            return [];
-          }
-
-          return [
-            {
-              id: holding.id,
+          ) : null}
+          {holding.investmentType !== "stock" ? (
+            <AddPrivateInvestmentDialog
+              holding={{
+                id: holding.manualId,
+                name: holding.name,
+                quantity: holding.quantity,
+                average_price: holding.averagePrice,
+                investment_type: holding.investmentType as "real_estate" | "private_equity" | "other",
+                estimated_return_percent: holding.estimatedReturnPercent ?? null,
+                notes: holding.notes ?? null,
+                account_id: holding.accountId,
+                group_id: holding.groupId,
+              }}
+              investmentAccounts={accounts}
+              groups={groups}
+            />
+          ) : null}
+          {holding.quantity > 0 ? (
+            <SellHoldingDialog
+              holding={{
+                id: holding.manualId,
+                ticker: holding.ticker,
+                name: holding.name,
+                quantity: holding.quantity,
+                average_price: holding.averagePrice,
+                current_price: holding.currentPrice,
+                currency: holding.currency,
+              }}
+              investmentAccounts={accounts}
+            />
+          ) : null}
+          <DeleteHoldingButton
+            holding={{
+              id: holding.manualId,
               ticker: holding.ticker,
               name: holding.name,
-              quantity: holding.quantity,
-              value: holding.value,
-              interpretation: storyHolding.interpretation,
-              contextLabel: getInvestmentTypeLabel(holding.investmentType),
-              sourceLabel:
-                holding.source === "manual"
-                  ? "Manual"
-                  : (BROKER_META[holding.source]?.label ?? holding.source),
-              currentPriceLabel: holding.pricePending
-                ? `Current ${formatCurrency(holding.currentPrice, holding.currency)} · Price pending`
-                : `Current ${formatCurrency(holding.currentPrice, holding.currency)}`,
-              gainLossLabel: `${formatSignedCurrency(holding.gainLoss, baseCurrency)} (${holding.gainLossPercent >= 0 ? "+" : ""}${holding.gainLossPercent.toFixed(2)}%)`,
-              gainLossTone: getGainTone(holding),
-              actions:
-                holding.source === "manual" && holding.manualId ? (
-                  <div className="flex items-center gap-1">
-                    {holding.investmentType === "stock" && holding.ticker ? (
-                      <AddHoldingDialog
-                        holding={{
-                          id: holding.manualId,
-                          ticker: holding.ticker,
-                          name: holding.name,
-                          quantity: holding.quantity,
-                          average_price: holding.averagePrice,
-                          account_id: holding.accountId,
-                          group_id: holding.groupId,
-                        }}
-                        investmentAccounts={investmentAccounts}
-                        groups={groupOptions}
-                      />
-                    ) : null}
-                    {holding.investmentType !== "stock" ? (
-                      <AddPrivateInvestmentDialog
-                        holding={{
-                          id: holding.manualId,
-                          name: holding.name,
-                          quantity: holding.quantity,
-                          average_price: holding.averagePrice,
-                          investment_type: holding.investmentType as "real_estate" | "private_equity" | "other",
-                          estimated_return_percent: holding.estimatedReturnPercent ?? null,
-                          notes: holding.notes ?? null,
-                          account_id: holding.accountId,
-                          group_id: holding.groupId,
-                        }}
-                        investmentAccounts={investmentAccounts}
-                        groups={groupOptions}
-                      />
-                    ) : null}
-                    {holding.quantity > 0 ? (
-                      <SellHoldingDialog
-                        holding={{
-                          id: holding.manualId,
-                          ticker: holding.ticker,
-                          name: holding.name,
-                          quantity: holding.quantity,
-                          average_price: holding.averagePrice,
-                          current_price: holding.currentPrice,
-                          currency: holding.currency,
-                        }}
-                        investmentAccounts={investmentAccounts}
-                      />
-                    ) : null}
-                    <DeleteHoldingButton
-                      holding={{
-                        id: holding.manualId,
-                        ticker: holding.ticker,
-                        name: holding.name,
-                      }}
-                    />
-                  </div>
-                ) : undefined,
-            },
-          ];
-        }),
-      };
-    }),
-  }));
+            }}
+          />
+        </div>
+      ) : undefined,
+  });
 
   const headerEl = (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Investments</h1>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <ConnectBrokerDialog
-          connectedBrokers={connectedBrokers}
-          investmentAccounts={investmentAccounts}
-        />
-        <InvestmentGroupDialog investmentAccounts={investmentAccounts} />
-        <AddHoldingDialog investmentAccounts={investmentAccounts} groups={groupOptions} />
-        <AddPrivateInvestmentDialog investmentAccounts={investmentAccounts} groups={groupOptions} />
-        {manualHoldings.length > 0 ? <RefreshPricesButton /> : null}
       </div>
     </div>
   );
