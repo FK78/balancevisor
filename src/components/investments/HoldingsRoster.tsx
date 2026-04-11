@@ -190,7 +190,7 @@ export function HoldingsRoster({ accountSections, currency }: HoldingsRosterProp
                               </TableCell>
                               <TableCell>
                                 <div className="space-y-1 text-sm text-muted-foreground">
-                                  {holding.interpretation ? <p>{holding.interpretation}</p> : <p>Comparison ready</p>}
+                                  {holding.interpretation ? <p>{holding.interpretation}</p> : <p>Data current - no action needed</p>}
                                 </div>
                               </TableCell>
                               <TableCell>
