@@ -1,5 +1,4 @@
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 
 import { ChartSkeleton } from "@/components/ChartSkeleton";
@@ -433,12 +432,6 @@ export default async function InvestmentsPage() {
           Keep property, pensions, gold, and other off-platform holdings in the portfolio story so
           the full picture stays easy to check.
         </p>
-        <Link
-          href="/dashboard/accounts#portfolio-support"
-          className="mt-3 inline-flex text-sm font-medium text-foreground underline-offset-4 transition-colors hover:underline"
-        >
-          Review portfolio support
-        </Link>
       </div>
     </div>
   );
