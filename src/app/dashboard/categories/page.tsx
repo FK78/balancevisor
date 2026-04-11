@@ -121,6 +121,9 @@ export default async function Categories() {
           <p className="text-sm leading-6 text-muted-foreground">
             Add categories when the spend story needs a better shape, then add rules to reduce clean-up on the transactions that repeat.
           </p>
+          <p className="text-sm leading-6 text-muted-foreground">
+            Understand structure first, then tune the taxonomy once the patterns are obvious.
+          </p>
         </div>
       )}
     />

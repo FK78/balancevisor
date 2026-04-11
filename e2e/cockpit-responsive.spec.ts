@@ -68,6 +68,20 @@ test.describe("Balanced cockpit responsive QA", () => {
     });
   });
 
+  test("investments keeps portfolio tools and off-platform support visible", async ({ page }) => {
+    await expectResponsiveRoute(page, "/dashboard/investments", async (currentPage) => {
+      await expect(currentPage.getByText(/portfolio tools/i)).toBeVisible();
+      await expect(currentPage.getByText(/assets outside broker feeds/i)).toBeVisible();
+    });
+  });
+
+  test("categories keeps spending structure above maintenance lists", async ({ page }) => {
+    await expectResponsiveRoute(page, "/dashboard/categories", async (currentPage) => {
+      await expect(currentPage.getByText(/spending structure/i)).toBeVisible();
+      await expect(currentPage.getByText(/understand structure first/i)).toBeVisible();
+    });
+  });
+
   test("transactions keeps workspace tabs and action shelf visible", async ({ page }) => {
     await expectResponsiveRoute(page, "/dashboard/transactions", async (currentPage) => {
       await expect(
