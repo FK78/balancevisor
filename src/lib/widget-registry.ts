@@ -64,9 +64,9 @@ const BUDGETS_WIDGETS: readonly WidgetDefinition[] = [
 ] as const;
 
 const CATEGORIES_WIDGETS: readonly WidgetDefinition[] = [
-  { id: "charts", label: "Category Charts", defaultVisible: true, colSpan: 2 },
-  { id: "all-categories", label: "All Categories", defaultVisible: true, colSpan: 2 },
-  { id: "auto-rules", label: "Auto-Categorisation Rules", defaultVisible: true, colSpan: 2 },
+  { id: "charts", label: "Spending Structure Charts", defaultVisible: true, colSpan: 2 },
+  { id: "all-categories", label: "Category Structure Grid", defaultVisible: true, colSpan: 2 },
+  { id: "auto-rules", label: "Automation Rules", defaultVisible: true, colSpan: 2 },
 ] as const;
 
 const DEBTS_WIDGETS: readonly WidgetDefinition[] = [
