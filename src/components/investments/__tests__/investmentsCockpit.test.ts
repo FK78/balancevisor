@@ -61,9 +61,17 @@ describe("buildInvestmentsCockpitModel", () => {
     expect(model.priorityCards[0].id).toBe("broker-health");
   });
 
-  it("creates an explicit ungrouped section and holding interpretation copy", () => {
+  it("prefers stale price interpretation over largest position when both apply", () => {
+    const overlappingHoldings = [
+      {
+        ...sampleHoldings[0],
+        pricePending: true,
+      },
+      sampleHoldings[1],
+    ];
+
     const model = buildInvestmentsCockpitModel({
-      holdings: sampleHoldings,
+      holdings: overlappingHoldings,
       brokerErrors: [],
       brokerCash: 0,
       totalRealizedGain: 0,
@@ -72,11 +80,22 @@ describe("buildInvestmentsCockpitModel", () => {
     });
 
     expect(model.accountSections[0]?.groups[0]?.title).toBe("Individual holdings");
-    expect(model.accountSections[0]?.groups[0]?.holdings[0]?.interpretation).toMatch(
-      /largest position/i,
+    expect(model.accountSections[0]?.groups[0]?.holdings[0]?.interpretation).toBe(
+      "Manual price needs refreshing",
     );
-    expect(model.accountSections[0]?.groups[0]?.holdings[1]?.interpretation).toMatch(
-      /price needs refreshing/i,
-    );
+  });
+
+  it("keeps empty portfolios inside the calm balance hero state", () => {
+    const model = buildInvestmentsCockpitModel({
+      holdings: [],
+      brokerErrors: [],
+      brokerCash: 0,
+      totalRealizedGain: 0,
+      baseCurrency: "GBP",
+      allGroups: [],
+    });
+
+    expect(model.heroTitle).toBe("Portfolio balance looks calm");
+    expect(model.heroTitle).not.toMatch(/start your investment cockpit/i);
   });
 });

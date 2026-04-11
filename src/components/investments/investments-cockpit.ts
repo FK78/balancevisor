@@ -160,7 +160,7 @@ function buildHeroCopy(primaryAction: PrimaryAction, brokerErrorCount: number, s
   }
 
   return {
-    heroTitle: holdingCount > 0 ? "Portfolio balance looks calm" : "Start your investment cockpit",
+    heroTitle: "Portfolio balance looks calm",
     heroDescription:
       holdingCount > 0
         ? "The portfolio is stable for now, so keep the next action lightweight and easy to return to."
@@ -234,10 +234,10 @@ function buildAccountSections(holdings: HoldingInput[], allGroups: GroupInput[])
           name: holding.name,
           quantity: holding.quantity,
           value: holding.value,
-          interpretation: holding.id === largestHoldingId
-            ? "Largest position in portfolio"
-            : holding.pricePending
-              ? "Manual price needs refreshing"
+          interpretation: holding.pricePending
+            ? "Manual price needs refreshing"
+            : holding.id === largestHoldingId
+              ? "Largest position in portfolio"
               : null,
         })),
       },
@@ -252,10 +252,10 @@ function buildAccountSections(holdings: HoldingInput[], allGroups: GroupInput[])
             name: holding.name,
             quantity: holding.quantity,
             value: holding.value,
-            interpretation: holding.id === largestHoldingId
-              ? "Largest position in portfolio"
-              : holding.pricePending
-                ? "Manual price needs refreshing"
+            interpretation: holding.pricePending
+              ? "Manual price needs refreshing"
+              : holding.id === largestHoldingId
+                ? "Largest position in portfolio"
                 : null,
           })),
       })),
