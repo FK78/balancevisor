@@ -102,7 +102,7 @@ export async function continueFromCategories(formData: FormData) {
   const ai = formData.get('ai_enabled');
   const aiEnabled = ai !== '0';
   if (intent === 'apply') {
-    redirect(buildOnboardingHref('setup', { aiEnabled }));
+    redirect(buildOnboardingHref('categories', { aiEnabled }));
   }
 
   redirect(buildOnboardingHref('review', { aiEnabled }));

@@ -11,9 +11,9 @@ describe("normalizeOnboardingStage", () => {
 
   it("maps legacy step values into the new stage model", () => {
     expect(normalizeOnboardingStage(undefined, "welcome")).toBe("basics");
-    expect(normalizeOnboardingStage(undefined, "accounts")).toBe("setup");
-    expect(normalizeOnboardingStage(undefined, "categories")).toBe("setup");
-    expect(normalizeOnboardingStage(undefined, "features")).toBe("setup");
+    expect(normalizeOnboardingStage(undefined, "accounts")).toBe("accounts");
+    expect(normalizeOnboardingStage(undefined, "categories")).toBe("categories");
+    expect(normalizeOnboardingStage(undefined, "features")).toBe("features");
     expect(normalizeOnboardingStage(undefined, "review")).toBe("review");
   });
 });

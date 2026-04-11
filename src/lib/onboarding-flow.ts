@@ -1,4 +1,4 @@
-export type OnboardingStage = "basics" | "account-method" | "setup" | "review";
+export type OnboardingStage = "basics" | "account-method" | "accounts" | "categories" | "features" | "review";
 
 export type AccountMethod = "auto" | "manual" | "hybrid";
 
@@ -26,10 +26,22 @@ export const ONBOARDING_STAGE_META: readonly {
     description: "Choose between automatic Open Banking, manual entry, or a mix of both.",
   },
   {
-    value: "setup",
-    label: "Money setup",
-    title: "Finish your money setup",
-    description: "Add the essentials that make your dashboard useful from day one.",
+    value: "accounts",
+    label: "Accounts",
+    title: "Add your accounts",
+    description: "Connect your bank or add accounts manually so your dashboard has real data.",
+  },
+  {
+    value: "categories",
+    label: "Categories",
+    title: "Set up your categories",
+    description: "Give your spending a structure so transactions are organised from day one.",
+  },
+  {
+    value: "features",
+    label: "Features",
+    title: "Pick your focus areas",
+    description: "Choose the areas you care about most to shape your first dashboard experience.",
   },
   {
     value: "review",
@@ -42,9 +54,10 @@ export const ONBOARDING_STAGE_META: readonly {
 const LEGACY_STEP_MAP: Record<string, OnboardingStage> = {
   welcome: "basics",
   "account-method": "account-method",
-  accounts: "setup",
-  categories: "setup",
-  features: "setup",
+  accounts: "accounts",
+  categories: "categories",
+  features: "features",
+  setup: "accounts",
   review: "review",
 };
 

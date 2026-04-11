@@ -176,7 +176,7 @@ export function ReviewStep({
             <Button asChild variant="outline">
               <Link href={backHref}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to money setup
+                Back
               </Link>
             </Button>
             <form

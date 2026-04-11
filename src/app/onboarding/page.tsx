@@ -19,7 +19,9 @@ import {
 } from "@/db/mutations/onboarding";
 import { normalizeBaseCurrency, SUPPORTED_BASE_CURRENCIES } from "@/lib/currency";
 import { OnboardingLayout } from "@/components/OnboardingLayout";
-import { OnboardingSetupStage } from "@/components/OnboardingSetupStage";
+import { OnboardingAccountsStage } from "@/components/OnboardingAccountsStage";
+import { OnboardingCategoriesStage } from "@/components/OnboardingCategoriesStage";
+import { OnboardingFeaturesStage } from "@/components/OnboardingFeaturesStage";
 import { AccountQuickAdd } from "@/components/AccountQuickAdd";
 import { CategorySelector } from "@/components/CategorySelector";
 import { WelcomeStep } from "@/components/WelcomeStep";
@@ -116,15 +118,11 @@ export default async function OnboardingPage({
         />
       )}
 
-      {stage === "setup" && (
-        <OnboardingSetupStage
+      {stage === "accounts" && (
+        <OnboardingAccountsStage
           aiEnabled={aiEnabled}
           accountMethod={accountMethod}
-          accountsCount={accounts.length}
-          categoriesCount={categories.length}
-          initialSelectedFeatures={selectedFeatures}
           backHref={buildOnboardingHref("account-method", { aiEnabled })}
-          reviewBaseHref={buildOnboardingHref("review", { aiEnabled, method: accountMethod })}
           accountsSection={(
             <AccountQuickAdd
               currency={baseCurrency}
@@ -143,6 +141,14 @@ export default async function OnboardingPage({
               existingAccounts={accounts}
             />
           )}
+        />
+      )}
+
+      {stage === "categories" && (
+        <OnboardingCategoriesStage
+          aiEnabled={aiEnabled}
+          accountMethod={accountMethod}
+          backHref={buildOnboardingHref("accounts", { aiEnabled, method: accountMethod })}
           categoriesSection={(
             <div className="space-y-4">
               <CategorySelector
@@ -165,6 +171,15 @@ export default async function OnboardingPage({
         />
       )}
 
+      {stage === "features" && (
+        <OnboardingFeaturesStage
+          aiEnabled={aiEnabled}
+          accountMethod={accountMethod}
+          initialSelectedFeatures={selectedFeatures}
+          backHref={buildOnboardingHref("categories", { aiEnabled, method: accountMethod })}
+        />
+      )}
+
       {stage === "review" && (
         <ReviewStep
           accountsCount={accounts.length}
@@ -175,7 +190,7 @@ export default async function OnboardingPage({
           subscriptionsCount={subscriptions.length}
           selectedFeatures={selectedFeatures}
           aiEnabled={aiEnabled}
-          backHref={buildOnboardingHref("setup", {
+          backHref={buildOnboardingHref("features", {
             aiEnabled,
             method: accountMethod,
             features: selectedFeatures,

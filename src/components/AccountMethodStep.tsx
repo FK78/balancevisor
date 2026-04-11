@@ -61,7 +61,7 @@ export function AccountMethodStep({
   const [selected, setSelected] = useState<AccountMethod | null>(null);
 
   const continueHref = selected
-    ? buildOnboardingHref("setup", { aiEnabled, method: selected })
+    ? buildOnboardingHref("accounts", { aiEnabled, method: selected })
     : "#";
 
   return (

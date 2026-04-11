@@ -10,9 +10,9 @@ describe("OnboardingLayout", () => {
   it("renders milestone progress and a sticky mobile action bar", () => {
     render(
       <OnboardingLayout
-        currentStage="setup"
-        stageTitle="Money setup"
-        stageDescription="Finish your core setup before heading to the dashboard."
+        currentStage="accounts"
+        stageTitle="Add your accounts"
+        stageDescription="Connect your bank or add accounts manually so your dashboard has real data."
         skipAction={<button type="button">Skip</button>}
       >
         <div>Stage content</div>
@@ -23,7 +23,7 @@ describe("OnboardingLayout", () => {
     );
 
     expect(screen.getByText("Basics")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /money setup/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /add your accounts/i })).toBeInTheDocument();
     expect(screen.getByText("Review")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /skip/i })).toBeInTheDocument();
     expect(screen.getByText("Stage content")).toBeInTheDocument();

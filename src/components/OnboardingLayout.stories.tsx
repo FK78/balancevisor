@@ -24,14 +24,40 @@ export const BasicsStage: Story = {
   },
 };
 
-export const SetupStage: Story = {
+export const AccountsStage: Story = {
   args: {
-    currentStage: "setup",
-    stageTitle: "Finish your money setup",
-    stageDescription: "Add the essentials that make your dashboard useful from day one.",
+    currentStage: "accounts",
+    stageTitle: "Add your accounts",
+    stageDescription: "Connect your bank or add accounts manually so your dashboard has real data.",
     children: (
       <div className="rounded-xl border p-6 text-center text-sm text-muted-foreground">
-        Setup content placeholder
+        Accounts content placeholder
+      </div>
+    ),
+  },
+};
+
+export const CategoriesStage: Story = {
+  args: {
+    currentStage: "categories",
+    stageTitle: "Set up your categories",
+    stageDescription: "Give your spending a structure so transactions are organised from day one.",
+    children: (
+      <div className="rounded-xl border p-6 text-center text-sm text-muted-foreground">
+        Categories content placeholder
+      </div>
+    ),
+  },
+};
+
+export const FeaturesStage: Story = {
+  args: {
+    currentStage: "features",
+    stageTitle: "Pick your focus areas",
+    stageDescription: "Choose the areas you care about most to shape your first dashboard experience.",
+    children: (
+      <div className="rounded-xl border p-6 text-center text-sm text-muted-foreground">
+        Features content placeholder
       </div>
     ),
   },

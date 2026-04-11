@@ -39,7 +39,7 @@ export function OnboardingLayout({
             {canSkip && skipAction}
           </div>
 
-          <div className="mt-4 grid grid-cols-4 gap-2">
+          <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-6">
             {ONBOARDING_STAGE_META.map((stage, index) => {
               const currentIndex = ONBOARDING_STAGE_META.findIndex((item) => item.value === currentStage);
               const isActive = stage.value === currentStage;
