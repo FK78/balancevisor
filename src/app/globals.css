@@ -7,7 +7,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: var(--font-app-sans), "Manrope", system-ui, sans-serif;
   --font-mono: "SF Mono", SFMono-Regular, ui-monospace, Menlo, monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -47,86 +47,88 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
-/* ── Light: Apple System Colors (iOS 13–17) ── */
 :root {
-  --radius: 0.625rem;
-  --background: #F2F2F7;
-  --foreground: #000000;
-  --card: #FFFFFF;
-  --card-foreground: #000000;
-  --popover: #FFFFFF;
-  --popover-foreground: #000000;
-  --primary: #007AFF;
-  --primary-foreground: #FFFFFF;
-  --secondary: #E5E5EA;
-  --secondary-foreground: #1C1C1E;
-  --muted: #E5E5EA;
-  --muted-foreground: #8E8E93;
-  --accent: #F2F2F7;
-  --accent-foreground: #000000;
-  --destructive: #FF3B30;
-  --border: rgba(60, 60, 67, 0.12);
-  --input: #E5E5EA;
-  --ring: #007AFF;
-  --chart-1: #007AFF;
-  --chart-2: #34C759;
-  --chart-3: #FF9500;
-  --chart-4: #AF52DE;
-  --chart-5: #FF2D55;
-  --sidebar: #F2F2F7;
-  --sidebar-foreground: #000000;
-  --sidebar-primary: #007AFF;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #E5E5EA;
-  --sidebar-accent-foreground: #000000;
-  --sidebar-border: rgba(60, 60, 67, 0.12);
-  --sidebar-ring: #007AFF;
-  --workspace-shell: #24342B;
-  --workspace-shell-foreground: #F7F3EA;
-  --workspace-accent: #C79A2B;
-  --workspace-muted-surface: #F5F1E6;
-  --workspace-blue: #E7EEF8;
-  --workspace-card-border: rgba(36, 52, 43, 0.08);
+  --radius: 0.95rem;
+  --background: #f5f0e6;
+  --foreground: #1c251f;
+  --card: #fffdf8;
+  --card-foreground: #1c251f;
+  --popover: #fffdf8;
+  --popover-foreground: #1c251f;
+  --primary: #24342b;
+  --primary-foreground: #faf5ec;
+  --secondary: #ece3d4;
+  --secondary-foreground: #29352d;
+  --muted: #eee6d8;
+  --muted-foreground: #687268;
+  --accent: #f2eadc;
+  --accent-foreground: #1c251f;
+  --destructive: #c9674a;
+  --border: rgba(36, 52, 43, 0.12);
+  --input: #ebe1d3;
+  --ring: #c79a2b;
+  --chart-1: #24342b;
+  --chart-2: #4f6e84;
+  --chart-3: #c79a2b;
+  --chart-4: #c9674a;
+  --chart-5: #758c68;
+  --sidebar: #f5f0e6;
+  --sidebar-foreground: #1c251f;
+  --sidebar-primary: #24342b;
+  --sidebar-primary-foreground: #faf5ec;
+  --sidebar-accent: #ece3d4;
+  --sidebar-accent-foreground: #1c251f;
+  --sidebar-border: rgba(36, 52, 43, 0.12);
+  --sidebar-ring: #c79a2b;
+  --workspace-canvas: #f5f0e6;
+  --workspace-shell: #223229;
+  --workspace-shell-foreground: #faf5ec;
+  --workspace-accent: #c79a2b;
+  --workspace-muted-surface: #efe6d7;
+  --workspace-blue: #dfe8f3;
+  --workspace-danger: #c9674a;
+  --workspace-card-border: rgba(36, 52, 43, 0.12);
 }
 
-/* ── Dark: Apple Dark Mode ── */
 .dark {
-  --background: #000000;
-  --foreground: #FFFFFF;
-  --card: #1C1C1E;
-  --card-foreground: #FFFFFF;
-  --popover: #2C2C2E;
-  --popover-foreground: #FFFFFF;
-  --primary: #0A84FF;
-  --primary-foreground: #FFFFFF;
-  --secondary: #2C2C2E;
-  --secondary-foreground: #FFFFFF;
-  --muted: #2C2C2E;
-  --muted-foreground: #8E8E93;
-  --accent: #2C2C2E;
-  --accent-foreground: #FFFFFF;
-  --destructive: #FF453A;
+  --background: #101611;
+  --foreground: #f7f2e8;
+  --card: #161f18;
+  --card-foreground: #f7f2e8;
+  --popover: #161f18;
+  --popover-foreground: #f7f2e8;
+  --primary: #d0ac58;
+  --primary-foreground: #182019;
+  --secondary: #1d2820;
+  --secondary-foreground: #f7f2e8;
+  --muted: #1d2820;
+  --muted-foreground: #98a297;
+  --accent: #1b251e;
+  --accent-foreground: #f7f2e8;
+  --destructive: #d97a59;
   --border: rgba(255, 255, 255, 0.1);
   --input: rgba(255, 255, 255, 0.12);
-  --ring: #0A84FF;
-  --chart-1: #0A84FF;
-  --chart-2: #30D158;
-  --chart-3: #FF9F0A;
-  --chart-4: #BF5AF2;
-  --chart-5: #FF375F;
-  --sidebar: #1C1C1E;
-  --sidebar-foreground: #FFFFFF;
-  --sidebar-primary: #0A84FF;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #2C2C2E;
-  --sidebar-accent-foreground: #FFFFFF;
+  --ring: #d0ac58;
+  --chart-1: #d0ac58;
+  --chart-2: #87a4bd;
+  --chart-3: #8fa67f;
+  --chart-4: #d97a59;
+  --chart-5: #f1d59d;
+  --sidebar: #101611;
+  --sidebar-foreground: #f7f2e8;
+  --sidebar-primary: #d0ac58;
+  --sidebar-primary-foreground: #182019;
+  --sidebar-accent: #1d2820;
+  --sidebar-accent-foreground: #f7f2e8;
   --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: #0A84FF;
-  --workspace-shell: #172019;
-  --workspace-shell-foreground: #F8F5EE;
-  --workspace-accent: #D1A642;
-  --workspace-muted-surface: #202A23;
-  --workspace-blue: #1B2737;
+  --sidebar-ring: #d0ac58;
+  --workspace-canvas: #101611;
+  --workspace-shell: #1a251e;
+  --workspace-shell-foreground: #faf5ec;
+  --workspace-accent: #d0ac58;
+  --workspace-muted-surface: #1d2820;
+  --workspace-blue: #1b2a37;
+  --workspace-danger: #d97a59;
   --workspace-card-border: rgba(255, 255, 255, 0.08);
 }
 
@@ -134,14 +136,29 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html,
   body {
-    @apply bg-background text-foreground;
+    min-height: 100%;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background:
+      radial-gradient(circle at top, color-mix(in srgb, var(--workspace-muted-surface) 84%, transparent) 0%, transparent 36%),
+      linear-gradient(180deg, color-mix(in srgb, var(--workspace-blue) 20%, transparent) 0%, transparent 32%),
+      var(--workspace-canvas);
   }
 }
 
-/* ── Apple-style thin separator ── */
+.app-body {
+  color: var(--foreground);
+}
+
+.font-display {
+  font-family: var(--font-app-display), "Fraunces", Georgia, serif;
+}
+
 .apple-separator {
   border-bottom-width: 0.5px;
   border-color: var(--border);
@@ -248,6 +265,7 @@
 /* ── iOS rubber-band overscroll fix ── */
 html {
   overscroll-behavior: none;
+  scroll-behavior: smooth;
 }
 
 /* ── Tap highlight removal for iOS ── */
@@ -258,34 +276,37 @@ html {
 @layer utilities {
   .dashboard-shell-bg {
     background-image:
-      radial-gradient(circle at top, color-mix(in srgb, var(--workspace-muted-surface) 84%, transparent) 0%, transparent 42%),
-      linear-gradient(180deg, color-mix(in srgb, var(--workspace-blue) 38%, transparent) 0%, transparent 34%);
+      radial-gradient(circle at top, color-mix(in srgb, var(--workspace-muted-surface) 82%, transparent) 0%, transparent 42%),
+      linear-gradient(180deg, color-mix(in srgb, var(--workspace-blue) 26%, transparent) 0%, transparent 34%);
   }
 
   .workspace-surface {
-    background: color-mix(in srgb, var(--card) 88%, var(--workspace-muted-surface) 12%);
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--card) 94%, white 6%) 0%, color-mix(in srgb, var(--card) 88%, var(--workspace-muted-surface) 12%) 100%);
+    box-shadow: 0 14px 34px rgba(27, 36, 30, 0.08);
   }
 
   .workspace-card {
-    background: color-mix(in srgb, var(--card) 92%, var(--workspace-muted-surface) 8%);
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--card) 96%, white 4%) 0%, color-mix(in srgb, var(--card) 92%, var(--workspace-muted-surface) 8%) 100%);
   }
 
   .workspace-hero {
     background:
-      radial-gradient(circle at top right, color-mix(in srgb, white 12%, transparent) 0%, transparent 38%),
-      linear-gradient(135deg, var(--workspace-shell) 0%, color-mix(in srgb, var(--workspace-shell) 78%, black) 100%);
+      radial-gradient(circle at top right, color-mix(in srgb, white 13%, transparent) 0%, transparent 38%),
+      linear-gradient(135deg, color-mix(in srgb, var(--workspace-shell) 96%, black) 0%, color-mix(in srgb, var(--workspace-shell) 78%, black) 100%);
     color: var(--workspace-shell-foreground);
-    box-shadow: 0 20px 48px rgba(36, 52, 43, 0.18);
+    box-shadow: 0 26px 60px rgba(27, 36, 30, 0.18);
   }
 
   .workspace-hero-panel {
-    background: color-mix(in srgb, white 10%, transparent);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: color-mix(in srgb, white 11%, transparent);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .workspace-accent-chip {
-    background: color-mix(in srgb, var(--workspace-accent) 18%, white 8%);
-    color: color-mix(in srgb, var(--workspace-accent) 80%, black);
+    background: color-mix(in srgb, var(--workspace-accent) 20%, white 10%);
+    color: color-mix(in srgb, var(--workspace-accent) 78%, black);
   }
 
   .workspace-primary-action {
@@ -306,23 +327,124 @@ html {
   }
 
   [role="tabpanel"] {
-    animation: workspace-tab-enter 0.25s ease-out;
+    animation: workspace-tab-enter 0.22s ease-out;
+  }
+
+  .cockpit-page {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .cockpit-topbar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .cockpit-kicker {
+    color: var(--muted-foreground);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+
+  .cockpit-hero {
+    background:
+      radial-gradient(circle at top right, color-mix(in srgb, white 12%, transparent) 0%, transparent 42%),
+      linear-gradient(135deg, var(--workspace-shell) 0%, color-mix(in srgb, var(--workspace-shell) 76%, black) 100%);
+    border: 1px solid color-mix(in srgb, var(--workspace-shell) 76%, white 24%);
+    border-radius: 2rem;
+    box-shadow: 0 24px 60px rgba(27, 36, 30, 0.18);
+    color: var(--workspace-shell-foreground);
+    display: grid;
+    gap: 1rem;
+    padding: 1.4rem;
+  }
+
+  .cockpit-hero-copy {
+    display: grid;
+    gap: 0.8rem;
+    align-content: start;
+  }
+
+  .cockpit-title {
+    font-size: clamp(2rem, 4vw, 3.3rem);
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    max-width: 16ch;
+  }
+
+  .cockpit-body {
+    color: color-mix(in srgb, var(--workspace-shell-foreground) 82%, transparent);
+    font-size: 0.96rem;
+    line-height: 1.7;
+    max-width: 62ch;
+  }
+
+  .cockpit-hero-aside {
+    background: color-mix(in srgb, white 8%, transparent);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1.5rem;
+    display: grid;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .action-shelf,
+  .priority-stack,
+  .soft-panel {
+    background: color-mix(in srgb, var(--card) 92%, var(--workspace-muted-surface) 8%);
+    border: 1px solid color-mix(in srgb, var(--workspace-card-border) 88%, transparent);
+    border-radius: 1.75rem;
+    box-shadow: 0 14px 34px rgba(27, 36, 30, 0.08);
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .action-shelf-content {
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  .priority-stack-grid {
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  .priority-card {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--card) 96%, white 4%) 0%, color-mix(in srgb, var(--card) 90%, var(--workspace-muted-surface) 10%) 100%);
+    border: 1px solid color-mix(in srgb, var(--workspace-card-border) 88%, transparent);
+    border-radius: 1.35rem;
+    display: grid;
+    gap: 0.5rem;
+    min-height: 100%;
+    padding: 1rem;
+  }
+
+  .soft-panel {
+    background:
+      radial-gradient(circle at top, color-mix(in srgb, var(--workspace-blue) 44%, transparent) 0%, transparent 50%),
+      linear-gradient(180deg, color-mix(in srgb, var(--card) 95%, white 5%) 0%, color-mix(in srgb, var(--card) 92%, var(--workspace-muted-surface) 8%) 100%);
   }
 
   .decision-row {
-    background: color-mix(in srgb, var(--card) 90%, var(--workspace-muted-surface) 10%);
+    background: color-mix(in srgb, var(--card) 92%, var(--workspace-muted-surface) 8%);
     border: 1px solid color-mix(in srgb, var(--workspace-card-border) 70%, transparent);
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-2xl);
     display: grid;
     gap: 0.6rem;
-    padding: 0.85rem 0.95rem;
+    padding: 1rem;
   }
 
   .decision-eyebrow {
     color: var(--muted-foreground);
     font-size: 0.7rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
+    font-weight: 700;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
   }
 
@@ -372,6 +494,51 @@ html {
     display: grid;
     gap: 0.55rem;
     padding: 1rem;
+  }
+}
+
+@media (min-width: 768px) {
+  @layer utilities {
+    .cockpit-page {
+      gap: 1.5rem;
+    }
+
+    .cockpit-topbar {
+      align-items: center;
+      flex-direction: row;
+      justify-content: space-between;
+    }
+
+    .cockpit-hero {
+      align-items: end;
+      grid-template-columns: minmax(0, 1.75fr) minmax(260px, 0.95fr);
+      padding: 1.75rem;
+    }
+
+    .priority-stack-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .action-shelf,
+    .priority-stack,
+    .soft-panel {
+      padding: 1.2rem 1.25rem;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

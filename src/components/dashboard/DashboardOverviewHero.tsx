@@ -1,6 +1,7 @@
 import { ArrowUpRight, PiggyBank, TrendingDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatCompactCurrency, formatCurrency } from "@/lib/formatCurrency";
+import { cn } from "@/lib/utils";
 
 interface DashboardOverviewHeroProps {
   readonly displayName: string;
@@ -32,7 +33,7 @@ export function DashboardOverviewHero({
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/70">
               Net worth
             </p>
-            <h2 className="mt-2 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+            <h2 className={cn("mt-2 text-4xl font-semibold tracking-tight text-white sm:text-5xl", "font-display")}>
               {netWorth < 0 ? "−" : ""}
               {formatCurrency(netWorth, currency)}
             </h2>

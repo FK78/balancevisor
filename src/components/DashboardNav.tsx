@@ -65,10 +65,10 @@ function isActive(href: string, pathname: string | null) {
 
 const linkClass = (active: boolean) =>
   cn(
-    "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors",
+    "flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors",
     active
-      ? "bg-card text-foreground shadow-sm"
-      : "text-muted-foreground hover:bg-card/80 hover:text-foreground",
+      ? "bg-[color-mix(in_srgb,var(--workspace-shell)_10%,white)] text-foreground shadow-sm ring-1 ring-[color:color-mix(in_srgb,var(--workspace-shell)_16%,transparent)]"
+      : "text-muted-foreground hover:bg-white/70 hover:text-foreground",
   );
 
 export function DashboardNav() {
@@ -104,7 +104,10 @@ export function DashboardNav() {
               <ChevronDown className="h-3.5 w-3.5" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-48">
+          <DropdownMenuContent
+            align="start"
+            className="w-52 rounded-2xl border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--card)_96%,white_4%)] p-1.5 shadow-[0_18px_38px_rgba(27,36,30,0.12)]"
+          >
             {visibleMore.map((item) => {
               const active = isActive(item.href, pathname);
               return (
@@ -112,7 +115,7 @@ export function DashboardNav() {
                   <Link
                     href={item.href}
                     aria-current={active ? "page" : undefined}
-                    className={`flex w-full items-center gap-2 ${active ? "font-semibold text-foreground" : ""}`}
+                    className={`flex w-full items-center gap-2 rounded-xl px-2.5 py-2 ${active ? "bg-[color-mix(in_srgb,var(--workspace-shell)_10%,white)] font-semibold text-foreground" : ""}`}
                   >
                     <item.icon className="h-4 w-4" />
                     {item.label}

@@ -29,6 +29,7 @@ describe("ReadOnlyWidgetGrid", () => {
     const widgetTexts = Array.from(container.querySelectorAll("[data-testid$='widget']")).map(
       (node) => node.textContent,
     );
+    expect(container.querySelector("[data-cockpit-grid='true']")).not.toBeNull();
     expect(widgetTexts).toEqual(["Second", "First"]);
   });
 

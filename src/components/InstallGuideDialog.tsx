@@ -9,6 +9,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { SoftPanel } from "@/components/ui/cockpit";
 import { Share, Plus, MoreVertical, Monitor } from "lucide-react";
 
 export type InstallMethod =
@@ -55,17 +56,23 @@ export function InstallGuideDialog({ open, onOpenChange, method }: Props) {
         <DialogHeader>
           <DialogTitle>Install Wealth</DialogTitle>
           <DialogDescription>
-            Add Wealth to your home screen for quick access and a native app
-            experience.
+            Add Wealth to your home screen so quick money check-ins feel more like an app and less like reopening the browser.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <SoftPanel
+          eyebrow="Install guide"
+          title="A calmer way back into your dashboard"
+          description="The steps below vary by browser, but the goal is the same: keep Wealth close when you need it."
+          titleAs="h3"
+        >
+          <div className="space-y-4 py-1">
           {method === "ios-safari" && <IosSafariGuide />}
           {method === "macos-safari" && <MacosSafariGuide />}
           {method === "android-browser" && <AndroidBrowserGuide />}
           {method === "unsupported" && <UnsupportedGuide />}
-        </div>
+          </div>
+        </SoftPanel>
 
         <DialogFooter mobileSticky>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
@@ -87,12 +94,12 @@ function StepRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start gap-3">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+    <div className="flex items-start gap-3 rounded-[1.25rem] border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--card)_94%,white_6%)] p-3">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--workspace-accent)_16%,white)] text-[var(--workspace-shell)]">
         {icon}
       </div>
       <div className="pt-0.5">
-        <p className="text-sm font-medium">Step {step}</p>
+        <p className="text-sm font-medium text-foreground">Step {step}</p>
         <p className="text-sm text-muted-foreground">{children}</p>
       </div>
     </div>

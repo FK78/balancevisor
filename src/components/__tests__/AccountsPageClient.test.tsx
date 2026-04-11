@@ -32,6 +32,10 @@ describe("AccountsPageClient", () => {
       />,
     );
 
+    expect(screen.getByText("Your money, organised")).toBeInTheDocument();
+    expect(
+      screen.getByText(/keep balances, account roster, and insights in clear workspaces/i),
+    ).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Summary" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText("Stats Summary Widget")).toBeInTheDocument();
     expect(screen.queryByText("Account Cards Widget")).not.toBeInTheDocument();
@@ -40,7 +44,7 @@ describe("AccountsPageClient", () => {
 
     expect(screen.getByRole("tab", { name: "Accounts" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText("Account Cards Widget")).toBeInTheDocument();
-    expect(screen.queryByText("Stats Summary Widget")).not.toBeInTheDocument();
+    expect(screen.getByText("Stats Summary Widget")).toBeInTheDocument();
 
     await user.click(screen.getByRole("tab", { name: "Insights" }));
 

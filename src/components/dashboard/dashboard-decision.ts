@@ -1,4 +1,6 @@
 import { formatCompactCurrency, formatCurrency } from "@/lib/formatCurrency";
+import type { HealthScoreResult } from "@/lib/financial-health-score";
+import type { Nudge } from "@/lib/nudges/types";
 import type { RetirementProjection } from "@/lib/retirement-calculator";
 import type { SpendingAnomaly } from "@/lib/spending-anomalies";
 
@@ -12,6 +14,14 @@ type RenewalLike = {
   name: string;
   amount: number;
   next_billing_date: string;
+};
+
+export type DashboardPriorityCard = {
+  id: string;
+  title: string;
+  summary: string;
+  actionLabel?: string;
+  href?: string;
 };
 
 export function getBudgetUsagePercent(budget: BudgetLike) {
@@ -198,4 +208,92 @@ export function getRetirementTakeaway(
   return `Off track by about ${ageDelta} year${
     ageDelta === 1 ? "" : "s"
   }. Closing a ${formatCompactCurrency(Math.abs(projection.fundGap), currency).replace("k", "K")} gap would get you back toward target.`;
+}
+
+export function buildDashboardPriorityCards({
+  budgetsAtRisk,
+  anomalies,
+  renewals,
+  retirementProjection,
+  healthScore,
+  nudges,
+  currency,
+}: {
+  budgetsAtRisk: BudgetLike[];
+  anomalies: SpendingAnomaly[];
+  renewals: RenewalLike[];
+  retirementProjection: RetirementProjection | null;
+  healthScore: HealthScoreResult;
+  nudges: readonly Nudge[];
+  currency: string;
+}): DashboardPriorityCard[] {
+  const cards: DashboardPriorityCard[] = [];
+
+  const budgetSummary = getBudgetDecisionSummary({ budgetsAtRisk, currency });
+  cards.push({
+    id: "budgets",
+    title: budgetsAtRisk.length > 0 ? budgetSummary.title : "No budgets need attention",
+    summary: budgetsAtRisk.length > 0
+      ? budgetSummary.summary
+      : "Your tracked categories are not showing any immediate budget pressure.",
+    actionLabel: budgetSummary.actionLabel,
+    href: "/dashboard/budgets",
+  });
+
+  if (anomalies.length > 0) {
+    const anomalySummary = getAnomalyDecisionSummary({ anomalies, currency });
+    cards.push({
+      id: "anomalies",
+      title: anomalySummary.title,
+      summary: anomalySummary.summary,
+      actionLabel: anomalySummary.actionLabel,
+      href: "/dashboard/reports",
+    });
+  }
+
+  if (renewals.length > 0) {
+    const billsSummary = getUpcomingBillsDecisionSummary({ renewals, currency });
+    cards.push({
+      id: "bills",
+      title: billsSummary.title,
+      summary: billsSummary.summary,
+      actionLabel: billsSummary.actionLabel,
+      href: "/dashboard/subscriptions",
+    });
+  }
+
+  if (retirementProjection) {
+    cards.push({
+      id: "retirement",
+      title: retirementProjection.canRetireOnTarget
+        ? "Retirement plan is holding course"
+        : "Retirement plan needs a nudge",
+      summary: getRetirementTakeaway(retirementProjection, currency),
+      actionLabel: "Review retirement plan",
+      href: "/dashboard/retirement",
+    });
+  }
+
+  if (nudges.length > 0) {
+    const topNudge = [...nudges].sort((left, right) => right.priority - left.priority)[0];
+    cards.push({
+      id: "nudges",
+      title: `${nudges.length} suggestion${nudges.length === 1 ? "" : "s"} worth a look`,
+      summary: topNudge?.body ?? "A few gentle nudges are ready for you to review.",
+      actionLabel: topNudge?.actionLabel ?? "Open dashboard",
+      href: topNudge?.actionUrl ?? "/dashboard",
+    });
+  }
+
+  if (healthScore.overall < 85) {
+    cards.push({
+      id: "health-score",
+      title: `Financial health is ${healthScore.grade}`,
+      summary: `Your overall score is ${healthScore.overall}/100. The next best step is to work through the watch items below.`,
+      actionLabel: "Review health signals",
+      href: "/dashboard",
+    });
+  }
+
+  return cards.slice(0, 4);
 }

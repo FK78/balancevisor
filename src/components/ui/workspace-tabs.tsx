@@ -27,7 +27,7 @@ export function WorkspaceTabs({
       role="tablist"
       aria-label={ariaLabel}
       className={cn(
-        "workspace-tablist-scroll flex w-full items-center gap-2 overflow-x-auto rounded-full bg-background/80 p-1",
+        "workspace-tablist-scroll flex w-full items-center gap-2 overflow-x-auto rounded-[1.35rem] border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--card)_82%,var(--workspace-muted-surface)_18%)] p-1.5 shadow-sm",
         className,
       )}
     >
@@ -45,10 +45,10 @@ export function WorkspaceTabs({
             data-state={selected ? "active" : "inactive"}
             onClick={() => onValueChange(tab.value)}
             className={cn(
-              "min-h-11 shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-all",
+              "min-h-11 shrink-0 rounded-[1rem] px-4 py-2.5 text-sm font-semibold transition-all duration-200",
               selected
-                ? "bg-foreground text-background shadow-sm"
-                : "text-muted-foreground hover:bg-card hover:text-foreground",
+                ? "bg-[var(--workspace-shell)] text-[var(--workspace-shell-foreground)] shadow-[0_14px_28px_rgba(27,36,30,0.16)]"
+                : "text-muted-foreground hover:bg-white/65 hover:text-foreground",
             )}
           >
             {tab.label}

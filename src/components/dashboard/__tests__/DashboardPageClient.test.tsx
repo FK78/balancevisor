@@ -101,6 +101,10 @@ describe("DashboardPageClient", () => {
       />,
     );
 
+    expect(
+      screen.getByRole("heading", { level: 2, name: /stay on top of the few things worth checking/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("No budgets need attention")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Overview" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText("Insights Widget")).toBeInTheDocument();
     expect(screen.queryByText("Recent Transactions Widget")).not.toBeInTheDocument();

@@ -65,11 +65,11 @@ export function MobileBottomNav() {
     <>
       <nav
         aria-label="Primary"
-        className="fixed inset-x-0 bottom-0 z-50 border-t border-border/70 bg-background/88 backdrop-blur-xl md:hidden"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--background)_88%,white_12%)]/95 backdrop-blur-xl md:hidden"
       >
         <div
           className="mx-auto grid max-w-lg px-2 pt-2"
-          style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)`, paddingBottom: "calc(env(safe-area-inset-bottom) + 0.35rem)" }}
+          style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)`, paddingBottom: "calc(env(safe-area-inset-bottom) + 0.45rem)" }}
         >
           {visibleBottomItems.map((item) => {
             const active = isActive(item.href, pathname);
@@ -79,10 +79,10 @@ export function MobileBottomNav() {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-[68px] flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 transition-all",
+                  "flex min-h-[70px] flex-col items-center justify-center gap-1 rounded-[1.15rem] px-2 py-2 transition-all",
                   active
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:bg-card/80 hover:text-foreground",
+                    ? "bg-[color-mix(in_srgb,var(--workspace-shell)_10%,white)] text-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-white/70 hover:text-foreground",
                 )}
               >
                 <item.icon
@@ -107,10 +107,10 @@ export function MobileBottomNav() {
             aria-label="More"
             aria-expanded={drawerOpen}
             className={cn(
-              "flex min-h-[68px] flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 transition-all",
+              "flex min-h-[70px] flex-col items-center justify-center gap-1 rounded-[1.15rem] px-2 py-2 transition-all",
               moreIsActive || drawerOpen
-                ? "bg-card text-foreground shadow-sm"
-                : "text-muted-foreground hover:bg-card/80 hover:text-foreground",
+                ? "bg-[color-mix(in_srgb,var(--workspace-shell)_10%,white)] text-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-white/70 hover:text-foreground",
             )}
           >
             <MoreHorizontal

@@ -1,10 +1,23 @@
 import type { Metadata, Viewport } from "next";
+import { Fraunces, Manrope } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { QueryProvider } from "@/components/QueryProvider";
 import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { Toaster } from "sonner";
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-app-sans",
+  display: "swap",
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-app-display",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Wealth",
@@ -22,7 +35,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#F2F2F7",
+  themeColor: "#F5F0E6",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -36,7 +49,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">
+      <body className={`${manrope.variable} ${fraunces.variable} app-body antialiased`}>
         <ThemeProvider defaultTheme="system">
           <QueryProvider>
             {children}

@@ -309,16 +309,16 @@ const steps = [
 
 function FeatureGrid({ features }: { features: typeof coreFeatures }) {
   return (
-    <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-fade-in-up-stagger">
+    <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-fade-in-up-stagger">
       {features.map((f) => (
         <div
           key={f.title}
-          className="rounded-xl bg-card p-5 transition-colors"
+          className="workspace-card rounded-[1.6rem] border border-[var(--workspace-card-border)] p-5 shadow-sm transition-colors"
         >
           <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${f.bg}`}>
             <f.icon className={`h-5 w-5 ${f.color}`} />
           </div>
-          <h3 className="mt-4 text-[15px] font-semibold">{f.title}</h3>
+          <h3 className="mt-4 text-base font-semibold tracking-tight">{f.title}</h3>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
             {f.description}
           </p>
@@ -331,10 +331,9 @@ function FeatureGrid({ features }: { features: typeof coreFeatures }) {
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col">
-      {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl" style={{ borderBottom: '0.5px solid var(--border)' }}>
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <Link href="/" className="flex items-center gap-2.5 font-bold text-lg">
+      <nav className="sticky top-0 z-50 border-b border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--background)_88%,white_12%)]/95 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <Link href="/" className="flex items-center gap-2.5 text-lg font-semibold">
             <Image src="/logo.svg" alt="Wealth logo" width={30} height={30} />
             <span>Wealth</span>
           </Link>
@@ -349,25 +348,23 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Hero */}
-      <header className="px-6 py-24 sm:py-32 lg:py-40">
-        <div className="mx-auto max-w-3xl text-center animate-fade-in-up">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
+      <header className="px-6 py-14 sm:py-18 lg:py-24">
+        <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)] lg:items-center">
+          <div className="animate-fade-in-up">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-[color-mix(in_srgb,var(--workspace-accent)_16%,white)] px-4 py-2 text-sm font-medium text-[var(--workspace-shell)]">
             <Sparkles className="h-4 w-4" />
-            100% free — no ads, no premium tier
-          </div>
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl leading-[1.1]">
-            Your money, finally{" "}
-            <span className="text-primary">
-              under control
-            </span>
-          </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-            Accounts, budgets, investments, debts, goals, subscriptions, and an AI assistant
-            that understands plain English — all in one beautifully simple dashboard.
-          </p>
-          <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-            <Button asChild size="lg" className="w-full sm:w-auto px-8">
+            Smooth, simple money clarity
+            </div>
+            <h1 className="font-display text-5xl leading-[1.02] tracking-tight text-foreground sm:text-6xl">
+              See what matters.
+              <br />
+              Do the next right thing.
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
+              Wealth gives you a balanced money cockpit inspired by the calmness of Emma and Snoop: strong summaries, one obvious next step, and tools that stay easy to use on mobile.
+            </p>
+            <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+              <Button asChild size="lg" className="workspace-primary-action w-full px-8 sm:w-auto">
               <Link href="/auth/sign-up">
                 Start tracking for free <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
@@ -376,11 +373,66 @@ export default function Home() {
               <Link href="/auth/login">I already have an account</Link>
             </Button>
           </div>
+          </div>
+
+          <div className="workspace-hero animate-fade-in-up rounded-[2rem] p-5 sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="cockpit-kicker text-white/70">Preview</p>
+                <h2 className="font-display text-3xl tracking-tight text-white">Balanced Workspace Cockpit</h2>
+              </div>
+              <div className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/80">
+                Mobile first
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3">
+              <div className="workspace-hero-panel rounded-[1.5rem] p-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-white/60">Status summary</p>
+                <p className="mt-2 text-xl font-semibold text-white">Cash is healthy, one budget needs attention</p>
+                <p className="mt-2 text-sm leading-6 text-white/75">The first screenful keeps the story clear before you dive into full detail.</p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="workspace-hero-panel rounded-[1.5rem] p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-white/60">Next step</p>
+                  <p className="mt-2 text-base font-semibold text-white">Review the budget spike</p>
+                </div>
+                <div className="workspace-hero-panel rounded-[1.5rem] p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-white/60">Deeper tools</p>
+                  <p className="mt-2 text-base font-semibold text-white">Transactions, accounts, goals</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </header>
 
-      {/* Stats */}
-      <section className="px-6 py-14" style={{ borderTop: '0.5px solid var(--border)', borderBottom: '0.5px solid var(--border)' }}>
+      <section className="px-6 py-10">
+        <div className="mx-auto grid max-w-5xl gap-4 sm:grid-cols-3">
+          {[
+            {
+              title: "Status first",
+              description: "Every major page starts with a clear summary and one next step, so you never land in a wall of tools.",
+            },
+            {
+              title: "Decision support",
+              description: "Dense pages like transactions and accounts are tuned to help you act quickly without losing context.",
+            },
+            {
+              title: "Softer everywhere",
+              description: "Onboarding, auth, install, and the landing experience all match the product’s calmer visual language.",
+            },
+          ].map((item) => (
+            <div key={item.title} className="workspace-card rounded-[1.5rem] border border-[var(--workspace-card-border)] p-5 shadow-sm">
+              <p className="cockpit-kicker">Why it feels better</p>
+              <h3 className="mt-2 text-lg font-semibold tracking-tight">{item.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.description}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="border-y border-[var(--workspace-card-border)] px-6 py-14">
         <div className="mx-auto grid max-w-5xl grid-cols-2 gap-8 text-center sm:grid-cols-4">
           {[
             { value: "30+", label: "Features" },
@@ -396,88 +448,87 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Core Features */}
-      <section className="px-6 py-24 sm:py-32">
+      <section className="px-6 py-20 sm:py-24">
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Everything you need to manage your money
+            <p className="cockpit-kicker">Core product</p>
+            <h2 className="font-display text-4xl tracking-tight sm:text-5xl">
+              Everything important, without the noise
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              No bloat, no upsells. Every feature is included from day one.
+              The main product stays broad enough to cover real life, but the surfaces are designed to keep the story calm and readable.
             </p>
           </div>
-          <FeatureGrid features={coreFeatures} />
+          <FeatureGrid features={coreFeatures.slice(0, 6)} />
         </div>
       </section>
 
-      {/* AI Section */}
-      <section className="px-6 py-24 sm:py-32" style={{ borderTop: '0.5px solid var(--border)' }}>
+      <section className="border-t border-[var(--workspace-card-border)] px-6 py-20 sm:py-24">
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-2xl text-center">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#AF52DE]/10 px-4 py-2 text-sm font-medium text-[#AF52DE]">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[color-mix(in_srgb,var(--workspace-blue)_28%,white)] px-4 py-2 text-sm font-medium text-[#4f6e84]">
               <Sparkles className="h-4 w-4" />
-              Powered by Groq AI
+              Helpful, never dominant
             </div>
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              AI that actually helps with your finances
+            <h2 className="font-display text-4xl tracking-tight sm:text-5xl">
+              AI that supports the work instead of stealing the spotlight
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              Six AI-powered tools built in — from natural language transaction entry to personalised monthly reports.
+              Natural-language entry, search, and reports are there when they save time, but the core product still works beautifully without them taking over the interface.
             </p>
           </div>
-          <FeatureGrid features={aiFeatures} />
+          <FeatureGrid features={aiFeatures.slice(0, 3)} />
         </div>
       </section>
 
-      {/* Smart Features */}
-      <section className="px-6 py-24 sm:py-32" style={{ borderTop: '0.5px solid var(--border)' }}>
+      <section className="border-t border-[var(--workspace-card-border)] px-6 py-20 sm:py-24">
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Smart automation that saves you time
+            <p className="cockpit-kicker">Quiet intelligence</p>
+            <h2 className="font-display text-4xl tracking-tight sm:text-5xl">
+              Quiet automation working in the background
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              Anomaly detection, cashflow forecasting, recurring pattern recognition, and more — working quietly in the background.
+              Forecasts, anomaly detection, reminders, and recurring helpers stay valuable precisely because they feel calm and timely.
             </p>
           </div>
-          <FeatureGrid features={smartFeatures} />
+          <FeatureGrid features={smartFeatures.slice(0, 4)} />
         </div>
       </section>
 
-      {/* Platform / Integration features */}
-      <section className="px-6 py-24 sm:py-32" style={{ borderTop: '0.5px solid var(--border)' }}>
+      <section className="border-t border-[var(--workspace-card-border)] px-6 py-20 sm:py-24">
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Built for real life
+            <p className="cockpit-kicker">Built for real life</p>
+            <h2 className="font-display text-4xl tracking-tight sm:text-5xl">
+              Works beautifully across devices and routines
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              Open banking, dark mode, multi-currency, PWA support, and bank-grade encryption.
+              Open banking, multi-currency, installability, and strong security make the product practical as well as pleasant to use.
             </p>
           </div>
           <FeatureGrid features={platformFeatures} />
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="px-6 py-24 sm:py-32" style={{ borderTop: '0.5px solid var(--border)' }}>
+      <section className="border-t border-[var(--workspace-card-border)] px-6 py-20 sm:py-24">
         <div className="mx-auto max-w-5xl">
           <div className="text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            <p className="cockpit-kicker">How it works</p>
+            <h2 className="font-display text-4xl tracking-tight sm:text-5xl">
               Up and running in minutes
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              No complicated setup. A guided wizard gets you from zero to full dashboard in under two minutes.
+              A guided setup gets you from zero to a useful cockpit quickly, without making onboarding feel like a form maze.
             </p>
           </div>
           <div className="mt-16 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
             {steps.map((s) => (
-              <div key={s.step} className="flex flex-col items-center text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-2xl">
+              <div key={s.step} className="workspace-card flex flex-col items-center rounded-[1.5rem] border border-[var(--workspace-card-border)] p-6 text-center shadow-sm">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--workspace-accent)_16%,white)] text-2xl">
                   {s.emoji}
                 </div>
-                <h3 className="mt-4 text-[15px] font-semibold">{s.title}</h3>
+                <h3 className="mt-4 text-base font-semibold tracking-tight">{s.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{s.description}</p>
               </div>
             ))}
@@ -485,15 +536,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Security callout */}
-      <section className="px-6 py-24">
-        <div className="mx-auto max-w-3xl rounded-2xl bg-card p-8 sm:p-12">
+      <section className="px-6 py-20">
+        <div className="workspace-card mx-auto max-w-3xl rounded-[2rem] border border-[var(--workspace-card-border)] p-8 shadow-sm sm:p-12">
           <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:text-left">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
               <Shield className="h-8 w-8 text-primary" />
             </div>
             <div>
-              <h3 className="text-xl font-bold">Your data stays yours</h3>
+              <h3 className="text-xl font-semibold tracking-tight">Your data stays yours</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                 Account names, transaction descriptions, and all OAuth tokens are encrypted at rest
                 with AES-256-GCM. Supabase row-level security isolates your data completely.
@@ -504,8 +554,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Tech stack */}
-      <section className="px-6 py-14" style={{ borderTop: '0.5px solid var(--border)', borderBottom: '0.5px solid var(--border)' }}>
+      <section className="border-y border-[var(--workspace-card-border)] px-6 py-14">
         <div className="mx-auto max-w-4xl text-center">
           <p className="text-sm font-medium text-muted-foreground">
             Built with Next.js 16 &middot; TypeScript &middot; Tailwind CSS 4 &middot; Drizzle ORM &middot; PostgreSQL &middot; Supabase Auth &middot; Groq AI &middot; Recharts &middot; TanStack Table &middot; Radix UI
@@ -513,10 +562,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="px-6 py-24 sm:py-32">
+      <section className="px-6 py-20 sm:py-24">
         <div className="mx-auto max-w-2xl text-center animate-fade-in-up">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+          <p className="cockpit-kicker">Start now</p>
+          <h2 className="font-display text-4xl tracking-tight sm:text-5xl">
             Ready to take control?
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
@@ -524,7 +573,7 @@ export default function Home() {
             it&apos;s completely free. No catches.
           </p>
           <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-            <Button asChild size="lg" className="w-full sm:w-auto px-8">
+            <Button asChild size="lg" className="workspace-primary-action w-full px-8 sm:w-auto">
               <Link href="/auth/sign-up">
                 Create your free account <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
@@ -533,10 +582,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="px-6 py-10" style={{ borderTop: '0.5px solid var(--border)' }}>
+      <footer className="border-t border-[var(--workspace-card-border)] px-6 py-10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row">
-          <div className="flex items-center gap-2.5 text-sm font-bold">
+          <div className="flex items-center gap-2.5 text-sm font-semibold">
             <Image src="/logo.svg" alt="Wealth" width={22} height={22} />
             Wealth
           </div>

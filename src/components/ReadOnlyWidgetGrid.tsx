@@ -42,5 +42,9 @@ export function ReadOnlyWidgetGrid({ children }: ReadOnlyWidgetGridProps) {
     return result;
   }, [children, layout]);
 
-  return <>{orderedChildren}</>;
+  return (
+    <div className="space-y-5 md:space-y-6" data-cockpit-grid="true">
+      {orderedChildren}
+    </div>
+  );
 }

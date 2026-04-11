@@ -4,10 +4,10 @@ import { ArrowLeft, TrendingUp, PieChart, Shield, Landmark, Sparkles } from "luc
 import { Button } from "@/components/ui/button";
 
 const highlights = [
-  { icon: TrendingUp, text: "Smart budget tracking with real-time alerts", color: "bg-[#34C759]/10 text-[#34C759]" },
-  { icon: PieChart, text: "Visual spending breakdowns by category", color: "bg-[#007AFF]/10 text-[#007AFF]" },
-  { icon: Landmark, text: "Net worth dashboard across all accounts", color: "bg-[#AF52DE]/10 text-[#AF52DE]" },
-  { icon: Shield, text: "Bank-grade security with row-level isolation", color: "bg-[#5AC8FA]/10 text-[#5AC8FA]" },
+  { icon: TrendingUp, text: "Calm money overview with clear next steps", color: "bg-[color-mix(in_srgb,var(--workspace-accent)_16%,white)] text-[var(--workspace-accent)]" },
+  { icon: PieChart, text: "Simple spending breakdowns that stay easy to scan", color: "bg-[color-mix(in_srgb,var(--workspace-blue)_30%,white)] text-[#4f6e84]" },
+  { icon: Landmark, text: "Accounts, budgets, and goals in one organised cockpit", color: "bg-[color-mix(in_srgb,var(--workspace-shell)_10%,white)] text-[var(--workspace-shell)]" },
+  { icon: Shield, text: "Bank-grade protection with quiet, trustworthy design", color: "bg-[color-mix(in_srgb,var(--workspace-danger)_12%,white)] text-[var(--workspace-danger)]" },
 ];
 
 export function AuthLayout({
@@ -20,60 +20,66 @@ export function AuthLayout({
   backLabel?: string;
 }) {
   return (
-    <div className="flex min-h-svh">
-      {/* Left branded panel — hidden on mobile */}
-      <div className="relative hidden w-[45%] flex-col justify-between bg-card p-10 lg:flex">
-
-        <Link href="/" className="flex items-center gap-2.5 font-bold text-lg">
+    <div className="soft-brand-shell min-h-svh bg-[radial-gradient(circle_at_top,_color-mix(in_srgb,var(--workspace-blue)_18%,transparent)_0%,transparent_38%),linear-gradient(180deg,color-mix(in_srgb,var(--workspace-muted-surface)_42%,transparent)_0%,transparent_42%)] lg:grid lg:grid-cols-[minmax(0,1.05fr)_minmax(440px,0.95fr)]">
+      <div className="relative hidden min-h-svh flex-col justify-between px-10 py-12 lg:flex">
+        <Link href="/" className="flex items-center gap-2.5 text-lg font-semibold">
           <Image src="/logo.svg" alt="Wealth" width={32} height={32} />
           <span>Wealth</span>
         </Link>
 
         <div className="space-y-6 animate-fade-in-up">
-          <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
+          <div className="inline-flex items-center gap-2 rounded-full bg-[color-mix(in_srgb,var(--workspace-accent)_16%,white)] px-4 py-2 text-sm font-medium text-[var(--workspace-shell)]">
             <Sparkles className="h-3.5 w-3.5" />
-            Free forever
+            Calm money clarity
           </div>
-          <h2 className="text-2xl font-bold leading-tight tracking-tight xl:text-3xl">
-            Take control of your<br />personal finances
+          <h2 className="font-display text-4xl leading-tight tracking-tight text-foreground xl:text-5xl">
+            See what matters.
+            <br />
+            Do the next right thing.
           </h2>
-          <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-            Track every penny, set budgets that work, and see your complete financial
-            picture — beautifully simple and always free.
+          <p className="max-w-md text-base leading-7 text-muted-foreground">
+            BalanceVisor brings your money into a calmer workspace, so accounts, budgets, and goals feel easy to understand instead of noisy.
           </p>
-          <div className="space-y-3 pt-2">
+          <div className="grid gap-3 pt-2">
             {highlights.map((h) => (
-              <div key={h.text} className="flex items-center gap-3 text-sm">
-                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${h.color}`}>
+              <div key={h.text} className="flex items-center gap-3 rounded-[1.4rem] border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--card)_92%,white_8%)] px-4 py-3 text-sm shadow-sm">
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${h.color}`}>
                   <h.icon className="h-4 w-4" />
                 </div>
-                <span className="text-muted-foreground">{h.text}</span>
+                <span className="leading-6 text-muted-foreground">{h.text}</span>
               </div>
             ))}
           </div>
         </div>
 
         <p className="text-xs text-muted-foreground">
-          &copy; {new Date().getFullYear()} Wealth. Free forever.
+          &copy; {new Date().getFullYear()} Wealth. A softer way to stay on top of your money.
         </p>
       </div>
 
-      {/* Right form panel */}
-      <div className="relative flex flex-1 flex-col items-center justify-center bg-background p-6 md:p-10">
-        <Button asChild variant="ghost" size="sm" className="absolute left-6 top-6 md:left-10 md:top-10">
+      <div className="relative flex min-h-svh flex-1 flex-col items-center justify-center px-5 py-20 sm:px-8 md:px-10">
+        <Button asChild variant="ghost" size="sm" className="absolute left-5 top-5 md:left-10 md:top-10">
           <Link href={backHref}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             {backLabel}
           </Link>
         </Button>
 
-        {/* Logo on mobile only */}
         <div className="mb-8 flex items-center gap-2.5 lg:hidden">
           <Image src="/logo.svg" alt="Wealth" width={30} height={30} />
-          <span className="text-lg font-bold">Wealth</span>
+          <span className="text-lg font-semibold">Wealth</span>
         </div>
 
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-md rounded-[2rem] border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--card)_94%,white_6%)] p-4 shadow-[0_24px_56px_rgba(27,36,30,0.12)] sm:p-5">
+          <div className="mb-4 space-y-2 lg:hidden">
+            <p className="cockpit-kicker">Simple money clarity</p>
+            <h1 className="font-display text-3xl leading-tight tracking-tight text-foreground">
+              Welcome to a calmer money workspace
+            </h1>
+            <p className="text-sm leading-6 text-muted-foreground">
+              Sign in or create an account to get your dashboard, plans, and decisions lined up in one place.
+            </p>
+          </div>
           {children}
         </div>
       </div>

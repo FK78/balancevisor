@@ -29,7 +29,7 @@ export function OnboardingLayout({
         <div className="rounded-[2rem] border border-[var(--workspace-card-border)] bg-card/92 px-4 py-4 shadow-sm backdrop-blur sm:px-6 sm:py-5">
           <div className="flex items-center justify-between gap-3">
             <div className="space-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-muted-foreground">
+              <p className="cockpit-kicker">
                 Onboarding
               </p>
               <p className="text-sm font-medium text-foreground">
@@ -71,11 +71,11 @@ export function OnboardingLayout({
           </div>
         </div>
 
-        <div className="mt-5 rounded-[2rem] bg-[linear-gradient(135deg,var(--workspace-shell)_0%,color-mix(in_srgb,var(--workspace-shell)_78%,black)_100%)] px-5 py-5 text-[var(--workspace-shell-foreground)] shadow-sm sm:px-7 sm:py-6">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[color:color-mix(in_srgb,var(--workspace-shell-foreground)_72%,transparent)]">
+        <div className="mt-5 rounded-[2rem] bg-[linear-gradient(135deg,var(--workspace-shell)_0%,color-mix(in_srgb,var(--workspace-shell)_78%,black)_100%)] px-5 py-5 text-[var(--workspace-shell-foreground)] shadow-[0_26px_60px_rgba(27,36,30,0.18)] sm:px-7 sm:py-6">
+          <p className="cockpit-kicker text-[color:color-mix(in_srgb,var(--workspace-shell-foreground)_72%,transparent)]">
             {ONBOARDING_STAGE_META.find((stage) => stage.value === currentStage)?.label}
           </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+          <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
             {stageTitle}
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[color:color-mix(in_srgb,var(--workspace-shell-foreground)_82%,transparent)]">

@@ -92,18 +92,19 @@ export function InstallPrompt() {
 
   return (
     <>
-      <div className="fixed bottom-20 right-4 z-50 animate-in slide-in-from-bottom-4 fade-in duration-300 max-w-sm md:bottom-4">
-        <div className="flex items-start gap-3 rounded-xl border bg-background p-4 shadow-lg">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-            <Download className="h-5 w-5 text-primary" />
+      <div className="fixed bottom-20 right-4 z-50 max-w-sm animate-in slide-in-from-bottom-4 fade-in duration-300 md:bottom-4">
+        <div className="soft-panel flex items-start gap-3 rounded-[1.6rem] p-4 shadow-[0_24px_56px_rgba(27,36,30,0.18)]">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--workspace-accent)_16%,white)]">
+            <Download className="h-5 w-5 text-[var(--workspace-shell)]" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold">Install Wealth</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Add to your home screen for quick access and a native app experience.
+            <p className="cockpit-kicker">Install</p>
+            <p className="mt-1 text-sm font-semibold text-foreground">Keep Wealth one tap away</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Add the app to your home screen for faster check-ins and a calmer mobile experience.
             </p>
             <div className="flex items-center gap-2 mt-3">
-              <Button size="sm" onClick={handleInstall}>
+              <Button size="sm" className="workspace-primary-action" onClick={handleInstall}>
                 Install
               </Button>
               <Button size="sm" variant="ghost" onClick={handleDismiss}>
@@ -113,7 +114,7 @@ export function InstallPrompt() {
           </div>
           <button
             onClick={handleDismiss}
-            className="shrink-0 rounded-md p-1 text-muted-foreground hover:text-foreground transition-colors"
+            className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
             aria-label="Dismiss"
           >
             <X className="h-4 w-4" />

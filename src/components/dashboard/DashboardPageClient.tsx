@@ -34,6 +34,11 @@ import { ReadOnlyWidgetGrid } from "@/components/ReadOnlyWidgetGrid";
 import { WidgetLayoutProvider } from "@/components/WidgetLayoutProvider";
 import { WorkspaceTabs } from "@/components/ui/workspace-tabs";
 import {
+  ActionShelf,
+  PriorityCard,
+  PriorityStack,
+} from "@/components/ui/cockpit";
+import {
   DASHBOARD_WORKSPACE_TABS,
   type DashboardWorkspaceTab,
   groupDashboardLayoutByTab,
@@ -53,6 +58,7 @@ import type { HealthScoreResult } from "@/lib/financial-health-score";
 import type { Nudge } from "@/lib/nudges/types";
 import { ChartSkeleton } from "@/components/ChartSkeleton";
 import { useWidgetLayoutContext } from "@/components/WidgetLayoutProvider";
+import { buildDashboardPriorityCards } from "@/components/dashboard/dashboard-decision";
 
 type WidgetCustomizerModule = typeof import("../WidgetCustomizerClient");
 type ActivationAction = "edit" | "customize";
@@ -172,6 +178,17 @@ function DashboardPageContent(props: DashboardPageClientProps) {
   const [customizationError, setCustomizationError] = useState<string | null>(null);
   const groupedLayout = groupDashboardLayoutByTab(layout);
   const activeLayout = groupedLayout[activeTab];
+  const dashboardPriorities = buildDashboardPriorityCards({
+    budgetsAtRisk,
+    anomalies,
+    renewals: upcomingRenewals,
+    retirementProjection,
+    healthScore,
+    nudges,
+    currency: baseCurrency,
+  });
+  const primaryPriority = dashboardPriorities[0];
+  const secondaryPriorities = dashboardPriorities.slice(1, 4);
 
   async function activateCustomization(action: ActivationAction) {
     setCustomizationError(null);
@@ -322,109 +339,165 @@ function DashboardPageContent(props: DashboardPageClientProps) {
   const EditableWidgetGrid = widgetCustomizerModule?.EditableWidgetGrid;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-5 px-4 py-5 md:space-y-8 md:px-10 md:py-8">
-      <div className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-              Workspace
-            </p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
-              Welcome back{displayName ? `, ${displayName}` : ""}
-            </h1>
-            <p className="text-muted-foreground mt-1 text-sm">{monthName}</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {transactionsEnabled && (
-              <>
-                <QuickAddTransaction />
+    <div className="cockpit-page mx-auto max-w-7xl px-4 py-5 md:px-10 md:py-8">
+      <div className="cockpit-topbar">
+        <div>
+          <p className="cockpit-kicker">Workspace</p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
+            Welcome back{displayName ? `, ${displayName}` : ""}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">{monthName}</p>
+        </div>
+      </div>
+
+      <DashboardOverviewHero
+        displayName={displayName}
+        monthName={monthName}
+        netWorth={netWorth}
+        totalAssets={totalAssets}
+        totalLiabilities={totalLiabilities}
+        investmentValue={investmentsEnabled ? investmentValue : 0}
+        currency={baseCurrency}
+      />
+
+      <ActionShelf
+        eyebrow="Next step"
+        title="Stay on top of the few things worth checking"
+        description="The dashboard now surfaces one clear next action first, then keeps the rest of the workspace quieter."
+      >
+        <div className="grid gap-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+          {primaryPriority ? (
+            <PriorityCard
+              title={primaryPriority.title}
+              description={primaryPriority.summary}
+              action={primaryPriority.href ? (
                 <Button asChild size="sm" className="workspace-primary-action">
-                  <Link href="/dashboard/transactions">
-                    Transactions <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                  <Link href={primaryPriority.href}>
+                    {primaryPriority.actionLabel ?? "Review now"}
+                    <ArrowRight className="ml-1 h-3.5 w-3.5" />
                   </Link>
                 </Button>
-              </>
-            )}
-          </div>
-        </div>
-        <DashboardOverviewHero
-          displayName={displayName}
-          monthName={monthName}
-          netWorth={netWorth}
-          totalAssets={totalAssets}
-          totalLiabilities={totalLiabilities}
-          investmentValue={investmentsEnabled ? investmentValue : 0}
-          currency={baseCurrency}
-        />
+              ) : null}
+            />
+          ) : null}
 
-        <div className="workspace-surface rounded-[1.75rem] border border-[var(--workspace-card-border)] px-3 py-3 shadow-sm sm:px-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="min-w-0 flex-1">
-              <WorkspaceTabs
-                ariaLabel="Dashboard sections"
-                value={activeTab}
-                onValueChange={(value) => setActiveTab(value as DashboardWorkspaceTab)}
-                tabs={DASHBOARD_WORKSPACE_TABS}
-              />
-            </div>
-            <div className="flex items-center justify-between gap-2 sm:justify-end">
-              <div>
-                <p className="text-sm font-semibold text-foreground">{activeTabMeta?.label}</p>
-                <p className="text-xs text-muted-foreground">{activeTabMeta?.description}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="hidden items-center gap-1 rounded-full bg-background px-3 py-1 text-xs font-medium text-muted-foreground sm:inline-flex">
-                  <LayoutGrid className="h-3.5 w-3.5" />
-                  Layout
-                </span>
-                {WidgetCustomizerControls ? (
-                  <WidgetCustomizerControls
-                    isEditing={isEditing}
-                    setIsEditing={setIsEditing}
-                    drawerOpen={drawerOpen}
-                    setDrawerOpen={setDrawerOpen}
-                  />
-                ) : (
+          <div className="grid gap-3">
+            <div className="workspace-surface rounded-[1.5rem] border border-[var(--workspace-card-border)] p-4">
+              <p className="cockpit-kicker">Actions</p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {transactionsEnabled ? (
                   <>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 gap-1.5 text-xs"
-                      disabled={loadingAction !== null}
-                      onClick={() => void activateCustomization("edit")}
-                    >
-                      {loadingAction === "edit" ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Pencil className="h-3.5 w-3.5" />
-                      )}
-                      Edit Layout
-                    </Button>
-                    <Button
-                      aria-label="Customize layout"
-                      variant="ghost"
-                      size="icon"
-                      className="relative h-8 w-8"
-                      disabled={loadingAction !== null}
-                      onClick={() => void activateCustomization("customize")}
-                    >
-                      {loadingAction === "customize" ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Settings2 className="h-4 w-4" />
-                      )}
-                      {isCustomised ? (
-                        <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary" />
-                      ) : null}
+                    <QuickAddTransaction />
+                    <Button asChild size="sm" className="workspace-primary-action">
+                      <Link href="/dashboard/transactions">
+                        Transactions <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                      </Link>
                     </Button>
                   </>
-                )}
+                ) : null}
               </div>
             </div>
+
+            <div className="workspace-surface rounded-[1.5rem] border border-[var(--workspace-card-border)] p-4">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="cockpit-kicker">Layout</p>
+                  <p className="mt-1 text-sm font-semibold text-foreground">Secondary controls stay tucked away</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="hidden items-center gap-1 rounded-full bg-background px-3 py-1 text-xs font-medium text-muted-foreground sm:inline-flex">
+                    <LayoutGrid className="h-3.5 w-3.5" />
+                    Layout
+                  </span>
+                  {WidgetCustomizerControls ? (
+                    <WidgetCustomizerControls
+                      isEditing={isEditing}
+                      setIsEditing={setIsEditing}
+                      drawerOpen={drawerOpen}
+                      setDrawerOpen={setDrawerOpen}
+                    />
+                  ) : (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 gap-1.5 text-xs"
+                        disabled={loadingAction !== null}
+                        onClick={() => void activateCustomization("edit")}
+                      >
+                        {loadingAction === "edit" ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Pencil className="h-3.5 w-3.5" />
+                        )}
+                        Edit Layout
+                      </Button>
+                      <Button
+                        aria-label="Customize layout"
+                        variant="ghost"
+                        size="icon"
+                        className="relative h-8 w-8"
+                        disabled={loadingAction !== null}
+                        onClick={() => void activateCustomization("customize")}
+                      >
+                        {loadingAction === "customize" ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Settings2 className="h-4 w-4" />
+                        )}
+                        {isCustomised ? (
+                          <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary" />
+                        ) : null}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+              {customizationError ? (
+                <p className="pt-2 text-xs text-muted-foreground">{customizationError}</p>
+              ) : null}
+            </div>
           </div>
-          {customizationError ? (
-            <p className="pt-2 text-xs text-muted-foreground">{customizationError}</p>
-          ) : null}
+        </div>
+      </ActionShelf>
+
+      {secondaryPriorities.length > 0 ? (
+        <PriorityStack
+          eyebrow="Priority stack"
+          title="Keep the main signals in view"
+          description="Each card explains what matters, why you should care, and where to go next."
+        >
+          {secondaryPriorities.map((priority) => (
+            <PriorityCard
+              key={priority.id}
+              title={priority.title}
+              description={priority.summary}
+              action={priority.href ? (
+                <Button asChild size="sm" variant="outline">
+                  <Link href={priority.href}>{priority.actionLabel ?? "Open"}</Link>
+                </Button>
+              ) : null}
+            />
+          ))}
+        </PriorityStack>
+      ) : null}
+
+      <div className="workspace-surface rounded-[1.75rem] border border-[var(--workspace-card-border)] px-3 py-3 shadow-sm sm:px-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0 flex-1">
+            <WorkspaceTabs
+              ariaLabel="Dashboard sections"
+              value={activeTab}
+              onValueChange={(value) => setActiveTab(value as DashboardWorkspaceTab)}
+              tabs={DASHBOARD_WORKSPACE_TABS}
+            />
+          </div>
+          <div className="flex items-center justify-between gap-2 sm:justify-end">
+            <div>
+              <p className="text-sm font-semibold text-foreground">{activeTabMeta?.label}</p>
+              <p className="text-xs text-muted-foreground">{activeTabMeta?.description}</p>
+            </div>
+          </div>
         </div>
       </div>
 

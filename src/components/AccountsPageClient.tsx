@@ -6,6 +6,7 @@ import { WidgetLayoutProvider } from "@/components/WidgetLayoutProvider";
 import { DashboardWidget } from "@/components/DashboardWidget";
 import { WorkspaceTabs } from "@/components/ui/workspace-tabs";
 import { useWidgetLayoutContext } from "@/components/WidgetLayoutProvider";
+import { ActionShelf, CockpitHero, SoftPanel } from "@/components/ui/cockpit";
 import {
   ACCOUNTS_WORKSPACE_TABS,
   type AccountsWorkspaceTab,
@@ -82,6 +83,9 @@ function AccountsPageContent({
 
   const activeWidgets = activeLayout
     .map((item) => {
+      if (item.widgetId === "stats" || item.widgetId === "pending-invitations") {
+        return null;
+      }
       const content = renderWidget(item.widgetId);
       if (!content) return null;
 
@@ -94,16 +98,48 @@ function AccountsPageContent({
     .filter(Boolean);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
-      {header}
-      <section className="space-y-4">
-        <div className="workspace-panel-surface space-y-3 rounded-[28px] border border-[var(--workspace-card-border)] px-4 py-4 shadow-sm">
-          <div className="space-y-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-              Workspace
+    <div className="cockpit-page mx-auto max-w-7xl px-4 py-6 md:px-10 md:py-10">
+      <div className="cockpit-topbar">{header}</div>
+
+      <CockpitHero
+        eyebrow="Accounts"
+        title="Your money, organised"
+        description="Keep balances, account roster, and insights in clear workspaces, with the most important shifts above the fold."
+        titleAs="h2"
+        aside={(
+          <div className="space-y-2">
+            <p className="cockpit-kicker text-[10px] text-white/70">Workspace</p>
+            <p className="text-sm font-medium text-white/80">
+              Summary first, deeper tools second.
             </p>
+          </div>
+        )}
+      />
+
+      <ActionShelf
+        eyebrow="Portfolio position"
+        title="Start with the balance picture"
+        description="These top metrics give you the quickest read on cash, liabilities, and the overall shape of your accounts."
+      >
+        {stats}
+      </ActionShelf>
+
+      {pendingInvitations ? (
+        <SoftPanel
+          eyebrow="Shared accounts"
+          title="Collaboration is kept nearby, not in the way"
+          description="Review invitations or account-sharing updates without losing your place in the main workspace."
+        >
+          {pendingInvitations}
+        </SoftPanel>
+      ) : null}
+
+      <section className="space-y-4">
+        <div className="workspace-surface space-y-3 rounded-[28px] border border-[var(--workspace-card-border)] px-4 py-4 shadow-sm">
+          <div className="space-y-1">
+            <p className="cockpit-kicker">Workspace</p>
             <h2 className="text-lg font-semibold tracking-tight text-foreground">
-              Jump between your account summary, account list, and insights.
+              Jump between your summary, account roster, and insights.
             </h2>
           </div>
           <WorkspaceTabs
@@ -111,7 +147,6 @@ function AccountsPageContent({
             tabs={ACCOUNTS_WORKSPACE_TABS}
             value={activeTab}
             onValueChange={(value) => setActiveTab(value as AccountsWorkspaceTab)}
-            className="bg-muted/50"
           />
         </div>
 

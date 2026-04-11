@@ -52,6 +52,12 @@ import {
 } from "@/components/ui/select";
 import { SplitTransactionDialog } from "@/components/SplitTransactionDialog";
 import { WorkspaceTabs } from "@/components/ui/workspace-tabs";
+import {
+  ActionShelf,
+  CockpitHero,
+  PriorityCard,
+  PriorityStack,
+} from "@/components/ui/cockpit";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { toDateString, addDays } from "@/lib/date";
 import type { AccountWithDetails, CategoryWithColor, SplitDetail } from "@/lib/types";
@@ -156,6 +162,36 @@ export function TransactionsClient({
   const reviewQueueCount = reviewTransactions.length;
   const hasReviewItemsOutsideCurrentQueue = (uncategorisedCount ?? 0) > 0 && reviewTransactions.length === 0;
   const searchResultSummary = `Showing ${totalTransactions} transaction${totalTransactions === 1 ? "" : "s"}`;
+  const heroStatusSummary = `${totalTransactions} transaction${totalTransactions === 1 ? "" : "s"} loaded`;
+  const transactionPriorityCards = [
+    {
+      id: "review",
+      title: reviewQueueCount > 0
+        ? `${reviewQueueCount} transaction${reviewQueueCount === 1 ? "" : "s"} need review`
+        : hasReviewItemsOutsideCurrentQueue
+          ? `${uncategorisedCount ?? 0} uncategorised item${(uncategorisedCount ?? 0) === 1 ? "" : "s"} still need attention`
+          : "Review queue is clear",
+      description: reviewQueueCount > 0
+        ? "Uncategorised or unusual items are pulled into a focused review queue so you can triage them quickly."
+        : hasReviewItemsOutsideCurrentQueue
+          ? "Some uncategorised items sit outside this page of results, so review is still worth opening."
+          : "Nothing currently looks stuck, uncategorised, or unusually risky.",
+    },
+    {
+      id: "search",
+      title: isSearchActive || isFilterActive ? "Search tools are active" : "Feed is focused on current activity",
+      description: isSearchActive || isFilterActive
+        ? "Active chips and filters are shaping what you see, so keep search as the place to refine."
+        : "Use search when you need to dig in by merchant, category, date, or account.",
+    },
+    {
+      id: "net-spend",
+      title: `Net spend ${formatCurrency(totalExpenses - totalRefunds, currency)}`,
+      description: totalTransactions > 0
+        ? `Across ${totalTransactions} transaction${totalTransactions === 1 ? "" : "s"}, this workspace is helping you act on income, spend, and refunds without losing context.`
+        : "Once activity lands, this surface will turn into a faster operational view of what changed and what needs action.",
+    },
+  ];
 
   useEffect(() => {
     if (highlightedIds.size === 0) return;
@@ -509,13 +545,66 @@ export function TransactionsClient({
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:space-y-8 md:px-10 md:py-10">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Transactions</h1>
-        </div>
+    <div className="cockpit-page mx-auto max-w-7xl px-4 py-6 md:px-10 md:py-10">
+      <CockpitHero
+        eyebrow="Transactions"
+        title={reviewQueueCount > 0 || hasReviewItemsOutsideCurrentQueue
+          ? "A few transactions need a decision"
+          : "Your transaction flow is calm and easy to act on"}
+        description={reviewQueueCount > 0 || hasReviewItemsOutsideCurrentQueue
+          ? "We pull attention toward the cleanup queue first, then keep search and the wider feed close by."
+          : "The feed stays focused on what changed, while search and review remain ready the moment you need them."}
+        action={reviewQueueCount > 0 || hasReviewItemsOutsideCurrentQueue ? (
+          <Button type="button" className="workspace-primary-action" onClick={() => setActiveTab("review")}>
+            Open review queue
+          </Button>
+        ) : canCreateTransaction ? (
+          <TransactionFormDialog
+            accounts={accounts}
+            categories={categories}
+            onSaved={handleTransactionsAdded}
+          />
+        ) : (
+          <Button asChild variant="outline">
+            <Link href={accounts.length === 0 ? "/dashboard/accounts" : "/dashboard/categories"}>
+              {accounts.length === 0 ? "Create account to start" : "Create category to start"}
+            </Link>
+          </Button>
+        )}
+        aside={(
+          <div className="space-y-3">
+            <div>
+              <p className="cockpit-kicker text-[10px] text-white/70">Current status</p>
+              <p className="text-sm font-medium text-white/80">
+                {heroStatusSummary}
+              </p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="workspace-hero-panel rounded-2xl p-3">
+                <p className="text-xs uppercase tracking-[0.18em] text-white/60">Review</p>
+                <p className="mt-1 text-lg font-semibold text-white">{uncategorisedCount ?? 0}</p>
+              </div>
+              <div className="workspace-hero-panel rounded-2xl p-3">
+                <p className="text-xs uppercase tracking-[0.18em] text-white/60">Net spend</p>
+                <p className="mt-1 text-lg font-semibold text-white">
+                  {formatCurrency(totalExpenses - totalRefunds, currency)}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      />
+
+      <ActionShelf
+        eyebrow="Tools"
+        title="Keep the action shelf nearby"
+        description="Quick add is primary, while import, transfer, split, and bulk cleanup stay one tap away instead of competing with the whole page."
+      >
         {canCreateTransaction ? (
           <div className="flex flex-wrap items-center gap-2">
+            <QuickAddTransaction
+              onSaved={handleTransactionsAdded}
+            />
             <ImportCSVDialog
               accounts={accounts}
               onImported={() => router.refresh()}
@@ -534,30 +623,30 @@ export function TransactionsClient({
             {(uncategorisedCount ?? 0) > 0 && activeTab !== "review" && (
               <BulkCategoriseButton count={uncategorisedCount ?? 0} />
             )}
-            <QuickAddTransaction
-              onSaved={handleTransactionsAdded}
-            />
-            <TransactionFormDialog
-              accounts={accounts}
-              categories={categories}
-              onSaved={handleTransactionsAdded}
-            />
           </div>
         ) : (
           <Button asChild size="sm" variant="outline">
             <Link href={accounts.length === 0 ? "/dashboard/accounts" : "/dashboard/categories"}>
-              {accounts.length === 0 ? "Create Account to Start" : "Create Category to Start"}
+              {accounts.length === 0 ? "Create account to start" : "Create category to start"}
             </Link>
           </Button>
         )}
-      </div>
+      </ActionShelf>
+
+      <PriorityStack
+        eyebrow="Decision support"
+        title="Know what changed before you drill in"
+        description="These cards keep the most useful operational context visible even when space is tight."
+      >
+        {transactionPriorityCards.map((card) => (
+          <PriorityCard key={card.id} title={card.title} description={card.description} />
+        ))}
+      </PriorityStack>
 
       <section className="space-y-4">
-        <div className="workspace-panel-surface space-y-3 rounded-[28px] border border-[var(--workspace-card-border)] px-4 py-4 shadow-sm">
+        <div className="workspace-surface space-y-3 rounded-[28px] border border-[var(--workspace-card-border)] px-4 py-4 shadow-sm">
           <div className="space-y-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-              Workspace
-            </p>
+            <p className="cockpit-kicker">Workspace</p>
             <h2 className="text-lg font-semibold tracking-tight text-foreground">
               Switch between your feed, search tools, and review queue.
             </h2>
