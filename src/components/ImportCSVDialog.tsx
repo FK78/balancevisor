@@ -103,6 +103,9 @@ export function ImportCSVDialog({
   const [typeCol, setTypeCol] = useState<string>(UNMAPPED);
   const [accountId, setAccountId] = useState<string>("");
   const [defaultType, setDefaultType] = useState<"auto" | "income" | "expense">("auto");
+  const [amountMode, setAmountMode] = useState<"single" | "split">("single");
+  const [moneyInCol, setMoneyInCol] = useState<string>(UNMAPPED);
+  const [moneyOutCol, setMoneyOutCol] = useState<string>(UNMAPPED);
 
   const [result, setResult] = useState<ImportResult | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -120,6 +123,9 @@ export function ImportCSVDialog({
     setTypeCol(UNMAPPED);
     setAccountId("");
     setDefaultType("auto");
+    setAmountMode("single");
+    setMoneyInCol(UNMAPPED);
+    setMoneyOutCol(UNMAPPED);
     setResult(null);
     setAiDetecting(false);
   }
@@ -150,8 +156,11 @@ export function ImportCSVDialog({
         setPreviewRows(allRows.slice(1, 6)); // Show up to 5 preview rows
 
         // Auto-detect column mappings by header name
+        let detectedMoneyIn: string | null = null;
+        let detectedMoneyOut: string | null = null;
+
         allRows[0].forEach((h, i) => {
-          const lower = h.toLowerCase();
+          const lower = h.toLowerCase().trim();
           if (lower.includes("date") || lower.includes("time")) {
             setDateCol(String(i));
           } else if (
@@ -163,12 +172,14 @@ export function ImportCSVDialog({
             lower.includes("particular")
           ) {
             setDescCol(String(i));
+          } else if (lower === "money in" || lower === "credit" || lower === "credits") {
+            detectedMoneyIn = String(i);
+          } else if (lower === "money out" || lower === "debit" || lower === "debits") {
+            detectedMoneyOut = String(i);
           } else if (
             lower.includes("amount") ||
             lower.includes("value") ||
-            lower.includes("sum") ||
-            lower.includes("debit") ||
-            lower.includes("credit")
+            lower.includes("sum")
           ) {
             if (amountCol === UNMAPPED || lower.includes("amount")) {
               setAmountCol(String(i));
@@ -177,6 +188,13 @@ export function ImportCSVDialog({
             setTypeCol(String(i));
           }
         });
+
+        // Auto-switch to split mode when Money In / Money Out headers detected
+        if (detectedMoneyIn && detectedMoneyOut) {
+          setAmountMode("split");
+          setMoneyInCol(detectedMoneyIn);
+          setMoneyOutCol(detectedMoneyOut);
+        }
 
         setStep("map");
       }
@@ -201,10 +219,13 @@ export function ImportCSVDialog({
   );
 
   function canImport() {
+    const hasAmount = amountMode === "split"
+      ? moneyInCol !== UNMAPPED && moneyOutCol !== UNMAPPED
+      : amountCol !== UNMAPPED;
     return (
       dateCol !== UNMAPPED &&
       descCol !== UNMAPPED &&
-      amountCol !== UNMAPPED &&
+      hasAmount &&
       accountId !== ""
     );
   }
@@ -221,10 +242,14 @@ export function ImportCSVDialog({
             date: parseInt(dateCol),
             description: parseInt(descCol),
             amount: parseInt(amountCol),
-            type: typeCol !== UNMAPPED ? parseInt(typeCol) : null,
+            type: amountMode === "split" ? null : (typeCol !== UNMAPPED ? parseInt(typeCol) : null),
+            ...(amountMode === "split" ? {
+              moneyInCol: moneyInCol !== UNMAPPED ? parseInt(moneyInCol) : null,
+              moneyOutCol: moneyOutCol !== UNMAPPED ? parseInt(moneyOutCol) : null,
+            } : {}),
           },
           accountId,
-          defaultType
+          amountMode === "split" ? "auto" : defaultType
         );
         setResult(res);
         setStep("result");
@@ -388,8 +413,14 @@ export function ImportCSVDialog({
                     const mapping = await res.json();
                     if (mapping.dateCol !== null) setDateCol(String(mapping.dateCol));
                     if (mapping.descCol !== null) setDescCol(String(mapping.descCol));
-                    if (mapping.amountCol !== null) setAmountCol(String(mapping.amountCol));
-                    if (mapping.typeCol !== null) setTypeCol(String(mapping.typeCol));
+                    if (mapping.moneyInCol != null && mapping.moneyOutCol != null) {
+                      setAmountMode("split");
+                      setMoneyInCol(String(mapping.moneyInCol));
+                      setMoneyOutCol(String(mapping.moneyOutCol));
+                    } else {
+                      if (mapping.amountCol !== null) setAmountCol(String(mapping.amountCol));
+                      if (mapping.typeCol !== null) setTypeCol(String(mapping.typeCol));
+                    }
                   } catch {
                     const { toast } = await import("sonner");
                     toast.error("AI could not detect columns. Please map them manually.");
@@ -445,38 +476,89 @@ export function ImportCSVDialog({
                 </Select>
               </div>
 
-              <div className="grid gap-2">
-                <Label>Amount Column *</Label>
-                <Select value={amountCol} onValueChange={setAmountCol}>
+              <div className="grid gap-2 sm:col-span-2">
+                <Label>Amount Mode</Label>
+                <Select value={amountMode} onValueChange={(v) => setAmountMode(v as "single" | "split")}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select column" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {columnOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="single">Single amount column</SelectItem>
+                    <SelectItem value="split">Split columns (Money In / Money Out)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="grid gap-2">
-                <Label>Type Column (optional)</Label>
-                <Select value={typeCol} onValueChange={setTypeCol}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="None — use amount sign" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={UNMAPPED}>None — use amount sign</SelectItem>
-                    {columnOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {amountMode === "single" ? (
+                <>
+                  <div className="grid gap-2">
+                    <Label>Amount Column *</Label>
+                    <Select value={amountCol} onValueChange={setAmountCol}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select column" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {columnOptions.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label>Type Column (optional)</Label>
+                    <Select value={typeCol} onValueChange={setTypeCol}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="None — use amount sign" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={UNMAPPED}>None — use amount sign</SelectItem>
+                        {columnOptions.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="grid gap-2">
+                    <Label>Money In Column *</Label>
+                    <Select value={moneyInCol} onValueChange={setMoneyInCol}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select column" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {columnOptions.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label>Money Out Column *</Label>
+                    <Select value={moneyOutCol} onValueChange={setMoneyOutCol}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select column" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {columnOptions.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
 
               <div className="grid gap-2">
                 <Label>Import to Account *</Label>
@@ -494,7 +576,7 @@ export function ImportCSVDialog({
                 </Select>
               </div>
 
-              {typeCol === UNMAPPED && (
+              {amountMode === "single" && typeCol === UNMAPPED && (
                 <div className="grid gap-2">
                   <Label>Transaction Type</Label>
                   <Select

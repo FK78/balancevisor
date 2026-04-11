@@ -21,9 +21,11 @@ function stripHtml(raw: string, maxLength = 255): string {
 type CsvColumnMapping = {
   date: number;
   description: number;
-  amount: number;
+  amount: number;            // single amount column (ignored when moneyInCol/moneyOutCol are set)
   type: number | null;       // column index for type, or null if using sign of amount
   dateFormat?: 'DMY' | 'MDY'; // disambiguates DD/MM/YYYY vs MM/DD/YYYY (default: DMY)
+  moneyInCol?: number | null;  // split-column mode: column for incoming amounts (Monzo "Money In")
+  moneyOutCol?: number | null; // split-column mode: column for outgoing amounts (Monzo "Money Out")
 };
 
 type ImportRow = {
@@ -148,7 +150,36 @@ export async function importTransactionsFromCSV(
 
     const rawDate = row[mapping.date];
     const rawDesc = row[mapping.description];
-    const rawAmount = row[mapping.amount];
+
+    // Split-column mode: use Money In / Money Out columns instead of single amount
+    const useSplitColumns =
+      mapping.moneyInCol != null && mapping.moneyOutCol != null;
+
+    let rawAmount: string;
+    let splitType: 'income' | 'expense' | null = null;
+
+    if (useSplitColumns) {
+      const rawIn = (row[mapping.moneyInCol!] ?? '').trim();
+      const rawOut = (row[mapping.moneyOutCol!] ?? '').trim();
+      const parsedIn = rawIn ? parseAmount(rawIn) : null;
+      const parsedOut = rawOut ? parseAmount(rawOut) : null;
+      const hasIn = parsedIn !== null && parsedIn !== 0;
+      const hasOut = parsedOut !== null && parsedOut !== 0;
+
+      if (hasIn) {
+        rawAmount = rawIn;
+        splitType = 'income';
+      } else if (hasOut) {
+        rawAmount = rawOut;
+        splitType = 'expense';
+      } else {
+        // Both empty or zero — skip row
+        errors.push(`Row ${rowNum}: No amount in Money In or Money Out columns.`);
+        continue;
+      }
+    } else {
+      rawAmount = row[mapping.amount];
+    }
 
     if (!rawDate || !rawDesc || !rawAmount) {
       errors.push(`Row ${rowNum}: Missing required fields.`);
@@ -168,12 +199,17 @@ export async function importTransactionsFromCSV(
     }
 
     let type: 'income' | 'expense' | 'refund';
-    if (mapping.type !== null) {
+    if (splitType) {
+      // Split-column mode: type is derived from which column had the value
+      type = splitType;
+    } else if (mapping.type !== null) {
       const rawType = (row[mapping.type] ?? '').toLowerCase().trim();
       if (rawType === 'refund') {
         type = 'refund';
-      } else if (rawType === 'income' || rawType === 'credit' || rawType === 'cr') {
+      } else if (rawType === 'income' || rawType === 'credit' || rawType === 'cr' || rawType === 'money in') {
         type = 'income';
+      } else if (rawType === 'expense' || rawType === 'debit' || rawType === 'dr' || rawType === 'money out') {
+        type = 'expense';
       } else {
         type = 'expense';
       }

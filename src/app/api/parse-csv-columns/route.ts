@@ -10,6 +10,8 @@ const mappingSchema = z.object({
   descCol: z.number().int().min(0).nullable(),
   amountCol: z.number().int().min(0).nullable(),
   typeCol: z.number().int().min(0).nullable(),
+  moneyInCol: z.number().int().min(0).nullable().optional(),
+  moneyOutCol: z.number().int().min(0).nullable().optional(),
 });
 
 export async function POST(req: Request) {
@@ -45,8 +47,12 @@ export async function POST(req: Request) {
     prompt: `You are a CSV column mapper for a personal finance app. Given column headers and sample data, identify which columns map to:
 - dateCol: the column containing transaction dates
 - descCol: the column containing transaction descriptions/narrations/references
-- amountCol: the column containing the monetary amount
+- amountCol: the column containing the monetary amount (single signed column)
 - typeCol: the column indicating income/expense/debit/credit (if present)
+- moneyInCol: column for incoming/credit amounts (e.g. "Money In", "Credit") — only if amounts are split across two columns
+- moneyOutCol: column for outgoing/debit amounts (e.g. "Money Out", "Debit") — only if amounts are split across two columns
+
+IMPORTANT: Some bank CSVs (e.g. Monzo) use separate "Money In" and "Money Out" columns instead of a single amount column. If you detect this pattern, set moneyInCol and moneyOutCol and leave amountCol as null.
 
 Headers:
 ${headerList}
@@ -57,17 +63,20 @@ ${sampleList}
 Return ONLY a JSON object with these fields:
 - dateCol: column index (0-based integer) or null if not found
 - descCol: column index (0-based integer) or null if not found
-- amountCol: column index (0-based integer) or null if not found
+- amountCol: column index (0-based integer) or null if not found or if using split columns
 - typeCol: column index (0-based integer) or null if no type/direction column exists
+- moneyInCol: column index (0-based integer) or null if not using split columns
+- moneyOutCol: column index (0-based integer) or null if not using split columns
 
 Look at both header names AND data patterns:
 - Dates look like YYYY-MM-DD, DD/MM/YYYY, MM/DD/YYYY etc.
 - Amounts are numbers, possibly with currency symbols (£, $, €)
 - Descriptions are typically the longest text fields
 - Type columns contain words like "credit", "debit", "income", "expense"
+- Split amount columns: one column has values only for incoming, the other only for outgoing
 
 Respond with ONLY the JSON object.`,
-    maxOutputTokens: 150,
+    maxOutputTokens: 200,
   });
 
   const jsonMatch = responseText.match(/\{[\s\S]*\}/);
@@ -90,5 +99,7 @@ Respond with ONLY the JSON object.`,
     descCol: clamp(mapping.descCol),
     amountCol: clamp(mapping.amountCol),
     typeCol: clamp(mapping.typeCol),
+    moneyInCol: clamp(mapping.moneyInCol ?? null),
+    moneyOutCol: clamp(mapping.moneyOutCol ?? null),
   });
 }
