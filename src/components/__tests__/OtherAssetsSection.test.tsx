@@ -42,9 +42,11 @@ describe("OtherAssetsSection", () => {
 
     const cardContent = within(card);
     const value = cardContent.getByText("£5,200.00");
+    const name = cardContent.getByText("Gold Bar");
     const type = cardContent.getByText("Gold", { selector: '[data-slot="badge"]' });
     expect(card.textContent).toContain("Zakat relevant");
     expect(card.textContent).toContain("Review with market prices");
+    expect(value.compareDocumentPosition(name) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(value.compareDocumentPosition(type) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(cardContent.getByText("Stored in safe deposit")).toBeInTheDocument();
   });
