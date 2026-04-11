@@ -6,6 +6,7 @@ import { DashboardNav } from "@/components/DashboardNav";
 import { AuthButton } from "@/components/AuthButton";
 import { NotificationBellServer } from "@/components/NotificationBellServer";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { SettingsLink } from "@/components/SettingsLink";
 import { getCurrentUserId, isCurrentRequestMockAuthEnabled } from "@/lib/auth";
 import { hasCompletedOnboarding, getPendingFeatures } from "@/db/queries/onboarding";
 import { generateDueRecurringTransactions } from "@/lib/recurring-transactions";
@@ -66,6 +67,7 @@ export default async function DashboardLayout({
           <div className="flex items-center gap-1.5">
             <EnrichmentTrigger />
             <ChatPanel />
+            <SettingsLink />
             <ThemeToggle />
             <Suspense>
               <NotificationBellServer />

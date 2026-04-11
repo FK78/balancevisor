@@ -16,6 +16,7 @@ const detectRecurringCandidates = vi.fn();
 const getPendingReviewFlags = vi.fn();
 const requireFeature = vi.fn();
 const getPageLayout = vi.fn();
+const getRefundSummary = vi.fn();
 
 vi.mock("@/db/queries/transactions", () => ({
   getDailyIncomeExpenseTrend,
@@ -66,6 +67,10 @@ vi.mock("@/db/queries/dashboard-layouts", () => ({
   getPageLayout,
 }));
 
+vi.mock("@/db/queries/refund-tracking", () => ({
+  getRefundSummary,
+}));
+
 vi.mock("@/components/PageWidgetWrapper", () => ({
   PageWidgetWrapper: ({ children }: { children: React.ReactNode }) => children,
 }));
@@ -100,6 +105,11 @@ describe("dashboard transactions page", () => {
     detectRecurringCandidates.mockResolvedValue([]);
     getPendingReviewFlags.mockResolvedValue([]);
     getPageLayout.mockResolvedValue([]);
+    getRefundSummary.mockResolvedValue({
+      totalRefunds: 0,
+      refundCount: 0,
+      recentRefunds: [],
+    });
     getDailyIncomeExpenseTrend.mockResolvedValue([{ day: "2026-04-01", income: 0, expenses: 0, refunds: 0, net: 0 }]);
     getDailyExpenseByCategory.mockResolvedValue([]);
     searchTransactions.mockResolvedValue({
