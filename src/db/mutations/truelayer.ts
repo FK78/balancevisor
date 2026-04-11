@@ -364,9 +364,10 @@ export async function importFromTrueLayer() {
           const description = tlTxn.description || "Bank transaction";
 
           // Classify transaction type
-          // Detect internal transfers: TL category TRANSFER, or Monzo pot moves (meta.provider_category)
+          // Detect internal transfers: TL category TRANSFER, Monzo pots, or Starling Spaces
           const isMonzoPot = tlTxn.meta?.provider_category === "uk_retail_pot";
-          const isTransfer = tlTxn.transaction_category === "TRANSFER" || isMonzoPot;
+          const isStarlingSpace = tlTxn.meta?.provider_source === "INTERNAL_TRANSFER";
+          const isTransfer = tlTxn.transaction_category === "TRANSFER" || isMonzoPot || isStarlingSpace;
           let type: "income" | "expense" | "transfer" | "refund" = isTransfer
             ? "transfer"
             : (isExpense ? "expense" : "income");
