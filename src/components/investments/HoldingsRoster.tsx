@@ -55,14 +55,12 @@ export function HoldingsRoster({ accountSections, currency }: HoldingsRosterProp
   return (
     <div className="space-y-6">
       {accountSections.map((section) => {
-        const flattenedHoldings = section.groups.flatMap((group) =>
-          group.holdings.map((holding) => ({
-            ...holding,
-            groupTitle: group.title,
-          })),
+        const visibleGroups = section.groups.filter(
+          (group) => group.holdings.length > 0 || group.id !== null,
         );
+        const flattenedHoldings = visibleGroups.flatMap((group) => group.holdings);
         const holdingCount = flattenedHoldings.length;
-        const groupedCount = section.groups.filter((group) => group.id).length;
+        const groupedCount = visibleGroups.filter((group) => group.id).length;
 
         return (
           <section
@@ -88,7 +86,7 @@ export function HoldingsRoster({ accountSections, currency }: HoldingsRosterProp
             </header>
 
             <div data-testid="holdings-roster-mobile" className="space-y-5 pt-5 md:hidden">
-              {section.groups.map((group) => (
+              {visibleGroups.map((group) => (
                 <div key={group.id ?? "ungrouped"} className="space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -133,76 +131,106 @@ export function HoldingsRoster({ accountSections, currency }: HoldingsRosterProp
             </div>
 
             <div className="hidden pt-5 md:block">
-              <Table aria-label="Holdings comparison">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Holding</TableHead>
-                    <TableHead>Context</TableHead>
-                    <TableHead className="text-right">Shares</TableHead>
-                    <TableHead className="text-right">Value</TableHead>
-                    <TableHead>Reading</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {flattenedHoldings.map((holding) => (
-                    <TableRow key={holding.id}>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <p className="font-medium text-foreground">{holding.name}</p>
-                          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                            {holding.ticker ? <span>{holding.ticker}</span> : null}
-                            {holding.sourceLabel ? <span>{holding.sourceLabel}</span> : null}
-                          </div>
+              <div className="space-y-5">
+                {visibleGroups.map((group) => (
+                  <div key={group.id ?? "ungrouped"} className="space-y-3">
+                    {group.id !== null || visibleGroups.length > 1 ? (
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold tracking-tight text-foreground">
+                            {group.title}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {group.holdings.length} holding{group.holdings.length === 1 ? "" : "s"}
+                          </p>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1 text-sm text-muted-foreground">
-                          <p>{holding.contextLabel}</p>
-                          <p>{holding.groupTitle}</p>
-                          {holding.currentPriceLabel ? <p>{holding.currentPriceLabel}</p> : null}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums text-sm text-muted-foreground">
-                        {holding.quantity.toLocaleString("en-GB", {
-                          minimumFractionDigits: Number.isInteger(holding.quantity) ? 0 : 2,
-                          maximumFractionDigits: Number.isInteger(holding.quantity) ? 0 : 4,
-                        })}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums font-medium text-foreground">
-                        {formatCurrency(holding.value, currency)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1 text-sm text-muted-foreground">
-                          {holding.interpretation ? <p>{holding.interpretation}</p> : <p>Comparison ready</p>}
-                          {holding.gainLossLabel ? (
-                            <p
-                              className={
-                                holding.gainLossTone === "positive"
-                                  ? "text-emerald-700 dark:text-emerald-400"
-                                  : holding.gainLossTone === "negative"
-                                    ? "text-rose-700 dark:text-rose-400"
-                                    : holding.gainLossTone === "warning"
-                                      ? "text-amber-700 dark:text-amber-400"
-                                      : undefined
-                              }
-                            >
-                              {holding.gainLossLabel}
-                            </p>
-                          ) : null}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {holding.actions ? (
-                          <div className="flex justify-end">{holding.actions}</div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">No actions</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                        {group.actions ? <div className="shrink-0">{group.actions}</div> : null}
+                      </div>
+                    ) : null}
+
+                    {group.holdings.length > 0 ? (
+                      <Table aria-label="Holdings comparison">
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Holding</TableHead>
+                            <TableHead>Context</TableHead>
+                            <TableHead className="text-right">Shares</TableHead>
+                            <TableHead className="text-right">Value</TableHead>
+                            <TableHead>Reading</TableHead>
+                            <TableHead>Gain / Loss</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {group.holdings.map((holding) => (
+                            <TableRow key={holding.id}>
+                              <TableCell>
+                                <div className="space-y-1">
+                                  <p className="font-medium text-foreground">{holding.name}</p>
+                                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                                    {holding.ticker ? <span>{holding.ticker}</span> : null}
+                                    {holding.sourceLabel ? <span>{holding.sourceLabel}</span> : null}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="space-y-1 text-sm text-muted-foreground">
+                                  <p>{holding.contextLabel}</p>
+                                  {holding.currentPriceLabel ? <p>{holding.currentPriceLabel}</p> : null}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums text-sm text-muted-foreground">
+                                {holding.quantity.toLocaleString("en-GB", {
+                                  minimumFractionDigits: Number.isInteger(holding.quantity) ? 0 : 2,
+                                  maximumFractionDigits: Number.isInteger(holding.quantity) ? 0 : 4,
+                                })}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums font-medium text-foreground">
+                                {formatCurrency(holding.value, currency)}
+                              </TableCell>
+                              <TableCell>
+                                <div className="space-y-1 text-sm text-muted-foreground">
+                                  {holding.interpretation ? <p>{holding.interpretation}</p> : <p>Comparison ready</p>}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {holding.gainLossLabel ? (
+                                  <p
+                                    className={
+                                      holding.gainLossTone === "positive"
+                                        ? "text-sm text-emerald-700 dark:text-emerald-400"
+                                        : holding.gainLossTone === "negative"
+                                          ? "text-sm text-rose-700 dark:text-rose-400"
+                                          : holding.gainLossTone === "warning"
+                                            ? "text-sm text-amber-700 dark:text-amber-400"
+                                            : "text-sm text-muted-foreground"
+                                    }
+                                  >
+                                    {holding.gainLossLabel}
+                                  </p>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">Waiting for gain data</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {holding.actions ? (
+                                  <div className="flex justify-end">{holding.actions}</div>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">No actions</span>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <p className="text-sm italic text-muted-foreground">
+                        No holdings in this group yet.
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
         );

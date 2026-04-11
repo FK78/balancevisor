@@ -21,6 +21,7 @@ const sections = [
             value: 1320,
             interpretation: "Largest position in portfolio",
             contextLabel: "Stock",
+            gainLossLabel: "+£120.00 (+10.00%)",
           },
         ],
       },
@@ -36,6 +37,7 @@ const sections = [
             value: 510,
             interpretation: null,
             contextLabel: "Stock",
+            gainLossLabel: "-£24.00 (-4.50%)",
           },
         ],
       },
@@ -58,11 +60,78 @@ describe("HoldingsRoster", () => {
     expect(within(mobileRoster).getByText("4 shares")).toBeInTheDocument();
     expect(within(mobileRoster).getByText("\u00a31,320.00")).toBeInTheDocument();
 
-    const desktopTable = screen.getByRole("table", { name: "Holdings comparison" });
+    const desktopTables = screen.getAllByRole("table", { name: "Holdings comparison" });
+    expect(desktopTables).toHaveLength(2);
+    const desktopTable = desktopTables[0];
     expect(within(desktopTable).getByRole("columnheader", { name: "Holding" })).toBeInTheDocument();
     expect(within(desktopTable).getByRole("columnheader", { name: "Context" })).toBeInTheDocument();
     expect(within(desktopTable).getByRole("columnheader", { name: "Value" })).toBeInTheDocument();
+    expect(within(desktopTable).getByRole("columnheader", { name: "Gain / Loss" })).toBeInTheDocument();
     expect(within(desktopTable).getByRole("cell", { name: "Microsoft MSFT" })).toBeInTheDocument();
     expect(within(desktopTable).getByText("Largest position in portfolio")).toBeInTheDocument();
+    expect(within(desktopTable).getByText("+£120.00 (+10.00%)")).toBeInTheDocument();
+  });
+
+  it("keeps grouped and ungrouped holdings in separate sections without empty ungrouped mobile groups", () => {
+    render(
+      <HoldingsRoster
+        currency="GBP"
+        accountSections={[
+          {
+            accountId: "acct-gia",
+            accountName: "General Investment Account",
+            groups: [
+              {
+                id: null,
+                title: "Individual holdings",
+                holdings: [],
+              },
+              {
+                id: "group-core",
+                title: "Core ETF",
+                holdings: [
+                  {
+                    id: "holding-vwrl",
+                    ticker: "VWRL",
+                    name: "Vanguard FTSE All-World",
+                    quantity: 8,
+                    value: 910,
+                    interpretation: null,
+                    contextLabel: "ETF",
+                    gainLossLabel: "+£80.00 (+9.60%)",
+                  },
+                ],
+              },
+              {
+                id: "group-satellite",
+                title: "Satellite picks",
+                holdings: [
+                  {
+                    id: "holding-nvda",
+                    ticker: "NVDA",
+                    name: "NVIDIA",
+                    quantity: 2,
+                    value: 640,
+                    interpretation: "Largest position in portfolio",
+                    contextLabel: "Stock",
+                    gainLossLabel: "+£110.00 (+20.75%)",
+                  },
+                ],
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    const mobileRoster = screen.getByTestId("holdings-roster-mobile");
+    expect(within(mobileRoster).queryByText("Individual holdings")).not.toBeInTheDocument();
+    expect(within(mobileRoster).getByText("Core ETF")).toBeInTheDocument();
+    expect(within(mobileRoster).getByText("Satellite picks")).toBeInTheDocument();
+
+    const desktopTables = screen.getAllByRole("table", { name: "Holdings comparison" });
+    expect(desktopTables).toHaveLength(2);
+    expect(screen.getAllByText("Core ETF")).toHaveLength(2);
+    expect(screen.getAllByText("Satellite picks")).toHaveLength(2);
   });
 });
