@@ -24,8 +24,10 @@ import { AccountQuickAdd } from "@/components/AccountQuickAdd";
 import { CategorySelector } from "@/components/CategorySelector";
 import { WelcomeStep } from "@/components/WelcomeStep";
 import { ReviewStep } from "@/components/ReviewStep";
+import { AccountMethodStep } from "@/components/AccountMethodStep";
 import {
   buildOnboardingHref,
+  normalizeAccountMethod,
   normalizeOnboardingStage,
   ONBOARDING_STAGE_META,
 } from "@/lib/onboarding-flow";
@@ -38,7 +40,7 @@ async function addOnboardingCategory(formData: FormData) {
 export default async function OnboardingPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ step?: string; stage?: string; ai?: string; features?: string }>;
+  searchParams?: Promise<{ step?: string; stage?: string; ai?: string; features?: string; method?: string }>;
 }) {
   const userId = await getCurrentUserId();
   const resolvedSearchParams = await searchParams;
@@ -67,6 +69,8 @@ export default async function OnboardingPage({
     redirect("/dashboard");
   }
   const baseCurrency = normalizeBaseCurrency(onboardingState?.base_currency);
+
+  const accountMethod = normalizeAccountMethod(resolvedSearchParams?.method);
 
   const selectedFeatures = resolvedSearchParams?.features
     ? resolvedSearchParams.features.split(",").filter(Boolean)
@@ -102,14 +106,22 @@ export default async function OnboardingPage({
         />
       )}
 
+      {stage === "account-method" && (
+        <AccountMethodStep
+          aiEnabled={aiEnabled}
+          backHref={buildOnboardingHref("basics", { aiEnabled })}
+        />
+      )}
+
       {stage === "setup" && (
         <OnboardingSetupStage
           aiEnabled={aiEnabled}
+          accountMethod={accountMethod}
           accountsCount={accounts.length}
           categoriesCount={categories.length}
           initialSelectedFeatures={selectedFeatures}
-          backHref={buildOnboardingHref("basics", { aiEnabled })}
-          reviewBaseHref={buildOnboardingHref("review", { aiEnabled })}
+          backHref={buildOnboardingHref("account-method", { aiEnabled })}
+          reviewBaseHref={buildOnboardingHref("review", { aiEnabled, method: accountMethod })}
           accountsSection={(
             <AccountQuickAdd
               currency={baseCurrency}
@@ -162,6 +174,7 @@ export default async function OnboardingPage({
           aiEnabled={aiEnabled}
           backHref={buildOnboardingHref("setup", {
             aiEnabled,
+            method: accountMethod,
             features: selectedFeatures,
           })}
         />

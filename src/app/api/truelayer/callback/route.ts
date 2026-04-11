@@ -81,11 +81,16 @@ export async function GET(request: NextRequest) {
       properties: { source: 'truelayer_oauth' },
     });
 
-    const response = NextResponse.redirect(
-      `${siteUrl}/dashboard/accounts?truelayer_connected=true`,
-    );
-    // Clear the state cookie after successful use
+    // If connecting from onboarding, redirect back there instead of dashboard
+    const returnTo = request.cookies.get('truelayer_return_to')?.value;
+    const successUrl = returnTo === 'onboarding'
+      ? `${siteUrl}/onboarding?stage=setup&method=auto&truelayer_connected=true`
+      : `${siteUrl}/dashboard/accounts?truelayer_connected=true`;
+
+    const response = NextResponse.redirect(successUrl);
+    // Clear cookies after use
     response.cookies.set('truelayer_oauth_state', '', { maxAge: 0, path: '/api/truelayer/callback' });
+    response.cookies.set('truelayer_return_to', '', { maxAge: 0, path: '/api/truelayer/callback' });
     return response;
   } catch (err) {
     logger.error('truelayer.callback', 'OAuth callback failed', err);

@@ -8,6 +8,7 @@ describe("OnboardingSetupStage", () => {
     render(
       <OnboardingSetupStage
         aiEnabled
+        accountMethod="manual"
         accountsCount={0}
         categoriesCount={0}
         initialSelectedFeatures={[]}
@@ -29,6 +30,7 @@ describe("OnboardingSetupStage", () => {
     render(
       <OnboardingSetupStage
         aiEnabled={false}
+        accountMethod="manual"
         accountsCount={2}
         categoriesCount={6}
         initialSelectedFeatures={["budgets"]}
@@ -48,6 +50,7 @@ describe("OnboardingSetupStage", () => {
     render(
       <OnboardingSetupStage
         aiEnabled={false}
+        accountMethod="manual"
         accountsCount={2}
         categoriesCount={6}
         initialSelectedFeatures={["budgets"]}

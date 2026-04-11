@@ -145,7 +145,7 @@ export function WelcomeStep({
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button type="submit">
-              Continue to money setup
+              Continue to accounts
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
             <Button

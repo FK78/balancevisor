@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { type ReactNode, useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, CheckCircle2, ClipboardList } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2, CheckCircle2, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OnboardingActionBar } from "@/components/OnboardingLayout";
 import { FeaturesStep } from "@/components/FeaturesStep";
 import {
+  type AccountMethod,
   buildOnboardingHref,
   getSetupChecklist,
   getSetupContinueLabel,
@@ -16,6 +17,7 @@ import { cn } from "@/lib/utils";
 
 interface OnboardingSetupStageProps {
   readonly aiEnabled: boolean;
+  readonly accountMethod: AccountMethod;
   readonly accountsCount: number;
   readonly categoriesCount: number;
   readonly initialSelectedFeatures?: string[];
@@ -41,6 +43,7 @@ function withFeatures(baseHref: string, features: string[]) {
 
 export function OnboardingSetupStage({
   aiEnabled,
+  accountMethod,
   accountsCount,
   categoriesCount,
   initialSelectedFeatures = [],
@@ -49,6 +52,8 @@ export function OnboardingSetupStage({
   reviewBaseHref,
   backHref,
 }: OnboardingSetupStageProps) {
+  const showOpenBanking = accountMethod === "auto" || accountMethod === "hybrid";
+  const showManualAccounts = accountMethod === "manual" || accountMethod === "hybrid";
   const [selectedFeatures, setSelectedFeatures] = useState(initialSelectedFeatures);
 
   const checklist = useMemo(() => getSetupChecklist({
@@ -106,17 +111,46 @@ export function OnboardingSetupStage({
         </div>
       </section>
 
-      <section className="workspace-card rounded-[1.75rem] border border-[var(--workspace-card-border)] px-5 py-5 shadow-sm">
-        <div className="space-y-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-            Accounts
-          </p>
-          <h3 className="text-lg font-semibold tracking-tight text-foreground">
-            Add the accounts you want to track first
-          </h3>
-        </div>
-        <div className="mt-5">{accountsSection}</div>
-      </section>
+      {showOpenBanking && (
+        <section className="workspace-card rounded-[1.75rem] border border-[var(--workspace-card-border)] px-5 py-5 shadow-sm">
+          <div className="space-y-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+              Open Banking
+            </p>
+            <h3 className="text-lg font-semibold tracking-tight text-foreground">
+              Connect your bank automatically
+            </h3>
+          </div>
+          <div className="mt-5 space-y-3">
+            <p className="text-sm leading-6 text-muted-foreground">
+              TrueLayer securely connects to your bank and imports your accounts and transactions.
+              Your bank credentials are never shared with us.
+            </p>
+            <Button asChild>
+              <a href="/api/truelayer/connect?return_to=onboarding">
+                <Building2 className="mr-2 h-4 w-4" />
+                Connect your bank
+              </a>
+            </Button>
+          </div>
+        </section>
+      )}
+
+      {showManualAccounts && (
+        <section className="workspace-card rounded-[1.75rem] border border-[var(--workspace-card-border)] px-5 py-5 shadow-sm">
+          <div className="space-y-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+              {showOpenBanking ? "Manual accounts" : "Accounts"}
+            </p>
+            <h3 className="text-lg font-semibold tracking-tight text-foreground">
+              {showOpenBanking
+                ? "Add accounts your bank doesn\u2019t cover"
+                : "Add the accounts you want to track first"}
+            </h3>
+          </div>
+          <div className="mt-5">{accountsSection}</div>
+        </section>
+      )}
 
       <section className="workspace-card rounded-[1.75rem] border border-[var(--workspace-card-border)] px-5 py-5 shadow-sm">
         <div className="space-y-1">
