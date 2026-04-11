@@ -1,4 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
+import { MOCK_AUTH_HEADER } from "./src/lib/mock-auth";
+
+const port = Number(process.env.PLAYWRIGHT_PORT ?? 3000);
+const baseURL = `http://127.0.0.1:${port}`;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -9,9 +13,12 @@ export default defineConfig({
   reporter: process.env.CI ? "html" : "list",
 
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
+    extraHTTPHeaders: {
+      [MOCK_AUTH_HEADER]: "true",
+    },
   },
 
   projects: [
@@ -23,8 +30,8 @@ export default defineConfig({
 
   webServer: {
     command:
-      "MOCK_AUTH=true NEXT_PUBLIC_MOCK_AUTH=true NODE_TLS_REJECT_UNAUTHORIZED=0 npm run dev",
-    url: "http://localhost:3000",
+      `PORT=${port} MOCK_AUTH=true NEXT_PUBLIC_MOCK_AUTH=true NODE_TLS_REJECT_UNAUTHORIZED=0 npm run dev`,
+    url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

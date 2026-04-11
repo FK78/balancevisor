@@ -15,11 +15,10 @@ import { getCashflowForecast } from "@/lib/cashflow-forecast";
 import { getSpendingAnomalies } from "@/lib/spending-anomalies";
 import { snapshotNetWorthIfNeeded } from "@/lib/snapshot-net-worth";
 import { getMonthRange } from "@/lib/date";
-import { getCurrentUserId } from "@/lib/auth";
+import { getCurrentUserId, getCurrentUserIdentity } from "@/lib/auth";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { getDisabledFeatures } from "@/db/queries/preferences";
 import { isFeatureEnabled as checkFeature, type FeatureId } from "@/lib/features";
-import { createClient } from "@/lib/supabase/server";
 import { getPageLayout } from "@/db/queries/dashboard-layouts";
 import { getZakatSettings, getLatestZakatCalculation } from "@/db/queries/zakat";
 import { getRetirementProfile } from "@/db/queries/retirement";
@@ -39,9 +38,8 @@ import { logger } from "@/lib/logger";
 
 export default async function Home() {
   const userId = await getCurrentUserId();
+  const currentUserP = getCurrentUserIdentity();
   const thisMonth = getMonthRange(0);
-
-  const supabase = await createClient();
 
   const disabledFeatures = await getDisabledFeatures(userId);
   const on = (id: FeatureId) => checkFeature(id, disabledFeatures);
@@ -69,7 +67,6 @@ export default async function Home() {
     baseCurrency,
     investmentValue,
     netWorthHistory,
-    claimsResult,
     goals,
     upcomingRenewals,
     serverLayout,
@@ -84,7 +81,6 @@ export default async function Home() {
     getUserBaseCurrency(userId),
     on("investments") ? getInvestmentValue(userId) : Promise.resolve(0),
     on("accounts") ? getNetWorthHistory(userId, 90) : Promise.resolve([]),
-    supabase.auth.getClaims(),
     on("goals") ? getGoals(userId) : Promise.resolve([]),
     on("subscriptions") ? getUpcomingRenewals(userId, 7) : Promise.resolve([]),
     getPageLayout(userId, "dashboard"),
@@ -97,7 +93,7 @@ export default async function Home() {
 
   const { totalAssets, totalLiabilities, netWorth } = calculateNetWorth(accounts, investmentValue);
 
-  const user = claimsResult.data?.claims;
+  const currentUser = await currentUserP;
 
   const monthName = new Intl.DateTimeFormat("en-GB", {
     month: "long",
@@ -223,7 +219,7 @@ export default async function Home() {
   return (
     <DashboardPageClient
       serverLayout={serverLayout}
-      displayName={user?.user_metadata?.display_name ?? ""}
+      displayName={currentUser?.displayName ?? currentUser?.fullName ?? ""}
       monthName={monthName}
       transactionsEnabled={on("transactions")}
       accountsEnabled={on("accounts")}

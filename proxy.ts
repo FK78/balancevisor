@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { hasMockAuthHeader, isMockAuthEnabled, MOCK_AUTH_HEADER } from "@/lib/mock-auth";
 import { updateSession } from "@/lib/supabase/proxy";
 
 export async function proxy(request: NextRequest) {
@@ -15,6 +16,18 @@ export async function proxy(request: NextRequest) {
     }
     // Add server timing header for potential monitoring
     response.headers.set("Server-Timing", `total;dur=${duration}`);
+  }
+
+  if (
+    isMockAuthEnabled()
+    || (
+      process.env.NODE_ENV === "development"
+      && hasMockAuthHeader(request.headers.get(MOCK_AUTH_HEADER))
+    )
+  ) {
+    const mockResponse = NextResponse.next({ request });
+    addLoggingAndTiming(mockResponse);
+    return mockResponse;
   }
 
   const response = NextResponse.next({ request });

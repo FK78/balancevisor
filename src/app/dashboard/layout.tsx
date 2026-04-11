@@ -6,7 +6,7 @@ import { DashboardNav } from "@/components/DashboardNav";
 import { AuthButton } from "@/components/AuthButton";
 import { NotificationBellServer } from "@/components/NotificationBellServer";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { getCurrentUserId } from "@/lib/auth";
+import { getCurrentUserId, isCurrentRequestMockAuthEnabled } from "@/lib/auth";
 import { hasCompletedOnboarding, getPendingFeatures } from "@/db/queries/onboarding";
 import { generateDueRecurringTransactions } from "@/lib/recurring-transactions";
 import { autoCalculateZakatIfDue } from "@/lib/zakat-auto-check";
@@ -28,7 +28,8 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const userId = await getCurrentUserId();
-  const [onboardingComplete, pendingFeatures, aiEnabled, disabledFeatures, hasBankConnection] = await Promise.all([
+  const [isMockRequest, onboardingComplete, pendingFeatures, aiEnabled, disabledFeatures, hasBankConnection] = await Promise.all([
+    isCurrentRequestMockAuthEnabled(),
     hasCompletedOnboarding(userId),
     getPendingFeatures(userId),
     isAiEnabled(userId),
@@ -40,7 +41,7 @@ export default async function DashboardLayout({
   generateDueRecurringTransactions(userId).catch((err) => logger.warn('dashboard-layout', 'recurring generation failed', err));
   autoCalculateZakatIfDue(userId).catch((err) => logger.warn('dashboard-layout', 'zakat auto-check failed', err));
 
-  if (!onboardingComplete) {
+  if (!onboardingComplete && !isMockRequest) {
     redirect("/onboarding");
   }
 
@@ -69,7 +70,7 @@ export default async function DashboardLayout({
             <Suspense>
               <NotificationBellServer />
             </Suspense>
-            <div className="hidden md:block">
+            <div className="hidden xl:block">
               <Suspense>
                 <AuthButton />
               </Suspense>
@@ -77,7 +78,7 @@ export default async function DashboardLayout({
           </div>
         </div>
       </nav>
-      <div className="pb-28 md:pb-0">
+      <div className="pb-28 xl:pb-0">
         {children}
       </div>
       <MobileBottomNav />

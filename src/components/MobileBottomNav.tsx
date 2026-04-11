@@ -65,7 +65,7 @@ export function MobileBottomNav() {
     <>
       <nav
         aria-label="Primary"
-        className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--background)_88%,white_12%)]/95 backdrop-blur-xl md:hidden"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--background)_88%,white_12%)]/95 backdrop-blur-xl xl:hidden"
       >
         <div
           className="mx-auto grid max-w-lg px-2 pt-2"

@@ -1,29 +1,79 @@
 import { cache } from "react";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import {
+  getMockAuthIdentity,
+  hasMockAuthHeader,
+  isMockAuthEnabled,
+  MOCK_AUTH_HEADER,
+} from "@/lib/mock-auth";
 import { withRLS, type RLSCallback } from "@/lib/rls-db";
 
+export interface CurrentUserIdentity {
+  readonly id: string;
+  readonly email: string;
+  readonly displayName: string;
+  readonly fullName: string;
+}
+
+function readString(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+export const isCurrentRequestMockAuthEnabled = cache(async () => {
+  if (isMockAuthEnabled()) {
+    return true;
+  }
+
+  if (process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test") {
+    try {
+      const requestHeaders = await headers();
+      return hasMockAuthHeader(requestHeaders.get(MOCK_AUTH_HEADER));
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+});
+
 /**
- * Request-scoped cached Supabase user fetch.
- * Deduplicates the 2-3 getUser() calls per server render into one.
+ * Request-scoped cached current user lookup.
+ * In mock mode we short-circuit to a seeded development identity so
+ * pages and tests do not depend on a live Supabase session.
  */
-const getCurrentUser = cache(async () => {
+export const getCurrentUserIdentity = cache(async (): Promise<CurrentUserIdentity | null> => {
+  if (await isCurrentRequestMockAuthEnabled()) {
+    return getMockAuthIdentity();
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  return user;
+
+  if (!user) {
+    return null;
+  }
+
+  return {
+    id: user.id,
+    email: user.email ?? "",
+    displayName: readString(user.user_metadata?.display_name),
+    fullName: readString(user.user_metadata?.full_name),
+  };
 });
 
 export async function getCurrentUserId(): Promise<string> {
-  const user = await getCurrentUser();
-  if (!user) {
+  const user = await getCurrentUserIdentity();
+  if (!user?.id) {
     throw new Error("User not authenticated");
   }
   return user.id;
 }
 
 export async function getCurrentUserEmail(): Promise<string> {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserIdentity();
   if (!user?.email) throw new Error("User email not available");
   return user.email;
 }

@@ -83,7 +83,7 @@ export function DashboardNav() {
   return (
     <>
       {/* Desktop: primary links + "More" dropdown */}
-      <div className="hidden items-center gap-1 md:flex">
+      <div className="hidden items-center gap-1 xl:flex">
         {visiblePrimary.map((item) => {
           const active = isActive(item.href, pathname);
           return (

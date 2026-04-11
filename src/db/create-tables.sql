@@ -77,6 +77,7 @@ CREATE TABLE accounts (
 );
 
 CREATE INDEX accounts_user_id_idx ON accounts (user_id);
+CREATE UNIQUE INDEX accounts_truelayer_id_idx ON accounts (user_id, truelayer_id);
 
 -- 5. categories (no FK deps)
 CREATE TABLE categories (
@@ -158,6 +159,7 @@ CREATE INDEX transactions_account_id_idx      ON transactions (account_id);
 CREATE INDEX transactions_category_id_idx     ON transactions (category_id);
 CREATE INDEX transactions_date_idx            ON transactions (date);
 CREATE INDEX transactions_account_id_date_idx ON transactions (account_id, date);
+CREATE UNIQUE INDEX transactions_truelayer_id_idx ON transactions (user_id, truelayer_id);
 
 -- 9. budgets (FK → categories)
 CREATE TABLE budgets (
@@ -238,6 +240,8 @@ CREATE TABLE budget_alert_preferences (
   email_alerts   BOOLEAN NOT NULL DEFAULT FALSE
 );
 
+CREATE UNIQUE INDEX budget_alert_prefs_user_budget_idx ON budget_alert_preferences (user_id, budget_id);
+
 -- 14. broker_connections (FK → accounts)
 CREATE TABLE broker_connections (
   id                    UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -247,7 +251,9 @@ CREATE TABLE broker_connections (
   environment           VARCHAR(10)  NOT NULL DEFAULT 'live',
   account_id            UUID REFERENCES accounts(id) ON DELETE SET NULL,
   connected_at          TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-  last_synced_at        TIMESTAMPTZ
+  last_synced_at        TIMESTAMPTZ,
+  last_error            VARCHAR(500),
+  consecutive_failures  INTEGER      NOT NULL DEFAULT 0
 );
 
 CREATE UNIQUE INDEX broker_connections_user_broker_idx ON broker_connections (user_id, broker);
@@ -404,6 +410,7 @@ CREATE TABLE zakat_calculations (
   investment_value  NUMERIC     NOT NULL DEFAULT 0,
   total_liabilities NUMERIC     NOT NULL DEFAULT 0,
   debt_deductions   NUMERIC     NOT NULL DEFAULT 0,
+  other_assets_value NUMERIC    NOT NULL DEFAULT 0,
   zakatable_amount  NUMERIC     NOT NULL,
   zakat_due         NUMERIC     NOT NULL,
   above_nisab       BOOLEAN     NOT NULL,
@@ -468,3 +475,36 @@ CREATE TABLE dashboard_layouts (
 );
 
 CREATE UNIQUE INDEX dashboard_layouts_user_page_idx ON dashboard_layouts (user_id, page);
+
+-- ---------------------------------------------------------------------------
+-- 31. Nudge Dismissals
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE nudge_dismissals (
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id      UUID         NOT NULL,
+  nudge_key    VARCHAR(100) NOT NULL,
+  dismissed_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX nudge_dismissals_user_nudge_idx ON nudge_dismissals (user_id, nudge_key);
+CREATE INDEX nudge_dismissals_user_id_idx ON nudge_dismissals (user_id);
+
+-- ---------------------------------------------------------------------------
+-- 32. Other Assets (zakat / net-worth)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE other_assets (
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id      UUID         NOT NULL,
+  name         VARCHAR(255) NOT NULL,
+  asset_type   VARCHAR(30)  NOT NULL,
+  value        NUMERIC      NOT NULL DEFAULT 0,
+  weight_grams NUMERIC,
+  is_zakatable BOOLEAN      NOT NULL DEFAULT FALSE,
+  notes        TEXT,
+  created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  updated_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX other_assets_user_id_idx ON other_assets (user_id);

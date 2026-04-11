@@ -1,25 +1,22 @@
-import { getCurrentUserId } from "@/lib/auth";
+import { getCurrentUserId, getCurrentUserIdentity } from "@/lib/auth";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
 import { isAiEnabled, getDisabledFeatures } from "@/db/queries/preferences";
-import { createClient } from "@/lib/supabase/server";
 import { SUPPORTED_BASE_CURRENCIES } from "@/lib/currency";
 import { SettingsClient } from "@/components/SettingsClient";
 
 export default async function SettingsPage() {
   const userId = await getCurrentUserId();
-  const supabase = await createClient();
 
-  const [baseCurrency, { data }, aiEnabled, disabledFeatures] = await Promise.all([
+  const [baseCurrency, user, aiEnabled, disabledFeatures] = await Promise.all([
     getUserBaseCurrency(userId),
-    supabase.auth.getUser(),
+    getCurrentUserIdentity(),
     isAiEnabled(userId),
     getDisabledFeatures(userId),
   ]);
 
-  const user = data.user;
   const displayName =
-    user?.user_metadata?.display_name ??
-    user?.user_metadata?.full_name ??
+    user?.displayName ??
+    user?.fullName ??
     "";
   const email = user?.email ?? "";
 

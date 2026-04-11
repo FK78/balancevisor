@@ -1,19 +1,21 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Authentication (MOCK_AUTH mode)", () => {
-  test("redirects to dashboard when MOCK_AUTH is enabled", async ({ page }) => {
-    // With MOCK_AUTH=true, navigating to the auth page should either
-    // redirect to dashboard or show the dashboard directly
-    await page.goto("/auth");
-    // Should redirect to dashboard or show some content
-    await page.waitForURL(/\/(dashboard|auth)/, { timeout: 10000 });
+  test("auth pages stay reachable for visual QA when MOCK_AUTH is enabled", async ({ page }) => {
+    await page.goto("/auth/login");
+    await expect(
+      page.getByText(/sign in to your balancevisor account to continue/i),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /^sign in$/i }),
+    ).toBeVisible();
   });
 
   test("dashboard is accessible in mock mode", async ({ page }) => {
     await page.goto("/dashboard");
-    // In mock mode, middleware should not redirect us away
-    await page.waitForURL(/\/dashboard/, { timeout: 10000 });
-    // Page should render dashboard content
-    await expect(page.locator("body")).not.toBeEmpty();
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(
+      page.getByRole("heading", { name: /stay on top of the few things worth checking/i }),
+    ).toBeVisible();
   });
 });
