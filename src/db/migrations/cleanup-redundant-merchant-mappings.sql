@@ -3,20 +3,27 @@
 -- Run AFTER the global_merchant_aliases table has been created and seeded.
 -- Safe to re-run (idempotent — upserts + conditional delete).
 
--- Step 1: Harvest ALL per-user mappings into global_merchant_aliases.
---   - Existing aliases: increment vote_count (one vote per distinct user).
---   - New aliases: insert with source='user' and vote_count = number of users.
+-- Step 1: Harvest per-user mappings into global_merchant_aliases.
+--   For each distinct alias, pick the most popular category (highest user count).
+--   - Existing aliases: increment vote_count.
+--   - New aliases: insert with source='user'.
 INSERT INTO global_merchant_aliases (alias, brand, default_category, brand_type, source, vote_count)
-SELECT
-  LOWER(mm.merchant)       AS alias,
-  mm.merchant              AS brand,
-  c.name                   AS default_category,
-  'general'                AS brand_type,
-  'user'                   AS source,
-  COUNT(DISTINCT mm.user_id) AS vote_count
-FROM merchant_mappings mm
-JOIN categories c ON mm.category_id = c.id
-GROUP BY LOWER(mm.merchant), mm.merchant, c.name
+SELECT alias, brand, default_category, 'general', 'user', total_votes
+FROM (
+  SELECT
+    LOWER(mm.merchant)            AS alias,
+    mm.merchant                   AS brand,
+    c.name                        AS default_category,
+    COUNT(DISTINCT mm.user_id)    AS total_votes,
+    ROW_NUMBER() OVER (
+      PARTITION BY LOWER(mm.merchant)
+      ORDER BY COUNT(DISTINCT mm.user_id) DESC, c.name
+    ) AS rn
+  FROM merchant_mappings mm
+  JOIN categories c ON mm.category_id = c.id
+  GROUP BY LOWER(mm.merchant), mm.merchant, c.name
+) ranked
+WHERE rn = 1
 ON CONFLICT (alias) DO UPDATE SET
   vote_count  = global_merchant_aliases.vote_count + EXCLUDED.vote_count,
   updated_at  = NOW();
