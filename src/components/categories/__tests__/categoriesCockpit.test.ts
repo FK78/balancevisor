@@ -252,4 +252,22 @@ describe("buildCategoryStructureCards", () => {
       trendLabel: "Historical spend only",
     });
   });
+
+  it("keeps waiting copy for a category with only one tracked month in the latest period", () => {
+    const cards = buildCategoryStructureCards({
+      categories: [
+        { id: "travel", name: "Travel", color: "#0f766e", icon: "plane", user_id: "u1" },
+      ],
+      monthlySpendRows: [
+        { month: "2026-03", category: "Travel", category_id: "travel", color: "#0f766e", total: 220 },
+      ],
+      currency: "GBP",
+    });
+
+    expect(cards[0]).toMatchObject({
+      id: "travel",
+      spendLabel: "£220.00 in Mar 2026",
+      trendLabel: "Waiting for another month of spend",
+    });
+  });
 });

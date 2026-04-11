@@ -397,7 +397,7 @@ export function buildCategoryStructureCards(params: {
         shareLabel: totalTrackedSpend > 0 ? `${Math.round(spendShare)}% of tracked spend` : "0% of tracked spend",
         structureSignal,
         trendLabel: changeRatio === null
-          ? hasHistoricalSpend
+          ? !latest && hasHistoricalSpend
             ? "Historical spend only"
             : "Waiting for another month of spend"
           : `${changeRatio >= 0 ? "+" : ""}${Math.round(changeRatio * 100)}% vs last month`,
