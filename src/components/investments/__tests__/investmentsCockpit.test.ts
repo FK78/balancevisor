@@ -97,5 +97,8 @@ describe("buildInvestmentsCockpitModel", () => {
 
     expect(model.heroTitle).toBe("Portfolio balance looks calm");
     expect(model.heroTitle).not.toMatch(/start your investment cockpit/i);
+    expect(model.heroDescription).toBe(
+      "The portfolio is stable for now, so keep the next action lightweight and easy to return to.",
+    );
   });
 });

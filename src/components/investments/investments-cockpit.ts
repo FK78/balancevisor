@@ -162,9 +162,7 @@ function buildHeroCopy(primaryAction: PrimaryAction, brokerErrorCount: number, s
   return {
     heroTitle: "Portfolio balance looks calm",
     heroDescription:
-      holdingCount > 0
-        ? "The portfolio is stable for now, so keep the next action lightweight and easy to return to."
-        : "Add a holding or connect a broker to begin tracking the portfolio story.",
+      "The portfolio is stable for now, so keep the next action lightweight and easy to return to.",
   };
 }
 
