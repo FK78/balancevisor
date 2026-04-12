@@ -34,12 +34,12 @@ export default function MoreScreen() {
   };
 
   const items: MenuItem[] = [
-    { label: "Goals", icon: Target },
-    { label: "Debts", icon: CreditCard },
-    { label: "Subscriptions", icon: Repeat },
-    { label: "Investments", icon: TrendingUp },
-    { label: "Zakat", icon: Calculator },
-    { label: "Retirement", icon: Timer },
+    { label: "Goals", icon: Target, onPress: () => router.push("/goals" as never) },
+    { label: "Debts", icon: CreditCard, onPress: () => router.push("/debts" as never) },
+    { label: "Subscriptions", icon: Repeat, onPress: () => router.push("/subscriptions" as never) },
+    { label: "Investments", icon: TrendingUp, onPress: () => router.push("/investments" as never) },
+    { label: "Zakat", icon: Calculator, onPress: () => router.push("/zakat" as never) },
+    { label: "Retirement", icon: Timer, onPress: () => router.push("/retirement" as never) },
     { label: "Settings", icon: Settings, onPress: () => router.push("/settings" as never) },
   ];
 

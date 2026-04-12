@@ -62,6 +62,12 @@ function RootLayoutNav() {
           <>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="settings" options={{ presentation: "card" }} />
+            <Stack.Screen name="goals" options={{ presentation: "card" }} />
+            <Stack.Screen name="debts" options={{ presentation: "card" }} />
+            <Stack.Screen name="subscriptions" options={{ presentation: "card" }} />
+            <Stack.Screen name="investments" options={{ presentation: "card" }} />
+            <Stack.Screen name="zakat" options={{ presentation: "card" }} />
+            <Stack.Screen name="retirement" options={{ presentation: "card" }} />
           </>
         ) : (
           <Stack.Screen name="(auth)" />
