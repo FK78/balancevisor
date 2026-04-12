@@ -32,7 +32,14 @@ const appConfig = ({ config }: ConfigContext): ExpoConfig => ({
     output: "static",
     favicon: "./assets/images/favicon.png",
   },
-  plugins: ["expo-router", "expo-secure-store"],
+  plugins: [
+    "expo-router",
+    "expo-secure-store",
+    [
+      "expo-local-authentication",
+      { faceIDPermission: "Allow BalanceVisor to use Face ID to unlock the app" },
+    ],
+  ],
   experiments: {
     typedRoutes: true,
   },
