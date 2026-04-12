@@ -1,6 +1,6 @@
 import { FlatList, View, Text, StyleSheet, ActivityIndicator, RefreshControl, Pressable, Alert } from "react-native";
 import { useCallback, useState } from "react";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { Target, Plus } from "lucide-react-native";
 import { useGoals, useContributeToGoal } from "@/hooks/use-api";
 import { useTheme } from "@/lib/theme-context";
@@ -46,6 +46,7 @@ function ContributeButton({ goalId, colors }: { goalId: string; colors: Record<s
 
 export default function GoalsScreen() {
   const { colors } = useTheme();
+  const router = useRouter();
   const { data, isLoading, refetch } = useGoals();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -66,7 +67,7 @@ export default function GoalsScreen() {
   }
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Stack.Screen options={{ headerShown: true, title: "Goals", headerStyle: { backgroundColor: colors.card }, headerTintColor: colors.foreground }} />
       <FlatList
         data={goals}
@@ -107,7 +108,10 @@ export default function GoalsScreen() {
           );
         }}
       />
-    </>
+      <Pressable style={[styles.fab, { backgroundColor: colors.primary }]} onPress={() => router.push("/add-goal" as never)}>
+        <Plus size={24} color={colors.primaryForeground} />
+      </Pressable>
+    </View>
   );
 }
 
@@ -123,5 +127,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     borderRadius: radius.full,
+  },
+  fab: {
+    position: "absolute",
+    right: spacing.md,
+    bottom: spacing.lg,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
 });

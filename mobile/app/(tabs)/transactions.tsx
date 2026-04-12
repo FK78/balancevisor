@@ -1,9 +1,10 @@
 import { FlatList, View, Text, TextInput, StyleSheet, ActivityIndicator, RefreshControl, Pressable } from "react-native";
 import { useCallback, useMemo, useState } from "react";
-import { useTransactions } from "@/hooks/use-api";
+import { useTransactions, useDeleteTransaction } from "@/hooks/use-api";
 import { useTheme } from "@/lib/theme-context";
 import { spacing, fontSize, radius } from "@/constants/theme";
 import { ListItem, EmptyState } from "@/components/ui";
+import { SwipeableRow } from "@/components/SwipeableRow";
 import { AddTransactionSheet } from "@/components/AddTransactionSheet";
 import { formatCurrency } from "@/lib/shared/formatCurrency";
 import { formatDayLabel } from "@/lib/shared/date";
@@ -11,6 +12,31 @@ import type { Transaction } from "@/lib/shared/types";
 import { ArrowLeftRight, Plus, Search } from "lucide-react-native";
 
 type FilterType = "all" | "income" | "expense";
+
+function TransactionRow({ item, colors }: { item: Transaction; colors: Record<string, string> }) {
+  const deleteMut = useDeleteTransaction(item.id);
+  const isIncome = item.type === "income";
+  const sign = isIncome ? "+" : "-";
+  return (
+    <SwipeableRow
+      onDelete={() => deleteMut.mutate(undefined as never)}
+      confirmTitle="Delete Transaction"
+      confirmMessage={`Delete "${item.description || item.merchant || "Transaction"}"?`}
+    >
+      <View style={{ flex: 1 }}>
+        <ListItem
+          title={item.description || item.merchant || "Transaction"}
+          subtitle={`${item.categoryName ?? "Uncategorised"} · ${formatDayLabel(item.date)}`}
+          right={
+            <Text style={{ color: isIncome ? colors.success : colors.destructive, fontWeight: "600", fontSize: fontSize.base }}>
+              {sign}{formatCurrency(Math.abs(item.amount))}
+            </Text>
+          }
+        />
+      </View>
+    </SwipeableRow>
+  );
+}
 
 export default function TransactionsScreen() {
   const { colors } = useTheme();
@@ -97,21 +123,7 @@ export default function TransactionsScreen() {
             description={search ? "Try a different search term" : "Your transactions will appear here once synced"}
           />
         }
-        renderItem={({ item }) => {
-          const isIncome = item.type === "income";
-          const sign = isIncome ? "+" : "-";
-          return (
-            <ListItem
-              title={item.description || item.merchant || "Transaction"}
-              subtitle={`${item.categoryName ?? "Uncategorised"} · ${formatDayLabel(item.date)}`}
-              right={
-                <Text style={{ color: isIncome ? colors.success : colors.destructive, fontWeight: "600", fontSize: fontSize.base }}>
-                  {sign}{formatCurrency(Math.abs(item.amount))}
-                </Text>
-              }
-            />
-          );
-        }}
+        renderItem={({ item }) => <TransactionRow item={item} colors={colors} />}
       />
 
       {/* FAB */}

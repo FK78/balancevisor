@@ -1,105 +1,101 @@
 import { ScrollView, View, Text, TextInput, StyleSheet, Pressable, Alert, ActivityIndicator } from "react-native";
 import { useState } from "react";
 import { Stack, useRouter } from "expo-router";
-import { useCreateAccount } from "@/hooks/use-api";
+import { useCreateGoal } from "@/hooks/use-api";
 import { useTheme } from "@/lib/theme-context";
 import { spacing, fontSize, radius } from "@/constants/theme";
 
-const ACCOUNT_TYPES = ["current", "savings", "credit", "investment", "cash", "mortgage", "loan", "other"] as const;
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#64748b"];
+const ICONS = ["🎯", "🏠", "✈️", "🚗", "💰", "📚", "🎉", "🔧"];
 
-export default function AddAccountScreen() {
+export default function AddGoalScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const createAccount = useCreateAccount();
+  const createGoal = useCreateGoal();
 
   const [name, setName] = useState("");
-  const [type, setType] = useState<string>("current");
-  const [balance, setBalance] = useState("");
-  const [institution, setInstitution] = useState("");
+  const [targetAmount, setTargetAmount] = useState("");
+  const [targetDate, setTargetDate] = useState("");
+  const [icon, setIcon] = useState(ICONS[0]);
   const [color, setColor] = useState(COLORS[0]);
 
   const handleSubmit = async () => {
-    if (!name.trim()) return Alert.alert("Error", "Enter an account name");
-    const parsedBalance = parseFloat(balance || "0");
+    if (!name.trim()) return Alert.alert("Error", "Enter a goal name");
+    const amount = parseFloat(targetAmount);
+    if (isNaN(amount) || amount <= 0) return Alert.alert("Error", "Enter a valid target amount");
 
     try {
-      await createAccount.mutateAsync({
+      await createGoal.mutateAsync({
         name: name.trim(),
-        type,
-        balance: parsedBalance,
-        currency: "GBP",
-        institution: institution.trim() || "Manual",
+        target_amount: amount,
+        target_date: targetDate || undefined,
+        icon,
         color,
       });
       router.back();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to create account";
+      const msg = err instanceof Error ? err.message : "Failed to create goal";
       Alert.alert("Error", msg);
     }
   };
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title: "Add Account", headerStyle: { backgroundColor: colors.card }, headerTintColor: colors.foreground }} />
+      <Stack.Screen options={{ headerShown: true, title: "Add Goal", headerStyle: { backgroundColor: colors.card }, headerTintColor: colors.foreground }} />
       <ScrollView style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={[styles.label, { color: colors.mutedForeground }]}>Name</Text>
         <TextInput
           style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]}
-          placeholder="e.g. Main Current Account"
+          placeholder="e.g. Emergency Fund"
           placeholderTextColor={colors.mutedForeground}
           value={name}
           onChangeText={setName}
         />
 
-        <Text style={[styles.label, { color: colors.mutedForeground }]}>Type</Text>
+        <Text style={[styles.label, { color: colors.mutedForeground }]}>Target Amount</Text>
+        <TextInput
+          style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]}
+          placeholder="e.g. 10000"
+          placeholderTextColor={colors.mutedForeground}
+          value={targetAmount}
+          onChangeText={setTargetAmount}
+          keyboardType="decimal-pad"
+        />
+
+        <Text style={[styles.label, { color: colors.mutedForeground }]}>Target Date (optional, YYYY-MM-DD)</Text>
+        <TextInput
+          style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]}
+          placeholder="e.g. 2025-12-31"
+          placeholderTextColor={colors.mutedForeground}
+          value={targetDate}
+          onChangeText={setTargetDate}
+        />
+
+        <Text style={[styles.label, { color: colors.mutedForeground }]}>Icon</Text>
         <View style={styles.chipRow}>
-          {ACCOUNT_TYPES.map((t) => (
-            <Pressable key={t} onPress={() => setType(t)} style={[styles.chip, { backgroundColor: type === t ? colors.primary : colors.muted }]}>
-              <Text style={{ color: type === t ? colors.primaryForeground : colors.foreground, fontSize: fontSize.xs, textTransform: "capitalize" }}>{t}</Text>
+          {ICONS.map((i) => (
+            <Pressable key={i} onPress={() => setIcon(i)} style={[styles.iconChip, { backgroundColor: icon === i ? colors.primary : colors.muted }]}>
+              <Text style={{ fontSize: 20 }}>{i}</Text>
             </Pressable>
           ))}
         </View>
 
-        <Text style={[styles.label, { color: colors.mutedForeground }]}>Opening Balance</Text>
-        <TextInput
-          style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]}
-          placeholder="0.00"
-          placeholderTextColor={colors.mutedForeground}
-          value={balance}
-          onChangeText={setBalance}
-          keyboardType="decimal-pad"
-        />
-
-        <Text style={[styles.label, { color: colors.mutedForeground }]}>Institution</Text>
-        <TextInput
-          style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]}
-          placeholder="e.g. Barclays"
-          placeholderTextColor={colors.mutedForeground}
-          value={institution}
-          onChangeText={setInstitution}
-        />
-
         <Text style={[styles.label, { color: colors.mutedForeground }]}>Colour</Text>
         <View style={styles.colorRow}>
           {COLORS.map((c) => (
-            <Pressable
-              key={c}
-              onPress={() => setColor(c)}
-              style={[styles.colorDot, { backgroundColor: c, borderWidth: color === c ? 3 : 0, borderColor: colors.foreground }]}
-            />
+            <Pressable key={c} onPress={() => setColor(c)} style={[styles.colorDot, { backgroundColor: c, borderWidth: color === c ? 3 : 0, borderColor: colors.foreground }]} />
           ))}
         </View>
 
         <Pressable
           onPress={handleSubmit}
-          disabled={createAccount.isPending}
-          style={({ pressed }) => [styles.submitBtn, { backgroundColor: colors.primary, opacity: pressed || createAccount.isPending ? 0.7 : 1 }]}
+          disabled={createGoal.isPending}
+          style={({ pressed }) => [styles.submitBtn, { backgroundColor: colors.primary, opacity: pressed || createGoal.isPending ? 0.7 : 1 }]}
         >
-          {createAccount.isPending ? (
+          {createGoal.isPending ? (
             <ActivityIndicator color={colors.primaryForeground} />
           ) : (
-            <Text style={{ color: colors.primaryForeground, fontWeight: "600", fontSize: fontSize.base }}>Create Account</Text>
+            <Text style={{ color: colors.primaryForeground, fontWeight: "600", fontSize: fontSize.base }}>Create Goal</Text>
           )}
         </Pressable>
       </ScrollView>
@@ -112,7 +108,7 @@ const styles = StyleSheet.create({
   label: { fontSize: fontSize.sm, fontWeight: "500" },
   input: { borderRadius: radius.md, borderWidth: 1, padding: spacing.md, fontSize: fontSize.base },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
-  chip: { paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: radius.full },
+  iconChip: { width: 44, height: 44, borderRadius: radius.md, alignItems: "center", justifyContent: "center" },
   colorRow: { flexDirection: "row", gap: spacing.sm },
   colorDot: { width: 32, height: 32, borderRadius: 16 },
   submitBtn: { borderRadius: radius.md, padding: spacing.md, alignItems: "center", marginTop: spacing.sm },

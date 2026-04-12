@@ -826,7 +826,7 @@ export async function syncBankIfNeeded(): Promise<{
 
   // M2: Atomic lock — UPDATE only rows whose last_synced_at is stale, RETURNING
   // the rows that were actually claimed. This eliminates the TOCTOU race.
-  const threshold = new Date(Date.now() - SYNC_INTERVAL_MS);
+  const threshold = new Date(Date.now() - SYNC_INTERVAL_MS).toISOString();
   const claimed = await db
     .update(truelayerConnectionsTable)
     .set({ last_synced_at: new Date() })

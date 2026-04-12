@@ -72,6 +72,12 @@ function RootLayoutNav() {
         <Stack.Screen name="chat" options={{ presentation: "card" }} redirect={!isAuthenticated} />
         <Stack.Screen name="account/[id]" options={{ presentation: "card" }} redirect={!isAuthenticated} />
         <Stack.Screen name="cashflow" options={{ presentation: "card" }} redirect={!isAuthenticated} />
+        <Stack.Screen name="debt/[id]" options={{ presentation: "card" }} redirect={!isAuthenticated} />
+        <Stack.Screen name="add-account" options={{ presentation: "card" }} redirect={!isAuthenticated} />
+        <Stack.Screen name="add-budget" options={{ presentation: "card" }} redirect={!isAuthenticated} />
+        <Stack.Screen name="add-goal" options={{ presentation: "card" }} redirect={!isAuthenticated} />
+        <Stack.Screen name="add-debt" options={{ presentation: "card" }} redirect={!isAuthenticated} />
+        <Stack.Screen name="portfolio" options={{ presentation: "card" }} redirect={!isAuthenticated} />
       </Stack>
     </NavThemeProvider>
   );

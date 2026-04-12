@@ -1,6 +1,6 @@
-import { FlatList, View, Text, StyleSheet, ActivityIndicator, RefreshControl } from "react-native";
+import { FlatList, View, Text, StyleSheet, ActivityIndicator, RefreshControl, Pressable } from "react-native";
 import { useCallback, useState } from "react";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { TrendingUp } from "lucide-react-native";
 import { useHoldings } from "@/hooks/use-api";
 import { useTheme } from "@/lib/theme-context";
@@ -11,6 +11,7 @@ import type { Holding } from "@/lib/shared/types";
 
 export default function InvestmentsScreen() {
   const { colors } = useTheme();
+  const router = useRouter();
   const { data, isLoading, refetch } = useHoldings();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -35,7 +36,19 @@ export default function InvestmentsScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title: "Investments", headerStyle: { backgroundColor: colors.card }, headerTintColor: colors.foreground }} />
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          title: "Investments",
+          headerStyle: { backgroundColor: colors.card },
+          headerTintColor: colors.foreground,
+          headerRight: () => (
+            <Pressable onPress={() => router.push("/portfolio" as never)} style={{ paddingHorizontal: spacing.sm }}>
+              <Text style={{ color: colors.primary, fontSize: fontSize.sm, fontWeight: "600" }}>Portfolio</Text>
+            </Pressable>
+          ),
+        }}
+      />
       <FlatList
         data={holdings}
         keyExtractor={(item) => item.id}

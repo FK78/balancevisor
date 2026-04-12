@@ -1,7 +1,7 @@
 import { FlatList, View, Text, StyleSheet, ActivityIndicator, RefreshControl, Pressable } from "react-native";
 import { useCallback, useState } from "react";
 import { Stack, useRouter } from "expo-router";
-import { CreditCard } from "lucide-react-native";
+import { CreditCard, Plus } from "lucide-react-native";
 import { useDebts } from "@/hooks/use-api";
 import { useTheme } from "@/lib/theme-context";
 import { spacing, fontSize } from "@/constants/theme";
@@ -33,7 +33,7 @@ export default function DebtsScreen() {
   }
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Stack.Screen options={{ headerShown: true, title: "Debts", headerStyle: { backgroundColor: colors.card }, headerTintColor: colors.foreground }} />
       <FlatList
         data={debts}
@@ -86,7 +86,10 @@ export default function DebtsScreen() {
           );
         }}
       />
-    </>
+      <Pressable style={[styles.fab, { backgroundColor: colors.primary }]} onPress={() => router.push("/add-debt" as never)}>
+        <Plus size={24} color={colors.primaryForeground} />
+      </Pressable>
+    </View>
   );
 }
 
@@ -97,4 +100,19 @@ const styles = StyleSheet.create({
   total: { fontSize: fontSize["2xl"], fontWeight: "700" },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   name: { fontSize: fontSize.base, fontWeight: "600", flex: 1, marginRight: spacing.sm },
+  fab: {
+    position: "absolute",
+    right: spacing.md,
+    bottom: spacing.lg,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
 });

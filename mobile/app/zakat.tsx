@@ -1,10 +1,10 @@
-import { ScrollView, View, Text, StyleSheet, ActivityIndicator, RefreshControl } from "react-native";
+import { ScrollView, View, Text, StyleSheet, ActivityIndicator, RefreshControl, Pressable } from "react-native";
 import { useCallback, useState } from "react";
 import { Stack } from "expo-router";
 import { Calculator } from "lucide-react-native";
-import { useZakat } from "@/hooks/use-api";
+import { useZakat, useCalculateZakat } from "@/hooks/use-api";
 import { useTheme } from "@/lib/theme-context";
-import { spacing, fontSize } from "@/constants/theme";
+import { spacing, fontSize, radius } from "@/constants/theme";
 import { Card, Badge, EmptyState } from "@/components/ui";
 import { formatCurrency } from "@/lib/shared/formatCurrency";
 
@@ -22,6 +22,29 @@ interface ZakatCalculation {
   nisabThreshold: number;
   isAboveNisab: boolean;
   zakatDue: number;
+}
+
+function RecalcButton({ colors }: { colors: Record<string, string> }) {
+  const calcMut = useCalculateZakat();
+  return (
+    <Pressable
+      onPress={() => calcMut.mutate({})}
+      disabled={calcMut.isPending}
+      style={({ pressed }) => ({
+        backgroundColor: colors.primary,
+        borderRadius: radius.md,
+        padding: spacing.md,
+        alignItems: "center" as const,
+        opacity: pressed || calcMut.isPending ? 0.7 : 1,
+      })}
+    >
+      {calcMut.isPending ? (
+        <ActivityIndicator color={colors.primaryForeground} />
+      ) : (
+        <Text style={{ color: colors.primaryForeground, fontWeight: "600", fontSize: fontSize.base }}>Recalculate Zakat</Text>
+      )}
+    </Pressable>
+  );
 }
 
 export default function ZakatScreen() {
@@ -113,10 +136,11 @@ export default function ZakatScreen() {
         ) : (
           <Card>
             <Text style={{ color: colors.mutedForeground, fontSize: fontSize.sm, textAlign: "center" }}>
-              Run a zakat calculation from the web app to see results here
+              Calculate your zakat based on current holdings and accounts
             </Text>
           </Card>
         )}
+        <RecalcButton colors={colors} />
       </ScrollView>
     </>
   );
