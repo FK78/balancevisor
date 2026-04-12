@@ -11,6 +11,7 @@ import {
   LogOut,
   MessageCircle,
   Lightbulb,
+  ArrowRightLeft,
 } from "lucide-react-native";
 import { useTheme } from "@/lib/theme-context";
 import { useAuth } from "@/lib/auth-context";
@@ -40,6 +41,7 @@ export default function MoreScreen() {
     { label: "Debts", icon: CreditCard, onPress: () => router.push("/debts" as never) },
     { label: "Subscriptions", icon: Repeat, onPress: () => router.push("/subscriptions" as never) },
     { label: "Investments", icon: TrendingUp, onPress: () => router.push("/investments" as never) },
+    { label: "Cashflow", icon: ArrowRightLeft, onPress: () => router.push("/cashflow" as never) },
     { label: "Zakat", icon: Calculator, onPress: () => router.push("/zakat" as never) },
     { label: "Retirement", icon: Timer, onPress: () => router.push("/retirement" as never) },
     { label: "AI Chat", icon: MessageCircle, onPress: () => router.push("/chat" as never) },

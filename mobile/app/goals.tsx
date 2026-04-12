@@ -1,13 +1,48 @@
-import { FlatList, View, Text, StyleSheet, ActivityIndicator, RefreshControl } from "react-native";
+import { FlatList, View, Text, StyleSheet, ActivityIndicator, RefreshControl, Pressable, Alert } from "react-native";
 import { useCallback, useState } from "react";
 import { Stack } from "expo-router";
-import { Target } from "lucide-react-native";
-import { useGoals } from "@/hooks/use-api";
+import { Target, Plus } from "lucide-react-native";
+import { useGoals, useContributeToGoal } from "@/hooks/use-api";
 import { useTheme } from "@/lib/theme-context";
-import { spacing, fontSize } from "@/constants/theme";
+import { spacing, fontSize, radius } from "@/constants/theme";
 import { Card, ProgressBar, EmptyState } from "@/components/ui";
 import { formatCurrency } from "@/lib/shared/formatCurrency";
 import type { Goal } from "@/lib/shared/types";
+
+function ContributeButton({ goalId, colors }: { goalId: string; colors: Record<string, string> }) {
+  const contribute = useContributeToGoal(goalId);
+
+  const handleContribute = () => {
+    Alert.prompt(
+      "Contribute",
+      "Enter amount to add to this goal",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Add",
+          onPress: (value?: string) => {
+            const amount = parseFloat(value ?? "");
+            if (isNaN(amount) || amount <= 0) return Alert.alert("Error", "Enter a valid amount");
+            contribute.mutate({ amount });
+          },
+        },
+      ],
+      "plain-text",
+      "",
+      "decimal-pad",
+    );
+  };
+
+  return (
+    <Pressable
+      onPress={handleContribute}
+      style={[styles.contributeBtn, { backgroundColor: colors.primary }]}
+    >
+      <Plus size={14} color={colors.primaryForeground} />
+      <Text style={{ color: colors.primaryForeground, fontSize: fontSize.xs, fontWeight: "600" }}>Add</Text>
+    </Pressable>
+  );
+}
 
 export default function GoalsScreen() {
   const { colors } = useTheme();
@@ -52,9 +87,7 @@ export default function GoalsScreen() {
             <Card style={{ gap: spacing.sm }}>
               <View style={styles.header}>
                 <Text style={[styles.name, { color: colors.foreground }]}>{item.name}</Text>
-                <Text style={{ color: colors.mutedForeground, fontSize: fontSize.sm }}>
-                  {Math.round(pct * 100)}%
-                </Text>
+                <ContributeButton goalId={item.id} colors={colors} />
               </View>
               <ProgressBar value={pct} color={item.color} />
               <View style={styles.header}>
@@ -62,7 +95,7 @@ export default function GoalsScreen() {
                   {formatCurrency(item.saved_amount)} saved
                 </Text>
                 <Text style={{ color: colors.foreground, fontSize: fontSize.xs, fontWeight: "600" }}>
-                  {formatCurrency(item.target_amount)} target
+                  {formatCurrency(item.target_amount)} target · {Math.round(pct * 100)}%
                 </Text>
               </View>
               {item.target_date && (
@@ -82,5 +115,13 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   content: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.xl },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  name: { fontSize: fontSize.base, fontWeight: "600" },
+  name: { fontSize: fontSize.base, fontWeight: "600", flex: 1 },
+  contributeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radius.full,
+  },
 });

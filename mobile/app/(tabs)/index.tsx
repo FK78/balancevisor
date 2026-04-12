@@ -1,5 +1,6 @@
-import { ScrollView, View, Text, StyleSheet, RefreshControl, ActivityIndicator } from "react-native";
+import { ScrollView, View, Text, StyleSheet, RefreshControl, ActivityIndicator, Pressable } from "react-native";
 import { useCallback, useState } from "react";
+import { useRouter } from "expo-router";
 import { useDashboardSummary, useDashboardHealth } from "@/hooks/use-api";
 import { useTheme } from "@/lib/theme-context";
 import { spacing, fontSize } from "@/constants/theme";
@@ -12,6 +13,7 @@ export default function DashboardScreen() {
   const { data: rawSummary, isLoading, refetch } = useDashboardSummary();
   const { data: rawHealth } = useDashboardHealth();
   const [refreshing, setRefreshing] = useState(false);
+  const router = useRouter();
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -93,16 +95,17 @@ export default function DashboardScreen() {
       {/* Accounts */}
       <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Accounts</Text>
       {accounts.map((account) => (
-        <ListItem
-          key={account.id}
-          title={account.name}
-          subtitle={account.type}
-          right={
-            <Text style={[styles.accountBalance, { color: colors.foreground }]}>
-              {formatCurrency(account.balance, currency)}
-            </Text>
-          }
-        />
+        <Pressable key={account.id} onPress={() => router.push(`/account/${account.id}` as never)}>
+          <ListItem
+            title={account.name}
+            subtitle={account.type}
+            right={
+              <Text style={[styles.accountBalance, { color: colors.foreground }]}>
+                {formatCurrency(account.balance, currency)}
+              </Text>
+            }
+          />
+        </Pressable>
       ))}
 
       {/* Goals */}

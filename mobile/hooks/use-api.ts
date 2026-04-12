@@ -125,3 +125,105 @@ export function useDashboardHealth() {
 export function useNudges() {
   return useApiQuery(queryKeys.nudges, "/nudges");
 }
+
+export function useDashboardCashflow() {
+  return useApiQuery(queryKeys.dashboardCashflow, "/dashboard/cashflow");
+}
+
+// ─── Mutation hooks ─────────────────────────────────────────────────────────
+
+export function useCreateAccount() {
+  return useApiMutation<Partial<{ name: string; type: string; balance: number; currency: string; institution: string; color: string }>>(
+    "post", "/accounts", [queryKeys.accounts, queryKeys.dashboardSummary],
+  );
+}
+
+export function useUpdateAccount(id: string) {
+  return useApiMutation<Partial<{ name: string; type: string; balance: number; currency: string; institution: string; color: string }>>(
+    "patch", `/accounts/${id}`, [queryKeys.accounts, queryKeys.dashboardSummary],
+  );
+}
+
+export function useDeleteAccount(id: string) {
+  return useApiMutation<void>(
+    "delete", `/accounts/${id}`, [queryKeys.accounts, queryKeys.dashboardSummary],
+  );
+}
+
+export function useCreateTransaction() {
+  return useApiMutation<Partial<{ accountId: string; description: string; amount: number; type: string; date: string; categoryId: string }>>(
+    "post", "/transactions", [queryKeys.budgets, queryKeys.dashboardSummary],
+  );
+}
+
+export function useUpdateTransaction(id: string) {
+  return useApiMutation<Partial<{ description: string; amount: number; type: string; date: string; categoryId: string }>>(
+    "patch", `/transactions/${id}`, [queryKeys.budgets, queryKeys.dashboardSummary],
+  );
+}
+
+export function useDeleteTransaction(id: string) {
+  return useApiMutation<void>(
+    "delete", `/transactions/${id}`, [queryKeys.budgets, queryKeys.dashboardSummary],
+  );
+}
+
+export function useCreateBudget() {
+  return useApiMutation<Partial<{ categoryId: string; amount: number; period: string }>>(
+    "post", "/budgets", [queryKeys.budgets, queryKeys.dashboardSummary],
+  );
+}
+
+export function useUpdateBudget(id: string) {
+  return useApiMutation<Partial<{ amount: number; period: string }>>(
+    "patch", `/budgets/${id}`, [queryKeys.budgets, queryKeys.dashboardSummary],
+  );
+}
+
+export function useDeleteBudget(id: string) {
+  return useApiMutation<void>(
+    "delete", `/budgets/${id}`, [queryKeys.budgets, queryKeys.dashboardSummary],
+  );
+}
+
+export function useCreateDebt() {
+  return useApiMutation<Partial<{ name: string; type: string; total_amount: number; remaining_amount: number; interest_rate: number; minimum_payment: number; lender: string }>>(
+    "post", "/debts", [queryKeys.debts, queryKeys.dashboardSummary],
+  );
+}
+
+export function useUpdateDebt(id: string) {
+  return useApiMutation<Partial<{ name: string; remaining_amount: number; interest_rate: number; minimum_payment: number }>>(
+    "patch", `/debts/${id}`, [queryKeys.debts, queryKeys.dashboardSummary],
+  );
+}
+
+export function useDeleteDebt(id: string) {
+  return useApiMutation<void>(
+    "delete", `/debts/${id}`, [queryKeys.debts, queryKeys.dashboardSummary],
+  );
+}
+
+export function useCreateGoal() {
+  return useApiMutation<Partial<{ name: string; target_amount: number; target_date: string; icon: string; color: string }>>(
+    "post", "/goals", [queryKeys.goals, queryKeys.dashboardSummary],
+  );
+}
+
+export function useUpdateGoal(id: string) {
+  return useApiMutation<Partial<{ name: string; target_amount: number; target_date: string }>>(
+    "patch", `/goals/${id}`, [queryKeys.goals, queryKeys.dashboardSummary],
+  );
+}
+
+export function useDeleteGoal(id: string) {
+  return useApiMutation<void>(
+    "delete", `/goals/${id}`, [queryKeys.goals, queryKeys.dashboardSummary],
+  );
+}
+
+export function useContributeToGoal(id: string) {
+  return useApiMutation<{ amount: number }>(
+    "post", `/goals/${id}/contribute`, [queryKeys.goals, queryKeys.dashboardSummary],
+  );
+}
