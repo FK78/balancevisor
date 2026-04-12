@@ -8,6 +8,7 @@ import { getCurrentUserId } from '@/lib/auth';
 import { z } from 'zod';
 import { parseFormData, zRequiredUUID, zNumber, zEnum, zRequiredDate } from '@/lib/form-schema';
 import { requireOwnership } from '@/lib/ownership';
+import { ConflictError } from '@/lib/errors';
 
 const budgetSchema = z.object({
   category_id: zRequiredUUID(),
@@ -21,15 +22,20 @@ export async function addBudget(formData: FormData) {
 
   const { category_id, amount, period, start_date } = parseFormData(budgetSchema, formData);
 
-  const [result] = await db.insert(budgetsTable).values({
+  const rows = await db.insert(budgetsTable).values({
     user_id: userId,
     category_id,
     amount,
     period,
     start_date,
-  }).returning({ id: budgetsTable.id });
+  }).onConflictDoNothing().returning({ id: budgetsTable.id });
+
+  if (rows.length === 0) {
+    throw new ConflictError('A budget already exists for this category. Edit the existing one instead.');
+  }
+
   revalidateDomains('budgets', 'onboarding');
-  return result;
+  return rows[0];
 }
 
 export async function editBudget(id: string, formData: FormData) {
