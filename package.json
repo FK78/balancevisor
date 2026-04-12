@@ -2,11 +2,17 @@
   "name": "wealth",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "mobile": "npm --workspace apps/mobile run dev",
+    "mobile:test": "npm --workspace apps/mobile test -- --runInBand",
     "analyze": "ANALYZE=true next build --webpack",
     "test": "vitest run",
     "test:watch": "vitest",

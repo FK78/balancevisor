@@ -1,5 +1,5 @@
 import { ScrollView, View, Text, StyleSheet, Pressable, Alert } from "react-native";
-// import { useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import {
   Target,
   CreditCard,
@@ -24,6 +24,8 @@ interface MenuItem {
 export default function MoreScreen() {
   const { colors } = useTheme();
   const { signOut } = useAuth();
+  const router = useRouter();
+
   const handleSignOut = () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
       { text: "Cancel", style: "cancel" },
@@ -38,7 +40,7 @@ export default function MoreScreen() {
     { label: "Investments", icon: TrendingUp },
     { label: "Zakat", icon: Calculator },
     { label: "Retirement", icon: Timer },
-    { label: "Settings", icon: Settings },
+    { label: "Settings", icon: Settings, onPress: () => router.push("/settings" as never) },
   ];
 
   return (

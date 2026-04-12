@@ -61,7 +61,7 @@ function RootLayoutNav() {
         {isAuthenticated ? (
           <>
             <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="modal" options={{ presentation: "modal" }} />
+            <Stack.Screen name="settings" options={{ presentation: "card" }} />
           </>
         ) : (
           <Stack.Screen name="(auth)" />

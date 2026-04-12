@@ -1,12 +1,16 @@
 import { ScrollView, View, Text, StyleSheet, RefreshControl, ActivityIndicator } from "react-native";
 import { useCallback, useState } from "react";
-import { useDashboardSummary } from "@/hooks/use-api";
+import { useDashboardSummary, useDashboardHealth } from "@/hooks/use-api";
 import { useTheme } from "@/lib/theme-context";
 import { spacing, fontSize } from "@/constants/theme";
+import { Card, Badge, ProgressBar, ListItem } from "@/components/ui";
+import { formatCurrency } from "@/lib/shared/formatCurrency";
+import type { DashboardSummary, HealthScoreResponse } from "@/lib/shared/types";
 
 export default function DashboardScreen() {
   const { colors } = useTheme();
-  const { data, isLoading, refetch } = useDashboardSummary();
+  const { data: rawSummary, isLoading, refetch } = useDashboardSummary();
+  const { data: rawHealth } = useDashboardHealth();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
@@ -23,10 +27,12 @@ export default function DashboardScreen() {
     );
   }
 
-  const summary = data as Record<string, unknown> | undefined;
-  const accounts = (summary?.accounts as Array<{ id: string; name: string; balance: number }>) ?? [];
+  const summary = rawSummary as DashboardSummary | undefined;
+  const health = rawHealth as HealthScoreResponse | undefined;
+  const accounts = summary?.accounts ?? [];
   const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
-  const totals = summary?.totals as { income: number; expenses: number } | undefined;
+  const currency = summary?.baseCurrency ?? "GBP";
+  const totals = summary?.totals;
 
   return (
     <ScrollView
@@ -34,65 +40,106 @@ export default function DashboardScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
     >
-      {/* Net Balance Card */}
-      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      {/* Net Balance */}
+      <Card>
         <Text style={[styles.cardLabel, { color: colors.mutedForeground }]}>Total Balance</Text>
         <Text style={[styles.cardValue, { color: colors.foreground }]}>
-          £{totalBalance.toLocaleString("en-GB", { minimumFractionDigits: 2 })}
+          {formatCurrency(totalBalance, currency)}
         </Text>
-      </View>
+        {health && (
+          <View style={styles.healthRow}>
+            <Badge label={`${health.grade} · ${health.overall}/100`} variant={health.overall >= 70 ? "success" : health.overall >= 40 ? "warning" : "destructive"} />
+          </View>
+        )}
+      </Card>
 
-      {/* Income / Expense Row */}
+      {/* Income / Expense */}
       <View style={styles.row}>
-        <View style={[styles.card, styles.halfCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Card style={styles.halfCard}>
           <Text style={[styles.cardLabel, { color: colors.mutedForeground }]}>Income</Text>
           <Text style={[styles.cardValue, { color: colors.success }]}>
-            £{(totals?.income ?? 0).toLocaleString("en-GB", { minimumFractionDigits: 2 })}
+            {formatCurrency(totals?.income ?? 0, currency)}
           </Text>
-        </View>
-        <View style={[styles.card, styles.halfCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        </Card>
+        <Card style={styles.halfCard}>
           <Text style={[styles.cardLabel, { color: colors.mutedForeground }]}>Expenses</Text>
           <Text style={[styles.cardValue, { color: colors.destructive }]}>
-            £{(totals?.expenses ?? 0).toLocaleString("en-GB", { minimumFractionDigits: 2 })}
+            {formatCurrency(totals?.expenses ?? 0, currency)}
           </Text>
-        </View>
+        </Card>
       </View>
 
-      {/* Accounts List */}
+      {/* Budget Overview */}
+      {(summary?.budgets?.length ?? 0) > 0 && (
+        <>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Budgets</Text>
+          {summary!.budgets.slice(0, 4).map((b) => {
+            const pct = b.budgetAmount > 0 ? b.budgetSpent / b.budgetAmount : 0;
+            return (
+              <Card key={b.id} style={{ gap: 8 }}>
+                <View style={styles.budgetHeader}>
+                  <Text style={[styles.budgetName, { color: colors.foreground }]}>{b.categoryName}</Text>
+                  <Text style={[styles.budgetAmount, { color: pct >= 1 ? colors.destructive : colors.foreground }]}>
+                    {formatCurrency(b.budgetSpent, currency)} / {formatCurrency(b.budgetAmount, currency)}
+                  </Text>
+                </View>
+                <ProgressBar value={pct} color={b.color} />
+              </Card>
+            );
+          })}
+        </>
+      )}
+
+      {/* Accounts */}
       <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Accounts</Text>
       {accounts.map((account) => (
-        <View key={account.id} style={[styles.listItem, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.listItemTitle, { color: colors.foreground }]}>{account.name}</Text>
-          <Text style={[styles.listItemValue, { color: colors.foreground }]}>
-            £{account.balance.toLocaleString("en-GB", { minimumFractionDigits: 2 })}
-          </Text>
-        </View>
+        <ListItem
+          key={account.id}
+          title={account.name}
+          subtitle={account.type}
+          right={
+            <Text style={[styles.accountBalance, { color: colors.foreground }]}>
+              {formatCurrency(account.balance, currency)}
+            </Text>
+          }
+        />
       ))}
+
+      {/* Goals */}
+      {(summary?.goals?.length ?? 0) > 0 && (
+        <>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Goals</Text>
+          {summary!.goals.slice(0, 3).map((g) => {
+            const pct = g.target_amount > 0 ? g.saved_amount / g.target_amount : 0;
+            return (
+              <Card key={g.id} style={{ gap: 8 }}>
+                <View style={styles.budgetHeader}>
+                  <Text style={[styles.budgetName, { color: colors.foreground }]}>{g.name}</Text>
+                  <Text style={{ color: colors.mutedForeground, fontSize: fontSize.sm }}>
+                    {Math.round(pct * 100)}%
+                  </Text>
+                </View>
+                <ProgressBar value={pct} color={g.color} />
+              </Card>
+            );
+          })}
+        </>
+      )}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  content: { padding: spacing.md, gap: spacing.md },
-  card: {
-    borderRadius: 16,
-    padding: spacing.lg,
-    borderWidth: 1,
-  },
+  content: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.xl },
   cardLabel: { fontSize: fontSize.sm, marginBottom: 4 },
   cardValue: { fontSize: fontSize["2xl"], fontWeight: "700" },
+  healthRow: { marginTop: spacing.sm },
   row: { flexDirection: "row", gap: spacing.md },
   halfCard: { flex: 1 },
   sectionTitle: { fontSize: fontSize.lg, fontWeight: "600", marginTop: spacing.sm },
-  listItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderRadius: 12,
-    padding: spacing.md,
-    borderWidth: 1,
-  },
-  listItemTitle: { fontSize: fontSize.base, fontWeight: "500" },
-  listItemValue: { fontSize: fontSize.base, fontWeight: "600" },
+  budgetHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  budgetName: { fontSize: fontSize.base, fontWeight: "500" },
+  budgetAmount: { fontSize: fontSize.sm, fontWeight: "600" },
+  accountBalance: { fontSize: fontSize.base, fontWeight: "600" },
 });

@@ -3,15 +3,11 @@ import { useCallback, useState } from "react";
 import { useTransactions } from "@/hooks/use-api";
 import { useTheme } from "@/lib/theme-context";
 import { spacing, fontSize } from "@/constants/theme";
-
-interface Transaction {
-  id: string;
-  description: string;
-  amount: number;
-  type: string;
-  date: string;
-  categoryName?: string;
-}
+import { ListItem, EmptyState } from "@/components/ui";
+import { formatCurrency } from "@/lib/shared/formatCurrency";
+import { formatDayLabel } from "@/lib/shared/date";
+import type { Transaction } from "@/lib/shared/types";
+import { ArrowLeftRight } from "lucide-react-native";
 
 export default function TransactionsScreen() {
   const { colors } = useTheme();
@@ -42,26 +38,25 @@ export default function TransactionsScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       ListEmptyComponent={
-        <View style={styles.center}>
-          <Text style={{ color: colors.mutedForeground, fontSize: fontSize.base }}>No transactions yet</Text>
-        </View>
+        <EmptyState
+          icon={<ArrowLeftRight size={40} color={colors.mutedForeground} />}
+          title="No transactions yet"
+          description="Your transactions will appear here once synced"
+        />
       }
       renderItem={({ item }) => {
         const isIncome = item.type === "income";
+        const sign = isIncome ? "+" : "-";
         return (
-          <View style={[styles.row, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={styles.rowLeft}>
-              <Text style={[styles.description, { color: colors.foreground }]} numberOfLines={1}>
-                {item.description}
+          <ListItem
+            title={item.description || item.merchant || "Transaction"}
+            subtitle={`${item.categoryName ?? "Uncategorised"} · ${formatDayLabel(item.date)}`}
+            right={
+              <Text style={{ color: isIncome ? colors.success : colors.destructive, fontWeight: "600", fontSize: fontSize.base }}>
+                {sign}{formatCurrency(Math.abs(item.amount))}
               </Text>
-              <Text style={[styles.meta, { color: colors.mutedForeground }]}>
-                {item.categoryName ?? "Uncategorised"} · {item.date}
-              </Text>
-            </View>
-            <Text style={[styles.amount, { color: isIncome ? colors.success : colors.destructive }]}>
-              {isIncome ? "+" : "-"}£{Math.abs(item.amount).toLocaleString("en-GB", { minimumFractionDigits: 2 })}
-            </Text>
-          </View>
+            }
+          />
         );
       }}
     />
@@ -70,17 +65,5 @@ export default function TransactionsScreen() {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.xl },
-  content: { padding: spacing.md, gap: spacing.sm },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderRadius: 12,
-    padding: spacing.md,
-    borderWidth: 1,
-  },
-  rowLeft: { flex: 1, marginRight: spacing.md },
-  description: { fontSize: fontSize.base, fontWeight: "500" },
-  meta: { fontSize: fontSize.xs, marginTop: 2 },
-  amount: { fontSize: fontSize.base, fontWeight: "600" },
+  content: { padding: spacing.md, gap: spacing.sm, paddingBottom: spacing.xl },
 });
