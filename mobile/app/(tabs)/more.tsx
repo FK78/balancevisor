@@ -9,6 +9,8 @@ import {
   Timer,
   Settings,
   LogOut,
+  MessageCircle,
+  Lightbulb,
 } from "lucide-react-native";
 import { useTheme } from "@/lib/theme-context";
 import { useAuth } from "@/lib/auth-context";
@@ -40,6 +42,8 @@ export default function MoreScreen() {
     { label: "Investments", icon: TrendingUp, onPress: () => router.push("/investments" as never) },
     { label: "Zakat", icon: Calculator, onPress: () => router.push("/zakat" as never) },
     { label: "Retirement", icon: Timer, onPress: () => router.push("/retirement" as never) },
+    { label: "AI Chat", icon: MessageCircle, onPress: () => router.push("/chat" as never) },
+    { label: "Insights", icon: Lightbulb, onPress: () => router.push("/nudges" as never) },
     { label: "Settings", icon: Settings, onPress: () => router.push("/settings" as never) },
   ];
 
