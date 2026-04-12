@@ -80,8 +80,11 @@ export function FormDialog({
         posthog.capture(event, { entity: entityName });
         toast.success(isEdit ? `${entityName} updated` : `${entityName} added`);
         setView("success");
-      } catch {
-        toast.error("Something went wrong. Please try again.");
+      } catch (err) {
+        const message = err instanceof Error && err.message
+          ? err.message
+          : "Something went wrong. Please try again.";
+        toast.error(message);
       }
     });
   }
