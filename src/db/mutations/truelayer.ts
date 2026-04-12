@@ -477,7 +477,7 @@ export async function importFromCache(selectedTlIds: string[]) {
         .where(eq(truelayerConnectionsTable.id, connId));
     }
 
-    revalidateDomains('accounts', 'transactions');
+    revalidateDomains('accounts', 'transactions', 'onboarding');
 
     return {
       accountsImported,

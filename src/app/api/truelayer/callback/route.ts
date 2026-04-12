@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
     // If connecting from onboarding, redirect back there instead of dashboard
     const returnTo = request.cookies.get('truelayer_return_to')?.value;
     const successUrl = returnTo === 'onboarding'
-      ? `${siteUrl}/onboarding?stage=setup&method=auto&truelayer_connected=true&import_pending=true`
+      ? `${siteUrl}/onboarding?stage=accounts&method=auto&truelayer_connected=true&import_pending=true`
       : `${siteUrl}/dashboard/accounts?truelayer_connected=true&import_pending=true`;
 
     const response = NextResponse.redirect(successUrl);

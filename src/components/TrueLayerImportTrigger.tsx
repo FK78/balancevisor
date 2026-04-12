@@ -221,11 +221,13 @@ export function TrueLayerImportTrigger() {
     if (!importPending || ran.current) return;
     ran.current = true;
 
-    // Clean import_pending from the URL immediately
+    // Clean import_pending from the URL without triggering a React navigation.
+    // Using router.replace() here would cause a server re-render that resets
+    // the overlay state mid-fetch, silently dropping the import.
     const params = new URLSearchParams(searchParams.toString());
     params.delete("import_pending");
     const cleaned = params.toString();
-    router.replace(cleaned ? `${pathname}?${cleaned}` : pathname, { scroll: false });
+    window.history.replaceState(null, "", cleaned ? `${pathname}?${cleaned}` : pathname);
 
     // Phase 1: show overlay and fetch everything
     setPhase({ stage: "fetching", status: "Connecting to your bank\u2026" });
@@ -252,7 +254,7 @@ export function TrueLayerImportTrigger() {
         setPhase({ stage: "error", message: "Failed to fetch bank accounts" });
         setTimeout(() => setPhase({ stage: "hidden" }), 4000);
       });
-  }, [importPending, pathname, router, searchParams, doImportFromCache]);
+  }, [importPending, pathname, searchParams, doImportFromCache]);
 
   return (
     <ImportOverlay
