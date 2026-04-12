@@ -1,15 +1,17 @@
-import { FlatList, View, Text, StyleSheet, ActivityIndicator, RefreshControl } from "react-native";
+import { FlatList, View, Text, StyleSheet, ActivityIndicator, RefreshControl, Pressable } from "react-native";
 import { useCallback, useState } from "react";
+import { useRouter } from "expo-router";
 import { useBudgets } from "@/hooks/use-api";
 import { useTheme } from "@/lib/theme-context";
 import { spacing, fontSize } from "@/constants/theme";
 import { Card, ProgressBar, EmptyState } from "@/components/ui";
 import { formatCurrency } from "@/lib/shared/formatCurrency";
 import type { Budget } from "@/lib/shared/types";
-import { PiggyBank } from "lucide-react-native";
+import { PiggyBank, Plus } from "lucide-react-native";
 
 export default function BudgetsScreen() {
   const { colors } = useTheme();
+  const router = useRouter();
   const { data, isLoading, refetch } = useBudgets();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -32,6 +34,7 @@ export default function BudgetsScreen() {
   }
 
   return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
     <FlatList
       data={budgets}
       keyExtractor={(item) => item.id}
@@ -77,6 +80,15 @@ export default function BudgetsScreen() {
         );
       }}
     />
+
+      {/* FAB */}
+      <Pressable
+        style={[styles.fab, { backgroundColor: colors.primary }]}
+        onPress={() => router.push("/add-budget" as never)}
+      >
+        <Plus size={24} color={colors.primaryForeground} />
+      </Pressable>
+    </View>
   );
 }
 
@@ -89,4 +101,19 @@ const styles = StyleSheet.create({
   dot: { width: 10, height: 10, borderRadius: 999, marginRight: spacing.sm },
   budgetName: { flex: 1, fontSize: fontSize.base, fontWeight: "500" },
   budgetAmount: { fontSize: fontSize.sm, fontWeight: "600" },
+  fab: {
+    position: "absolute",
+    right: spacing.md,
+    bottom: spacing.lg,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
 });

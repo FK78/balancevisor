@@ -37,8 +37,8 @@ export default function DashboardScreen() {
   const totals = summary?.totals;
 
   return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
     <ScrollView
-      style={{ flex: 1, backgroundColor: colors.background }}
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
     >
@@ -128,7 +128,44 @@ export default function DashboardScreen() {
           })}
         </>
       )}
+      {/* Net Worth Trend */}
+      {(summary?.netWorth?.length ?? 0) > 1 && (
+        <>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Net Worth Trend</Text>
+          <Card>
+            <View style={styles.netWorthRow}>
+              {summary!.netWorth.slice(-6).map((point) => {
+                const values = summary!.netWorth.slice(-6).map((p) => p.net_worth);
+                const maxVal = Math.max(...values);
+                const minVal = Math.min(...values);
+                const range = maxVal - minVal || 1;
+                const height = ((point.net_worth - minVal) / range) * 60 + 8;
+                return (
+                  <View key={point.date} style={styles.barCol}>
+                    <View style={[styles.bar, { height, backgroundColor: point.net_worth >= 0 ? colors.success : colors.destructive }]} />
+                    <Text style={{ color: colors.mutedForeground, fontSize: 9 }}>
+                      {point.date.slice(5)}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+            <Text style={{ color: colors.foreground, fontSize: fontSize.sm, fontWeight: "600", marginTop: spacing.sm, textAlign: "center" }}>
+              Current: {formatCurrency(summary!.netWorth[summary!.netWorth.length - 1]?.net_worth ?? 0, currency)}
+            </Text>
+          </Card>
+        </>
+      )}
     </ScrollView>
+
+      {/* FAB: Add Account */}
+      <Pressable
+        style={[styles.fab, { backgroundColor: colors.primary }]}
+        onPress={() => router.push("/add-account" as never)}
+      >
+        <Text style={{ color: colors.primaryForeground, fontSize: 24, fontWeight: "700", marginTop: -2 }}>+</Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -145,4 +182,22 @@ const styles = StyleSheet.create({
   budgetName: { fontSize: fontSize.base, fontWeight: "500" },
   budgetAmount: { fontSize: fontSize.sm, fontWeight: "600" },
   accountBalance: { fontSize: fontSize.base, fontWeight: "600" },
+  netWorthRow: { flexDirection: "row", justifyContent: "space-around", alignItems: "flex-end", height: 80 },
+  barCol: { alignItems: "center", gap: 4 },
+  bar: { width: 20, borderRadius: 4 },
+  fab: {
+    position: "absolute",
+    right: spacing.md,
+    bottom: spacing.lg,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
 });

@@ -227,3 +227,44 @@ export function useContributeToGoal(id: string) {
     "post", `/goals/${id}/contribute`, [queryKeys.goals, queryKeys.dashboardSummary],
   );
 }
+
+export function useDebtPayments(debtId: string) {
+  return useApiQuery(
+    ["debts", debtId, "payments"],
+    `/debts/${debtId}/payments`,
+  );
+}
+
+export function useCreateDebtPayment(debtId: string) {
+  return useApiMutation<{ amount: number; date?: string }>(
+    "post", `/debts/${debtId}/payments`, [queryKeys.debts, ["debts", debtId, "payments"], queryKeys.dashboardSummary],
+  );
+}
+
+export function useCreateSubscription() {
+  return useApiMutation<Partial<{ name: string; amount: number; currency: string; billing_cycle: string; next_billing_date: string; is_active: boolean }>>(
+    "post", "/subscriptions", [queryKeys.subscriptions, queryKeys.dashboardSummary],
+  );
+}
+
+export function useUpdateSubscription(id: string) {
+  return useApiMutation<Partial<{ name: string; amount: number; is_active: boolean; billing_cycle: string }>>(
+    "patch", `/subscriptions/${id}`, [queryKeys.subscriptions, queryKeys.dashboardSummary],
+  );
+}
+
+export function useDeleteSubscription(id: string) {
+  return useApiMutation<void>(
+    "delete", `/subscriptions/${id}`, [queryKeys.subscriptions, queryKeys.dashboardSummary],
+  );
+}
+
+export function useCalculateZakat() {
+  return useApiMutation<Record<string, unknown>>(
+    "post", "/zakat/calculate", [queryKeys.zakat],
+  );
+}
+
+export function useOnboarding() {
+  return useApiQuery(queryKeys.onboarding, "/onboarding");
+}

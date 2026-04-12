@@ -1,6 +1,6 @@
-import { FlatList, View, Text, StyleSheet, ActivityIndicator, RefreshControl } from "react-native";
+import { FlatList, View, Text, StyleSheet, ActivityIndicator, RefreshControl, Pressable } from "react-native";
 import { useCallback, useState } from "react";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { CreditCard } from "lucide-react-native";
 import { useDebts } from "@/hooks/use-api";
 import { useTheme } from "@/lib/theme-context";
@@ -11,6 +11,7 @@ import type { Debt } from "@/lib/shared/types";
 
 export default function DebtsScreen() {
   const { colors } = useTheme();
+  const router = useRouter();
   const { data, isLoading, refetch } = useDebts();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -60,26 +61,28 @@ export default function DebtsScreen() {
         renderItem={({ item }) => {
           const paidPct = item.total_amount > 0 ? 1 - item.remaining_amount / item.total_amount : 0;
           return (
-            <Card style={{ gap: spacing.sm }}>
-              <View style={styles.header}>
-                <Text style={[styles.name, { color: colors.foreground }]}>{item.name}</Text>
-                <Badge label={item.type.replace(/_/g, " ")} variant="muted" />
-              </View>
-              <ProgressBar value={paidPct} color={colors.success} />
-              <View style={styles.header}>
-                <Text style={{ color: colors.mutedForeground, fontSize: fontSize.xs }}>
-                  {formatCurrency(item.remaining_amount)} remaining
-                </Text>
-                <Text style={{ color: colors.foreground, fontSize: fontSize.xs }}>
-                  {item.interest_rate}% APR
-                </Text>
-              </View>
-              {item.minimum_payment > 0 && (
-                <Text style={{ color: colors.mutedForeground, fontSize: fontSize.xs }}>
-                  Min payment: {formatCurrency(item.minimum_payment)}/mo
-                </Text>
-              )}
-            </Card>
+            <Pressable onPress={() => router.push(`/debt/${item.id}` as never)}>
+              <Card style={{ gap: spacing.sm }}>
+                <View style={styles.header}>
+                  <Text style={[styles.name, { color: colors.foreground }]}>{item.name}</Text>
+                  <Badge label={item.type.replace(/_/g, " ")} variant="muted" />
+                </View>
+                <ProgressBar value={paidPct} color={colors.success} />
+                <View style={styles.header}>
+                  <Text style={{ color: colors.mutedForeground, fontSize: fontSize.xs }}>
+                    {formatCurrency(item.remaining_amount)} remaining
+                  </Text>
+                  <Text style={{ color: colors.foreground, fontSize: fontSize.xs }}>
+                    {item.interest_rate}% APR
+                  </Text>
+                </View>
+                {item.minimum_payment > 0 && (
+                  <Text style={{ color: colors.mutedForeground, fontSize: fontSize.xs }}>
+                    Min payment: {formatCurrency(item.minimum_payment)}/mo
+                  </Text>
+                )}
+              </Card>
+            </Pressable>
           );
         }}
       />
