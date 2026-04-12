@@ -4,10 +4,6 @@ import { useState } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -31,8 +27,10 @@ type Props = {
   readonly loading?: boolean;
 };
 
-export function TrueLayerAccountSelector({ open, accounts, onConfirm, onCancel, loading }: Props) {
-  // Pre-select non-pot accounts by default
+/**
+ * Inline content (no dialog wrapper) — used inside the full-page import overlay.
+ */
+export function TrueLayerAccountSelectorContent({ accounts, onConfirm, onCancel, loading }: Omit<Props, "open">) {
   const [selected, setSelected] = useState<Set<string>>(() => {
     const initial = new Set<string>();
     for (const a of accounts) {
@@ -57,44 +55,60 @@ export function TrueLayerAccountSelector({ open, accounts, onConfirm, onCancel, 
   const nonPots = accounts.filter((a) => !a.likelyPot);
 
   return (
+    <div className="w-full max-w-lg mx-auto space-y-6">
+      <div className="text-center space-y-2">
+        <h2 className="text-xl font-semibold tracking-tight">Choose accounts to import</h2>
+        <p className="text-sm text-muted-foreground">
+          We found {accounts.length} account{accounts.length !== 1 ? "s" : ""}. Toggle off any you don&apos;t want to track.
+        </p>
+      </div>
+
+      <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
+        {nonPots.length > 0 && (
+          <AccountGroup label="Accounts" items={nonPots} selected={selected} onToggle={toggle} />
+        )}
+        {pots.length > 0 && (
+          <>
+            <div className="flex items-center gap-2 pt-2">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              <p className="text-sm text-muted-foreground">
+                These look like Monzo Pots / Starling Spaces — importing them may create duplicate transfers.
+              </p>
+            </div>
+            <AccountGroup label="Likely Pots / Spaces" items={pots} selected={selected} onToggle={toggle} />
+          </>
+        )}
+      </div>
+
+      <div className="flex justify-center gap-3">
+        <Button variant="outline" onClick={onCancel} disabled={loading}>
+          Cancel
+        </Button>
+        <Button
+          onClick={() => onConfirm(Array.from(selected))}
+          disabled={selected.size === 0 || loading}
+        >
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Import {selected.size} account{selected.size !== 1 ? "s" : ""}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Dialog-wrapped version — kept for standalone usage (e.g. settings page).
+ */
+export function TrueLayerAccountSelector({ open, accounts, onConfirm, onCancel, loading }: Props) {
+  return (
     <Dialog open={open} onOpenChange={(v) => { if (!v && !loading) onCancel(); }}>
       <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Choose accounts to import</DialogTitle>
-          <DialogDescription>
-            We found {accounts.length} account{accounts.length !== 1 ? "s" : ""}. Toggle off any you don&apos;t want to track.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
-          {nonPots.length > 0 && (
-            <AccountGroup label="Accounts" items={nonPots} selected={selected} onToggle={toggle} />
-          )}
-          {pots.length > 0 && (
-            <>
-              <div className="flex items-center gap-2 pt-2">
-                <AlertTriangle className="h-4 w-4 text-amber-500" />
-                <p className="text-sm text-muted-foreground">
-                  These look like Monzo Pots / Starling Spaces — importing them may create duplicate transfers.
-                </p>
-              </div>
-              <AccountGroup label="Likely Pots / Spaces" items={pots} selected={selected} onToggle={toggle} />
-            </>
-          )}
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onCancel} disabled={loading}>
-            Cancel
-          </Button>
-          <Button
-            onClick={() => onConfirm(Array.from(selected))}
-            disabled={selected.size === 0 || loading}
-          >
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Import {selected.size} account{selected.size !== 1 ? "s" : ""}
-          </Button>
-        </DialogFooter>
+        <TrueLayerAccountSelectorContent
+          accounts={accounts}
+          onConfirm={onConfirm}
+          onCancel={onCancel}
+          loading={loading}
+        />
       </DialogContent>
     </Dialog>
   );

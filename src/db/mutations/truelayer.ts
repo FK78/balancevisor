@@ -33,6 +33,12 @@ import { logger } from "@/lib/logger";
 import { rateLimiters } from "@/lib/rate-limiter";
 import { ValidationError } from "@/lib/errors";
 import { getTrueLayerConnections as _getTrueLayerConnections } from "@/db/queries/truelayer";
+import {
+  setCachedImport,
+  getCachedImport,
+  clearCachedImport,
+  type CachedTlAccount,
+} from "@/lib/truelayer-import-cache";
 
 // ---------------------------------------------------------------------------
 // Save a new TrueLayer connection after OAuth callback
@@ -148,22 +154,14 @@ interface NormalisedTlAccount {
   readonly source: "account" | "card";
 }
 
+// Re-export the account preview type from the cache module
+export type { CachedTlAccount as TlAccountPreview } from "@/lib/truelayer-import-cache";
+
 // ---------------------------------------------------------------------------
-// Preview: fetch account list without importing (for user selection)
+// Phase 1: Fetch ALL data from TrueLayer, cache it, return account previews
 // ---------------------------------------------------------------------------
 
-export type TlAccountPreview = {
-  readonly tlId: string;
-  readonly displayName: string;
-  readonly accountType: "currentAccount" | "savings" | "creditCard" | "investment";
-  readonly currency: string;
-  readonly providerName: string | undefined;
-  readonly source: "account" | "card";
-  readonly balance: number;
-  readonly likelyPot: boolean;
-};
-
-export async function previewTrueLayerAccounts(): Promise<TlAccountPreview[]> {
+export async function fetchAndCacheTrueLayerData(): Promise<CachedTlAccount[]> {
   const userId = await getCurrentUserId();
 
   const connections = await db
@@ -175,14 +173,16 @@ export async function previewTrueLayerAccounts(): Promise<TlAccountPreview[]> {
     throw new Error("No TrueLayer connections found. Please connect a bank first.");
   }
 
-  const all: TlAccountPreview[] = [];
+  const allAccounts: CachedTlAccount[] = [];
+  const allTransactions = new Map<string, Awaited<ReturnType<typeof fetchTransactions>>>();
+  const allDateRanges = new Map<string, { from: string; to: string }>();
 
   for (const connection of connections) {
     let accessToken: string;
     try {
       accessToken = await getValidToken(connection.id, userId);
     } catch (tokenErr) {
-      logger.error("truelayer.preview", "Token refresh failed", { connectionId: connection.id, error: String(tokenErr) });
+      logger.error("truelayer.fetchAndCache", "Token refresh failed", { connectionId: connection.id, error: String(tokenErr) });
       continue;
     }
 
@@ -191,12 +191,17 @@ export async function previewTrueLayerAccounts(): Promise<TlAccountPreview[]> {
       fetchCards(accessToken).catch(() => [] as Awaited<ReturnType<typeof fetchCards>>),
     ]);
 
-    // Detect pots: provider is Monzo/Starling + type is savings but user also has
-    // a current account from the same provider — the savings are likely pots/spaces.
     const hasCurrentAccount = tlAccounts.some(
       (a) => mapAccountType(a.account_type) === "currentAccount",
     );
 
+    // Date range for transactions
+    const to = toDateString(new Date());
+    const from = connection.last_synced_at
+      ? toDateString(new Date(connection.last_synced_at.getTime() - 2 * 24 * 60 * 60 * 1000))
+      : toDateString(new Date(Date.now() - 730 * 24 * 60 * 60 * 1000));
+
+    // Fetch accounts + balances + transactions in parallel per account
     for (const a of tlAccounts) {
       const accountType = mapAccountType(a.account_type);
       let balance = 0;
@@ -205,7 +210,7 @@ export async function previewTrueLayerAccounts(): Promise<TlAccountPreview[]> {
         balance = b.current;
       } catch { /* non-critical */ }
 
-      all.push({
+      allAccounts.push({
         tlId: a.account_id,
         displayName: a.display_name,
         accountType,
@@ -214,7 +219,20 @@ export async function previewTrueLayerAccounts(): Promise<TlAccountPreview[]> {
         source: "account",
         balance,
         likelyPot: hasCurrentAccount && accountType === "savings",
+        connectionId: connection.id,
       });
+
+      // Fetch transactions for this account
+      try {
+        const txns = await fetchTransactions(accessToken, a.account_id, from, to);
+        allTransactions.set(a.account_id, txns);
+        allDateRanges.set(a.account_id, { from, to });
+        logger.debug("truelayer.fetchAndCache", `Fetched ${txns.length} txns for ${a.display_name}`, {
+          accountId: a.account_id, count: txns.length,
+        });
+      } catch {
+        logger.warn("truelayer.fetchAndCache", "Transaction fetch failed", { accountId: a.account_id });
+      }
     }
 
     for (const c of tlCards) {
@@ -224,7 +242,7 @@ export async function previewTrueLayerAccounts(): Promise<TlAccountPreview[]> {
         balance = b.current;
       } catch { /* non-critical */ }
 
-      all.push({
+      allAccounts.push({
         tlId: c.account_id,
         displayName: c.display_name,
         accountType: mapCardType(c.card_type),
@@ -233,11 +251,244 @@ export async function previewTrueLayerAccounts(): Promise<TlAccountPreview[]> {
         source: "card",
         balance,
         likelyPot: false,
+        connectionId: connection.id,
       });
+
+      // Fetch card transactions
+      try {
+        const txns = await fetchCardTransactions(accessToken, c.account_id, from, to);
+        allTransactions.set(c.account_id, txns);
+        allDateRanges.set(c.account_id, { from, to });
+        logger.debug("truelayer.fetchAndCache", `Fetched ${txns.length} card txns for ${c.display_name}`, {
+          accountId: c.account_id, count: txns.length,
+        });
+      } catch {
+        logger.warn("truelayer.fetchAndCache", "Card transaction fetch failed", { accountId: c.account_id });
+      }
     }
   }
 
-  return all;
+  logger.info("truelayer.fetchAndCache", `Cached ${allAccounts.length} accounts, ${allTransactions.size} transaction sets`, {
+    userId,
+    totalTxns: Array.from(allTransactions.values()).reduce((s, t) => s + t.length, 0),
+  });
+
+  // Store everything in the cache
+  setCachedImport(userId, {
+    userId,
+    accounts: allAccounts,
+    transactions: allTransactions,
+    dateRanges: allDateRanges,
+    fetchedAt: new Date(),
+  });
+
+  return allAccounts;
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3: Write cached data to DB for selected accounts only
+// ---------------------------------------------------------------------------
+
+export async function importFromCache(selectedTlIds: string[]) {
+  const userId = await getCurrentUserId();
+  const cached = getCachedImport(userId);
+
+  if (!cached || cached.userId !== userId) {
+    logger.warn("truelayer.importFromCache", "Cache miss — falling back to live import", { userId });
+    // Safety net: fall back to live fetch if cache expired
+    return importFromTrueLayer(selectedTlIds);
+  }
+
+  try {
+    const baseCurrency = await getUserBaseCurrency(userId);
+    const userKey = await getUserKey(userId);
+
+    // Build categorisation context
+    const [rules, merchantMappings, userCategories] = await Promise.all([
+      fetchUserRules(userId),
+      getAllMerchantMappings(userId),
+      db.select({ id: categoriesTable.id, name: categoriesTable.name })
+        .from(categoriesTable)
+        .where(eq(categoriesTable.user_id, userId)),
+    ]);
+    const catCtx: CategoriseContext = { rules, merchantMappings, userCategories };
+
+    let accountsImported = 0;
+    let transactionsImported = 0;
+    const importedTransactionIds: string[] = [];
+    const skippedAccounts: string[] = [];
+
+    // Group cached accounts by connectionId to update last_synced_at
+    const connectionIds = new Set<string>();
+
+    const selectedAccounts = cached.accounts.filter((a) => selectedTlIds.includes(a.tlId));
+
+    for (const tlItem of selectedAccounts) {
+      try {
+        connectionIds.add(tlItem.connectionId);
+
+        // Upsert account
+        const [upserted] = await db
+          .insert(accountsTable)
+          .values({
+            user_id: userId,
+            name: encryptForUser(
+              tlItem.displayName || `Bank Account`,
+              userKey,
+            ),
+            type: tlItem.accountType,
+            balance: tlItem.balance,
+            currency: tlItem.currency || baseCurrency,
+            truelayer_id: tlItem.tlId,
+            truelayer_connection_id: tlItem.connectionId,
+          })
+          .onConflictDoUpdate({
+            target: [accountsTable.user_id, accountsTable.truelayer_id],
+            set: { balance: tlItem.balance },
+          })
+          .returning({ id: accountsTable.id });
+
+        const localAccountId = upserted.id;
+        accountsImported++;
+
+        // Get cached transactions for this account
+        const tlTransactions = cached.transactions.get(tlItem.tlId);
+        if (!tlTransactions || tlTransactions.length === 0) continue;
+
+        const dateRange = cached.dateRanges.get(tlItem.tlId);
+        const from = dateRange?.from ?? toDateString(new Date(Date.now() - 730 * 24 * 60 * 60 * 1000));
+        const to = dateRange?.to ?? toDateString(new Date());
+
+        // Pre-fetch recent expenses for refund matching
+        const recentExpenses = await db
+          .select({
+            id: transactionsTable.id,
+            amount: transactionsTable.amount,
+            description: transactionsTable.description,
+          })
+          .from(transactionsTable)
+          .where(
+            and(
+              eq(transactionsTable.user_id, userId),
+              eq(transactionsTable.account_id, localAccountId),
+              eq(transactionsTable.type, "expense"),
+              gte(transactionsTable.date, from),
+            ),
+          )
+          .orderBy(desc(transactionsTable.date))
+          .limit(500);
+
+        const uncategorised =
+          userCategories.find((c) => c.name.toLowerCase() === "uncategorised") ??
+          userCategories.find((c) => c.name.toLowerCase() === "other") ??
+          userCategories[0];
+
+        const txnBatch: (typeof transactionsTable.$inferInsert)[] = [];
+        const merchantLearnings: { merchant: string; categoryId: string }[] = [];
+
+        for (const tlTxn of tlTransactions) {
+          const isExpense =
+            tlTxn.transaction_type === "DEBIT" || tlTxn.amount < 0;
+          const amount = Math.abs(tlTxn.amount);
+          const description = tlTxn.description || "Bank transaction";
+
+          // Classify transaction type
+          const isMonzoPot = tlTxn.meta?.provider_category === "uk_retail_pot";
+          const isStarlingSpace = tlTxn.meta?.provider_source === "INTERNAL_TRANSFER";
+          const isTransfer = tlTxn.transaction_category === "TRANSFER" || isMonzoPot || isStarlingSpace;
+          let type: "income" | "expense" | "transfer" | "refund" = isTransfer
+            ? "transfer"
+            : (isExpense ? "expense" : "income");
+          let refundForTransactionId: string | null = null;
+
+          // Refund matching (skip for transfers)
+          if (!isExpense && !isTransfer) {
+            const keywordMatch = isLikelyRefund(description);
+            const descLower = description.toLowerCase();
+            const expenseMatch = recentExpenses.find((e) => {
+              if (Math.abs(e.amount - amount) > 0.01) return false;
+              const expDesc = decryptForUser(e.description, userKey).toLowerCase();
+              return descLower.includes(expDesc.substring(0, 20)) || expDesc.includes(descLower.substring(0, 20));
+            });
+            if (keywordMatch || expenseMatch) {
+              type = "refund";
+              refundForTransactionId = expenseMatch?.id ?? null;
+            }
+          }
+
+          // Categorisation pipeline
+          const catResult = categoriseTransaction(
+            description,
+            catCtx,
+            tlTxn.transaction_category,
+          );
+          const categoryId = catResult.categoryId ?? uncategorised?.id ?? null;
+
+          txnBatch.push({
+            user_id: userId,
+            account_id: localAccountId,
+            category_id: categoryId,
+            category_source: catResult.categorySource,
+            merchant_name: catResult.merchantName,
+            type,
+            amount,
+            description: encryptForUser(description, userKey),
+            date: tlTxn.timestamp ? tlTxn.timestamp.split("T")[0] : to,
+            is_recurring: false,
+            truelayer_id: tlTxn.transaction_id,
+            refund_for_transaction_id: refundForTransactionId,
+          });
+
+          if (catResult.categorySource === 'bank' && catResult.merchantName && catResult.categoryId) {
+            merchantLearnings.push({ merchant: catResult.merchantName, categoryId: catResult.categoryId });
+          }
+        }
+
+        // Insert in chunks
+        const CHUNK_SIZE = 100;
+        for (let i = 0; i < txnBatch.length; i += CHUNK_SIZE) {
+          const chunk = txnBatch.slice(i, i + CHUNK_SIZE);
+          const rows = await db.insert(transactionsTable)
+            .values(chunk)
+            .onConflictDoNothing()
+            .returning({ id: transactionsTable.id });
+          for (const row of rows) {
+            importedTransactionIds.push(row.id);
+          }
+          transactionsImported += rows.length;
+        }
+
+        // Learn merchant mappings (non-blocking)
+        for (const ml of merchantLearnings) {
+          learnMerchantMappingForUser(userId, ml.merchant, ml.categoryId, 'bank')
+            .catch((err) => logger.warn('truelayer.importFromCache', 'merchant mapping learn failed', err));
+        }
+      } catch (accountErr) {
+        logger.error("truelayer.importFromCache", `Failed to import account ${tlItem.displayName}`, accountErr);
+        skippedAccounts.push(tlItem.displayName);
+      }
+    }
+
+    // Update last_synced_at for all involved connections
+    for (const connId of connectionIds) {
+      await db
+        .update(truelayerConnectionsTable)
+        .set({ last_synced_at: new Date() })
+        .where(eq(truelayerConnectionsTable.id, connId));
+    }
+
+    revalidateDomains('accounts', 'transactions');
+
+    return {
+      accountsImported,
+      transactionsImported,
+      transactionIds: importedTransactionIds,
+      skippedAccounts,
+    };
+  } finally {
+    // Always clear cache after use
+    clearCachedImport(userId);
+  }
 }
 
 // ---------------------------------------------------------------------------
