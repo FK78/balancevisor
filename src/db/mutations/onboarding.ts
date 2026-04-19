@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/index';
-import { accountsTable, categoriesTable, defaultCategoryTemplatesTable, userOnboardingTable, userPreferencesTable } from '@/db/schema';
+import { accountsTable, userOnboardingTable, userPreferencesTable } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { revalidateDomains } from '@/lib/revalidate';
 import { redirect } from 'next/navigation';
@@ -10,51 +10,46 @@ import { DEFAULT_BASE_CURRENCY, normalizeBaseCurrency } from '@/lib/currency';
 import { createUserKey } from '@/lib/encryption';
 import { buildOnboardingHref } from '@/lib/onboarding-flow';
 
-async function upsertOnboardingState(userId: string, updates: Partial<{
+function serializePendingFeatures(features?: string[] | null): string | null {
+  if (!features || features.length === 0) return null;
+  return JSON.stringify(features);
+}
+
+function parsePendingFeatures(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+type OnboardingUpdates = Partial<{
   base_currency: string;
   use_default_categories: boolean;
   completed: boolean;
   completed_at: Date | null;
   pending_features: string[] | null;
-}>) {
+}>;
+
+async function upsertOnboardingState(userId: string, updates: OnboardingUpdates) {
+  const serializedUpdates: Record<string, unknown> = { ...updates };
+  if ('pending_features' in updates) {
+    serializedUpdates.pending_features = serializePendingFeatures(updates.pending_features);
+  }
+
   await db.insert(userOnboardingTable).values({
     user_id: userId,
     base_currency: normalizeBaseCurrency(updates.base_currency ?? DEFAULT_BASE_CURRENCY),
     use_default_categories: updates.use_default_categories ?? false,
     completed: updates.completed ?? false,
     completed_at: updates.completed_at ?? null,
+    pending_features: serializePendingFeatures(updates.pending_features),
   }).onConflictDoUpdate({
     target: userOnboardingTable.user_id,
-    set: updates,
+    set: serializedUpdates,
   });
-}
-
-async function insertMissingDefaultCategories(userId: string) {
-  const templates = await db.select()
-    .from(defaultCategoryTemplatesTable)
-    .where(eq(defaultCategoryTemplatesTable.is_active, true));
-
-  if (templates.length === 0) {
-    return;
-  }
-
-  const existingCategories = await db.select({ name: categoriesTable.name })
-    .from(categoriesTable)
-    .where(eq(categoriesTable.user_id, userId));
-
-  const existingNames = new Set(existingCategories.map((category) => category.name.toLowerCase()));
-  const rowsToInsert = templates
-    .filter((template) => !existingNames.has(template.name.toLowerCase()))
-    .map((template) => ({
-      user_id: userId,
-      name: template.name,
-      color: template.color,
-      icon: template.icon,
-    }));
-
-  if (rowsToInsert.length > 0) {
-    await db.insert(categoriesTable).values(rowsToInsert).onConflictDoNothing();
-  }
 }
 
 export async function setBaseCurrency(formData: FormData) {
@@ -78,42 +73,15 @@ export async function setBaseCurrency(formData: FormData) {
       .where(eq(accountsTable.user_id, userId));
   });
 
-  revalidateDomains('onboarding', 'accounts', 'budgets', 'transactions');
+  revalidateDomains('onboarding', 'accounts');
   const ai = formData.get('ai_enabled');
   redirect(buildOnboardingHref('account-method', { aiEnabled: ai !== '0' }));
 }
 
-export async function continueFromCategories(formData: FormData) {
-  const userId = await getCurrentUserId();
-  const useDefaultCategories = formData.get('use_default_categories') === 'on';
-  const intent = formData.get('intent');
-
-  await upsertOnboardingState(userId, {
-    use_default_categories: useDefaultCategories,
-    completed: false,
-    completed_at: null,
-  });
-
-  if (useDefaultCategories) {
-    await insertMissingDefaultCategories(userId);
-  }
-
-  revalidateDomains('onboarding');
-  const ai = formData.get('ai_enabled');
-  const aiEnabled = ai !== '0';
-  if (intent === 'apply') {
-    redirect(buildOnboardingHref('categories', { aiEnabled }));
-  }
-
-  redirect(buildOnboardingHref('review', { aiEnabled }));
-}
-
 const FEATURE_ROUTES: Record<string, string> = {
-  budgets: '/dashboard/budgets',
-  goals: '/dashboard/goals',
-  debts: '/dashboard/debts',
-  subscriptions: '/dashboard/subscriptions',
+  accounts: '/dashboard/accounts',
   investments: '/dashboard/investments',
+  zakat: '/dashboard/zakat',
 };
 
 async function finishOnboarding(userId: string, features?: string[]) {
@@ -126,35 +94,30 @@ async function finishOnboarding(userId: string, features?: string[]) {
   revalidateDomains('onboarding');
 }
 
+async function persistAiPreference(userId: string, aiEnabled?: boolean) {
+  if (typeof aiEnabled !== 'boolean') return;
+  const now = new Date();
+  await db.insert(userPreferencesTable).values({
+    user_id: userId,
+    ai_enabled: aiEnabled,
+    updated_at: now,
+  }).onConflictDoUpdate({
+    target: userPreferencesTable.user_id,
+    set: { ai_enabled: aiEnabled, updated_at: now },
+  });
+}
+
 export async function completeOnboarding(aiEnabled?: boolean) {
   const userId = await getCurrentUserId();
   await finishOnboarding(userId);
-  if (typeof aiEnabled === 'boolean') {
-    await db.insert(userPreferencesTable).values({
-      user_id: userId,
-      ai_enabled: aiEnabled,
-      updated_at: new Date(),
-    }).onConflictDoUpdate({
-      target: userPreferencesTable.user_id,
-      set: { ai_enabled: aiEnabled, updated_at: new Date() },
-    });
-  }
+  await persistAiPreference(userId, aiEnabled);
   redirect('/dashboard');
 }
 
 export async function skipOnboarding(aiEnabled?: boolean) {
   const userId = await getCurrentUserId();
   await finishOnboarding(userId);
-  if (typeof aiEnabled === 'boolean') {
-    await db.insert(userPreferencesTable).values({
-      user_id: userId,
-      ai_enabled: aiEnabled,
-      updated_at: new Date(),
-    }).onConflictDoUpdate({
-      target: userPreferencesTable.user_id,
-      set: { ai_enabled: aiEnabled, updated_at: new Date() },
-    });
-  }
+  await persistAiPreference(userId, aiEnabled);
   redirect('/dashboard');
 }
 
@@ -165,18 +128,7 @@ export async function completeOnboardingAndRedirectWithFeatures(
 ) {
   const userId = await getCurrentUserId();
   await finishOnboarding(userId, features);
-
-  if (typeof aiEnabled === 'boolean') {
-    const now = new Date();
-    await db.insert(userPreferencesTable).values({
-      user_id: userId,
-      ai_enabled: aiEnabled,
-      updated_at: now,
-    }).onConflictDoUpdate({
-      target: userPreferencesTable.user_id,
-      set: { ai_enabled: aiEnabled, updated_at: now },
-    });
-  }
+  await persistAiPreference(userId, aiEnabled);
 
   const route = firstFeature ? FEATURE_ROUTES[firstFeature] : '/dashboard';
   redirect(route || '/dashboard');
@@ -184,32 +136,32 @@ export async function completeOnboardingAndRedirectWithFeatures(
 
 export async function markFeatureVisited(feature: string) {
   const userId = await getCurrentUserId();
-  const state = await db.select({ pending_features: userOnboardingTable.pending_features })
+  const [state] = await db.select({ pending_features: userOnboardingTable.pending_features })
     .from(userOnboardingTable)
     .where(eq(userOnboardingTable.user_id, userId))
     .limit(1);
 
-  if (state.length === 0 || !state[0].pending_features) return;
+  if (!state || !state.pending_features) return;
 
-  const pendingFeatures = state[0].pending_features as string[];
+  const pendingFeatures = parsePendingFeatures(state.pending_features);
   const updatedFeatures = pendingFeatures.filter((f) => f !== feature);
 
   await db.update(userOnboardingTable)
-    .set({ pending_features: updatedFeatures.length > 0 ? updatedFeatures : null })
+    .set({ pending_features: serializePendingFeatures(updatedFeatures) })
     .where(eq(userOnboardingTable.user_id, userId));
 
-  revalidateDomains();
+  revalidateDomains('onboarding');
 }
 
 export async function getNextPendingFeature(): Promise<string | null> {
   const userId = await getCurrentUserId();
-  const state = await db.select({ pending_features: userOnboardingTable.pending_features })
+  const [state] = await db.select({ pending_features: userOnboardingTable.pending_features })
     .from(userOnboardingTable)
     .where(eq(userOnboardingTable.user_id, userId))
     .limit(1);
 
-  if (state.length === 0 || !state[0].pending_features) return null;
+  if (!state || !state.pending_features) return null;
 
-  const pendingFeatures = state[0].pending_features as string[];
+  const pendingFeatures = parsePendingFeatures(state.pending_features);
   return pendingFeatures.length > 0 ? pendingFeatures[0] : null;
 }

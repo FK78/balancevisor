@@ -23,7 +23,7 @@ export const NoBrokersConnected: Story = {
 
 export const SomeConnected: Story = {
   args: {
-    connectedBrokers: ["trading212", "coinbase"] as any[],
+    connectedBrokers: ["trading212", "coinbase"] as const,
     investmentAccounts: [{ id: "ia1", accountName: "ISA" }],
   },
 };

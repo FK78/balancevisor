@@ -75,8 +75,8 @@ export function OnboardingAccountsStage({
             </Link>
           </Button>
           <Button asChild>
-            <Link href={buildOnboardingHref("categories", { aiEnabled, method: accountMethod })}>
-              Continue to categories
+            <Link href={buildOnboardingHref("features", { aiEnabled, method: accountMethod })}>
+              Continue to features
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>

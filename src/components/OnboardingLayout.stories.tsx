@@ -37,19 +37,6 @@ export const AccountsStage: Story = {
   },
 };
 
-export const CategoriesStage: Story = {
-  args: {
-    currentStage: "categories",
-    stageTitle: "Set up your categories",
-    stageDescription: "Give your spending a structure so transactions are organised from day one.",
-    children: (
-      <div className="rounded-xl border p-6 text-center text-sm text-muted-foreground">
-        Categories content placeholder
-      </div>
-    ),
-  },
-};
-
 export const FeaturesStage: Story = {
   args: {
     currentStage: "features",

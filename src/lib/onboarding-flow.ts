@@ -1,4 +1,4 @@
-export type OnboardingStage = "basics" | "account-method" | "accounts" | "categories" | "features" | "review";
+export type OnboardingStage = "basics" | "account-method" | "accounts" | "features" | "review";
 
 export type AccountMethod = "auto" | "manual" | "hybrid";
 
@@ -29,13 +29,7 @@ export const ONBOARDING_STAGE_META: readonly {
     value: "accounts",
     label: "Accounts",
     title: "Add your accounts",
-    description: "Connect your bank or add accounts manually so your dashboard has real data.",
-  },
-  {
-    value: "categories",
-    label: "Categories",
-    title: "Set up your categories",
-    description: "Give your spending a structure so transactions are organised from day one.",
+    description: "Connect your bank or add accounts manually so your net worth picture is accurate.",
   },
   {
     value: "features",
@@ -55,7 +49,7 @@ const LEGACY_STEP_MAP: Record<string, OnboardingStage> = {
   welcome: "basics",
   "account-method": "account-method",
   accounts: "accounts",
-  categories: "categories",
+  categories: "features", // category stage removed; legacy links go to features
   features: "features",
   setup: "accounts",
   review: "review",
@@ -105,21 +99,17 @@ export type SetupChecklistStatus = "done" | "recommended" | "optional";
 
 export function hasCoreOnboardingSetup({
   accountsCount,
-  categoriesCount,
 }: {
   readonly accountsCount: number;
-  readonly categoriesCount: number;
 }) {
-  return accountsCount > 0 && categoriesCount > 0;
+  return accountsCount > 0;
 }
 
 export function getSetupChecklist({
   accountsCount,
-  categoriesCount,
   selectedFeaturesCount,
 }: {
   readonly accountsCount: number;
-  readonly categoriesCount: number;
   readonly selectedFeaturesCount: number;
 }) {
   return [
@@ -132,14 +122,6 @@ export function getSetupChecklist({
         : "Recommended",
     },
     {
-      key: "categories",
-      label: "Categories",
-      status: categoriesCount > 0 ? "done" : "recommended",
-      helper: categoriesCount > 0
-        ? `${categoriesCount} ready`
-        : "Recommended",
-    },
-    {
       key: "features",
       label: "Features",
       status: selectedFeaturesCount > 0 ? "done" : "optional",
@@ -148,7 +130,7 @@ export function getSetupChecklist({
         : "Optional",
     },
   ] satisfies {
-    key: "accounts" | "categories" | "features";
+    key: "accounts" | "features";
     label: string;
     status: SetupChecklistStatus;
     helper: string;
@@ -157,12 +139,10 @@ export function getSetupChecklist({
 
 export function getSetupContinueLabel({
   accountsCount,
-  categoriesCount,
 }: {
   readonly accountsCount: number;
-  readonly categoriesCount: number;
 }) {
-  return hasCoreOnboardingSetup({ accountsCount, categoriesCount })
+  return hasCoreOnboardingSetup({ accountsCount })
     ? "Continue to review"
     : "Continue with setup incomplete";
 }

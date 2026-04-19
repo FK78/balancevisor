@@ -1,7 +1,8 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
-import { InterestPicker } from "@/components/InterestPicker";
+import { Switch } from "@/components/ui/switch";
+import { FEATURE_DEFINITIONS, type FeatureId } from "@/lib/features";
 
 interface FeaturesStepProps {
   aiEnabled: boolean;
@@ -36,10 +37,38 @@ export function FeaturesStep({
         </div>
       )}
 
-      <InterestPicker
-        selectedFeatures={selectedFeatures}
-        onChange={onChange}
-      />
+      <div className="grid gap-3 sm:grid-cols-2">
+        {FEATURE_DEFINITIONS.map((feature) => {
+          const checked = selectedFeatures.includes(feature.id);
+          const Icon = feature.icon;
+          return (
+            <label
+              key={feature.id}
+              className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_26%,var(--card))] p-4 transition-colors hover:border-primary/40"
+            >
+              <Switch
+                checked={checked}
+                onCheckedChange={(isOn: boolean) => {
+                  const nextList = isOn
+                    ? Array.from(new Set([...selectedFeatures, feature.id as FeatureId]))
+                    : selectedFeatures.filter((f) => f !== feature.id);
+                  onChange(nextList);
+                }}
+                className="mt-1"
+              />
+              <div className="flex flex-col gap-1">
+                <span className="inline-flex items-center gap-2 text-sm font-medium text-foreground">
+                  <Icon className="h-4 w-4 text-primary" />
+                  {feature.label}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {feature.description}
+                </span>
+              </div>
+            </label>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/index';
-import { accountsTable, transactionsTable } from '@/db/schema';
+import { accountsTable } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { revalidateDomains } from '@/lib/revalidate';
 import { getCurrentUserId } from '@/lib/auth';
@@ -63,10 +63,7 @@ export async function deleteAccount(id: string) {
 
   await requireOwnership(accountsTable, id, userId, 'account');
 
-  await db.transaction(async (tx) => {
-    await tx.delete(transactionsTable).where(eq(transactionsTable.account_id, id));
-    await tx.delete(accountsTable).where(and(eq(accountsTable.id, id), eq(accountsTable.user_id, userId)));
-  });
+  await db.delete(accountsTable).where(and(eq(accountsTable.id, id), eq(accountsTable.user_id, userId)));
 
   revalidateDomains('accounts');
 }

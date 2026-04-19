@@ -173,14 +173,8 @@ export default async function InvestmentsPage() {
   let brokerCash = 0;
   const brokerErrors: { broker: string; message: string }[] = [];
 
-  for (const connection of brokerConnections) {
-    if (connection.consecutive_failures >= 3 && connection.last_error) {
-      brokerErrors.push({
-        broker: BROKER_META[connection.broker as BrokerSource]?.label ?? connection.broker,
-        message: connection.last_error,
-      });
-    }
-  }
+  // Broker error tracking columns were removed in the net-worth pivot.
+  // Errors are surfaced in the catch branch below on a per-sync basis.
 
   const brokerResults = await Promise.allSettled(
     brokerConnections.map(async (connection) => {

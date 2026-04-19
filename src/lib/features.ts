@@ -1,32 +1,11 @@
 import {
-  ArrowLeftRight,
   Wallet,
   TrendingUp,
-  BarChart3,
-  Tags,
-  Target,
-  Trophy,
-  CreditCard,
-  Repeat,
-  Repeat2,
   Calculator,
-  Timer,
   type LucideIcon,
 } from "lucide-react";
 
-export type FeatureId =
-  | "transactions"
-  | "accounts"
-  | "investments"
-  | "reports"
-  | "categories"
-  | "budgets"
-  | "goals"
-  | "debts"
-  | "subscriptions"
-  | "zakat"
-  | "recurring"
-  | "retirement";
+export type FeatureId = "accounts" | "investments" | "zakat";
 
 export interface FeatureDefinition {
   readonly id: FeatureId;
@@ -37,18 +16,9 @@ export interface FeatureDefinition {
 }
 
 export const FEATURE_DEFINITIONS: readonly FeatureDefinition[] = [
-  { id: "transactions", label: "Transactions", description: "Track income and expenses", icon: ArrowLeftRight, route: "/dashboard/transactions" },
-  { id: "accounts", label: "Accounts", description: "Manage bank accounts and balances", icon: Wallet, route: "/dashboard/accounts" },
+  { id: "accounts", label: "Accounts", description: "Track bank accounts and balances", icon: Wallet, route: "/dashboard/accounts" },
   { id: "investments", label: "Investments", description: "Track stocks, crypto, and holdings", icon: TrendingUp, route: "/dashboard/investments" },
-  { id: "reports", label: "Reports", description: "View spending reports and analytics", icon: BarChart3, route: "/dashboard/reports" },
-  { id: "categories", label: "Categories", description: "Organise transactions by category", icon: Tags, route: "/dashboard/categories" },
-  { id: "budgets", label: "Budgets", description: "Set spending limits per category", icon: Target, route: "/dashboard/budgets" },
-  { id: "goals", label: "Goals", description: "Set savings targets and track progress", icon: Trophy, route: "/dashboard/goals" },
-  { id: "debts", label: "Debts", description: "Monitor loans and payoff progress", icon: CreditCard, route: "/dashboard/debts" },
-  { id: "subscriptions", label: "Subscriptions", description: "Track recurring payments", icon: Repeat, route: "/dashboard/subscriptions" },
   { id: "zakat", label: "Zakat", description: "Calculate annual zakat obligation", icon: Calculator, route: "/dashboard/zakat" },
-  { id: "recurring", label: "Recurring", description: "Auto-generate recurring transactions", icon: Repeat2, route: "/dashboard/recurring" },
-  { id: "retirement", label: "Retirement", description: "Plan and track retirement readiness", icon: Timer, route: "/dashboard/retirement" },
 ] as const;
 
 export const ALL_FEATURE_IDS: readonly FeatureId[] = FEATURE_DEFINITIONS.map((f) => f.id);

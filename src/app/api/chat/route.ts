@@ -4,30 +4,19 @@ import type { UIMessage } from "ai";
 import { getCurrentUserId } from "@/lib/auth";
 import { guardAiEnabled } from "@/lib/ai-guard";
 import { getAccountsWithDetails } from "@/db/queries/accounts";
-import { getBudgets } from "@/db/queries/budgets";
-import { getGoals } from "@/db/queries/goals";
-import { getDebtsSummary } from "@/db/queries/debts";
-import { getActiveSubscriptionsTotals, getUpcomingRenewals } from "@/db/queries/subscriptions";
 import { getUserBaseCurrency } from "@/db/queries/onboarding";
-import { getMonthlyIncomeExpenseTrend, getTotalsByType, getTotalSpendByCategoryThisMonth } from "@/db/queries/transactions";
 import { getPortfolioSnapshot, formatPortfolioContext } from "@/lib/portfolio-data";
-import { getMonthRange } from "@/lib/date";
+import { getOtherAssets } from "@/db/queries/other-assets";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { rateLimiters } from "@/lib/rate-limiter";
-import { getPostHogClient } from "@/lib/posthog-server";
-import { z } from "zod";
-import { parseJsonBody } from "@/lib/api-errors";
-import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  // Rate limit by user ID (already authenticated)
   const userId = await getCurrentUserId();
 
   const aiBlocked = await guardAiEnabled();
   if (aiBlocked) return aiBlocked;
 
   const rateLimitResult = rateLimiters.chat.consume(`chat:${userId}`);
-
   if (!rateLimitResult.allowed) {
     return new Response(
       JSON.stringify({ error: "Too many requests. Please slow down and try again later." }),
@@ -35,54 +24,13 @@ export async function POST(req: Request) {
     );
   }
 
-  const posthog = getPostHogClient();
-  posthog.capture({ distinctId: userId, event: "ai_chat_used" });
+  const { messages } = await req.json();
 
-  const bodySchema = z.object({
-    messages: z.array(z.object({
-      id: z.string(),
-      role: z.enum(["user", "assistant", "system"]),
-    }).passthrough()).min(1, "At least one message is required"),
-  });
-
-  const body = await parseJsonBody(req, bodySchema);
-  if (body instanceof NextResponse) return body;
-  const messages = body.messages as unknown as UIMessage[];
-  const thisMonth = getMonthRange(0);
-  const lastMonth = getMonthRange(1);
-
-  const [
-    accounts,
-    budgets,
-    goals,
-    debtSummary,
-    subscriptionTotals,
-    upcomingRenewals,
-    baseCurrency,
-    income,
-    expenses,
-    refunds,
-    lastMonthIncome,
-    lastMonthExpenses,
-    spendByCategory,
-    monthlyTrend,
-    portfolioSnapshot,
-  ] = await Promise.all([
+  const [accounts, baseCurrency, portfolioSnapshot, otherAssets] = await Promise.all([
     getAccountsWithDetails(userId),
-    getBudgets(userId),
-    getGoals(userId),
-    getDebtsSummary(userId),
-    getActiveSubscriptionsTotals(userId),
-    getUpcomingRenewals(userId, 14),
     getUserBaseCurrency(userId),
-    getTotalsByType(userId, "income", thisMonth.start, thisMonth.end),
-    getTotalsByType(userId, "expense", thisMonth.start, thisMonth.end),
-    getTotalsByType(userId, "refund", thisMonth.start, thisMonth.end),
-    getTotalsByType(userId, "income", lastMonth.start, lastMonth.end),
-    getTotalsByType(userId, "expense", lastMonth.start, lastMonth.end),
-    getTotalSpendByCategoryThisMonth(userId),
-    getMonthlyIncomeExpenseTrend(userId, 6),
     getPortfolioSnapshot(userId),
+    getOtherAssets(userId),
   ]);
 
   const investmentValue = portfolioSnapshot.totalValue;
@@ -95,12 +43,11 @@ export async function POST(req: Request) {
   const totalLiabilities = accounts
     .filter((a) => liabilityTypes.has(a.type ?? ""))
     .reduce((sum, a) => sum + Math.abs(a.balance), 0);
-  const netWorth = totalAssets - totalLiabilities + investmentValue;
-
-  const monthName = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric" }).format(new Date());
+  const otherAssetsValue = otherAssets.reduce((sum, a) => sum + a.value, 0);
+  const netWorth = totalAssets - totalLiabilities + investmentValue + otherAssetsValue;
 
   const financialContext = `
-## User's Financial Snapshot (${monthName})
+## User's Net Worth Snapshot
 Currency: ${baseCurrency}
 
 ### Net Worth
@@ -108,72 +55,27 @@ Currency: ${baseCurrency}
 - Total assets: ${formatCurrency(totalAssets, baseCurrency)}
 - Total liabilities: ${formatCurrency(totalLiabilities, baseCurrency)}
 - Investment value: ${formatCurrency(investmentValue, baseCurrency)}
+- Other assets (gold, property, etc.): ${formatCurrency(otherAssetsValue, baseCurrency)}
 
 ${portfolioContext}
 
-### Income & Expenses (This Month)
-- Income: ${formatCurrency(income, baseCurrency)}
-- Gross Spend: ${formatCurrency(expenses, baseCurrency)}
-- Refunds: ${formatCurrency(refunds, baseCurrency)}
-- Net Spend: ${formatCurrency(expenses - refunds, baseCurrency)}
-- Net: ${formatCurrency(income - (expenses - refunds), baseCurrency)}
-- Savings rate: ${income > 0 ? Math.round(((income - (expenses - refunds)) / income) * 100) : 0}%
-
-### Last Month Comparison
-- Last month income: ${formatCurrency(lastMonthIncome, baseCurrency)}
-- Last month expenses: ${formatCurrency(lastMonthExpenses, baseCurrency)}
-- Income change: ${lastMonthIncome > 0 ? Math.round(((income - lastMonthIncome) / lastMonthIncome) * 100) : 0}%
-- Expense change: ${lastMonthExpenses > 0 ? Math.round(((expenses - lastMonthExpenses) / lastMonthExpenses) * 100) : 0}%
-
 ### Accounts (${accounts.length})
-${accounts.map((a) => `- ${a.accountName} (${a.type}): ${formatCurrency(a.balance, baseCurrency)} — ${a.transactions} transactions`).join("\n")}
+${accounts.map((a) => `- ${a.accountName} (${a.type}): ${formatCurrency(a.balance, baseCurrency)}`).join("\n")}
 
-### Budgets (${budgets.length})
-${budgets.map((b) => {
-  const pct = b.budgetAmount > 0 ? Math.round((b.budgetSpent / b.budgetAmount) * 100) : 0;
-  return `- ${b.budgetCategory}: ${formatCurrency(b.budgetSpent, baseCurrency)} / ${formatCurrency(b.budgetAmount, baseCurrency)} (${pct}% used, ${b.budgetPeriod})`;
-}).join("\n")}
-
-### Spending by Category (This Month)
-${spendByCategory.map((c) => `- ${c.category}: ${formatCurrency(Number(c.total ?? 0), baseCurrency)}`).join("\n")}
-
-### 6-Month Cashflow Trend
-${monthlyTrend.map((m) => `- ${m.month}: Income ${formatCurrency(m.income, baseCurrency)}, Spend ${formatCurrency(m.expenses, baseCurrency)}, Refunds ${formatCurrency(m.refunds, baseCurrency)}, Net ${formatCurrency(m.net, baseCurrency)}`).join("\n")}
-
-### Savings Goals (${goals.length})
-${goals.map((g) => {
-  const pct = g.target_amount > 0 ? Math.round((g.saved_amount / g.target_amount) * 100) : 0;
-  const deadline = g.target_date ? ` — deadline: ${g.target_date}` : "";
-  return `- ${g.name}: ${formatCurrency(g.saved_amount, baseCurrency)} / ${formatCurrency(g.target_amount, baseCurrency)} (${pct}%)${deadline}`;
-}).join("\n")}
-
-### Debts
-- Active debts: ${debtSummary.activeCount}
-- Total remaining: ${formatCurrency(debtSummary.totalRemaining, baseCurrency)}
-- Total minimum payment: ${formatCurrency(debtSummary.totalMinimumPayment, baseCurrency)}/mo
-- Overall paid off: ${debtSummary.overallPct}%
-${debtSummary.active.map((d) => `- ${d.name}: ${formatCurrency(d.remaining_amount, baseCurrency)} remaining of ${formatCurrency(d.original_amount, baseCurrency)}`).join("\n")}
-
-### Subscriptions
-- Active: ${subscriptionTotals.count}
-- Monthly cost: ${formatCurrency(subscriptionTotals.monthly, baseCurrency)}
-- Yearly cost: ${formatCurrency(subscriptionTotals.yearly, baseCurrency)}
-${upcomingRenewals.map((s) => `- ${s.name}: ${formatCurrency(s.amount, baseCurrency)} due ${s.next_billing_date}`).join("\n")}
+### Other Assets (${otherAssets.length})
+${otherAssets.map((a) => `- ${a.name} (${a.asset_type}): ${formatCurrency(a.value, baseCurrency)}`).join("\n")}
 `.trim();
 
   const result = streamText({
     model: groq("llama-3.3-70b-versatile"),
-    system: `You are BalanceVisor AI, a helpful and knowledgeable personal finance assistant embedded in the user's finance dashboard. You have access to the user's real financial data shown below.
+    system: `You are BalanceVisor AI, a helpful net-worth and portfolio assistant embedded in the user's dashboard. You have access to the user's real financial data shown below.
 
 Your role:
-- Answer questions about the user's finances accurately using the data provided
-- Provide actionable, personalised advice based on their actual numbers
-- Highlight trends, risks, and opportunities
-- Be encouraging but honest — flag overspending or risks clearly
+- Answer questions about the user's net worth, accounts, investments, and other assets
+- Provide insight on asset allocation, liability exposure, and portfolio diversification
+- Keep responses concise and well-structured with markdown formatting
 - Use the user's currency (${baseCurrency}) when mentioning amounts
-- Keep responses concise — write short, flowing paragraphs instead of using markdown headings (##) or long bullet-point lists
-- Use bold text sparingly to highlight key names or numbers inline
-- If asked about something not in the data, say so clearly rather than guessing
+- If asked about something not in the data (like transactions or spending), explain that this app tracks net worth, not spending
 
 ${financialContext}`,
     messages: await convertToModelMessages(messages as UIMessage[]),

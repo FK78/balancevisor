@@ -1,33 +1,19 @@
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { OnboardingCategoryForm } from "@/components/OnboardingCategoryForm";
 import { getCurrentUserId } from "@/lib/auth";
 import { getAccountsWithDetails } from "@/db/queries/accounts";
-import { getCategoriesByUser } from "@/db/queries/categories";
-import { getBudgets } from "@/db/queries/budgets";
-import { getGoals } from "@/db/queries/goals";
-import { getDebts } from "@/db/queries/debts";
-import { getSubscriptions } from "@/db/queries/subscriptions";
 import { getBrokerConnections, getManualHoldings } from "@/db/queries/investments";
 import { getGroupsByUser } from "@/db/queries/investment-groups";
-import { getDefaultCategoryTemplates, getOnboardingState } from "@/db/queries/onboarding";
+import { getOnboardingState } from "@/db/queries/onboarding";
 import { addAccount, deleteAccount } from "@/db/mutations/accounts";
-import { addCategory } from "@/db/mutations/categories";
-import {
-  continueFromCategories,
-  skipOnboarding,
-} from "@/db/mutations/onboarding";
+import { skipOnboarding } from "@/db/mutations/onboarding";
 import { normalizeBaseCurrency, SUPPORTED_BASE_CURRENCIES } from "@/lib/currency";
 import { OnboardingLayout } from "@/components/OnboardingLayout";
 import { OnboardingAccountsStage } from "@/components/OnboardingAccountsStage";
-import { OnboardingCategoriesStage } from "@/components/OnboardingCategoriesStage";
 import { OnboardingFeaturesStage } from "@/components/OnboardingFeaturesStage";
 import { AccountQuickAdd } from "@/components/AccountQuickAdd";
-import { CategorySelector } from "@/components/CategorySelector";
 import { WelcomeStep } from "@/components/WelcomeStep";
-import { ReviewStep } from "@/components/ReviewStep";
 import { AccountMethodStep } from "@/components/AccountMethodStep";
-import { TrueLayerImportTrigger } from "@/components/TrueLayerImportTrigger";
 import {
   buildOnboardingHref,
   normalizeAccountMethod,
@@ -35,15 +21,16 @@ import {
   ONBOARDING_STAGE_META,
 } from "@/lib/onboarding-flow";
 
-async function addOnboardingCategory(formData: FormData) {
-  "use server";
-  await addCategory(formData);
-}
-
 export default async function OnboardingPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ step?: string; stage?: string; ai?: string; features?: string; method?: string }>;
+  searchParams?: Promise<{
+    step?: string;
+    stage?: string;
+    ai?: string;
+    features?: string;
+    method?: string;
+  }>;
 }) {
   const userId = await getCurrentUserId();
   const resolvedSearchParams = await searchParams;
@@ -53,20 +40,14 @@ export default async function OnboardingPage({
   );
   const aiEnabled = resolvedSearchParams?.ai !== "0";
 
-  const [onboardingState, accounts, categories, budgets, goals, debts, subscriptions, defaultTemplates] =
-    await Promise.all([
-      getOnboardingState(userId),
-      getAccountsWithDetails(userId),
-      getCategoriesByUser(userId),
-      getBudgets(userId),
-      getGoals(userId),
-      getDebts(userId),
-      getSubscriptions(userId),
-      getDefaultCategoryTemplates(),
-      getBrokerConnections(userId),
-      getManualHoldings(userId),
-      getGroupsByUser(userId),
-    ]);
+  const [onboardingState, accounts] = await Promise.all([
+    getOnboardingState(userId),
+    getAccountsWithDetails(userId),
+    // These are kept to warm caches for downstream dashboard queries
+    getBrokerConnections(userId),
+    getManualHoldings(userId),
+    getGroupsByUser(userId),
+  ]);
 
   if (onboardingState?.completed) {
     redirect("/dashboard");
@@ -101,8 +82,6 @@ export default async function OnboardingPage({
       skipAction={skipAction}
       canSkip={canUseTopSkip}
     >
-      <TrueLayerImportTrigger />
-
       {stage === "basics" && (
         <WelcomeStep
           baseCurrency={baseCurrency}
@@ -144,50 +123,21 @@ export default async function OnboardingPage({
         />
       )}
 
-      {stage === "categories" && (
-        <OnboardingCategoriesStage
-          aiEnabled={aiEnabled}
-          accountMethod={accountMethod}
-          backHref={buildOnboardingHref("accounts", { aiEnabled, method: accountMethod })}
-          categoriesSection={(
-            <div className="space-y-4">
-              <CategorySelector
-                templates={defaultTemplates}
-                existingCategories={categories}
-                onAddDefaults={async () => {
-                  "use server";
-                  const formData = new FormData();
-                  formData.set("use_default_categories", "on");
-                  formData.set("intent", "apply");
-                  if (!aiEnabled) formData.set("ai_enabled", "0");
-                  await continueFromCategories(formData);
-                }}
-                canAddDefaults={categories.length < defaultTemplates.length}
-              />
-
-              <OnboardingCategoryForm action={addOnboardingCategory} />
-            </div>
-          )}
-        />
-      )}
-
       {stage === "features" && (
         <OnboardingFeaturesStage
           aiEnabled={aiEnabled}
           accountMethod={accountMethod}
           initialSelectedFeatures={selectedFeatures}
-          backHref={buildOnboardingHref("categories", { aiEnabled, method: accountMethod })}
+          backHref={buildOnboardingHref("accounts", {
+            aiEnabled,
+            method: accountMethod,
+          })}
         />
       )}
 
       {stage === "review" && (
-        <ReviewStep
+        <ReviewSummary
           accountsCount={accounts.length}
-          categoriesCount={categories.length}
-          budgetsCount={budgets.length}
-          goalsCount={goals.length}
-          debtsCount={debts.length}
-          subscriptionsCount={subscriptions.length}
           selectedFeatures={selectedFeatures}
           aiEnabled={aiEnabled}
           backHref={buildOnboardingHref("features", {
@@ -198,5 +148,61 @@ export default async function OnboardingPage({
         />
       )}
     </OnboardingLayout>
+  );
+}
+
+function ReviewSummary({
+  accountsCount,
+  selectedFeatures,
+  aiEnabled,
+  backHref,
+}: {
+  accountsCount: number;
+  selectedFeatures: string[];
+  aiEnabled: boolean;
+  backHref: string;
+}) {
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <SummaryTile
+          label="Accounts"
+          value={accountsCount > 0 ? `${accountsCount} added` : "None yet"}
+        />
+        <SummaryTile
+          label="Focus areas"
+          value={selectedFeatures.length > 0 ? selectedFeatures.join(", ") : "All"}
+        />
+        <SummaryTile
+          label="AI assistance"
+          value={aiEnabled ? "Enabled" : "Disabled"}
+        />
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Button variant="ghost" asChild>
+          <a href={backHref}>Back</a>
+        </Button>
+        <form
+          action={async () => {
+            "use server";
+            await skipOnboarding(aiEnabled);
+          }}
+        >
+          <Button type="submit">Go to dashboard</Button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function SummaryTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--workspace-muted-surface)_26%,var(--card))] p-4">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-1 text-sm font-medium text-foreground">{value}</p>
+    </div>
   );
 }

@@ -4,18 +4,15 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { DashboardNav } from "@/components/DashboardNav";
 import { AuthButton } from "@/components/AuthButton";
-import { NotificationBellServer } from "@/components/NotificationBellServer";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { SettingsLink } from "@/components/SettingsLink";
 import { getCurrentUserId, isCurrentRequestMockAuthEnabled } from "@/lib/auth";
 import { hasCompletedOnboarding, getPendingFeatures } from "@/db/queries/onboarding";
-import { generateDueRecurringTransactions } from "@/lib/recurring-transactions";
 import { autoCalculateZakatIfDue } from "@/lib/zakat-auto-check";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { AiSettingsProvider } from "@/components/AiSettingsProvider";
 import { ChatPanelWrapper as ChatPanel } from "@/components/ChatPanelWrapper";
 import { BankSyncTrigger } from "@/components/BankSyncTrigger";
-import { EnrichmentTrigger } from "@/components/EnrichmentTrigger";
 import { NextFeatureButtonClient } from "@/components/NextFeatureButtonClient";
 import { isAiEnabled, getDisabledFeatures } from "@/db/queries/preferences";
 import { hasTrueLayerConnection } from "@/db/queries/truelayer";
@@ -39,7 +36,6 @@ export default async function DashboardLayout({
   ]);
 
   // Fire-and-forget: write ops that don't produce data needed for rendering
-  generateDueRecurringTransactions(userId).catch((err) => logger.warn('dashboard-layout', 'recurring generation failed', err));
   autoCalculateZakatIfDue(userId).catch((err) => logger.warn('dashboard-layout', 'zakat auto-check failed', err));
 
   if (!onboardingComplete && !isMockRequest) {
@@ -65,13 +61,9 @@ export default async function DashboardLayout({
             <DashboardNav />
           </div>
           <div className="flex items-center gap-1.5">
-            <EnrichmentTrigger />
             <ChatPanel />
             <SettingsLink />
             <ThemeToggle />
-            <Suspense>
-              <NotificationBellServer />
-            </Suspense>
             <div className="hidden xl:block">
               <Suspense>
                 <AuthButton />

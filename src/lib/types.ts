@@ -1,70 +1,32 @@
 /**
- * Shared domain types for the BalanceVisor application.
+ * Shared domain types for the BalanceVisor net-worth tracker.
  *
  * These types are derived from the Drizzle ORM schema to ensure consistency
- * across the codebase. Use these types instead of defining local duplicates.
+ * across the codebase.
  */
 
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import type {
   accountsTable,
-  transactionsTable,
-  categoriesTable,
-  budgetsTable,
-  goalsTable,
-  debtsTable,
-  debtPaymentsTable,
-  subscriptionsTable,
-  categorisationRulesTable,
   investmentGroupsTable,
   manualHoldingsTable,
   holdingSalesTable,
   truelayerConnectionsTable,
   brokerConnectionsTable,
   userOnboardingTable,
-  budgetAlertPreferencesTable,
-  budgetNotificationsTable,
-  transactionSplitsTable,
   netWorthSnapshotsTable,
-  sharedAccessTable,
-  defaultCategoryTemplatesTable,
   zakatSettingsTable,
   zakatCalculationsTable,
-  retirementProfilesTable,
   dashboardLayoutsTable,
-  merchantMappingsTable,
+  otherAssetsTable,
 } from "@/db/schema";
 
 // ---------------------------------------------------------------------------
-// Database model types (auto-generated from Drizzle schema)
+// Database model types
 // ---------------------------------------------------------------------------
 
 export type Account = InferSelectModel<typeof accountsTable>;
 export type NewAccount = InferInsertModel<typeof accountsTable>;
-
-export type Transaction = InferSelectModel<typeof transactionsTable>;
-export type NewTransaction = InferInsertModel<typeof transactionsTable>;
-
-export type Category = InferSelectModel<typeof categoriesTable>;
-export type NewCategory = InferInsertModel<typeof categoriesTable>;
-
-export type Budget = InferSelectModel<typeof budgetsTable>;
-export type NewBudget = InferInsertModel<typeof budgetsTable>;
-
-export type Goal = InferSelectModel<typeof goalsTable>;
-export type NewGoal = InferInsertModel<typeof goalsTable>;
-
-export type Debt = InferSelectModel<typeof debtsTable>;
-export type NewDebt = InferInsertModel<typeof debtsTable>;
-
-export type DebtPayment = InferSelectModel<typeof debtPaymentsTable>;
-export type NewDebtPayment = InferInsertModel<typeof debtPaymentsTable>;
-
-export type Subscription = InferSelectModel<typeof subscriptionsTable>;
-export type NewSubscription = InferInsertModel<typeof subscriptionsTable>;
-
-export type CategorisationRule = InferSelectModel<typeof categorisationRulesTable>;
-export type NewCategorisationRule = InferInsertModel<typeof categorisationRulesTable>;
 
 export type InvestmentGroup = InferSelectModel<typeof investmentGroupsTable>;
 export type NewInvestmentGroup = InferInsertModel<typeof investmentGroupsTable>;
@@ -84,56 +46,22 @@ export type NewBrokerConnection = InferInsertModel<typeof brokerConnectionsTable
 export type UserOnboarding = InferSelectModel<typeof userOnboardingTable>;
 export type NewUserOnboarding = InferInsertModel<typeof userOnboardingTable>;
 
-export type BudgetAlertPreference = InferSelectModel<typeof budgetAlertPreferencesTable>;
-export type NewBudgetAlertPreference = InferInsertModel<typeof budgetAlertPreferencesTable>;
-
-export type BudgetNotification = InferSelectModel<typeof budgetNotificationsTable>;
-export type NewBudgetNotification = InferInsertModel<typeof budgetNotificationsTable>;
-
-export type TransactionSplit = InferSelectModel<typeof transactionSplitsTable>;
-export type NewTransactionSplit = InferInsertModel<typeof transactionSplitsTable>;
-
 export type NetWorthSnapshot = InferSelectModel<typeof netWorthSnapshotsTable>;
 export type NewNetWorthSnapshot = InferInsertModel<typeof netWorthSnapshotsTable>;
-
-export type SharedAccess = InferSelectModel<typeof sharedAccessTable>;
-export type NewSharedAccess = InferInsertModel<typeof sharedAccessTable>;
-
-export type DefaultCategoryTemplate = InferSelectModel<typeof defaultCategoryTemplatesTable>;
-export type NewDefaultCategoryTemplate = InferInsertModel<typeof defaultCategoryTemplatesTable>;
 
 export type ZakatSettings = InferSelectModel<typeof zakatSettingsTable>;
 export type NewZakatSettings = InferInsertModel<typeof zakatSettingsTable>;
 export type ZakatCalculation = InferSelectModel<typeof zakatCalculationsTable>;
 export type NewZakatCalculation = InferInsertModel<typeof zakatCalculationsTable>;
 
-export type RetirementProfileRow = InferSelectModel<typeof retirementProfilesTable>;
 export type DashboardLayoutRow = InferSelectModel<typeof dashboardLayoutsTable>;
 
-export type MerchantMapping = InferSelectModel<typeof merchantMappingsTable>;
-export type NewMerchantMapping = InferInsertModel<typeof merchantMappingsTable>;
+export type OtherAsset = InferSelectModel<typeof otherAssetsTable>;
+export type NewOtherAsset = InferInsertModel<typeof otherAssetsTable>;
 
 // ---------------------------------------------------------------------------
-// UI-specific types (with decrypted fields and computed values)
+// UI-specific types
 // ---------------------------------------------------------------------------
-
-export type TransactionWithDetails = {
-  id: string;
-  accountName: string;
-  account_id: string | null;
-  type: Transaction["type"];
-  amount: number;
-  category: string | null;
-  category_id: string | null;
-  description: string;
-  date: string | null;
-  is_recurring: boolean;
-  transfer_account_id: string | null;
-  is_split: boolean;
-  refund_for_transaction_id: string | null;
-  category_source: string | null;
-  merchant_name: string | null;
-};
 
 export type AccountWithDetails = {
   id: string;
@@ -145,75 +73,6 @@ export type AccountWithDetails = {
   user_id: string;
   truelayer_id: string | null;
   truelayer_connection_id: string | null;
-  transactions: number;
-  isShared: boolean;
-  sharedBy: string | null;
-};
-
-export type BudgetWithProgress = {
-  id: string;
-  budgetCategory: string;
-  budgetAmount: number;
-  budgetSpent: number;
-  budgetPeriod: string | null;
-};
-
-export type GoalWithProgress = {
-  id: string;
-  name: string;
-  target_amount: number;
-  saved_amount: number;
-  target_date: string | null;
-  icon: string | null;
-  color: string;
-  created_at: Date;
-};
-
-export type DebtWithProgress = {
-  id: string;
-  name: string;
-  original_amount: number;
-  remaining_amount: number;
-  interest_rate: number;
-  minimum_payment: number;
-  due_date: string | null;
-  lender: string | null;
-  color: string;
-  created_at: Date;
-};
-
-export type SubscriptionWithDetails = {
-  id: string;
-  name: string;
-  amount: number;
-  currency: string;
-  billing_cycle: "weekly" | "monthly" | "quarterly" | "yearly";
-  next_billing_date: string;
-  category_id: string | null;
-  account_id: string;
-  url: string | null;
-  notes: string | null;
-  is_active: boolean;
-  color: string;
-  icon: string | null;
-  created_at: Date;
-};
-
-export type CategoryWithColor = {
-  id: string;
-  name: string;
-  color: string;
-  icon: string | null;
-  user_id: string;
-};
-
-export type SplitDetail = {
-  id: string;
-  category_id: string | null;
-  categoryName: string | null;
-  categoryColor: string | null;
-  amount: number;
-  description: string | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -221,41 +80,24 @@ export type SplitDetail = {
 // ---------------------------------------------------------------------------
 
 export type AccountType = "currentAccount" | "savings" | "creditCard" | "investment";
-export type TransactionType = "income" | "expense" | "transfer" | "sale" | "refund";
-export type Period = "monthly" | "weekly";
-export type RecurringPattern = "daily" | "weekly" | "biweekly" | "monthly" | "yearly";
 export type InvestmentType = "stock" | "crypto" | "etf" | "real_estate" | "private_equity" | "other";
-export type BillingCycle = "weekly" | "monthly" | "quarterly" | "yearly";
-export type SharedPermission = "view" | "edit";
-export type SharedStatus = "pending" | "accepted" | "declined";
-export type SharedResourceType = "account" | "budget";
 
 // ---------------------------------------------------------------------------
-// Data export / import
+// Data export
 // ---------------------------------------------------------------------------
 
-export const EXPORT_VERSION = 1;
+export const EXPORT_VERSION = 2;
 
 export type ExportData = {
   version: number;
   exported_at: string;
   accounts: Account[];
-  categories: Category[];
-  transactions: Transaction[];
-  transactionSplits: TransactionSplit[];
-  budgets: Budget[];
-  budgetAlertPreferences: BudgetAlertPreference[];
-  goals: Goal[];
-  debts: Debt[];
-  debtPayments: DebtPayment[];
   investmentGroups: InvestmentGroup[];
   manualHoldings: ManualHolding[];
   holdingSales: HoldingSale[];
-  subscriptions: Subscription[];
   netWorthSnapshots: NetWorthSnapshot[];
-  categorisationRules: CategorisationRule[];
   zakatSettings: ZakatSettings[];
   zakatCalculations: ZakatCalculation[];
-  retirementProfile: RetirementProfileRow | null;
+  otherAssets: OtherAsset[];
   dashboardLayouts: DashboardLayoutRow[];
 };

@@ -42,7 +42,6 @@ import { useTheme } from "@/components/ThemeProvider";
 import { toDateString } from "@/lib/date";
 import { MFASettings } from "@/components/MFASettings";
 import { ChangePasswordForm } from "@/components/ChangePasswordForm";
-import { ImportDataDialog } from "@/components/ImportDataDialog";
 import { Switch } from "@/components/ui/switch";
 import {
   ActionShelf,
@@ -493,7 +492,6 @@ export function SettingsClient({
               )}
               Export All Data (JSON)
             </Button>
-            <ImportDataDialog onImported={() => router.refresh()} />
           </div>
           <p className="text-xs text-muted-foreground">
             Export downloads all your data as unencrypted JSON. Import merges data from a

@@ -1,6 +1,6 @@
 import { db } from '@/index';
-import { defaultCategoryTemplatesTable, userOnboardingTable } from '@/db/schema';
-import { asc, eq } from 'drizzle-orm';
+import { userOnboardingTable } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { DEFAULT_BASE_CURRENCY, normalizeBaseCurrency } from '@/lib/currency';
 
 export async function getOnboardingState(userId: string) {
@@ -22,11 +22,14 @@ export async function getUserBaseCurrency(userId: string) {
   return normalizeBaseCurrency(state?.base_currency ?? DEFAULT_BASE_CURRENCY);
 }
 
-export async function getDefaultCategoryTemplates() {
-  return await db.select()
-    .from(defaultCategoryTemplatesTable)
-    .where(eq(defaultCategoryTemplatesTable.is_active, true))
-    .orderBy(asc(defaultCategoryTemplatesTable.sort_order), asc(defaultCategoryTemplatesTable.id));
+function parsePendingFeatures(raw: string | null | undefined): string[] | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function getPendingFeatures(userId: string): Promise<string[] | null> {
@@ -35,5 +38,5 @@ export async function getPendingFeatures(userId: string): Promise<string[] | nul
     .where(eq(userOnboardingTable.user_id, userId))
     .limit(1);
 
-  return (row?.pending_features as string[] | undefined) ?? null;
+  return parsePendingFeatures(row?.pending_features ?? null);
 }

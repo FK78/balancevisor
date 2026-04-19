@@ -134,9 +134,6 @@ export const rateLimiters = {
   /** Server actions (transactions, accounts): 20 requests per minute. */
   serverAction: new RateLimiter({ maxRequests: 20, windowMs: 60 * 1000 }),
 
-  /** CSV import: 5 requests per 10 minutes (expensive operation). */
-  import: new RateLimiter({ maxRequests: 5, windowMs: 10 * 60 * 1000 }),
-
   /** TrueLayer connect: 3 requests per 10 minutes. */
   truelayer: new RateLimiter({ maxRequests: 3, windowMs: 10 * 60 * 1000 }),
 
@@ -145,33 +142,6 @@ export const rateLimiters = {
 
   /** Portfolio AI analysis: 5 requests per 10 minutes. */
   portfolioAnalysis: new RateLimiter({ maxRequests: 5, windowMs: 10 * 60 * 1000 }),
-
-  /** Monthly AI report: 5 requests per 10 minutes. */
-  monthlyReport: new RateLimiter({ maxRequests: 5, windowMs: 10 * 60 * 1000 }),
-
-  /** AI debt advisor: 5 requests per 10 minutes. */
-  debtAdvisor: new RateLimiter({ maxRequests: 5, windowMs: 10 * 60 * 1000 }),
-
-  /** Weekly spending digest: 5 requests per 10 minutes. */
-  weeklyDigest: new RateLimiter({ maxRequests: 5, windowMs: 10 * 60 * 1000 }),
-
-  /** Subscription savings advisor: 5 requests per 10 minutes. */
-  subscriptionAdvisor: new RateLimiter({ maxRequests: 5, windowMs: 10 * 60 * 1000 }),
-
-  /** Savings tips: 5 requests per 10 minutes. */
-  savingsTips: new RateLimiter({ maxRequests: 5, windowMs: 10 * 60 * 1000 }),
-
-  /** Account health check: 5 requests per 10 minutes. */
-  accountHealth: new RateLimiter({ maxRequests: 5, windowMs: 10 * 60 * 1000 }),
-
-  /** Retirement planner AI: 5 requests per 10 minutes. */
-  retirementPlanner: new RateLimiter({ maxRequests: 5, windowMs: 10 * 60 * 1000 }),
-
-  /** Funny milestones AI copy: 3 requests per 10 minutes. */
-  funnyMilestones: new RateLimiter({ maxRequests: 3, windowMs: 10 * 60 * 1000 }),
-
-  /** Switching advisor AI: 5 requests per 10 minutes. */
-  switchingAdvisor: new RateLimiter({ maxRequests: 5, windowMs: 10 * 60 * 1000 }),
 
   /** Dashboard layout save/delete: 20 requests per minute. */
   dashboardLayout: new RateLimiter({ maxRequests: 20, windowMs: 60 * 1000 }),

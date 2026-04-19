@@ -1,16 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  ArrowLeftRight,
   Wallet,
   TrendingUp,
-  MoreHorizontal,
+  Calculator,
+  Settings,
 } from "lucide-react";
-import { MobileNavDrawer } from "@/components/MobileNavDrawer";
 import { useFeatureFlags } from "@/components/FeatureFlagsProvider";
 import type { FeatureId } from "@/lib/features";
 import { cn } from "@/lib/utils";
@@ -23,23 +21,11 @@ interface BottomNavItem {
 }
 
 const bottomNavItems: BottomNavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/transactions", label: "Transactions", icon: ArrowLeftRight, featureId: "transactions" },
+  { href: "/dashboard", label: "Home", icon: LayoutDashboard },
   { href: "/dashboard/accounts", label: "Accounts", icon: Wallet, featureId: "accounts" },
-  { href: "/dashboard/investments", label: "Investments", icon: TrendingUp, featureId: "investments" },
-];
-
-const drawerRoutes = [
-  "/dashboard/reports",
-  "/dashboard/categories",
-  "/dashboard/budgets",
-  "/dashboard/goals",
-  "/dashboard/debts",
-  "/dashboard/subscriptions",
-  "/dashboard/zakat",
-  "/dashboard/recurring",
-  "/dashboard/retirement",
-  "/dashboard/settings",
+  { href: "/dashboard/investments", label: "Invest", icon: TrendingUp, featureId: "investments" },
+  { href: "/dashboard/zakat", label: "Zakat", icon: Calculator, featureId: "zakat" },
+  { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
 function isActive(href: string, pathname: string | null) {
@@ -51,85 +37,42 @@ function isActive(href: string, pathname: string | null) {
 
 export function MobileBottomNav() {
   const pathname = usePathname();
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const { isFeatureEnabled } = useFeatureFlags();
 
-  const visibleBottomItems = bottomNavItems.filter((item) => !item.featureId || isFeatureEnabled(item.featureId));
-  const colCount = visibleBottomItems.length + 1;
-
-  const moreIsActive = drawerRoutes.some(
-    (route) => pathname?.startsWith(route)
-  );
+  const visibleItems = bottomNavItems.filter((item) => !item.featureId || isFeatureEnabled(item.featureId));
+  const colCount = visibleItems.length;
 
   return (
-    <>
-      <nav
-        aria-label="Primary"
-        className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--background)_88%,var(--card)_12%)]/95 backdrop-blur-xl xl:hidden"
+    <nav
+      aria-label="Primary"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--workspace-card-border)] bg-[color-mix(in_srgb,var(--background)_88%,var(--card)_12%)]/95 backdrop-blur-xl xl:hidden"
+    >
+      <div
+        className="mx-auto grid max-w-lg px-2 pt-2"
+        style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)`, paddingBottom: "calc(env(safe-area-inset-bottom) + 0.45rem)" }}
       >
-        <div
-          className="mx-auto grid max-w-lg px-2 pt-2"
-          style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)`, paddingBottom: "calc(env(safe-area-inset-bottom) + 0.45rem)" }}
-        >
-          {visibleBottomItems.map((item) => {
-            const active = isActive(item.href, pathname);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex min-h-[70px] flex-col items-center justify-center gap-1 rounded-[1.15rem] px-2 py-2 transition-all",
-                  active
-                    ? "bg-[color-mix(in_srgb,var(--workspace-shell)_10%,var(--card))] text-foreground shadow-sm"
-                    : "text-muted-foreground hover:bg-card/70 hover:text-foreground",
-                )}
-              >
-                <item.icon
-                  className="h-[22px] w-[22px]"
-                  strokeWidth={active ? 2.2 : 1.5}
-                />
-                <span
-                  className={`text-[10px] leading-tight ${
-                    active ? "font-semibold" : "font-normal"
-                  }`}
-                >
-                  {item.label}
-                </span>
-              </Link>
-            );
-          })}
-
-          {/* More tab */}
-          <button
-            onClick={() => setDrawerOpen(true)}
-            type="button"
-            aria-label="More"
-            aria-expanded={drawerOpen}
-            className={cn(
-              "flex min-h-[70px] flex-col items-center justify-center gap-1 rounded-[1.15rem] px-2 py-2 transition-all",
-              moreIsActive || drawerOpen
-                ? "bg-[color-mix(in_srgb,var(--workspace-shell)_10%,var(--card))] text-foreground shadow-sm"
-                : "text-muted-foreground hover:bg-card/70 hover:text-foreground",
-            )}
-          >
-            <MoreHorizontal
-              className="h-[22px] w-[22px]"
-              strokeWidth={moreIsActive || drawerOpen ? 2.2 : 1.5}
-            />
-            <span
+        {visibleItems.map((item) => {
+          const active = isActive(item.href, pathname);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={active ? "page" : undefined}
               className={cn(
-                "text-[10px] leading-tight",
-                moreIsActive || drawerOpen ? "font-semibold" : "font-normal",
+                "flex min-h-[70px] flex-col items-center justify-center gap-1 rounded-[1.15rem] px-2 py-2 transition-all",
+                active
+                  ? "bg-[color-mix(in_srgb,var(--workspace-shell)_10%,var(--card))] text-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-card/70 hover:text-foreground",
               )}
             >
-              More
-            </span>
-          </button>
-        </div>
-      </nav>
-
-      <MobileNavDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />
-    </>
+              <item.icon className="h-[22px] w-[22px]" strokeWidth={active ? 2.2 : 1.5} />
+              <span className={`text-[10px] leading-tight ${active ? "font-semibold" : "font-normal"}`}>
+                {item.label}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
   );
 }

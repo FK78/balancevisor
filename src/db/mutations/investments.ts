@@ -1,7 +1,6 @@
 "use server";
 
 import { db } from "@/index";
-import { createTransaction } from "@/db/mutations/transactions";
 import { brokerConnectionsTable, manualHoldingsTable, holdingSalesTable, accountsTable } from "@/db/schema";
 import { eq, and, isNotNull, sql } from "drizzle-orm";
 import { revalidateDomains } from "@/lib/revalidate";
@@ -97,11 +96,7 @@ export async function updateBrokerSyncStatus(
   if (result.success) {
     await db
       .update(brokerConnectionsTable)
-      .set({
-        last_synced_at: new Date(),
-        last_error: null,
-        consecutive_failures: 0,
-      })
+      .set({ last_synced_at: new Date() })
       .where(
         and(
           eq(brokerConnectionsTable.user_id, userId),
@@ -109,18 +104,8 @@ export async function updateBrokerSyncStatus(
         ),
       );
   } else {
-    await db
-      .update(brokerConnectionsTable)
-      .set({
-        last_error: result.error.slice(0, 500),
-        consecutive_failures: sql`${brokerConnectionsTable.consecutive_failures} + 1`,
-      })
-      .where(
-        and(
-          eq(brokerConnectionsTable.user_id, userId),
-          eq(brokerConnectionsTable.broker, broker),
-        ),
-      );
+    // error tracking columns removed in net-worth pivot; log only
+    logger.warn("broker.sync", `${broker} sync failed`, { error: result.error.slice(0, 500) });
   }
 }
 
@@ -387,24 +372,8 @@ export async function recordHoldingSale(formData: FormData) {
       notes,
     });
 
-    // If cashAccountId, create a transaction
+    // If cashAccountId, credit the cash account with proceeds from the sale
     if (cashAccountId) {
-      const description = `Sold ${quantity} ${holding.ticker ? holding.ticker : holding.name}`;
-      await createTransaction({
-        type: 'sale',
-        amount: totalAmount,
-        description,
-        date: toDateString(date),
-        account_id: cashAccountId,
-        category_id: null,
-        is_recurring: false,
-        recurring_pattern: null,
-        next_recurring_date: null,
-        transfer_account_id: null,
-        is_split: false,
-      }, userId, tx);
-
-      // Update account balance
       await tx.update(accountsTable)
         .set({ balance: sql`${accountsTable.balance} + ${totalAmount}` })
         .where(eq(accountsTable.id, cashAccountId));
@@ -412,7 +381,7 @@ export async function recordHoldingSale(formData: FormData) {
   });
 
   if (cashAccountId) {
-    revalidateDomains('transactions', 'accounts');
+    revalidateDomains('accounts');
   }
   revalidateInvestments();
 }
